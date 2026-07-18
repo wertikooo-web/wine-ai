@@ -7,8 +7,13 @@
 // src/realtime/realtimePrompt.js, the same injection point the transport
 // core already exposed for its original (unrelated) persona.
 
-const SUPPORTED_LANGUAGES = ['ru', 'ro', 'en'];
+const SUPPORTED_LANGUAGES = ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja'];
 const DEFAULT_LANGUAGE = 'auto';
+
+const LANGUAGE_NAMES = {
+    ru: 'Русский', ro: 'Română', en: 'English', fr: 'Français',
+    it: 'Italiano', es: 'Español', de: 'Deutsch', zh: '中文', ja: '日本語',
+};
 
 // Spoken once at the start of a demo session (see docs/ARCHITECTURE.md and
 // AGENTS.md's welcome-message note). Configurable, not hardcoded into the
@@ -34,7 +39,7 @@ const CORE_PERSONA_PROMPT = `РОЛЬ
 
 ЯЗЫК
 
-Ты свободно говоришь на русском, румынском и английском языках.
+Ты свободно говоришь на русском, румынском, английском, французском, итальянском, испанском, немецком, китайском и японском языках.
 
 Автоматически определяй язык собеседника и отвечай на языке его последней ясно понятой реплики.
 
@@ -181,6 +186,7 @@ function defaultPersonaPrompt() {
 
 module.exports = {
     SUPPORTED_LANGUAGES,
+    LANGUAGE_NAMES,
     DEFAULT_LANGUAGE,
     WELCOME_MESSAGE,
     CORE_PERSONA_PROMPT,

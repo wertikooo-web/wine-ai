@@ -158,6 +158,21 @@
           <input type="text" id="textInput" placeholder="Или напишите вопрос текстом… / Or type your question…" disabled>
           <button class="secondary" id="textSendBtn" disabled>Send</button>
         </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+          <span class="k" style="font-size:13px;">Language</span>
+          <select id="langSelect" disabled style="flex:1; padding:6px; border-radius:6px; border:1px solid var(--border);">
+            <option value="auto" selected>Auto-detect</option>
+            <option value="ru">Русский</option>
+            <option value="ro">Română</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="it">Italiano</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
         <div class="row"><span class="k">Microphone</span><span class="v" id="micState">idle</span></div>
         <div class="row"><span class="k">Who's speaking</span><span class="v" id="speakerState">—</span></div>
         <div class="row"><span class="k">Current language</span><span class="v" id="langState">auto</span></div>
@@ -177,9 +192,11 @@
           <button class="secondary" id="kbReindexBtn">Run indexing (npm run knowledge:index)</button>
           <button class="secondary" id="kbRefreshBtn">Refresh</button>
         </div>
-        <p style="font-size:12px; color:var(--muted); margin-top:10px;">
-          To add a source in this v1: copy a .md/.txt/.json/.csv file into <code>knowledge/source/</code> on the server, then click "Run indexing". A browser upload endpoint is intentionally out of scope for v1 — see README.
-        </p>
+        <div id="kbDropZone" style="margin-top:14px; border:2px dashed var(--border); border-radius:10px; padding:20px; text-align:center; font-size:13px; color:var(--muted); cursor:pointer;">
+          Перетащите сюда .md / .txt / .json / .csv файл — или нажмите, чтобы выбрать
+          <input type="file" id="kbFileInput" accept=".md,.txt,.json,.csv" style="display:none;" multiple>
+        </div>
+        <div id="kbUploadStatus" style="font-size:12px; margin-top:8px;"></div>
       </div>
       <div class="card">
         <h2>Sources</h2>
@@ -321,11 +338,19 @@
     return `${proto}//${location.host}/realtime`;
   }
 
+  function sendSessionStart() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const language = el('langSelect').value;
+    const payload = { type: 'session.start', sampleRate: inputSampleRate, include_prompt_debug: true };
+    if (language && language !== 'auto') payload.language = language;
+    ws.send(JSON.stringify(payload));
+  }
+
   function connect() {
     ws = new WebSocket(socketUrl());
     ws.binaryType = 'arraybuffer';
 
-    ws.addEventListener('open', () => {
+    ws.addEventListener('open', async () => {
       setDot('wsDot', 'ok');
       el('wsLabel').textContent = 'connected';
       el('dWs').textContent = 'open';
@@ -334,8 +359,20 @@
       el('pttBtn').disabled = false;
       el('textInput').disabled = false;
       el('textSendBtn').disabled = false;
-      ws.send(JSON.stringify({ type: 'session.start', sampleRate: 16000, include_prompt_debug: true }));
-      log('ws_open', {});
+      el('langSelect').disabled = false;
+      // Acquire the mic (and therefore know its real AudioContext sample
+      // rate) BEFORE declaring session.start's sampleRate — sending a
+      // hardcoded 16000 here regardless of what the browser actually
+      // captures at is exactly the kind of silent mismatch that sounds like
+      // "the mic doesn't hear me" instead of a clear error. Text-only usage
+      // still works fine if mic permission is denied/unavailable.
+      try {
+        await ensureMic();
+      } catch (err) {
+        log('mic_prewarm_error', { message: err.message });
+      }
+      sendSessionStart();
+      log('ws_open', { sampleRate: inputSampleRate });
     });
 
     ws.addEventListener('close', () => {
@@ -347,6 +384,7 @@
       el('pttBtn').disabled = true;
       el('textInput').disabled = true;
       el('textSendBtn').disabled = true;
+      el('langSelect').disabled = true;
       log('ws_close', {});
     });
 
@@ -434,10 +472,30 @@
   }
 
   // ---- Microphone capture (PTT) ----
+  let inputSampleRate = 16000;
+
   async function ensureMic() {
     if (micStream) return;
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
+    // echoCancellation/noiseSuppression/autoGainControl are WebRTC's voice
+    // processing pipeline, tuned for calls, not STT — AGC in particular can
+    // misfire as a noise gate and zero out normal-volume speech entirely on
+    // some hardware, which looks exactly like "the mic doesn't hear me" even
+    // though the stream is technically open. Disabled so the model gets the
+    // raw signal.
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, sampleRate: 16000, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    // Never assume the browser actually honored the requested 16000Hz —
+    // send the AudioContext's real sample rate to the server instead of a
+    // hardcoded value. A silent mismatch here (declaring 16000 while
+    // actually capturing at, say, 48000) sends the model garbled/sped-up
+    // audio, which sounds like "not hearing" the user rather than an
+    // obvious error.
+    inputSampleRate = audioContext.sampleRate;
+    if (inputSampleRate !== 16000 && inputSampleRate !== 24000) {
+      log('mic_sample_rate_unsupported', { actual: inputSampleRate });
+    }
     const source = audioContext.createMediaStreamSource(micStream);
     processor = audioContext.createScriptProcessor(2048, 1, 1);
     processor.onaudioprocess = (e) => {
@@ -463,6 +521,17 @@
 
   function startTurn() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    // Stop any currently-playing assistant audio and flip the UI to
+    // "listening" IMMEDIATELY on press — this is the client's own
+    // AudioContext, so there is no reason to wait for a server round-trip
+    // (session.interrupt -> response.cancelled) before silencing it. The
+    // server-side cancellation (see realtimeServer.js's cancelCurrent(),
+    // triggered automatically by the input_audio.start sent below) still
+    // happens and stops new audio.chunk events from arriving; this just
+    // makes the *local* stop instant instead of network-latency-bound.
+    clearPlayback();
+    el('avatarBox').classList.remove('speaking');
+    el('speakerState').textContent = 'you';
     ensureMic().then(() => {
       isHolding = true;
       el('micState').textContent = 'recording';
@@ -483,6 +552,8 @@
 
   function interrupt() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    clearPlayback();
+    el('avatarBox').classList.remove('speaking');
     ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'manual_stop' }));
   }
 
@@ -490,6 +561,12 @@
     const input = el('textInput');
     const text = input.value.trim();
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+    // Same instant local stop as PTT barge-in — submitting text also
+    // interrupts any in-progress reply server-side (submitTextInput() goes
+    // through startInput()'s cancelCurrent()), so the client shouldn't wait
+    // for the round-trip either.
+    clearPlayback();
+    el('avatarBox').classList.remove('speaking');
     // The server echoes this back as its own transcript.user event (same
     // path voice input uses), so the transcript panel stays a single
     // source of truth instead of the UI adding its own optimistic copy.
@@ -560,6 +637,14 @@
   el('stopBtn').disabled = false;
   el('textSendBtn').addEventListener('click', sendTextTurn);
   el('textInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTextTurn(); });
+  el('langSelect').addEventListener('change', () => {
+    const language = el('langSelect').value;
+    el('langState').textContent = language === 'auto' ? 'auto' : language;
+    // Re-applies session.start with the new language preference — allowed
+    // any time the session is idle (see realtimeServer.js's
+    // session_config_busy guard); harmless no-op if not yet connected.
+    sendSessionStart();
+  });
 
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', startTurn);
@@ -607,6 +692,69 @@
     } finally {
       el('kbReindexBtn').disabled = false;
     }
+  });
+
+  // ---- Knowledge base file upload (drag & drop) ----
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('file_read_failed'));
+      reader.readAsText(file);
+    });
+  }
+
+  async function uploadKnowledgeFile(file) {
+    const statusEl = el('kbUploadStatus');
+    statusEl.textContent = `Uploading ${file.name}...`;
+    statusEl.style.color = 'var(--muted)';
+    try {
+      const content = await readFileAsText(file);
+      const res = await fetch('/api/knowledge/upload', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, content }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        statusEl.textContent = `${file.name}: ${data.error || 'upload failed'}${data.allowed ? ' (allowed: ' + data.allowed.join(', ') + ')' : ''}`;
+        statusEl.style.color = 'var(--err)';
+        return;
+      }
+      statusEl.textContent = `${file.name} uploaded — ${data.document_count} documents, ${data.chunk_count} chunks indexed.`;
+      statusEl.style.color = 'var(--ok)';
+      await loadKnowledgeStatus();
+    } catch (err) {
+      statusEl.textContent = `${file.name}: ${err.message}`;
+      statusEl.style.color = 'var(--err)';
+      log('knowledge_upload_error', { message: err.message });
+    }
+  }
+
+  async function uploadKnowledgeFiles(fileList) {
+    for (const file of fileList) {
+      await uploadKnowledgeFile(file); // sequential — each call already triggers a full reindex
+    }
+  }
+
+  const kbDropZone = el('kbDropZone');
+  const kbFileInput = el('kbFileInput');
+  kbDropZone.addEventListener('click', () => kbFileInput.click());
+  kbFileInput.addEventListener('change', () => {
+    if (kbFileInput.files.length) uploadKnowledgeFiles(kbFileInput.files);
+    kbFileInput.value = '';
+  });
+  kbDropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    kbDropZone.style.borderColor = 'var(--wine)';
+  });
+  kbDropZone.addEventListener('dragleave', () => {
+    kbDropZone.style.borderColor = 'var(--border)';
+  });
+  kbDropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    kbDropZone.style.borderColor = 'var(--border)';
+    if (e.dataTransfer.files.length) uploadKnowledgeFiles(e.dataTransfer.files);
   });
 
   // ---- Knowledge Monitor (crawl pipeline) ----

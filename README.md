@@ -1,6 +1,6 @@
 # Wine AI Realtime
 
-A realtime voice-and-text digital expert on Moldovan wine — wineries, grape varieties, regions, food pairing, and wine tourism. Talk to it in Russian, Romanian, or English; it detects your language automatically.
+A realtime voice-and-text digital expert on Moldovan wine — wineries, grape varieties, regions, food pairing, and wine tourism. Talk to it in Russian, Romanian, English, French, Italian, Spanish, German, Chinese, or Japanese — it detects your language automatically, or you can pin one via the dashboard's language selector.
 
 ## What this is, vs. Lunara Realtime
 
@@ -44,7 +44,13 @@ npm run knowledge:index   # reads knowledge/source/*, writes knowledge/index/ind
 npm run knowledge:check   # validates metadata, reports missing fields / empty index
 ```
 
-A handful of sample documents (Fetească Neagră, Cabernet Sauvignon comparison, Purcari, Cricova, a roast-lamb pairing guide, the national wine route) ship in `knowledge/source/` so the demo works out of the box. Add your own `.md`/`.txt`/`.json`/`.csv` files there (see the frontmatter format documented in `src/knowledge/loader.js`) and re-run `npm run knowledge:index`.
+A handful of sample documents (Fetească Neagră, Cabernet Sauvignon comparison, Purcari, Cricova, a roast-lamb pairing guide, the national wine route) ship in `knowledge/source/` so the demo works out of the box.
+
+**Add your own documents** two ways:
+1. **Dashboard** — Knowledge base tab, drag a `.md`/`.txt`/`.json`/`.csv` file onto the drop zone (or click it to browse). It's indexed immediately.
+2. **Manually** — drop the file into `knowledge/source/` (see the frontmatter format documented in `src/knowledge/loader.js`) and run `npm run knowledge:index`.
+
+There's also an automated crawler (`npm run knowledge:update`, or the Knowledge Monitor panel's "Запустить обновление вручную" button) that pulls from a verified source registry (`src/knowledge/sources/registry.js`) — see `docs/KNOWLEDGE_PIPELINE_ARCHITECTURE.md`.
 
 ## Run
 
@@ -64,12 +70,12 @@ Then open:
 3. The reply streams back as audio (if a real provider is configured) and always appears as text in the transcript panel.
 4. **Stop response** interrupts the assistant mid-reply (barge-in).
 
-Try, in any of the three languages:
+Try, in any supported language (ru/ro/en/fr/it/es/de/zh/ja):
 
 - Russian: *«Расскажи, чем Фетяска Нягрэ отличается от Каберне Совиньон.»*
 - Romanian: *«Povestește-mi despre soiul Fetească Neagră și despre regiunile în care este cultivat.»*
 - English: *"Which Moldovan wine would you recommend with roast lamb?"*
-- Language switching mid-conversation: ask something in Russian, then continue in Romanian, then ask for an English summary — it should follow you without being told to switch.
+- Language switching mid-conversation: ask something in Russian, then continue in Romanian, then ask for an English summary — it should follow you without being told to switch. Use the language dropdown to pin a specific language instead of relying on auto-detect.
 
 ## Connecting an avatar provider (not enabled by default)
 
@@ -102,5 +108,6 @@ See `AGENTS.md` for the full required-verification list and the standing archite
 - **No session resumption on reconnect.** Each new WebSocket connection starts a fresh session; conversation context does not survive a dropped connection.
 - **No persistent memory across sessions.** `src/memory/sessionMemory.js` only lives for the current WebSocket connection — nothing is saved between visits or across users, by design (see Stage 9 of the product spec).
 - **No real avatar in v1** — see above.
-- **Knowledge base is a small, hand-curated sample set**, not a comprehensive database — the retrieval mechanism (`src/knowledge/search.js`) is production-shaped, but the content isn't exhaustive.
+- **Knowledge base starts small**, but now grows via upload (dashboard drag-and-drop) and an automated crawler (`docs/KNOWLEDGE_PIPELINE_ARCHITECTURE.md`) over a verified source registry — still not a comprehensive database.
 - **Retrieval is keyword/term-overlap based, not embeddings-based** — good enough for a focused knowledge base of this size; revisit if/when the corpus grows much larger.
+- **Language detection is heuristic**, not model-based — reliable for clear single-language utterances but can stay silent (defer to the last known language) on short or heavily mixed-language input. Use the language dropdown to force a language explicitly if this matters for a demo.

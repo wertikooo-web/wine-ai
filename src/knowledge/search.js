@@ -11,10 +11,26 @@ function tokenize(text) {
     return (String(text || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).filter((t) => t.length >= 2);
 }
 
+// Common short function words (articles, conjunctions, "about"/"which"/
+// "is" equivalents across the supported languages) trivially appear in
+// almost any sufficiently long document — counting them as body-overlap
+// signal let a long, generic page (mentioning the topic only in passing)
+// occasionally outrank a short, specifically-titled document that's
+// actually about the query. Found via the knowledge-smoke Romanian
+// Fetească Neagră case once the corpus grew past the original 6 curated
+// docs. Excluding them here rather than filtering tokenize() globally,
+// since tokenize() is also used for building the searchable index itself.
+const SCORING_STOPWORDS = new Set([
+    'despre', 'care', 'este', 'și', 'un', 'o', 'la', 'de', 'în', 'cu', 'ce', 'sau',
+    'the', 'and', 'is', 'are', 'of', 'to', 'in', 'on', 'for', 'with', 'that', 'this',
+    'о', 'об', 'что', 'это', 'как', 'для', 'на', 'из', 'или', 'вы', 'же',
+]);
+
 function scoreChunk(queryTokens, chunk) {
+    const significantTokens = queryTokens.filter((t) => !SCORING_STOPWORDS.has(t));
     const bodyTokens = new Set(tokenize(chunk.text));
     let overlap = 0;
-    for (const token of queryTokens) {
+    for (const token of significantTokens) {
         if (bodyTokens.has(token)) overlap += 1;
     }
     if (overlap === 0) return 0;
@@ -24,8 +40,12 @@ function scoreChunk(queryTokens, chunk) {
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
-    for (const token of queryTokens) {
-        if (metaText.includes(token)) score += 2;
+    // Weighted higher than body overlap — a query term appearing in the
+    // document's own title/winery/region/grape metadata is a much stronger
+    // "this document is actually about that" signal than merely containing
+    // the word somewhere in a long body of text.
+    for (const token of significantTokens) {
+        if (metaText.includes(token)) score += 4;
     }
     return score;
 }
