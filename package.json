@@ -5,6 +5,7 @@
   "description": "Independent realtime voice lab for a Moldovan wine digital expert, built on a reusable realtime core.",
   "main": "src/server.js",
   "scripts": {
+    "prestart": "node scripts/knowledge-index.js",
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "knowledge:index": "node scripts/knowledge-index.js",
