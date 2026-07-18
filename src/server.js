@@ -11,6 +11,7 @@ const { synthesizeVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./voicePrevi
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex } = require('./knowledge/index');
+const knowledgeLoader = require('./knowledge/loader');
 const discoveredStore = require('./knowledge/discovered/store');
 const { promote } = require('./knowledge/discovered/promote');
 const { runUpdateCycle } = require('./knowledge/updateCycle');
@@ -92,13 +93,13 @@ function sendJson(res, statusCode, payload) {
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 
-function readJsonBody(req) {
+function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     return new Promise((resolve, reject) => {
         let received = 0;
         const chunks = [];
         req.on('data', (chunk) => {
             received += chunk.length;
-            if (received > MAX_JSON_BODY_BYTES) {
+            if (received > maxBytes) {
                 reject(Object.assign(new Error('body_too_large'), { code: 'body_too_large' }));
                 req.destroy();
                 return;
@@ -117,7 +118,7 @@ function readJsonBody(req) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -253,6 +254,52 @@ async function handleRequest(req, res) {
             bySource.get(key).chunk_count += 1;
         }
         return sendJson(res, 200, { ok: true, sources: Array.from(bySource.values()) });
+    }
+
+    // Drag-and-drop upload for the Knowledge base tab. Body is JSON
+    // ({filename, content}) rather than multipart — every source document
+    // in this project is plain text (.md/.txt/.json/.csv), so the browser
+    // just reads the dropped File as text (FileReader) and posts it,
+    // avoiding a multipart-parsing dependency for a format that's already
+    // text end to end.
+    if (req.method === 'POST' && pathname === '/api/knowledge/upload') {
+        let body;
+        try {
+            body = await readJsonBody(req, 2 * 1024 * 1024); // 2MB — generous for a text knowledge doc
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        const rawName = String(body.filename || '').trim();
+        const content = String(body.content || '');
+        if (!rawName || !content) {
+            return sendJson(res, 400, { ok: false, error: 'filename_and_content_required' });
+        }
+        // path.basename strips any directory component the client sent —
+        // this must never be able to write outside knowledge/source/.
+        const safeName = path.basename(rawName).replace(/[^a-zA-Z0-9_.-]/g, '_');
+        const ext = path.extname(safeName).toLowerCase();
+        if (!knowledgeLoader.SUPPORTED_EXTENSIONS.has(ext)) {
+            return sendJson(res, 400, {
+                ok: false,
+                error: 'unsupported_file_type',
+                allowed: Array.from(knowledgeLoader.SUPPORTED_EXTENSIONS),
+            });
+        }
+        try {
+            const sourceDir = knowledgeLoader.DEFAULT_SOURCE_DIR;
+            fs.mkdirSync(sourceDir, { recursive: true });
+            fs.writeFileSync(path.join(sourceDir, safeName), content, 'utf8');
+            const result = buildIndex();
+            return sendJson(res, 200, {
+                ok: true,
+                filename: safeName,
+                document_count: result.documentCount,
+                chunk_count: result.chunkCount,
+                errors: result.errors,
+            });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'upload_failed', message: error.message });
+        }
     }
 
     if (req.method === 'POST' && pathname === '/api/knowledge/reindex') {

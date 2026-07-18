@@ -20,6 +20,18 @@ async function run() {
     // Too short / ambiguous input yields no verdict rather than a guess.
     t.equal(detectLikelyLanguage('ok'), null);
     t.equal(detectLikelyLanguage(''), null);
+
+    // Expanded language set (fr/it/es/de/zh/ja) — added after "Hold to
+    // talk"/language-selector work. Each of these previously tied with a
+    // wine-domain cognate shared across Romance languages ("vin"/"vino")
+    // before that vocabulary was removed from the disambiguating word
+    // lists — see the comment above LANGUAGE_PATTERNS in realtimeServer.js.
+    t.equal(detectLikelyLanguage('Bonjour, quel vin recommandez-vous avec ce plat?'), 'fr');
+    t.equal(detectLikelyLanguage('Ciao, quale vino consigli per questo piatto?'), 'it');
+    t.equal(detectLikelyLanguage('Hola, ¿qué vino me recomienda?'), 'es');
+    t.equal(detectLikelyLanguage('Guten Tag, welchen Wein empfehlen Sie?'), 'de');
+    t.equal(detectLikelyLanguage('你好，请问摩尔多瓦的葡萄酒怎么样'), 'zh');
+    t.equal(detectLikelyLanguage('こんにちは、ワインについて教えてください'), 'ja');
 }
 
 module.exports = { run };

@@ -62,14 +62,34 @@ function normalizeRotationMode(value) {
     return DEFAULT_ROTATION_MODE;
 }
 
-// Language set intentionally limited to ru/ro/en (persona's supported
-// languages, see src/persona/wineExpertPersona.js) \u2014 the 'uk' pattern that
-// existed in the origin project's broader set was dropped along with it.
+// Language set matches persona's supported languages (see
+// src/persona/wineExpertPersona.js's SUPPORTED_LANGUAGES). Japanese
+// (hiragana/katakana) is checked before Chinese and given a higher weight
+// since kana is unambiguous \u2014 a kanji-only sample without kana correctly
+// falls through to 'zh', but any kana present pins it to 'ja' even though
+// the CJK ideograph pattern also matches the same text.
 const LANGUAGE_PATTERNS = [
     { language: 'ru', pattern: /[\u0400-\u04FF]/u, weight: 3 },
     { language: 'ro', pattern: /[\u0103\u00E2\u00EE\u0219\u021B\u0102\u00C2\u00CE\u0218\u021A]/u, weight: 4 },
     { language: 'en', pattern: /\b(the|and|you|hello|please|wine|grape|winery|recommend|what|why|how)\b/i, weight: 2 },
-    { language: 'ro', pattern: /\b(spune|vreau|buna|salut|vin|struguri|crama|romana|vorbeste)\b/i, weight: 3 },
+    { language: 'ro', pattern: /\b(spune|vreau|buna|salut|struguri|crama|romana|vorbeste)\b/i, weight: 3 },
+    { language: 'fr', pattern: /[\u00E9\u00E8\u00EA\u00E0\u00E7\u00F4\u00FB\u00F9]/iu, weight: 4 },
+    // "vin"/"vino" are wine-domain cognates shared across fr/ro/it/es \u2014
+    // matching on them made every other Romance language ambiguous with
+    // whichever one still listed it (found via LANG_DEBUG: an Italian
+    // sentence scored a tie between 'it' and 'es', both via "vino").
+    // Distinguishing words below are deliberately non-wine vocabulary.
+    { language: 'fr', pattern: /\b(le|la|les|c\u00E9page|bonjour|merci|vigne|pourquoi|comment)\b/i, weight: 4 },
+    { language: 'it', pattern: /\b(ciao|grazie|vitigno|buongiorno|perch\u00E9|come|quale)\b/i, weight: 4 },
+    { language: 'es', pattern: /[\u00BF\u00A1\u00F1]/u, weight: 4 },
+    { language: 'es', pattern: /\b(hola|gracias|uva|qu\u00E9|c\u00F3mo)\b/i, weight: 4 },
+    { language: 'de', pattern: /[\u00E4\u00F6\u00FC\u00DF\u00C4\u00D6\u00DC]/u, weight: 4 },
+    { language: 'de', pattern: /\b(und|ich|nicht|wein|traube|danke|warum|wie)\b/i, weight: 4 },
+    // Weight 7 so Japanese wins even when the same sentence also matches
+    // the CJK ideograph pattern below (kana + kanji mixed is normal
+    // Japanese text) \u2014 margin needs to stay >= 2 over zh's weight 4.
+    { language: 'ja', pattern: /[\u3040-\u30FF]/u, weight: 7 },
+    { language: 'zh', pattern: /[\u4E00-\u9FFF]/u, weight: 4 },
 ];
 const MIN_LANGUAGE_SWITCH_SIGNIFICANT_WORDS = Number(process.env.LANGUAGE_SWITCH_MIN_WORDS || 3);
 const LANGUAGE_SWITCH_CONFIRMATIONS = Number(process.env.LANGUAGE_SWITCH_CONFIRMATIONS || 2);
@@ -1286,6 +1306,18 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // Explicit opt-in only — see the promptDebugRequested declaration
             // above for why this must never be silently assumed true.
             promptDebugRequested = payload.include_prompt_debug === true;
+            // Explicit client-supplied language preference (e.g. a
+            // dashboard language selector), sitting alongside the existing
+            // transcript-based auto-detection in noteUserLanguage() —
+            // whichever set sessionLanguage more recently wins, same as a
+            // detected switch mid-conversation. Deliberately just a shape
+            // check (2-letter code), not a fixed language list: this file
+            // stays domain-agnostic, so it doesn't import the persona
+            // module's SUPPORTED_LANGUAGES to validate against.
+            if (typeof payload.language === 'string' && /^[a-z]{2}$/i.test(payload.language)) {
+                sessionLanguage = payload.language.toLowerCase();
+                log('session_language_set_explicit', { language: sessionLanguage });
+            }
             (async () => {
                 try {
                     const sanitized = sanitizePromptConfig(payload.config || {}, {
