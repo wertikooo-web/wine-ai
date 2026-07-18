@@ -3,3 +3,6 @@ node_modules/
 *.log
 knowledge/index/*.json
 !knowledge/index/.gitkeep
+# Local file-based fallback for the discovered-docs store (prod uses Postgres
+# via DATABASE_URL) — this is throwaway local dev/test state, not source data.
+knowledge/discovered/*.json

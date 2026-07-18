@@ -13,8 +13,9 @@
 // cycle in-process sidesteps the question entirely).
 const fs = require('fs');
 const path = require('path');
-const { listPages } = require('./sources/registry');
+const { listPages, SOURCES } = require('./sources/registry');
 const { fetchPage } = require('./crawler/fetchPage');
+const { discoverLinks } = require('./crawler/discoverLinks');
 const { cleanText, contentHash, isSubstantial } = require('./processor/clean');
 const store = require('./discovered/store');
 const { promote } = require('./discovered/promote');
@@ -42,6 +43,44 @@ function writeReport(report) {
     fs.writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2), 'utf8');
 }
 
+// Turns each source's `listings` (category/index pages) into concrete
+// article pages to crawl this run, by extracting links matching the
+// source's `linkPattern` and dropping anything already known to the store
+// (so `maxNewLinksPerRun` limits genuinely-new articles, not a re-count of
+// ones already indexed). Discovery failures are non-fatal — logged into the
+// report and skipped, same as an individual page fetch failure.
+async function discoverNewPages(report) {
+    const discovered = [];
+    for (const source of SOURCES) {
+        for (const listing of source.listings || []) {
+            try {
+                const pattern = new RegExp(listing.linkPattern);
+                const candidates = await discoverLinks(listing.url, {
+                    pattern,
+                    limit: (listing.maxNewLinksPerRun || 10) * 3, // over-fetch, then filter out already-known ones
+                });
+                let added = 0;
+                for (const url of candidates) {
+                    if (added >= (listing.maxNewLinksPerRun || 10)) break;
+                    if (await store.findByUrl(url)) continue; // already seen this article
+                    discovered.push({
+                        url,
+                        language: listing.language,
+                        topics: listing.topics,
+                        sourceId: source.id,
+                        trust: source.trust,
+                        publisher: source.publisher,
+                    });
+                    added += 1;
+                }
+            } catch (error) {
+                report.errors.push({ url: listing.url, message: `discovery_failed: ${error.message}` });
+            }
+        }
+    }
+    return discovered;
+}
+
 async function runUpdateCycle({ force = false, log = console.log, warn = console.warn } = {}) {
     const last = readLastReport();
     if (!force && last?.completedAt && hoursSince(last.completedAt) < MIN_UPDATE_INTERVAL_HOURS) {
@@ -52,17 +91,22 @@ async function runUpdateCycle({ force = false, log = console.log, warn = console
     }
 
     const startedAt = new Date().toISOString();
-    const pages = listPages();
     const report = {
         startedAt,
         completedAt: null,
-        sourcesChecked: pages.length,
+        sourcesChecked: 0,
+        discoveredPages: 0,
         newDocuments: 0,
         duplicates: 0,
         autoApproved: 0,
         pendingReview: 0,
         errors: [],
     };
+
+    const discovered = await discoverNewPages(report);
+    report.discoveredPages = discovered.length;
+    const pages = [...listPages(), ...discovered];
+    report.sourcesChecked = pages.length;
 
     for (const page of pages) {
         try {
