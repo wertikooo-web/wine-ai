@@ -88,11 +88,25 @@ const SOURCES = [
         trust: 'B',
         publisher: 'Wine and Spirits (wine-and-spirits.md)',
         pages: [
-            { url: 'https://wine-and-spirits.md/category/vinodelni/', language: 'ru', topics: ['news', 'winery'] },
             { url: 'https://wine-and-spirits.md/vina-cricova-vernulis-na-rynok-ssha/', language: 'ru', topics: ['news', 'winery'] },
             { url: 'https://wine-and-spirits.md/milestii-mici-uvelichil-pribyl-bolee-chem-v-poltora-raza/', language: 'ru', topics: ['news', 'winery'] },
             { url: 'https://wine-and-spirits.md/gruppa-purcari-wineries-priobrela-biodinamicheskie-vinogradniki/', language: 'ru', topics: ['news', 'winery'] },
             { url: 'https://wine-and-spirits.md/gruppa-purcari-wineries-podvela-itogi-za-2025-g/', language: 'ru', topics: ['news', 'winery'] },
+        ],
+        // Discovery: on each update cycle, this category page's article
+        // links are extracted and treated as newly-discovered `pages` for
+        // this run (subject to the exact same trust/pending/dedup handling
+        // as the hand-picked ones above). `linkPattern` matches this site's
+        // plain article URL shape (https://wine-and-spirits.md/<slug>/) and
+        // excludes /category/, /tag/, /page/N/, wp-content, etc.
+        listings: [
+            {
+                url: 'https://wine-and-spirits.md/category/vinodelni/',
+                language: 'ru',
+                topics: ['news', 'winery'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$',
+                maxNewLinksPerRun: 10,
+            },
         ],
     },
 ];
