@@ -673,16 +673,10 @@
     el('pmRunBtn').disabled = true;
     el('pmRunBtn').textContent = 'Running… (this can take a minute)';
     try {
+      // The endpoint runs the crawl in-process and only responds once it's
+      // done (~20-60s) — no polling needed, and real errors come back
+      // directly instead of disappearing into an unwatched background job.
       await fetch('/api/knowledge/update', { method: 'POST' });
-      // Crawling runs in a detached background process — poll for completion
-      // instead of assuming it finished when the request returns.
-      const startedAt = Date.now();
-      while (Date.now() - startedAt < 120000) {
-        await new Promise((r) => setTimeout(r, 3000));
-        const res = await fetch('/api/knowledge/pipeline-status');
-        const data = await res.json();
-        if (data.report && new Date(data.report.completedAt).getTime() > startedAt) break;
-      }
       await loadPipelineStatus();
       await loadDiscoveredList();
       await loadKnowledgeStatus();

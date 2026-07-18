@@ -3,7 +3,6 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const { spawn } = require('child_process');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./realtime/mockRealtimeProvider');
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./realtime/geminiLiveProvider');
@@ -14,6 +13,7 @@ const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex } = require('./knowledge/index');
 const discoveredStore = require('./knowledge/discovered/store');
 const { promote } = require('./knowledge/discovered/promote');
+const { runUpdateCycle } = require('./knowledge/updateCycle');
 const { SUPPORTED_LANGUAGES, WELCOME_MESSAGE, defaultPersonaPrompt } = require('./persona/wineExpertPersona');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const env = require('./config/env');
@@ -306,16 +306,19 @@ const server = http.createServer(async (req, res) => {
     // KNOWLEDGE_UPDATE_FORCE=1 bypasses the 72h min-interval gate since a
     // manual click is an explicit request, not the scheduled cron.
     if (req.method === 'POST' && pathname === '/api/knowledge/update') {
-        // stdio:'inherit' (not 'ignore') so the crawl's own console.log/warn
-        // output actually reaches `railway logs` — a silent child process
-        // is undebuggable when something goes wrong mid-crawl.
-        const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'knowledge-update.js')], {
-            env: { ...process.env, KNOWLEDGE_UPDATE_FORCE: '1' },
-            stdio: 'inherit',
-            detached: true,
-        });
-        child.unref();
-        return sendJson(res, 202, { ok: true, started: true });
+        // Runs in-process and awaited (not a detached background child) —
+        // a manual admin click can afford the ~20-60s the crawl takes, and
+        // it means real errors surface directly in the HTTP response
+        // instead of a silent, undebuggable background process. A
+        // scheduled/cron run still uses the CLI script
+        // (scripts/knowledge-update.js), which is fire-and-forget by
+        // nature of running as its own process outside a request.
+        try {
+            const result = await runUpdateCycle({ force: true, log: () => {}, warn: () => {} });
+            return sendJson(res, 200, { ok: true, ...result });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'update_failed', message: error.message });
+        }
     }
 
     return sendJson(res, 404, { ok: false, error: 'not_found' });
