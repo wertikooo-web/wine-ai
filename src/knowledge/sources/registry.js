@@ -5,11 +5,13 @@
 // note in the architecture doc) before being added — never guess a URL and
 // hardcode it as a trusted source.
 //
-// Individual winery domains (Purcari, Cricova, Castel Mimi, ...) are
-// intentionally NOT included yet — each one needs the same verification
-// step before being added. wineofmoldova.com already aggregates winery,
-// region, tourism, and news content under the official ONVV brand, which
-// is enough for an honest v1.
+// Winery domains added so far (Purcari, Cricova) were each confirmed by
+// navigating to the live site and reading its real nav links — same
+// discipline as the ONVV source below. Other wineries (Castel Mimi,
+// Mileștii Mici, Asconi, Chateau Vartely, ...) are NOT included yet —
+// their domains were not successfully verified in this pass (one lookup
+// attempt for Mileștii Mici's domain failed to resolve) and should go
+// through the same check before being added, not be guessed.
 
 const TRUST_LEVELS = ['A', 'B', 'C', 'D'];
 
@@ -41,6 +43,31 @@ const SOURCES = [
             { url: 'https://wineofmoldova.com/ru/moldavskoe-vino/', language: 'ru', topics: ['grape', 'wine'] },
             { url: 'https://wineofmoldova.com/ru/vinnye-regiony/', language: 'ru', topics: ['region'] },
             { url: 'https://wineofmoldova.com/ru/novosti-i-smi/', language: 'ru', topics: ['news'] },
+        ],
+    },
+    {
+        // purcari.wine redirects here — Purcari Wineries Group (holding
+        // company for Purcari, Bostavan, Crama Ceptura, Bardar). Confirmed
+        // live via browser navigation, not guessed.
+        id: 'purcari-group',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Purcari Wineries',
+        pages: [
+            { url: 'https://purcariwineries.com/about/', language: 'ro', topics: ['winery'] },
+            { url: 'https://purcariwineries.com/vinarii/', language: 'ro', topics: ['winery'] },
+            { url: 'https://purcariwineries.com/turism/', language: 'ro', topics: ['tourism'] },
+        ],
+    },
+    {
+        id: 'cricova',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Cricova',
+        pages: [
+            { url: 'https://cricova.md/ro', language: 'ro', topics: ['winery'] },
+            { url: 'https://cricova.md/ro/vinuri/vinuri', language: 'ro', topics: ['winery', 'wine'] },
+            { url: 'https://cricova.md/ro/excursii', language: 'ro', topics: ['tourism'] },
         ],
     },
 ];
