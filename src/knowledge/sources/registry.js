@@ -72,20 +72,13 @@ const SOURCES = [
     },
     {
         // Independent trade-press outlet, not an official/government or
-        // winery-owned source — trust B, so new/changed pages land in the
-        // pending-review queue (Knowledge Monitor) rather than auto-approving.
-        // NOTE: this crawler only re-fetches the fixed page URLs listed below
-        // — it has no listing-page link-discovery step, so re-crawling the
-        // category page itself only detects a content change on THAT page
-        // (its "seen" list of latest headlines), not new individual articles
-        // automatically. New articles must still be added here explicitly
-        // once found/verified (see docs/KNOWLEDGE_PIPELINE_ARCHITECTURE.md
-        // for the planned discovery-module upgrade that would remove this
-        // limitation). Individual article pages verified via WebFetch on
-        // 2026-07-19 are listed alongside the category index.
+        // winery-owned source. Set to trust A per explicit user request
+        // (2026-07-19) — discovered/updated pages from this source now
+        // auto-approve and publish straight into knowledge/source/ without
+        // landing in the Knowledge Monitor pending-review queue first.
         id: 'wine-and-spirits-md',
         type: 'news',
-        trust: 'B',
+        trust: 'A',
         publisher: 'Wine and Spirits (wine-and-spirits.md)',
         pages: [
             { url: 'https://wine-and-spirits.md/vina-cricova-vernulis-na-rynok-ssha/', language: 'ru', topics: ['news', 'winery'] },
