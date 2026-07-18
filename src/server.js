@@ -22,6 +22,20 @@ const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
 const publicDir = path.join(__dirname, '..', 'public');
 
+// Defense in depth beyond the per-request try/catch below: this process
+// also owns every active realtime WebSocket session, so a bug anywhere
+// outside the HTTP handler (a stray unhandled promise rejection, for
+// instance) must not silently kill every live conversation either. Logs
+// loudly rather than crashing — found this genuinely matters after a
+// Postgres Date-vs-string bug crashed the whole process in production on
+// 2026-07-18.
+process.on('uncaughtException', (error) => {
+    console.error('[WineAI] uncaughtException (process kept alive):', error);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[WineAI] unhandledRejection (process kept alive):', reason);
+});
+
 // One shared avatar-status instance for the dashboard's Diagnostics panel.
 // Only 'mock' is implemented in v1 — see src/avatar/AvatarProvider.js for
 // the interface a real provider adapter would implement.
@@ -105,7 +119,25 @@ function readJsonBody(req) {
 
 const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
 
+// A single request throwing must never take down the whole process — this
+// same process also owns every active realtime WebSocket session (see
+// attachRealtimeServer below); an uncaught error/rejection in
+// http.createServer's callback crashes the whole Node process by default,
+// silently dropping every live voice conversation, not just the one bad
+// HTTP request. Found in production: a Postgres Date vs. ISO-string
+// mismatch in one route (.sort() comparator) did exactly this.
 const server = http.createServer(async (req, res) => {
+    try {
+        await handleRequest(req, res);
+    } catch (error) {
+        console.error('[WineAI] unhandled request error:', error);
+        if (!res.headersSent) {
+            try { sendJson(res, 500, { ok: false, error: 'internal_error' }); } catch { /* response already broken */ }
+        }
+    }
+});
+
+async function handleRequest(req, res) {
     // Route matching happens against the parsed pathname only, never raw
     // req.url — see docs/WINE_AI_MIGRATION_PLAN.md section 1.1 for why
     // that distinction matters once any route takes a query string.
@@ -265,8 +297,13 @@ const server = http.createServer(async (req, res) => {
         const filtered = statusFilter ? all.filter((doc) => doc.status === statusFilter) : all;
         // Full crawled text can be tens of KB — the monitor list only needs
         // a summary, not the whole document body.
+        // fetchedAt is an ISO string from the file backend but a real Date
+        // object from Postgres (node-pg maps TIMESTAMPTZ to Date) - this
+        // crashed the whole process in production (.localeCompare doesn't
+        // exist on Date), which took down every active voice session too,
+        // not just this request. new Date(...) normalizes both.
         const summaries = filtered
-            .sort((a, b) => (b.fetchedAt || '').localeCompare(a.fetchedAt || ''))
+            .sort((a, b) => new Date(b.fetchedAt || 0).getTime() - new Date(a.fetchedAt || 0).getTime())
             .map((doc) => ({
                 id: doc.id,
                 title: doc.title,
@@ -322,7 +359,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     return sendJson(res, 404, { ok: false, error: 'not_found' });
-});
+}
 
 attachRealtimeServer(server, {
     providerFactory: providerFactory.createSession,
