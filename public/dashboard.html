@@ -75,6 +75,7 @@
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 0 0 6px rgba(107,30,43,0.08);
     transition: box-shadow 0.15s ease;
+    overflow: hidden;
   }
   .avatar-box.speaking { box-shadow: 0 0 0 10px rgba(107,30,43,0.22); }
   .avatar-box svg { width: 55%; opacity: 0.9; }
@@ -143,11 +144,9 @@
 <main>
 
   <section class="panel active" id="tab-avatar">
-    <div class="grid">
       <div class="card">
-        <h2>Avatar</h2>
         <div class="avatar-box" id="avatarBox">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#f7f1e8" stroke-width="1.4"><path d="M12 2c-3 0-4 3-4 6s1 5 4 5 4-2 4-5-1-6-4-6z"/><path d="M6 21c0-3.5 2.5-6 6-6s6 2.5 6 6" /></svg>
+          <img src="/avatar.png" alt="Wine AI avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
         </div>
         <div style="display:flex; gap:8px; margin-bottom:10px;">
           <button class="secondary" id="connectBtn">Connect</button>
@@ -164,11 +163,6 @@
         <div class="row"><span class="k">Current language</span><span class="v" id="langState">auto</span></div>
         <div class="row"><span class="k">Response latency</span><span class="v" id="latencyState">—</span></div>
       </div>
-      <div class="card">
-        <h2>Transcript</h2>
-        <div id="transcript"></div>
-      </div>
-    </div>
   </section>
 
   <section class="panel" id="tab-knowledge">
@@ -282,11 +276,14 @@
   }
 
   function addTranscriptTurn(role, text) {
-    if (!text) return;
+    // Transcript panel was removed from the Live avatar tab per request —
+    // guarded no-op so the transcript.user/transcript.model event handlers
+    // (which still fire normally) don't throw on the missing element.
+    const box = el('transcript');
+    if (!box || !text) return;
     const wrap = document.createElement('div');
     wrap.className = 'turn ' + role;
     wrap.innerHTML = `<div class="role">${role}</div><div>${text.replace(/</g, '&lt;')}</div>`;
-    const box = el('transcript');
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
   }
