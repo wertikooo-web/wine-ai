@@ -306,9 +306,12 @@ const server = http.createServer(async (req, res) => {
     // KNOWLEDGE_UPDATE_FORCE=1 bypasses the 72h min-interval gate since a
     // manual click is an explicit request, not the scheduled cron.
     if (req.method === 'POST' && pathname === '/api/knowledge/update') {
+        // stdio:'inherit' (not 'ignore') so the crawl's own console.log/warn
+        // output actually reaches `railway logs` — a silent child process
+        // is undebuggable when something goes wrong mid-crawl.
         const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'knowledge-update.js')], {
             env: { ...process.env, KNOWLEDGE_UPDATE_FORCE: '1' },
-            stdio: 'ignore',
+            stdio: 'inherit',
             detached: true,
         });
         child.unref();
