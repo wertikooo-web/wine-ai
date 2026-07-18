@@ -100,7 +100,7 @@ function readJsonBody(req) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/avatar/status', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/avatar/status', '/realtime'];
 
 const server = http.createServer(async (req, res) => {
     // Route matching happens against the parsed pathname only, never raw
@@ -135,6 +135,17 @@ const server = http.createServer(async (req, res) => {
             .on('error', () => sendJson(res, 500, { ok: false, error: 'dashboard_not_available' }))
             .once('open', () => {
                 res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    if (req.method === 'GET' && pathname === '/avatar.png') {
+        const filePath = path.join(publicDir, 'avatar.png');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'avatar_image_not_available' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' });
             })
             .pipe(res);
         return undefined;
