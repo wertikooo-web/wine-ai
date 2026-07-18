@@ -262,6 +262,7 @@
   let inputEndedAt = 0;
   let firstAudioAt = 0;
   let playbackQueueTime = 0;
+  let activeSources = [];
 
   const el = (id) => document.getElementById(id);
 
@@ -398,6 +399,7 @@
       case 'response.cancelled':
         el('latencyState').textContent = (payload.cancel_latency_ms || 0) + ' ms (interrupted)';
         el('avatarBox').classList.remove('speaking');
+        clearPlayback();
         break;
       case 'error':
         log('error', payload);
@@ -497,6 +499,23 @@
     const startAt = Math.max(now, playbackQueueTime);
     src.start(startAt);
     playbackQueueTime = startAt + buffer.duration;
+    activeSources.push(src);
+    src.onended = () => { activeSources = activeSources.filter((s) => s !== src); };
+  }
+
+  // Stops every scheduled/currently-playing audio chunk immediately. The
+  // server cancelling a generation (barge-in via a new PTT press, or the
+  // "Stop response" button) only stops it from sending further chunks —
+  // any chunks already received and scheduled on the AudioContext keep
+  // playing to completion unless we tear them down here too. Called on
+  // 'response.cancelled', which fires for both cases (see
+  // src/realtime/realtimeServer.js's cancelCurrent()).
+  function clearPlayback() {
+    for (const src of activeSources) {
+      try { src.onended = null; src.stop(); } catch { /* already stopped */ }
+    }
+    activeSources = [];
+    playbackQueueTime = audioContext ? audioContext.currentTime : 0;
   }
 
   function playAudioChunk(payload) {
