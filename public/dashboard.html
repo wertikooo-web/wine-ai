@@ -138,7 +138,6 @@
   <button data-tab="avatar" class="active">Live avatar</button>
   <button data-tab="knowledge">Knowledge base</button>
   <button data-tab="persona">Persona</button>
-  <button data-tab="diagnostics">Diagnostics</button>
 </nav>
 
 <main>
@@ -248,32 +247,6 @@
     </div>
   </section>
 
-  <section class="panel" id="tab-diagnostics">
-    <div class="grid">
-      <div class="card">
-        <h2>Connection</h2>
-        <div class="row"><span class="k">WebSocket</span><span class="v" id="dWs">—</span></div>
-        <div class="row"><span class="k">Provider</span><span class="v" id="dProvider">—</span></div>
-        <div class="row"><span class="k">Provider instance</span><span class="v" id="dProviderInstance">—</span></div>
-        <div class="row"><span class="k">Avatar provider</span><span class="v" id="dAvatar">—</span></div>
-        <div class="row"><span class="k">Session ID</span><span class="v" id="dSession">—</span></div>
-        <div class="row"><span class="k">Turn ID</span><span class="v" id="dTurn">—</span></div>
-      </div>
-      <div class="card">
-        <h2>Audio</h2>
-        <div class="row"><span class="k">Mic input</span><span class="v" id="dMic">—</span></div>
-        <div class="row"><span class="k">Input sample rate</span><span class="v" id="dInputRate">—</span></div>
-        <div class="row"><span class="k">Output sample rate</span><span class="v" id="dOutputRate">—</span></div>
-        <div class="row"><span class="k">Time to first audio</span><span class="v" id="dTtfb">—</span></div>
-        <div class="row"><span class="k">Full response time</span><span class="v" id="dFullResponse">—</span></div>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Event log</h2>
-      <div id="log"></div>
-    </div>
-  </section>
-
 </main>
 
 <script>
@@ -309,7 +282,19 @@
     dot.className = 'dot ' + (state || '');
   }
 
+  function setText(id, value) {
+    // Diagnostics tab was removed per request — guarded no-op so the many
+    // event handlers that still report these values don't throw on the
+    // now-missing elements.
+    const target = el(id);
+    if (target) target.textContent = value;
+  }
+
   function log(stage, extra) {
+    // Diagnostics tab (and its #log console) was removed per request —
+    // kept as a guarded no-op rather than deleting every call site, since
+    // logging calls are threaded through most event handlers below.
+    if (!el('log')) return;
     const line = document.createElement('div');
     const ts = new Date().toISOString().slice(11, 23);
     line.textContent = `[${ts}] ${stage} ${extra ? JSON.stringify(extra) : ''}`;
@@ -353,7 +338,7 @@
     ws.addEventListener('open', async () => {
       setDot('wsDot', 'ok');
       el('wsLabel').textContent = 'connected';
-      el('dWs').textContent = 'open';
+      setText('dWs', 'open');
       el('connectBtn').disabled = true;
       el('disconnectBtn').disabled = false;
       el('pttBtn').disabled = false;
@@ -378,7 +363,7 @@
     ws.addEventListener('close', () => {
       setDot('wsDot', '');
       el('wsLabel').textContent = 'disconnected';
-      el('dWs').textContent = 'closed';
+      setText('dWs', 'closed');
       el('connectBtn').disabled = false;
       el('disconnectBtn').disabled = true;
       el('pttBtn').disabled = true;
@@ -405,29 +390,29 @@
 
   function handleEvent(payload) {
     log(payload.type, { turn: payload.turn_id, gen: payload.generation_id });
-    el('dSession').textContent = payload.session_id || '—';
+    setText('dSession', payload.session_id || '—');
 
     switch (payload.type) {
       case 'session.ready':
         setDot('providerDot', 'ok');
         el('providerLabel').textContent = 'provider: ' + (payload.provider || '—');
-        el('dProvider').textContent = payload.provider || '—';
-        el('dProviderInstance').textContent = payload.provider_instance_id || '—';
-        el('dOutputRate').textContent = payload.provider === 'gemini' ? '24000 Hz' : '16000 Hz';
+        setText('dProvider', payload.provider || '—');
+        setText('dProviderInstance', payload.provider_instance_id || '—');
+        setText('dOutputRate', payload.provider === 'gemini' ? '24000 Hz' : '16000 Hz');
         break;
       case 'session.config.applied':
-        el('dInputRate').textContent = payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—';
+        setText('dInputRate', payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—');
         if (payload.prompt_debug && payload.prompt_debug.meta) {
           el('langState').textContent = 'auto';
         }
         break;
       case 'provider.ready':
       case 'provider.rotated':
-        el('dProviderInstance').textContent = payload.new_provider_instance_id || payload.provider_instance_id || '—';
+        setText('dProviderInstance', payload.new_provider_instance_id || payload.provider_instance_id || '—');
         break;
       case 'input_audio.start':
         currentTurnId = payload.turn_id;
-        el('dTurn').textContent = currentTurnId || '—';
+        setText('dTurn', currentTurnId || '—');
         el('speakerState').textContent = 'you';
         break;
       case 'input_audio.end':
@@ -445,7 +430,7 @@
         break;
       case 'audio.start':
         firstAudioAt = performance.now();
-        if (inputEndedAt) el('dTtfb').textContent = Math.round(firstAudioAt - inputEndedAt) + ' ms';
+        if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
         el('speakerState').textContent = 'assistant';
         el('avatarBox').classList.add('speaking');
@@ -454,7 +439,7 @@
         playAudioChunk(payload);
         break;
       case 'audio.end':
-        if (inputEndedAt) el('dFullResponse').textContent = Math.round(performance.now() - inputEndedAt) + ' ms';
+        if (inputEndedAt) setText('dFullResponse', Math.round(performance.now() - inputEndedAt) + ' ms');
         el('speakerState').textContent = '—';
         el('avatarBox').classList.remove('speaking');
         break;
@@ -837,7 +822,7 @@
   async function loadAvatarStatus() {
     const res = await fetch('/api/avatar/status');
     const data = await res.json();
-    el('dAvatar').textContent = `${data.provider} (${data.connected ? 'connected' : 'disconnected'})`;
+    setText('dAvatar', `${data.provider} (${data.connected ? 'connected' : 'disconnected'})`);
   }
 
   loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
