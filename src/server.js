@@ -3,6 +3,7 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const { spawn } = require('child_process');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./realtime/mockRealtimeProvider');
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./realtime/geminiLiveProvider');
@@ -11,6 +12,8 @@ const { synthesizeVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./voicePrevi
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex } = require('./knowledge/index');
+const discoveredStore = require('./knowledge/discovered/store');
+const { promote } = require('./knowledge/discovered/promote');
 const { SUPPORTED_LANGUAGES, WELCOME_MESSAGE, defaultPersonaPrompt } = require('./persona/wineExpertPersona');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const env = require('./config/env');
@@ -100,7 +103,7 @@ function readJsonBody(req) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/avatar/status', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
 
 const server = http.createServer(async (req, res) => {
     // Route matching happens against the parsed pathname only, never raw
@@ -236,6 +239,80 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && pathname === '/api/avatar/status') {
         return sendJson(res, 200, { ok: true, ...avatarProvider.getStatus() });
+    }
+
+    // ---- Knowledge Pipeline / Knowledge Monitor (see
+    // docs/KNOWLEDGE_PIPELINE_ARCHITECTURE.md §13.7) ----
+
+    if (req.method === 'GET' && pathname === '/api/knowledge/pipeline-status') {
+        const reportFile = path.join(__dirname, '..', 'knowledge', 'reports', 'latest.json');
+        if (!fs.existsSync(reportFile)) {
+            return sendJson(res, 200, { ok: true, report: null });
+        }
+        try {
+            const report = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+            return sendJson(res, 200, { ok: true, report });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'report_unreadable' });
+        }
+    }
+
+    const discoveredListMatch = /^\/api\/knowledge\/discovered\/?$/.exec(pathname);
+    if (req.method === 'GET' && discoveredListMatch) {
+        const urlParams = new URL(req.url, 'http://localhost').searchParams;
+        const statusFilter = urlParams.get('status');
+        const all = discoveredStore.loadAll();
+        const filtered = statusFilter ? all.filter((doc) => doc.status === statusFilter) : all;
+        // Full crawled text can be tens of KB — the monitor list only needs
+        // a summary, not the whole document body.
+        const summaries = filtered
+            .sort((a, b) => (b.fetchedAt || '').localeCompare(a.fetchedAt || ''))
+            .map((doc) => ({
+                id: doc.id,
+                title: doc.title,
+                url: doc.url,
+                publisher: doc.publisher,
+                language: doc.language,
+                trustLevel: doc.trustLevel,
+                topics: doc.topics,
+                status: doc.status,
+                summary: doc.summary,
+                fetchedAt: doc.fetchedAt,
+                lastVerifiedAt: doc.lastVerifiedAt,
+            }));
+        return sendJson(res, 200, { ok: true, documents: summaries });
+    }
+
+    const discoveredActionMatch = /^\/api\/knowledge\/discovered\/([^/]+)\/(approve|reject)\/?$/.exec(pathname);
+    if (req.method === 'POST' && discoveredActionMatch) {
+        const [, id, action] = discoveredActionMatch;
+        const status = action === 'approve' ? 'approved' : 'rejected';
+        const updated = discoveredStore.setStatus(id, status);
+        if (!updated) return sendJson(res, 404, { ok: false, error: 'document_not_found' });
+        try {
+            if (status === 'approved') {
+                promote(updated);
+                buildIndex();
+            }
+            return sendJson(res, 200, { ok: true, document: { id: updated.id, status: updated.status } });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'promote_failed' });
+        }
+    }
+
+    // Kicks off scripts/knowledge-update.js as a separate process and
+    // returns immediately (crawling takes longer than a normal request) —
+    // the dashboard polls /api/knowledge/pipeline-status for the result.
+    // KNOWLEDGE_UPDATE_FORCE=1 bypasses the 72h min-interval gate since a
+    // manual click is an explicit request, not the scheduled cron.
+    if (req.method === 'POST' && pathname === '/api/knowledge/update') {
+        const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'knowledge-update.js')], {
+            env: { ...process.env, KNOWLEDGE_UPDATE_FORCE: '1' },
+            stdio: 'ignore',
+            detached: true,
+        });
+        child.unref();
+        return sendJson(res, 202, { ok: true, started: true });
     }
 
     return sendJson(res, 404, { ok: false, error: 'not_found' });

@@ -10,6 +10,7 @@
     "dev": "node src/server.js",
     "knowledge:index": "node scripts/knowledge-index.js",
     "knowledge:check": "node scripts/knowledge-check.js",
+    "knowledge:update": "node scripts/knowledge-update.js",
     "test": "node scripts/run-tests.js",
     "test:smoke": "node scripts/run-smoke.js",
     "smoke:http": "node scripts/http-smoke.js",
@@ -23,6 +24,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@google/genai": "^2.11.0"
+    "@google/genai": "^2.11.0",
+    "cheerio": "^1.0.0"
   }
 }
