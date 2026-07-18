@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wine AI Realtime — Dashboard</title>
+<style>
+  :root {
+    --wine: #6b1e2b;
+    --wine-dark: #4a1420;
+    --cream: #f7f1e8;
+    --ink: #2a2118;
+    --muted: #8a7a68;
+    --ok: #3f7d4f;
+    --warn: #b3781c;
+    --err: #b3392c;
+    --border: #e2d8c8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+  }
+  header {
+    background: var(--wine);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: 0.8; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.12); border-radius: 999px;
+    padding: 4px 12px; font-size: 12px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #999; }
+  .dot.ok { background: #4ade80; }
+  .dot.err { background: #f87171; }
+  .dot.warn { background: #fbbf24; }
+
+  nav.tabs {
+    display: flex; gap: 4px; padding: 12px 24px 0;
+    border-bottom: 1px solid var(--border);
+    background: white;
+  }
+  nav.tabs button {
+    border: none; background: none; padding: 10px 16px; cursor: pointer;
+    font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent;
+  }
+  nav.tabs button.active { color: var(--wine); border-bottom-color: var(--wine); font-weight: 600; }
+
+  main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+  section.panel { display: none; }
+  section.panel.active { display: block; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: white; border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; margin-bottom: 18px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--wine); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .avatar-box {
+    width: 100%; aspect-ratio: 1 / 1; max-width: 220px; margin: 0 auto 16px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #8a2e3d, var(--wine-dark));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 6px rgba(107,30,43,0.08);
+    transition: box-shadow 0.15s ease;
+  }
+  .avatar-box.speaking { box-shadow: 0 0 0 10px rgba(107,30,43,0.22); }
+  .avatar-box svg { width: 55%; opacity: 0.9; }
+
+  button.ptt {
+    width: 100%; padding: 16px; font-size: 15px; font-weight: 600;
+    border-radius: 10px; border: none; cursor: pointer;
+    background: var(--wine); color: white; user-select: none;
+  }
+  button.ptt:disabled { background: #ccc; cursor: not-allowed; }
+  button.ptt.active { background: var(--wine-dark); }
+  button.secondary {
+    padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: white; cursor: pointer; font-size: 13px; margin-right: 8px;
+  }
+  button.secondary:hover { border-color: var(--wine); }
+
+  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row .k { color: var(--muted); }
+  .row .v { font-weight: 500; }
+
+  #transcript { max-height: 260px; overflow-y: auto; font-size: 13px; }
+  #transcript .turn { margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; }
+  #transcript .turn.user { background: #f1ece2; }
+  #transcript .turn.assistant { background: #fbeceb; }
+  #transcript .role { font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+
+  textarea, input[type=text] {
+    width: 100%; font-family: inherit; font-size: 13px; padding: 8px;
+    border: 1px solid var(--border); border-radius: 6px; background: #fdfbf7;
+  }
+  textarea { min-height: 140px; resize: vertical; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+
+  #log { max-height: 220px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px; background: #201a15; color: #d8cdb8; padding: 10px; border-radius: 8px; }
+  #log div { white-space: pre-wrap; word-break: break-all; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #eee; }
+  .badge.ok { background: #dcf7e3; color: var(--ok); }
+  .badge.err { background: #fde2de; color: var(--err); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Wine AI Realtime</h1>
+    <div class="sub">Digital expert on Moldovan wine — demo dashboard</div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="status-pill"><span class="dot" id="wsDot"></span><span id="wsLabel">disconnected</span></span>
+    <span class="status-pill"><span class="dot" id="providerDot"></span><span id="providerLabel">provider: —</span></span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button data-tab="avatar" class="active">Live avatar</button>
+  <button data-tab="knowledge">Knowledge base</button>
+  <button data-tab="persona">Persona</button>
+  <button data-tab="diagnostics">Diagnostics</button>
+</nav>
+
+<main>
+
+  <section class="panel active" id="tab-avatar">
+    <div class="grid">
+      <div class="card">
+        <h2>Avatar</h2>
+        <div class="avatar-box" id="avatarBox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f7f1e8" stroke-width="1.4"><path d="M12 2c-3 0-4 3-4 6s1 5 4 5 4-2 4-5-1-6-4-6z"/><path d="M6 21c0-3.5 2.5-6 6-6s6 2.5 6 6" /></svg>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="secondary" id="connectBtn">Connect</button>
+          <button class="secondary" id="disconnectBtn" disabled>Disconnect</button>
+          <button class="secondary" id="stopBtn" disabled>Stop response</button>
+        </div>
+        <button class="ptt" id="pttBtn" disabled>Hold to talk</button>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <input type="text" id="textInput" placeholder="Или напишите вопрос текстом… / Or type your question…" disabled>
+          <button class="secondary" id="textSendBtn" disabled>Send</button>
+        </div>
+        <div class="row"><span class="k">Microphone</span><span class="v" id="micState">idle</span></div>
+        <div class="row"><span class="k">Who's speaking</span><span class="v" id="speakerState">—</span></div>
+        <div class="row"><span class="k">Current language</span><span class="v" id="langState">auto</span></div>
+        <div class="row"><span class="k">Response latency</span><span class="v" id="latencyState">—</span></div>
+      </div>
+      <div class="card">
+        <h2>Transcript</h2>
+        <div id="transcript"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-knowledge">
+    <div class="grid">
+      <div class="card">
+        <h2>Status</h2>
+        <div class="row"><span class="k">Documents</span><span class="v" id="kbDocs">—</span></div>
+        <div class="row"><span class="k">Chunks</span><span class="v" id="kbChunks">—</span></div>
+        <div class="row"><span class="k">Built at</span><span class="v" id="kbBuiltAt">—</span></div>
+        <div class="row"><span class="k">Errors</span><span class="v" id="kbErrors">—</span></div>
+        <div style="margin-top:12px;">
+          <button class="secondary" id="kbReindexBtn">Run indexing (npm run knowledge:index)</button>
+          <button class="secondary" id="kbRefreshBtn">Refresh</button>
+        </div>
+        <p style="font-size:12px; color:var(--muted); margin-top:10px;">
+          To add a source in this v1: copy a .md/.txt/.json/.csv file into <code>knowledge/source/</code> on the server, then click "Run indexing". A browser upload endpoint is intentionally out of scope for v1 — see README.
+        </p>
+      </div>
+      <div class="card">
+        <h2>Sources</h2>
+        <table id="kbSourcesTable">
+          <thead><tr><th>Title</th><th>Type</th><th>Lang</th><th>Chunks</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-persona">
+    <div class="card">
+      <h2>Persona</h2>
+      <div class="row"><span class="k">Name</span><span class="v" id="pName">—</span></div>
+      <div class="row"><span class="k">Description</span><span class="v" id="pDescription">—</span></div>
+      <div class="row"><span class="k">Languages</span><span class="v" id="pLanguages">—</span></div>
+      <div class="row"><span class="k">Voice</span><span class="v" id="pVoice">—</span></div>
+      <div class="row"><span class="k">Welcome message</span><span class="v" id="pWelcome">—</span></div>
+      <h2 style="margin-top:16px;">System prompt</h2>
+      <textarea id="pPrompt" readonly></textarea>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-diagnostics">
+    <div class="grid">
+      <div class="card">
+        <h2>Connection</h2>
+        <div class="row"><span class="k">WebSocket</span><span class="v" id="dWs">—</span></div>
+        <div class="row"><span class="k">Provider</span><span class="v" id="dProvider">—</span></div>
+        <div class="row"><span class="k">Provider instance</span><span class="v" id="dProviderInstance">—</span></div>
+        <div class="row"><span class="k">Avatar provider</span><span class="v" id="dAvatar">—</span></div>
+        <div class="row"><span class="k">Session ID</span><span class="v" id="dSession">—</span></div>
+        <div class="row"><span class="k">Turn ID</span><span class="v" id="dTurn">—</span></div>
+      </div>
+      <div class="card">
+        <h2>Audio</h2>
+        <div class="row"><span class="k">Mic input</span><span class="v" id="dMic">—</span></div>
+        <div class="row"><span class="k">Input sample rate</span><span class="v" id="dInputRate">—</span></div>
+        <div class="row"><span class="k">Output sample rate</span><span class="v" id="dOutputRate">—</span></div>
+        <div class="row"><span class="k">Time to first audio</span><span class="v" id="dTtfb">—</span></div>
+        <div class="row"><span class="k">Full response time</span><span class="v" id="dFullResponse">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Event log</h2>
+      <div id="log"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- Tabs ----
+  document.querySelectorAll('nav.tabs button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('section.panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---- State ----
+  let ws = null;
+  let audioContext = null;
+  let micStream = null;
+  let processor = null;
+  let isHolding = false;
+  let currentTurnId = null;
+  let inputEndedAt = 0;
+  let firstAudioAt = 0;
+  let playbackQueueTime = 0;
+
+  const el = (id) => document.getElementById(id);
+
+  function setDot(id, state) {
+    const dot = el(id);
+    dot.className = 'dot ' + (state || '');
+  }
+
+  function log(stage, extra) {
+    const line = document.createElement('div');
+    const ts = new Date().toISOString().slice(11, 23);
+    line.textContent = `[${ts}] ${stage} ${extra ? JSON.stringify(extra) : ''}`;
+    const box = el('log');
+    box.appendChild(line);
+    while (box.children.length > 300) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function addTranscriptTurn(role, text) {
+    if (!text) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'turn ' + role;
+    wrap.innerHTML = `<div class="role">${role}</div><div>${text.replace(/</g, '&lt;')}</div>`;
+    const box = el('transcript');
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ---- WebSocket / protocol ----
+  function socketUrl() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${location.host}/realtime`;
+  }
+
+  function connect() {
+    ws = new WebSocket(socketUrl());
+    ws.binaryType = 'arraybuffer';
+
+    ws.addEventListener('open', () => {
+      setDot('wsDot', 'ok');
+      el('wsLabel').textContent = 'connected';
+      el('dWs').textContent = 'open';
+      el('connectBtn').disabled = true;
+      el('disconnectBtn').disabled = false;
+      el('pttBtn').disabled = false;
+      el('textInput').disabled = false;
+      el('textSendBtn').disabled = false;
+      ws.send(JSON.stringify({ type: 'session.start', sampleRate: 16000, include_prompt_debug: true }));
+      log('ws_open', {});
+    });
+
+    ws.addEventListener('close', () => {
+      setDot('wsDot', '');
+      el('wsLabel').textContent = 'disconnected';
+      el('dWs').textContent = 'closed';
+      el('connectBtn').disabled = false;
+      el('disconnectBtn').disabled = true;
+      el('pttBtn').disabled = true;
+      el('textInput').disabled = true;
+      el('textSendBtn').disabled = true;
+      log('ws_close', {});
+    });
+
+    ws.addEventListener('error', () => log('ws_error', {}));
+
+    ws.addEventListener('message', (event) => {
+      if (typeof event.data !== 'string') return;
+      let payload;
+      try { payload = JSON.parse(event.data); } catch { return; }
+      handleEvent(payload);
+    });
+  }
+
+  function disconnect() {
+    if (ws) ws.close();
+    stopMic();
+  }
+
+  function handleEvent(payload) {
+    log(payload.type, { turn: payload.turn_id, gen: payload.generation_id });
+    el('dSession').textContent = payload.session_id || '—';
+
+    switch (payload.type) {
+      case 'session.ready':
+        setDot('providerDot', 'ok');
+        el('providerLabel').textContent = 'provider: ' + (payload.provider || '—');
+        el('dProvider').textContent = payload.provider || '—';
+        el('dProviderInstance').textContent = payload.provider_instance_id || '—';
+        el('dOutputRate').textContent = payload.provider === 'gemini' ? '24000 Hz' : '16000 Hz';
+        break;
+      case 'session.config.applied':
+        el('dInputRate').textContent = payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—';
+        if (payload.prompt_debug && payload.prompt_debug.meta) {
+          el('langState').textContent = 'auto';
+        }
+        break;
+      case 'provider.ready':
+      case 'provider.rotated':
+        el('dProviderInstance').textContent = payload.new_provider_instance_id || payload.provider_instance_id || '—';
+        break;
+      case 'input_audio.start':
+        currentTurnId = payload.turn_id;
+        el('dTurn').textContent = currentTurnId || '—';
+        el('speakerState').textContent = 'you';
+        break;
+      case 'input_audio.end':
+        inputEndedAt = performance.now();
+        el('speakerState').textContent = 'thinking…';
+        break;
+      case 'transcript.user':
+        addTranscriptTurn('user', payload.text);
+        break;
+      case 'transcript.model':
+        addTranscriptTurn('assistant', payload.text);
+        break;
+      case 'language.switch_detected':
+        el('langState').textContent = payload.to_language || '—';
+        break;
+      case 'audio.start':
+        firstAudioAt = performance.now();
+        if (inputEndedAt) el('dTtfb').textContent = Math.round(firstAudioAt - inputEndedAt) + ' ms';
+        playbackQueueTime = audioContext ? audioContext.currentTime : 0;
+        el('speakerState').textContent = 'assistant';
+        el('avatarBox').classList.add('speaking');
+        break;
+      case 'audio.chunk':
+        playAudioChunk(payload);
+        break;
+      case 'audio.end':
+        if (inputEndedAt) el('dFullResponse').textContent = Math.round(performance.now() - inputEndedAt) + ' ms';
+        el('speakerState').textContent = '—';
+        el('avatarBox').classList.remove('speaking');
+        break;
+      case 'response.cancelled':
+        el('latencyState').textContent = (payload.cancel_latency_ms || 0) + ' ms (interrupted)';
+        el('avatarBox').classList.remove('speaking');
+        break;
+      case 'error':
+        log('error', payload);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // ---- Microphone capture (PTT) ----
+  async function ensureMic() {
+    if (micStream) return;
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
+    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    const source = audioContext.createMediaStreamSource(micStream);
+    processor = audioContext.createScriptProcessor(2048, 1, 1);
+    processor.onaudioprocess = (e) => {
+      if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
+      const input = e.inputBuffer.getChannelData(0);
+      const pcm16 = new Int16Array(input.length);
+      for (let i = 0; i < input.length; i++) {
+        const s = Math.max(-1, Math.min(1, input[i]));
+        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      ws.send(pcm16.buffer);
+    };
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+    el('micState').textContent = 'ready';
+  }
+
+  function stopMic() {
+    if (micStream) micStream.getTracks().forEach((t) => t.stop());
+    micStream = null;
+    el('micState').textContent = 'idle';
+  }
+
+  function startTurn() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ensureMic().then(() => {
+      isHolding = true;
+      el('micState').textContent = 'recording';
+      el('pttBtn').classList.add('active');
+      ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk' }));
+    }).catch((err) => log('mic_error', { message: err.message }));
+  }
+
+  function endTurn() {
+    if (!isHolding) return;
+    isHolding = false;
+    el('micState').textContent = 'ready';
+    el('pttBtn').classList.remove('active');
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'input_audio.end' }));
+    }
+  }
+
+  function interrupt() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'manual_stop' }));
+  }
+
+  function sendTextTurn() {
+    const input = el('textInput');
+    const text = input.value.trim();
+    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+    // The server echoes this back as its own transcript.user event (same
+    // path voice input uses), so the transcript panel stays a single
+    // source of truth instead of the UI adding its own optimistic copy.
+    ws.send(JSON.stringify({ type: 'input_text.submit', text }));
+    input.value = '';
+  }
+
+  // ---- Audio playback ----
+  function decodeBase64ToBytes(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function playRawPcm16(bytes, sampleRate) {
+    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+    const samples = bytes.length / 2;
+    const buffer = audioContext.createBuffer(1, samples, sampleRate);
+    const channel = buffer.getChannelData(0);
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+    schedulePlayback(buffer);
+  }
+
+  function schedulePlayback(buffer) {
+    const src = audioContext.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audioContext.destination);
+    const now = audioContext.currentTime;
+    const startAt = Math.max(now, playbackQueueTime);
+    src.start(startAt);
+    playbackQueueTime = startAt + buffer.duration;
+  }
+
+  function playAudioChunk(payload) {
+    const bytes = decodeBase64ToBytes(payload.audio_base64);
+    if (payload.mime_type === 'audio/wav') {
+      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), (buf) => schedulePlayback(buf))
+        .catch(() => {});
+    } else {
+      playRawPcm16(bytes, payload.sample_rate || 24000);
+    }
+  }
+
+  // ---- Wiring ----
+  el('connectBtn').addEventListener('click', connect);
+  el('disconnectBtn').addEventListener('click', disconnect);
+  el('stopBtn').addEventListener('click', interrupt);
+  el('stopBtn').disabled = false;
+  el('textSendBtn').addEventListener('click', sendTextTurn);
+  el('textInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTextTurn(); });
+
+  const pttBtn = el('pttBtn');
+  pttBtn.addEventListener('pointerdown', startTurn);
+  pttBtn.addEventListener('pointerup', endTurn);
+  pttBtn.addEventListener('pointerleave', () => { if (isHolding) endTurn(); });
+
+  // ---- Panels: knowledge / persona / avatar status ----
+  async function loadPersona() {
+    const res = await fetch('/api/persona');
+    const data = await res.json();
+    el('pName').textContent = data.name;
+    el('pDescription').textContent = data.description;
+    el('pLanguages').textContent = (data.languages || []).join(', ');
+    el('pVoice').textContent = data.voice;
+    el('pWelcome').textContent = data.welcome_message;
+    el('pPrompt').value = data.system_prompt || '';
+  }
+
+  async function loadKnowledgeStatus() {
+    const res = await fetch('/api/knowledge/status');
+    const data = await res.json();
+    el('kbDocs').textContent = data.document_count;
+    el('kbChunks').textContent = data.chunk_count;
+    el('kbBuiltAt').textContent = data.built_at || 'never — run indexing';
+
+    const srcRes = await fetch('/api/knowledge/sources');
+    const srcData = await srcRes.json();
+    const tbody = document.querySelector('#kbSourcesTable tbody');
+    tbody.innerHTML = '';
+    (srcData.sources || []).forEach((s) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${s.title}</td><td>${s.doc_type}</td><td>${s.language}</td><td>${s.chunk_count}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  el('kbRefreshBtn').addEventListener('click', loadKnowledgeStatus);
+  el('kbReindexBtn').addEventListener('click', async () => {
+    el('kbReindexBtn').disabled = true;
+    try {
+      const res = await fetch('/api/knowledge/reindex', { method: 'POST' });
+      const data = await res.json();
+      el('kbErrors').textContent = (data.errors || []).length;
+      await loadKnowledgeStatus();
+    } finally {
+      el('kbReindexBtn').disabled = false;
+    }
+  });
+
+  async function loadAvatarStatus() {
+    const res = await fetch('/api/avatar/status');
+    const data = await res.json();
+    el('dAvatar').textContent = `${data.provider} (${data.connected ? 'connected' : 'disconnected'})`;
+  }
+
+  loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
+  loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
+  loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
+})();
+</script>
+</body>
+</html>

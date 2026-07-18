@@ -1,0 +1,27 @@
+{
+  "name": "wine-ai-realtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent realtime voice lab for a Moldovan wine digital expert, built on a reusable realtime core.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "knowledge:index": "node scripts/knowledge-index.js",
+    "knowledge:check": "node scripts/knowledge-check.js",
+    "test": "node scripts/run-tests.js",
+    "test:smoke": "node scripts/run-smoke.js",
+    "smoke:http": "node scripts/http-smoke.js",
+    "smoke:realtime": "node scripts/realtime-smoke.js",
+    "smoke:language": "node scripts/language-smoke.js",
+    "smoke:knowledge": "node scripts/knowledge-smoke.js",
+    "lint": "node --check src/server.js",
+    "typecheck": "echo \"no build-time typecheck configured (JS + JSDoc project); see AGENTS.md\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google/genai": "^2.11.0"
+  }
+}

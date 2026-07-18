@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wine-ai-realtime",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 3200
+    }
+  ]
+}
