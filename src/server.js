@@ -261,7 +261,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && discoveredListMatch) {
         const urlParams = new URL(req.url, 'http://localhost').searchParams;
         const statusFilter = urlParams.get('status');
-        const all = discoveredStore.loadAll();
+        const all = await discoveredStore.loadAll();
         const filtered = statusFilter ? all.filter((doc) => doc.status === statusFilter) : all;
         // Full crawled text can be tens of KB — the monitor list only needs
         // a summary, not the whole document body.
@@ -287,7 +287,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && discoveredActionMatch) {
         const [, id, action] = discoveredActionMatch;
         const status = action === 'approve' ? 'approved' : 'rejected';
-        const updated = discoveredStore.setStatus(id, status);
+        const updated = await discoveredStore.setStatus(id, status);
         if (!updated) return sendJson(res, 404, { ok: false, error: 'document_not_found' });
         try {
             if (status === 'approved') {

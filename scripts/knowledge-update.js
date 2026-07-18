@@ -73,12 +73,12 @@ async function main() {
             }
             const hash = contentHash(text);
 
-            const existingByUrl = store.findByUrl(page.url);
+            const existingByUrl = await store.findByUrl(page.url);
             if (existingByUrl && existingByUrl.contentHash === hash) {
                 report.duplicates += 1;
                 continue; // seen this exact content at this URL before
             }
-            const existingByHash = !existingByUrl && store.findByContentHash(hash);
+            const existingByHash = !existingByUrl && await store.findByContentHash(hash);
             if (existingByHash) {
                 report.duplicates += 1;
                 continue; // same content already stored under a different URL
@@ -93,7 +93,7 @@ async function main() {
             // text, only that the document itself came from a trust-A
             // source and is safe to feed into retrieval as page content.
             const status = page.trust === 'A' ? 'approved' : 'pending';
-            const doc = store.save({
+            await store.save({
                 id: existingByUrl?.id,
                 title: fetched.title,
                 url: page.url,
@@ -129,7 +129,7 @@ async function main() {
     // the dashboard between scheduled runs) instead of only ever promoting
     // on the one run a document first became approved.
     let republished = 0;
-    for (const doc of store.loadAll()) {
+    for (const doc of await store.loadAll()) {
         if (doc.status === 'approved') {
             promote(doc);
             republished += 1;
@@ -149,7 +149,15 @@ async function main() {
     }
 }
 
-main().catch((error) => {
-    console.error('[knowledge:update] FAILED:', error.message);
-    process.exitCode = 1;
-});
+main()
+    .catch((error) => {
+        console.error('[knowledge:update] FAILED:', error.message);
+        process.exitCode = 1;
+    })
+    .finally(async () => {
+        // A live pg.Pool has open sockets that would otherwise keep this
+        // one-shot script's process alive indefinitely after main() returns
+        // (this is a run-once cron/manual job, not the long-lived server).
+        const db = require('../src/knowledge/db');
+        if (db.isEnabled()) await db.getPool().end();
+    });

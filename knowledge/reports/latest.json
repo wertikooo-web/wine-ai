@@ -1,13 +1,22 @@
 {
-  "startedAt": "2026-07-18T18:13:53.817Z",
-  "completedAt": "2026-07-18T18:14:40.304Z",
-  "sourcesChecked": 18,
-  "newDocuments": 0,
+  "startedAt": "2026-07-18T18:33:41.376Z",
+  "completedAt": "2026-07-18T18:34:30.834Z",
+  "sourcesChecked": 24,
+  "newDocuments": 4,
   "duplicates": 18,
-  "autoApproved": 0,
+  "autoApproved": 4,
   "pendingReview": 0,
-  "errors": [],
-  "approvedDocumentsPublished": 18,
-  "indexedDocumentCount": 24,
-  "indexedChunkCount": 25
+  "errors": [
+    {
+      "url": "https://cricova.md/ro/vinuri/vinuri",
+      "message": "page_too_short_or_empty"
+    },
+    {
+      "url": "https://cricova.md/ro/excursii",
+      "message": "page_too_short_or_empty"
+    }
+  ],
+  "approvedDocumentsPublished": 22,
+  "indexedDocumentCount": 28,
+  "indexedChunkCount": 29
 }
