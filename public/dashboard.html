@@ -392,6 +392,13 @@
     <select id="uiLangSelect" class="ui-lang-select">
       <option value="en">EN</option>
       <option value="ru">RU</option>
+      <option value="ro">RO</option>
+      <option value="fr">FR</option>
+      <option value="it">IT</option>
+      <option value="es">ES</option>
+      <option value="de">DE</option>
+      <option value="zh">中文</option>
+      <option value="ja">日本語</option>
     </select>
   </div>
 </header>
@@ -459,11 +466,11 @@
         </div>
       </div>
 
-      <!-- PhoneShell #2: CapabilitiesScreen — static content, same chrome.
-           Content below is unchanged from the previous version per request
-           ("не меняй содержание, меняй только визуальную подачу"); only the
-           markup/CSS presenting it changed (SVG icons instead of emoji,
-           row layout instead of a bullet list, optional language chips). -->
+      <!-- PhoneShell #2: CapabilitiesScreen — same chrome as #1. Text content
+           is translated to match the dashboard UI language (see
+           applyUiLanguage()/UI_STRINGS) — ids below are what gets updated;
+           the underlying 4 capabilities + language list stay the same set
+           of facts across every language, only their wording changes. -->
       <div class="phone-shell phone-shell--right">
         <div class="phone-frame">
           <div class="phone-island" aria-hidden="true"></div>
@@ -471,42 +478,36 @@
             <div class="app-screen features-screen">
               <div class="features-header">
                 <div class="features-icon-badge">🍷</div>
-                <h2>Wine AI умеет</h2>
+                <h2 id="featuresTitle">Wine AI умеет</h2>
               </div>
               <div class="feature-list">
                 <div class="feature-row">
                   <span class="feature-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-1.2 7a4 4 0 0 1-7.6 0L7 3z"/><path d="M12 14v6"/><path d="M9 20h6"/></svg>
                   </span>
-                  <span class="feature-text">Рассказывать о молдавских винах, сортах и стилях</span>
+                  <span class="feature-text" id="feature1Text">Рассказывать о молдавских винах, сортах и стилях</span>
                 </div>
                 <div class="feature-row">
                   <span class="feature-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a2 2 0 0 0 2 2v9"/><path d="M6 3v4M9 3v4"/><path d="M17 3c-1.5 0-3 1.5-3 4v3c0 1 .5 1.5 1.5 1.5H17v9"/></svg>
                   </span>
-                  <span class="feature-text">Подбирать сочетания вина с блюдами</span>
+                  <span class="feature-text" id="feature2Text">Подбирать сочетания вина с блюдами</span>
                 </div>
                 <div class="feature-row">
                   <span class="feature-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V6l6-2 6 2 6-2v14l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
                   </span>
-                  <span class="feature-text">Планировать винные маршруты и подсказывать винодельни</span>
+                  <span class="feature-text" id="feature3Text">Планировать винные маршруты и подсказывать винодельни</span>
                 </div>
                 <div class="feature-row">
                   <span class="feature-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M9 21v-6h6v6"/><path d="M4 21h16"/></svg>
                   </span>
-                  <span class="feature-text">Рассказывать историю и особенности виноделен</span>
-                </div>
-                <div class="feature-row">
-                  <span class="feature-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>
-                  </span>
-                  <span class="feature-text">Общаться на 9 языках: RU / RO / EN / FR / IT / ES / DE / 中文 / 日本語</span>
+                  <span class="feature-text" id="feature4Text">Рассказывать историю и особенности виноделен</span>
                 </div>
               </div>
               <div class="lang-section">
-                <div class="lang-label">Языки общения</div>
+                <div class="lang-label" id="langSectionLabel">Языки общения</div>
                 <div class="lang-chips">
                   <span class="lang-chip">RU</span><span class="lang-chip">RO</span><span class="lang-chip">EN</span>
                   <span class="lang-chip">FR</span><span class="lang-chip">IT</span><span class="lang-chip">ES</span>
@@ -523,30 +524,21 @@
   </section>
 
   <section class="panel" id="tab-knowledge">
-    <div class="grid">
-      <div class="card">
-        <h2>Status</h2>
-        <div class="row"><span class="k">Documents</span><span class="v" id="kbDocs">—</span></div>
-        <div class="row"><span class="k">Chunks</span><span class="v" id="kbChunks">—</span></div>
-        <div class="row"><span class="k">Built at</span><span class="v" id="kbBuiltAt">—</span></div>
-        <div class="row"><span class="k">Errors</span><span class="v" id="kbErrors">—</span></div>
-        <div style="margin-top:12px;">
-          <button class="secondary" id="kbReindexBtn">Run indexing (npm run knowledge:index)</button>
-          <button class="secondary" id="kbRefreshBtn">Refresh</button>
-        </div>
-        <div id="kbDropZone" style="margin-top:14px; border:2px dashed var(--border); border-radius:10px; padding:20px; text-align:center; font-size:13px; color:var(--muted); cursor:pointer;">
-          Перетащите сюда .md / .txt / .json / .csv файл — или нажмите, чтобы выбрать
-          <input type="file" id="kbFileInput" accept=".md,.txt,.json,.csv" style="display:none;" multiple>
-        </div>
-        <div id="kbUploadStatus" style="font-size:12px; margin-top:8px;"></div>
+    <div class="card">
+      <h2>Status</h2>
+      <div class="row"><span class="k">Documents</span><span class="v" id="kbDocs">—</span></div>
+      <div class="row"><span class="k">Chunks</span><span class="v" id="kbChunks">—</span></div>
+      <div class="row"><span class="k">Built at</span><span class="v" id="kbBuiltAt">—</span></div>
+      <div class="row"><span class="k">Errors</span><span class="v" id="kbErrors">—</span></div>
+      <div style="margin-top:12px;">
+        <button class="secondary" id="kbReindexBtn">Run indexing (npm run knowledge:index)</button>
+        <button class="secondary" id="kbRefreshBtn">Refresh</button>
       </div>
-      <div class="card">
-        <h2>Sources</h2>
-        <table id="kbSourcesTable">
-          <thead><tr><th>Title</th><th>Type</th><th>Lang</th><th>Chunks</th></tr></thead>
-          <tbody></tbody>
-        </table>
+      <div id="kbDropZone" style="margin-top:14px; border:2px dashed var(--border); border-radius:10px; padding:20px; text-align:center; font-size:13px; color:var(--muted); cursor:pointer;">
+        Перетащите сюда .md / .txt / .json / .csv файл — или нажмите, чтобы выбрать
+        <input type="file" id="kbFileInput" accept=".md,.txt,.json,.csv" style="display:none;" multiple>
       </div>
+      <div id="kbUploadStatus" style="font-size:12px; margin-top:8px;"></div>
     </div>
 
     <div class="card">
@@ -605,9 +597,6 @@
 
       <label class="persona-field-label" for="pDescription">Description</label>
       <textarea id="pDescription" class="persona-textarea persona-textarea-short" maxlength="400"></textarea>
-
-      <label class="persona-field-label">Languages</label>
-      <div class="v" id="pLanguages" style="padding: 6px 0 4px;">—</div>
 
       <label class="persona-field-label" for="pWelcome">Welcome message</label>
       <textarea id="pWelcome" class="persona-textarea persona-textarea-short" maxlength="600"></textarea>
@@ -696,6 +685,11 @@
       connect: 'Connect', connecting: 'Connecting…', disconnect: 'Disconnect',
       statusDisconnected: 'Disconnected', statusConnected: 'Connected',
       statusListening: 'Listening', statusThinking: '', statusSpeaking: 'Speaking', statusError: 'Error',
+      featuresTitle: 'Wine AI can', langSectionLabel: 'Languages spoken',
+      feature1: 'Talk about Moldovan wines, grape varieties and styles',
+      feature2: 'Suggest food pairings for wine',
+      feature3: 'Plan wine routes and recommend wineries',
+      feature4: 'Share the history and character of wineries',
     },
     ru: {
       sub: 'Цифровой эксперт по молдавскому вину',
@@ -704,6 +698,102 @@
       connect: 'Подключить', connecting: 'Подключение…', disconnect: 'Отключить',
       statusDisconnected: 'Нет соединения', statusConnected: 'Подключено',
       statusListening: 'Слушаю', statusThinking: '', statusSpeaking: 'Говорю', statusError: 'Ошибка',
+      featuresTitle: 'Wine AI умеет', langSectionLabel: 'Языки общения',
+      feature1: 'Рассказывать о молдавских винах, сортах и стилях',
+      feature2: 'Подбирать сочетания вина с блюдами',
+      feature3: 'Планировать винные маршруты и подсказывать винодельни',
+      feature4: 'Рассказывать историю и особенности виноделен',
+    },
+    ro: {
+      sub: 'Expert digital în vinul moldovenesc',
+      tabTalk: 'Discuție', tabKnowledge: 'Cunoștințe', tabSettings: 'Setări',
+      inputPlaceholder: 'Scrie întrebarea ta…',
+      connect: 'Conectare', connecting: 'Se conectează…', disconnect: 'Deconectare',
+      statusDisconnected: 'Deconectat', statusConnected: 'Conectat',
+      statusListening: 'Ascult', statusThinking: '', statusSpeaking: 'Vorbesc', statusError: 'Eroare',
+      featuresTitle: 'Wine AI știe să', langSectionLabel: 'Limbi vorbite',
+      feature1: 'Vorbească despre vinurile moldovenești, soiuri și stiluri',
+      feature2: 'Recomande asocieri de vin cu mâncare',
+      feature3: 'Planifice trasee ale vinului și recomande crame',
+      feature4: 'Povestească istoria și particularitățile cramelor',
+    },
+    fr: {
+      sub: 'Expert numérique du vin moldave',
+      tabTalk: 'Discuter', tabKnowledge: 'Connaissances', tabSettings: 'Paramètres',
+      inputPlaceholder: 'Écrivez votre question…',
+      connect: 'Connexion', connecting: 'Connexion en cours…', disconnect: 'Déconnexion',
+      statusDisconnected: 'Déconnecté', statusConnected: 'Connecté',
+      statusListening: 'Écoute', statusThinking: '', statusSpeaking: 'Parle', statusError: 'Erreur',
+      featuresTitle: 'Wine AI peut', langSectionLabel: 'Langues parlées',
+      feature1: 'Parler des vins moldaves, cépages et styles',
+      feature2: 'Suggérer des accords mets-vins',
+      feature3: 'Planifier des routes des vins et recommander des domaines',
+      feature4: "Raconter l'histoire et les particularités des domaines",
+    },
+    it: {
+      sub: 'Esperto digitale del vino moldavo',
+      tabTalk: 'Parla', tabKnowledge: 'Conoscenza', tabSettings: 'Impostazioni',
+      inputPlaceholder: 'Scrivi la tua domanda…',
+      connect: 'Connetti', connecting: 'Connessione…', disconnect: 'Disconnetti',
+      statusDisconnected: 'Disconnesso', statusConnected: 'Connesso',
+      statusListening: 'Ascolto', statusThinking: '', statusSpeaking: 'Parlo', statusError: 'Errore',
+      featuresTitle: 'Wine AI sa', langSectionLabel: 'Lingue parlate',
+      feature1: 'Parlare dei vini moldavi, vitigni e stili',
+      feature2: 'Suggerire abbinamenti cibo-vino',
+      feature3: 'Pianificare percorsi del vino e consigliare cantine',
+      feature4: 'Raccontare la storia e le caratteristiche delle cantine',
+    },
+    es: {
+      sub: 'Experto digital en vino moldavo',
+      tabTalk: 'Hablar', tabKnowledge: 'Conocimiento', tabSettings: 'Ajustes',
+      inputPlaceholder: 'Escribe tu pregunta…',
+      connect: 'Conectar', connecting: 'Conectando…', disconnect: 'Desconectar',
+      statusDisconnected: 'Desconectado', statusConnected: 'Conectado',
+      statusListening: 'Escuchando', statusThinking: '', statusSpeaking: 'Hablando', statusError: 'Error',
+      featuresTitle: 'Wine AI puede', langSectionLabel: 'Idiomas disponibles',
+      feature1: 'Hablar sobre vinos moldavos, variedades y estilos',
+      feature2: 'Sugerir maridajes de vino y comida',
+      feature3: 'Planificar rutas del vino y recomendar bodegas',
+      feature4: 'Contar la historia y particularidades de las bodegas',
+    },
+    de: {
+      sub: 'Digitaler Experte für moldauischen Wein',
+      tabTalk: 'Gespräch', tabKnowledge: 'Wissen', tabSettings: 'Einstellungen',
+      inputPlaceholder: 'Frage eingeben…',
+      connect: 'Verbinden', connecting: 'Verbindung wird hergestellt…', disconnect: 'Trennen',
+      statusDisconnected: 'Getrennt', statusConnected: 'Verbunden',
+      statusListening: 'Hört zu', statusThinking: '', statusSpeaking: 'Spricht', statusError: 'Fehler',
+      featuresTitle: 'Wine AI kann', langSectionLabel: 'Gesprochene Sprachen',
+      feature1: 'Über moldauische Weine, Rebsorten und Stile sprechen',
+      feature2: 'Speiseempfehlungen zum Wein geben',
+      feature3: 'Weinrouten planen und Weingüter empfehlen',
+      feature4: 'Geschichte und Besonderheiten der Weingüter erzählen',
+    },
+    zh: {
+      sub: '摩尔多瓦葡萄酒数字专家',
+      tabTalk: '对话', tabKnowledge: '知识库', tabSettings: '设置',
+      inputPlaceholder: '请输入您的问题…',
+      connect: '连接', connecting: '正在连接…', disconnect: '断开连接',
+      statusDisconnected: '未连接', statusConnected: '已连接',
+      statusListening: '正在聆听', statusThinking: '', statusSpeaking: '正在讲话', statusError: '错误',
+      featuresTitle: 'Wine AI 能够', langSectionLabel: '支持语言',
+      feature1: '讲解摩尔多瓦葡萄酒、品种与风格',
+      feature2: '推荐葡萄酒与美食搭配',
+      feature3: '规划葡萄酒路线并推荐酒庄',
+      feature4: '讲述酒庄的历史与特色',
+    },
+    ja: {
+      sub: 'モルドバワインのデジタルエキスパート',
+      tabTalk: '会話', tabKnowledge: '知識', tabSettings: '設定',
+      inputPlaceholder: '質問を入力してください…',
+      connect: '接続', connecting: '接続中…', disconnect: '切断',
+      statusDisconnected: '未接続', statusConnected: '接続済み',
+      statusListening: '聞いています', statusThinking: '', statusSpeaking: '話しています', statusError: 'エラー',
+      featuresTitle: 'Wine AI ができること', langSectionLabel: '対応言語',
+      feature1: 'モルドバワインや品種、スタイルについて話す',
+      feature2: '料理とワインのペアリングを提案する',
+      feature3: 'ワインルートを計画し、ワイナリーを勧める',
+      feature4: 'ワイナリーの歴史と特徴を紹介する',
     },
   };
   let uiLang = localStorage.getItem('wineAiUiLang') || 'en';
@@ -1251,7 +1341,6 @@
     const data = await res.json();
     el('pName').value = data.name || '';
     el('pDescription').value = data.description || '';
-    el('pLanguages').textContent = (data.languages || []).join(', ');
     el('pWelcome').value = data.welcome_message || '';
     el('pPrompt').value = data.system_prompt || '';
   }
@@ -1311,16 +1400,6 @@
     el('kbDocs').textContent = data.document_count;
     el('kbChunks').textContent = data.chunk_count;
     el('kbBuiltAt').textContent = data.built_at || 'never — run indexing';
-
-    const srcRes = await fetch('/api/knowledge/sources');
-    const srcData = await srcRes.json();
-    const tbody = document.querySelector('#kbSourcesTable tbody');
-    tbody.innerHTML = '';
-    (srcData.sources || []).forEach((s) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${s.title}</td><td>${s.doc_type}</td><td>${s.language}</td><td>${s.chunk_count}</td>`;
-      tbody.appendChild(tr);
-    });
   }
 
   el('kbRefreshBtn').addEventListener('click', loadKnowledgeStatus);
@@ -1497,6 +1576,13 @@
     if (input) input.placeholder = getUiString('inputPlaceholder');
     setConnectionButton(lastConnectionState);
     DeviceVisual.setState(DeviceVisual.getState());
+
+    setText('featuresTitle', getUiString('featuresTitle'));
+    setText('langSectionLabel', getUiString('langSectionLabel'));
+    setText('feature1Text', getUiString('feature1'));
+    setText('feature2Text', getUiString('feature2'));
+    setText('feature3Text', getUiString('feature3'));
+    setText('feature4Text', getUiString('feature4'));
   }
   const uiLangSelect = el('uiLangSelect');
   if (uiLangSelect) {
