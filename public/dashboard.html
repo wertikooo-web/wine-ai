@@ -340,6 +340,15 @@
   }
   textarea { min-height: 140px; resize: vertical; }
 
+  .persona-field-label {
+    display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--muted); margin: 14px 0 6px;
+  }
+  .persona-field-label:first-of-type { margin-top: 0; }
+  .persona-input, .persona-textarea { margin: 0; }
+  .persona-textarea-short { min-height: 70px; }
+  .persona-textarea-tall { min-height: 260px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 500; }
@@ -571,11 +580,6 @@
   <section class="panel" id="tab-persona">
     <div class="card">
       <h2>Voice</h2>
-      <p style="font-size: 12px; color: var(--muted); margin: 0 0 12px;">
-        Google не публикует официальный пол для этих 30 голосов Gemini — только характер звучания
-        (Bright, Firm, Warm и т.д.). Деление на «женские/мужские» ниже — субъективная оценка на слух,
-        не официальная классификация. Ориентируйтесь на кнопку «Прослушать», а не на подпись.
-      </p>
       <div class="voice-columns">
         <div>
           <h3 class="voice-group-title">Женские (по звучанию)</h3>
@@ -593,13 +597,29 @@
 
     <div class="card">
       <h2>Persona</h2>
-      <div class="row"><span class="k">Name</span><span class="v" id="pName">—</span></div>
-      <div class="row"><span class="k">Description</span><span class="v" id="pDescription">—</span></div>
-      <div class="row"><span class="k">Languages</span><span class="v" id="pLanguages">—</span></div>
-      <div class="row"><span class="k">Voice</span><span class="v" id="pVoice">—</span></div>
-      <div class="row"><span class="k">Welcome message</span><span class="v" id="pWelcome">—</span></div>
-      <h2 style="margin-top:16px;">System prompt</h2>
-      <textarea id="pPrompt" readonly></textarea>
+      <p style="font-size: 12px; color: var(--muted); margin: 0 0 14px;">
+        Изменения сохраняются на сервере и применяются ко всем новым разговорам сразу после сохранения.
+      </p>
+      <label class="persona-field-label" for="pName">Name</label>
+      <input type="text" id="pName" class="persona-input" maxlength="80">
+
+      <label class="persona-field-label" for="pDescription">Description</label>
+      <textarea id="pDescription" class="persona-textarea persona-textarea-short" maxlength="400"></textarea>
+
+      <label class="persona-field-label">Languages</label>
+      <div class="v" id="pLanguages" style="padding: 6px 0 4px;">—</div>
+
+      <label class="persona-field-label" for="pWelcome">Welcome message</label>
+      <textarea id="pWelcome" class="persona-textarea persona-textarea-short" maxlength="600"></textarea>
+
+      <label class="persona-field-label" for="pPrompt">System prompt</label>
+      <textarea id="pPrompt" class="persona-textarea persona-textarea-tall" maxlength="24000"></textarea>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+        <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
+        <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
+        <span id="personaSaveStatus" style="font-size:12px; color:var(--muted);"></span>
+      </div>
     </div>
   </section>
 
@@ -1229,12 +1249,60 @@
   async function loadPersona() {
     const res = await fetch('/api/persona');
     const data = await res.json();
-    el('pName').textContent = data.name;
-    el('pDescription').textContent = data.description;
+    el('pName').value = data.name || '';
+    el('pDescription').value = data.description || '';
     el('pLanguages').textContent = (data.languages || []).join(', ');
-    el('pVoice').textContent = data.voice;
-    el('pWelcome').textContent = data.welcome_message;
+    el('pWelcome').value = data.welcome_message || '';
     el('pPrompt').value = data.system_prompt || '';
+  }
+
+  async function savePersona() {
+    const statusEl = el('personaSaveStatus');
+    const saveBtn = el('personaSaveBtn');
+    saveBtn.disabled = true;
+    statusEl.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: el('pName').value,
+          description: el('pDescription').value,
+          welcome_message: el('pWelcome').value,
+          system_prompt: el('pPrompt').value,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'save_failed');
+      statusEl.textContent = 'Saved — applies to new conversations.';
+      log('persona_saved', {});
+    } catch (err) {
+      statusEl.textContent = 'Save failed: ' + err.message;
+      log('persona_save_error', { message: err.message });
+    } finally {
+      saveBtn.disabled = false;
+    }
+  }
+
+  // Sending an empty string for a field clears that override server-side
+  // (see personaStore.save()'s "empty string reverts to default" rule),
+  // then loadPersona() re-reads the resulting (now-default) values.
+  async function resetPersona() {
+    const statusEl = el('personaSaveStatus');
+    statusEl.textContent = 'Resetting…';
+    try {
+      const res = await fetch('/api/persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '', description: '', welcome_message: '', system_prompt: '' }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'reset_failed');
+      await loadPersona();
+      statusEl.textContent = 'Reset to defaults.';
+    } catch (err) {
+      statusEl.textContent = 'Reset failed: ' + err.message;
+    }
   }
 
   async function loadKnowledgeStatus() {
@@ -1437,6 +1505,8 @@
   }
   applyUiLanguage(uiLang);
 
+  el('personaSaveBtn').addEventListener('click', savePersona);
+  el('personaResetBtn').addEventListener('click', resetPersona);
   loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
   loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
