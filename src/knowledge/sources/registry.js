@@ -92,11 +92,25 @@ const SOURCES = [
         // as the hand-picked ones above). `linkPattern` matches this site's
         // plain article URL shape (https://wine-and-spirits.md/<slug>/) and
         // excludes /category/, /tag/, /page/N/, wp-content, etc.
+        // Found via user report (2026-07-19): a page about a monument to
+        // Moldovan wine was on-site but never entered the knowledge base.
+        // Root cause — it lives in "Из истории молдавского виноделия"
+        // (history), a category the crawler never visited; only
+        // /category/vinodelni/ (winery-specific news) was covered. Verified
+        // both this category's existence and the specific article's
+        // membership in it via WebFetch before adding.
         listings: [
             {
                 url: 'https://wine-and-spirits.md/category/vinodelni/',
                 language: 'ru',
                 topics: ['news', 'winery'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$',
+                maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/iz-istorii-moldavskogo-vinodelia/',
+                language: 'ru',
+                topics: ['news', 'history'],
                 linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$',
                 maxNewLinksPerRun: 10,
             },
