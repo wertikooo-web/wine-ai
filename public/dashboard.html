@@ -63,6 +63,11 @@
     background: rgba(255,255,255,0.12); border-radius: 999px;
     padding: 4px 12px; font-size: 12px;
   }
+  .ui-lang-select {
+    background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .ui-lang-select option { color: var(--ink); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #999; }
   .dot.ok { background: #4ade80; }
   .dot.err { background: #f87171; }
@@ -200,7 +205,7 @@
     animation: deviceFloat 9s ease-in-out infinite;
     will-change: transform;
   }
-  .avatar-box img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 48%; border-radius: 50%; display: block; }
+  .avatar-box img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 48%; border-radius: 50%; display: block; filter: brightness(1.2); }
   .device-sheen {
     position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
     background: linear-gradient(115deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.1) 100%);
@@ -371,12 +376,14 @@
 
 <header>
   <div>
-    <h1>Wine AI Realtime</h1>
-    <div class="sub">Digital expert on Moldovan wine</div>
+    <h1>Wine AI</h1>
+    <div class="sub" id="headerSub">Digital expert on Moldovan wine</div>
   </div>
   <div style="display:flex; gap:10px; align-items:center;">
-    <span class="status-pill"><span class="dot" id="wsDot"></span><span id="wsLabel">disconnected</span></span>
-    <span class="status-pill"><span class="dot" id="providerDot"></span><span id="providerLabel">provider: —</span></span>
+    <select id="uiLangSelect" class="ui-lang-select">
+      <option value="en">EN</option>
+      <option value="ru">RU</option>
+    </select>
   </div>
 </header>
 
@@ -644,8 +651,11 @@
   const el = (id) => document.getElementById(id);
 
   function setDot(id, state) {
+    // Header connection/provider pills were removed per request — guarded
+    // no-op, same pattern as setText(), so the ws open/close/session-ready
+    // handlers that still call this don't throw on the missing elements.
     const dot = el(id);
-    dot.className = 'dot ' + (state || '');
+    if (dot) dot.className = 'dot ' + (state || '');
   }
 
   function setText(id, value) {
@@ -654,6 +664,31 @@
     // now-missing elements.
     const target = el(id);
     if (target) target.textContent = value;
+  }
+
+  // ---- Dashboard UI language (interface chrome, not the AI's spoken
+  // language — that's the separate Language dropdown on the Talk screen) ----
+  const UI_STRINGS = {
+    en: {
+      sub: 'Digital expert on Moldovan wine',
+      tabTalk: 'Talk', tabKnowledge: 'Knowledge', tabSettings: 'Settings',
+      inputPlaceholder: 'Type your question…',
+      connect: 'Connect', connecting: 'Connecting…', disconnect: 'Disconnect',
+      statusDisconnected: 'Disconnected', statusConnected: 'Connected',
+      statusListening: 'Listening', statusThinking: '', statusSpeaking: 'Speaking', statusError: 'Error',
+    },
+    ru: {
+      sub: 'Цифровой эксперт по молдавскому вину',
+      tabTalk: 'Разговор', tabKnowledge: 'База знаний', tabSettings: 'Настройки',
+      inputPlaceholder: 'Напишите вопрос…',
+      connect: 'Подключить', connecting: 'Подключение…', disconnect: 'Отключить',
+      statusDisconnected: 'Нет соединения', statusConnected: 'Подключено',
+      statusListening: 'Слушаю', statusThinking: '', statusSpeaking: 'Говорю', statusError: 'Ошибка',
+    },
+  };
+  let uiLang = localStorage.getItem('wineAiUiLang') || 'en';
+  function getUiString(key) {
+    return (UI_STRINGS[uiLang] && UI_STRINGS[uiLang][key]) || UI_STRINGS.en[key] || '';
   }
 
   // ---- Device visual component ----
@@ -671,13 +706,13 @@
     // the simple scheme requested — green=ready/listening, amber=thinking,
     // red=speaking/error, grey=disconnected — not literal error semantics.
     const STATUS_META = {
-      disconnected: { text: 'Disconnected', dot: '' },
-      connecting: { text: 'Connecting…', dot: 'warn' },
-      ready: { text: 'Connected', dot: 'ok' },
-      listening: { text: 'Listening', dot: 'ok' },
-      thinking: { text: '', dot: 'warn' },
-      speaking: { text: 'Speaking', dot: 'err' },
-      error: { text: 'Error', dot: 'err' },
+      disconnected: { key: 'statusDisconnected', dot: '' },
+      connecting: { key: 'connecting', dot: 'warn' },
+      ready: { key: 'statusConnected', dot: 'ok' },
+      listening: { key: 'statusListening', dot: 'ok' },
+      thinking: { key: 'statusThinking', dot: 'warn' },
+      speaking: { key: 'statusSpeaking', dot: 'err' },
+      error: { key: 'statusError', dot: 'err' },
     };
     // States that map onto the mic/stop button's own animation classes —
     // disconnected/connecting/error intentionally excluded (button is
@@ -693,7 +728,7 @@
         box.classList.toggle('listening', state === 'listening');
         box.classList.toggle('speaking', state === 'speaking');
       }
-      setText('avatarStatus', STATUS_META[state].text);
+      setText('avatarStatus', getUiString(STATUS_META[state].key));
       const dot = el('avatarStatusDot');
       if (dot) dot.className = 'status-dot ' + (STATUS_META[state].dot || '');
 
@@ -759,7 +794,7 @@
 
     ws.addEventListener('open', async () => {
       setDot('wsDot', 'ok');
-      el('wsLabel').textContent = 'connected';
+      setText('wsLabel', 'connected');
       setText('dWs', 'open');
       setConnectionButton('connected');
       el('pttBtn').disabled = false;
@@ -784,7 +819,7 @@
 
     ws.addEventListener('close', () => {
       setDot('wsDot', '');
-      el('wsLabel').textContent = 'disconnected';
+      setText('wsLabel', 'disconnected');
       setText('dWs', 'closed');
       setConnectionButton('disconnected');
       el('pttBtn').disabled = true;
@@ -816,11 +851,13 @@
   // Single connection button — toggles label/behavior instead of showing
   // separate Connect/Disconnect controls, per the "one button, no control-
   // panel feel" requirement.
-  const CONNECTION_BUTTON_LABEL = { disconnected: 'Connect', connecting: 'Connecting…', connected: 'Disconnect' };
+  const CONNECTION_BUTTON_KEY = { disconnected: 'connect', connecting: 'connecting', connected: 'disconnect' };
+  let lastConnectionState = 'disconnected';
   function setConnectionButton(state) {
+    lastConnectionState = state;
     const btn = el('connectBtn');
     if (!btn) return;
-    btn.textContent = CONNECTION_BUTTON_LABEL[state] || 'Connect';
+    btn.textContent = getUiString(CONNECTION_BUTTON_KEY[state] || 'connect');
     btn.disabled = state === 'connecting';
     btn.dataset.state = state;
   }
@@ -839,7 +876,7 @@
     switch (payload.type) {
       case 'session.ready':
         setDot('providerDot', 'ok');
-        el('providerLabel').textContent = 'provider: ' + (payload.provider || '—');
+        setText('providerLabel', 'provider: ' + (payload.provider || '—'));
         setText('dProvider', payload.provider || '—');
         setText('dProviderInstance', payload.provider_instance_id || '—');
         setText('dOutputRate', payload.provider === 'gemini' ? '24000 Hz' : '16000 Hz');
@@ -1376,6 +1413,29 @@
     const data = await res.json();
     setText('dAvatar', `${data.provider} (${data.connected ? 'connected' : 'disconnected'})`);
   }
+
+  // ---- Dashboard UI language wiring ----
+  function applyUiLanguage(lang) {
+    uiLang = lang;
+    localStorage.setItem('wineAiUiLang', lang);
+    setText('headerSub', getUiString('sub'));
+    const tabAvatar = document.querySelector('nav.tabs [data-tab="avatar"]');
+    const tabKnowledge = document.querySelector('nav.tabs [data-tab="knowledge"]');
+    const tabPersona = document.querySelector('nav.tabs [data-tab="persona"]');
+    if (tabAvatar) tabAvatar.textContent = getUiString('tabTalk');
+    if (tabKnowledge) tabKnowledge.textContent = getUiString('tabKnowledge');
+    if (tabPersona) tabPersona.textContent = getUiString('tabSettings');
+    const input = el('textInput');
+    if (input) input.placeholder = getUiString('inputPlaceholder');
+    setConnectionButton(lastConnectionState);
+    DeviceVisual.setState(DeviceVisual.getState());
+  }
+  const uiLangSelect = el('uiLangSelect');
+  if (uiLangSelect) {
+    uiLangSelect.value = uiLang;
+    uiLangSelect.addEventListener('change', () => applyUiLanguage(uiLangSelect.value));
+  }
+  applyUiLanguage(uiLang);
 
   loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
   loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
