@@ -374,6 +374,20 @@
   .voice-preview-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .voice-preview-btn.loading { cursor: wait; }
 
+  /* ---- Knowledge Monitor: collapsible card + collapsible status groups ---- */
+  .pm-card-summary { cursor: pointer; list-style: none; margin-bottom: 4px; }
+  .pm-card-summary::-webkit-details-marker { display: none; }
+  .pm-group { border: 1px solid var(--border); border-radius: 8px; margin-top: 10px; padding: 0; }
+  .pm-group summary {
+    cursor: pointer; list-style: none; padding: 10px 12px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pm-group summary::-webkit-details-marker { display: none; }
+  .pm-group summary::before { content: '▸'; color: var(--muted); font-size: 11px; }
+  .pm-group[open] summary::before { content: '▾'; }
+  .pm-doc-list { padding: 0 12px 12px; }
+  .pm-show-more { width: 100%; margin-top: 4px; }
+
   #log { max-height: 220px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px; background: #201a15; color: #d8cdb8; padding: 10px; border-radius: 8px; }
   #log div { white-space: pre-wrap; word-break: break-all; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #eee; }
@@ -527,7 +541,6 @@
     <div class="card">
       <h2>Status</h2>
       <div class="row"><span class="k">Documents</span><span class="v" id="kbDocs">—</span></div>
-      <div class="row"><span class="k">Chunks</span><span class="v" id="kbChunks">—</span></div>
       <div class="row"><span class="k">Built at</span><span class="v" id="kbBuiltAt">—</span></div>
       <div class="row"><span class="k">Errors</span><span class="v" id="kbErrors">—</span></div>
       <div style="margin-top:12px;">
@@ -541,9 +554,9 @@
       <div id="kbUploadStatus" style="font-size:12px; margin-top:8px;"></div>
     </div>
 
-    <div class="card">
-      <h2>Knowledge Monitor</h2>
-      <div class="grid" style="margin-bottom:14px;">
+    <details class="card pm-card" open>
+      <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Knowledge Monitor</h2></summary>
+      <div class="grid" style="margin:14px 0;">
         <div>
           <div class="row"><span class="k">Last run</span><span class="v" id="pmLastRun">—</span></div>
           <div class="row"><span class="k">Sources checked</span><span class="v" id="pmChecked">—</span></div>
@@ -558,15 +571,22 @@
       <button class="secondary" id="pmRunBtn">Запустить обновление вручную</button>
       <button class="secondary" id="pmRefreshBtn">Refresh</button>
       <p style="font-size:12px; color:var(--muted); margin:10px 0;">
-        Crawls the sources in <code>src/knowledge/sources/registry.js</code> (currently: wineofmoldova.com, ru/ro/en). Trust-A documents are auto-approved and published; everything else waits below for a manual decision. See <code>docs/KNOWLEDGE_PIPELINE_ARCHITECTURE.md</code>.
+        Crawls the sources in <code>src/knowledge/sources/registry.js</code>. Trust-A documents are auto-approved and published; everything else waits below for a manual decision (Pending). Rejecting a document is permanent — it won't reappear even if the crawler finds it again. See <code>docs/KNOWLEDGE_PIPELINE_ARCHITECTURE.md</code>.
       </p>
-      <div style="display:flex; gap:4px; margin:10px 0; border-bottom:1px solid var(--border);">
-        <button class="secondary" data-pm-tab="approved" style="border-radius:6px 6px 0 0;">Approved</button>
-        <button class="secondary" data-pm-tab="pending" style="border-radius:6px 6px 0 0;">Pending</button>
-        <button class="secondary" data-pm-tab="rejected" style="border-radius:6px 6px 0 0;">Rejected</button>
-      </div>
-      <div id="pmDocList"></div>
-    </div>
+
+      <details class="pm-group" id="pmGroupPending">
+        <summary>Pending <span class="badge" id="pmCountPending">0</span></summary>
+        <div class="pm-doc-list" id="pmListPending"></div>
+      </details>
+      <details class="pm-group" id="pmGroupApproved">
+        <summary>Approved <span class="badge ok" id="pmCountApproved">0</span></summary>
+        <div class="pm-doc-list" id="pmListApproved"></div>
+      </details>
+      <details class="pm-group" id="pmGroupRejected">
+        <summary>Rejected <span class="badge err" id="pmCountRejected">0</span></summary>
+        <div class="pm-doc-list" id="pmListRejected"></div>
+      </details>
+    </details>
   </section>
 
   <section class="panel" id="tab-persona">
@@ -1398,7 +1418,6 @@
     const res = await fetch('/api/knowledge/status');
     const data = await res.json();
     el('kbDocs').textContent = data.document_count;
-    el('kbChunks').textContent = data.chunk_count;
     el('kbBuiltAt').textContent = data.built_at || 'never — run indexing';
   }
 
@@ -1479,7 +1498,13 @@
   });
 
   // ---- Knowledge Monitor (crawl pipeline) ----
-  let pmActiveTab = 'approved';
+  // Documents are grouped by status into three independently-collapsible
+  // <details> sections (Pending/Approved/Rejected), all closed by default so
+  // the panel doesn't dominate the tab when there's nothing to decide. Each
+  // group renders only its 10 most recent documents (already sorted newest-
+  // first by the API) plus a "Show N more" button that reveals the rest on
+  // demand, rather than rendering a possibly-long list up front.
+  const PM_PAGE_SIZE = 10;
 
   async function loadPipelineStatus() {
     const res = await fetch('/api/knowledge/pipeline-status');
@@ -1493,35 +1518,58 @@
     el('pmErrors').textContent = r ? r.errors.length : '—';
   }
 
-  async function loadDiscoveredList() {
-    const res = await fetch('/api/knowledge/discovered?status=' + encodeURIComponent(pmActiveTab));
-    const data = await res.json();
-    const box = el('pmDocList');
-    box.innerHTML = '';
-    if (!data.documents || data.documents.length === 0) {
-      box.innerHTML = '<p style="color:var(--muted); font-size:13px;">Nothing here yet.</p>';
+  function renderDocCard(doc, status) {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px;';
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:8px;">
+        <strong>${doc.title}</strong>
+        <span class="badge ${doc.trustLevel === 'A' ? 'ok' : ''}">${doc.trustLevel}</span>
+      </div>
+      <div style="color:var(--muted); margin:4px 0;">${doc.publisher} · ${doc.language} · ${new Date(doc.fetchedAt).toLocaleDateString()}</div>
+      <div>${(doc.summary || '').slice(0, 200)}...</div>
+      <div style="margin-top:8px; display:flex; gap:6px;">
+        <a href="${doc.url}" target="_blank" rel="noopener"><button class="secondary">Открыть оригинал</button></a>
+        ${status !== 'approved' ? `<button class="secondary" data-approve="${doc.id}">Одобрить</button>` : ''}
+        ${status !== 'rejected' ? `<button class="secondary" data-reject="${doc.id}">Отклонить</button>` : ''}
+      </div>
+    `;
+    card.querySelector('[data-approve]')?.addEventListener('click', () => decideDoc(doc.id, 'approve'));
+    card.querySelector('[data-reject]')?.addEventListener('click', () => decideDoc(doc.id, 'reject'));
+    return card;
+  }
+
+  function renderDocGroup(status, docs) {
+    const listBox = el('pmList' + status[0].toUpperCase() + status.slice(1));
+    const countBadge = el('pmCount' + status[0].toUpperCase() + status.slice(1));
+    countBadge.textContent = docs.length;
+    listBox.innerHTML = '';
+    if (docs.length === 0) {
+      listBox.innerHTML = '<p style="color:var(--muted); font-size:13px; margin:8px 0 0;">Nothing here yet.</p>';
       return;
     }
-    for (const doc of data.documents) {
-      const card = document.createElement('div');
-      card.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px;';
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; gap:8px;">
-          <strong>${doc.title}</strong>
-          <span class="badge ${doc.trustLevel === 'A' ? 'ok' : ''}">${doc.trustLevel}</span>
-        </div>
-        <div style="color:var(--muted); margin:4px 0;">${doc.publisher} · ${doc.language} · ${new Date(doc.fetchedAt).toLocaleDateString()}</div>
-        <div>${(doc.summary || '').slice(0, 200)}...</div>
-        <div style="margin-top:8px; display:flex; gap:6px;">
-          <a href="${doc.url}" target="_blank" rel="noopener"><button class="secondary">Открыть оригинал</button></a>
-          ${pmActiveTab !== 'approved' ? `<button class="secondary" data-approve="${doc.id}">Одобрить</button>` : ''}
-          ${pmActiveTab !== 'rejected' ? `<button class="secondary" data-reject="${doc.id}">Отклонить</button>` : ''}
-        </div>
-      `;
-      box.appendChild(card);
+    const visible = docs.slice(0, PM_PAGE_SIZE);
+    const rest = docs.slice(PM_PAGE_SIZE);
+    visible.forEach((doc) => listBox.appendChild(renderDocCard(doc, status)));
+    if (rest.length > 0) {
+      const moreBtn = document.createElement('button');
+      moreBtn.className = 'secondary pm-show-more';
+      moreBtn.textContent = `Показать ещё ${rest.length}`;
+      moreBtn.addEventListener('click', () => {
+        rest.forEach((doc) => listBox.insertBefore(renderDocCard(doc, status), moreBtn));
+        moreBtn.remove();
+      });
+      listBox.appendChild(moreBtn);
     }
-    box.querySelectorAll('[data-approve]').forEach((btn) => btn.addEventListener('click', () => decideDoc(btn.dataset.approve, 'approve')));
-    box.querySelectorAll('[data-reject]').forEach((btn) => btn.addEventListener('click', () => decideDoc(btn.dataset.reject, 'reject')));
+  }
+
+  async function loadDiscoveredList() {
+    const res = await fetch('/api/knowledge/discovered');
+    const data = await res.json();
+    const docs = data.documents || [];
+    renderDocGroup('pending', docs.filter((d) => d.status === 'pending'));
+    renderDocGroup('approved', docs.filter((d) => d.status === 'approved'));
+    renderDocGroup('rejected', docs.filter((d) => d.status === 'rejected'));
   }
 
   async function decideDoc(id, action) {
@@ -1529,13 +1577,6 @@
     await loadDiscoveredList();
     await loadKnowledgeStatus();
   }
-
-  document.querySelectorAll('[data-pm-tab]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      pmActiveTab = btn.dataset.pmTab;
-      loadDiscoveredList();
-    });
-  });
 
   el('pmRefreshBtn').addEventListener('click', () => { loadPipelineStatus(); loadDiscoveredList(); });
   el('pmRunBtn').addEventListener('click', async () => {
