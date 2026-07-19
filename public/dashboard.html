@@ -207,6 +207,27 @@
   th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 500; }
 
+  /* ---- Voice picker (Settings tab) ---- */
+  .voice-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .voice-columns { grid-template-columns: 1fr; } }
+  .voice-group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--wine); margin: 0 0 8px; }
+  .voice-list { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+  .voice-row { display: flex; align-items: center; gap: 6px; }
+  .voice-select-btn {
+    flex: 1; text-align: left; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: white; cursor: pointer; font-size: 13px; color: var(--ink);
+  }
+  .voice-select-btn:hover { border-color: var(--wine); }
+  .voice-select-btn.selected { border-color: var(--wine); background: #fbeceb; font-weight: 600; }
+  .voice-characteristic { color: var(--muted); font-size: 11px; margin-left: 6px; font-weight: 400; }
+  .voice-preview-btn {
+    width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border);
+    background: white; cursor: pointer; font-size: 12px;
+  }
+  .voice-preview-btn:hover:not(:disabled) { border-color: var(--wine); }
+  .voice-preview-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .voice-preview-btn.loading { cursor: wait; }
+
   #log { max-height: 220px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px; background: #201a15; color: #d8cdb8; padding: 10px; border-radius: 8px; }
   #log div { white-space: pre-wrap; word-break: break-all; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #eee; }
@@ -351,6 +372,28 @@
 
   <section class="panel" id="tab-persona">
     <div class="card">
+      <h2>Voice</h2>
+      <p style="font-size: 12px; color: var(--muted); margin: 0 0 12px;">
+        Google не публикует официальный пол для этих 30 голосов Gemini — только характер звучания
+        (Bright, Firm, Warm и т.д.). Деление на «женские/мужские» ниже — субъективная оценка на слух,
+        не официальная классификация. Ориентируйтесь на кнопку «Прослушать», а не на подпись.
+      </p>
+      <div class="voice-columns">
+        <div>
+          <h3 class="voice-group-title">Женские (по звучанию)</h3>
+          <div id="voiceListFemale" class="voice-list"></div>
+        </div>
+        <div>
+          <h3 class="voice-group-title">Мужские (по звучанию)</h3>
+          <div id="voiceListMale" class="voice-list"></div>
+        </div>
+      </div>
+      <p style="font-size: 12px; color: var(--muted); margin: 10px 0 0;">
+        Выбор применяется сразу, если вы уже подключены (Live avatar / Talk), иначе — при следующем Connect.
+      </p>
+    </div>
+
+    <div class="card">
       <h2>Persona</h2>
       <div class="row"><span class="k">Name</span><span class="v" id="pName">—</span></div>
       <div class="row"><span class="k">Description</span><span class="v" id="pDescription">—</span></div>
@@ -389,6 +432,23 @@
   let firstAudioAt = 0;
   let playbackQueueTime = 0;
   let activeSources = [];
+  let selectedVoiceName = localStorage.getItem('wineAiVoiceName') || '';
+  let currentPreviewSource = null;
+
+  // Google does not publish an official gender for these 30 prebuilt Gemini
+  // voices (see src/geminiVoices.js) — only a tone characteristic. This
+  // grouping is a subjective, by-ear guess used purely to help a first-time
+  // visitor narrow down 30 options faster; it is NOT an official
+  // classification, and is disclosed as such in the Settings tab UI. Always
+  // prefer the "Прослушать" preview over this label.
+  const VOICE_GENDER_GUESS = {
+    Zephyr: 'female', Puck: 'male', Charon: 'male', Kore: 'female', Fenrir: 'male',
+    Leda: 'female', Orus: 'male', Aoede: 'female', Callirrhoe: 'female', Autonoe: 'female',
+    Enceladus: 'male', Iapetus: 'male', Umbriel: 'male', Algieba: 'male', Despina: 'female',
+    Erinome: 'female', Algenib: 'male', Rasalgethi: 'male', Laomedeia: 'female', Achernar: 'female',
+    Alnilam: 'male', Schedar: 'male', Gacrux: 'female', Pulcherrima: 'female', Achird: 'male',
+    Zubenelgenubi: 'male', Vindemiatrix: 'female', Sadachbia: 'male', Sadaltager: 'male', Sulafat: 'female',
+  };
 
   const el = (id) => document.getElementById(id);
 
@@ -472,6 +532,7 @@
     const language = el('langSelect').value;
     const payload = { type: 'session.start', sampleRate: inputSampleRate, include_prompt_debug: true };
     if (language && language !== 'auto') payload.language = language;
+    if (selectedVoiceName) payload.voiceName = selectedVoiceName;
     ws.send(JSON.stringify(payload));
   }
 
@@ -713,6 +774,107 @@
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
+  }
+
+  // ---- Voice picker (Settings tab) ----
+  // Deliberately isolated from the live-conversation audio pipeline: its own
+  // short-lived AudioContext/BufferSource, never touching `audioContext`,
+  // `activeSources`, or `playbackQueueTime` (which belong to the realtime
+  // WebSocket session) — so previewing a voice can never interfere with an
+  // in-progress or subsequent conversation turn.
+  function playVoicePreview(base64, sampleRate) {
+    return new Promise((resolve) => {
+      if (currentPreviewSource) {
+        try { currentPreviewSource.stop(); } catch { /* already stopped */ }
+        currentPreviewSource = null;
+      }
+      const bytes = decodeBase64ToBytes(base64);
+      const samples = bytes.length / 2;
+      const previewCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const buffer = previewCtx.createBuffer(1, samples, sampleRate || 24000);
+      const channel = buffer.getChannelData(0);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+      const source = previewCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(previewCtx.destination);
+      currentPreviewSource = source;
+      source.onended = () => {
+        currentPreviewSource = null;
+        previewCtx.close().catch(() => {});
+        resolve();
+      };
+      source.start();
+    });
+  }
+
+  async function previewVoice(voiceName, btnEl) {
+    if (btnEl.disabled) return;
+    const allPreviewBtns = document.querySelectorAll('.voice-preview-btn');
+    allPreviewBtns.forEach((b) => { b.disabled = true; });
+    btnEl.classList.add('loading');
+    btnEl.textContent = '⏳';
+    try {
+      const res = await fetch('/api/voice-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice_name: voiceName }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'preview_failed');
+      await playVoicePreview(data.audio_base64, data.sample_rate);
+    } catch (err) {
+      log('voice_preview_error', { voice: voiceName, message: err.message });
+    } finally {
+      btnEl.classList.remove('loading');
+      btnEl.textContent = '▶';
+      allPreviewBtns.forEach((b) => { b.disabled = false; });
+    }
+  }
+
+  function selectVoice(voiceName) {
+    selectedVoiceName = voiceName;
+    localStorage.setItem('wineAiVoiceName', voiceName);
+    document.querySelectorAll('.voice-select-btn').forEach((btn) => {
+      btn.classList.toggle('selected', btn.dataset.voice === voiceName);
+    });
+    // Same "apply immediately if connected, else on next Connect" pattern as
+    // the language dropdown — harmless no-op if the session isn't open yet.
+    sendSessionStart();
+  }
+
+  async function loadVoices() {
+    const res = await fetch('/api/voices');
+    const data = await res.json();
+    const voices = data.voices || [];
+    const defaultVoice = data.default_voice || '';
+    if (!selectedVoiceName) selectedVoiceName = defaultVoice;
+    const femaleBox = el('voiceListFemale');
+    const maleBox = el('voiceListMale');
+    if (!femaleBox || !maleBox) return;
+    femaleBox.innerHTML = '';
+    maleBox.innerHTML = '';
+    voices.forEach((voice) => {
+      const gender = VOICE_GENDER_GUESS[voice.name] || 'male';
+      const row = document.createElement('div');
+      row.className = 'voice-row';
+
+      const selectBtn = document.createElement('button');
+      selectBtn.className = 'voice-select-btn' + (voice.name === selectedVoiceName ? ' selected' : '');
+      selectBtn.dataset.voice = voice.name;
+      selectBtn.innerHTML = `${voice.name}<span class="voice-characteristic">${voice.characteristic}</span>`;
+      selectBtn.addEventListener('click', () => selectVoice(voice.name));
+
+      const previewBtn = document.createElement('button');
+      previewBtn.className = 'voice-preview-btn';
+      previewBtn.textContent = '▶';
+      previewBtn.title = 'Прослушать';
+      previewBtn.addEventListener('click', () => previewVoice(voice.name, previewBtn));
+
+      row.appendChild(selectBtn);
+      row.appendChild(previewBtn);
+      (gender === 'female' ? femaleBox : maleBox).appendChild(row);
+    });
   }
 
   function playRawPcm16(bytes, sampleRate) {
@@ -974,6 +1136,7 @@
   }
 
   loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
+  loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
   loadPipelineStatus().catch((err) => log('pipeline_status_load_error', { message: err.message }));
