@@ -114,6 +114,93 @@ const SOURCES = [
                 linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$',
                 maxNewLinksPerRun: 10,
             },
+            // Added 2026-07-20 per user request, after auditing the site's
+            // full category navigation (fetched live, not guessed) and
+            // finding only 2 of ~30 categories were ever being crawled.
+            // These are the categories judged in-scope for a Moldovan-wine
+            // persona; explicitly excluded: other countries' winemaking
+            // (Georgia/France/Italy/Austria/Portugal — out of this bot's
+            // specialization), whisky, films, services, wine+music, cooking.
+            {
+                url: 'https://wine-and-spirits.md/category/o-moldavskom-vinodelii/',
+                language: 'ru', topics: ['news', 'wine'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/moldavskie-vina/',
+                language: 'ru', topics: ['news', 'wine'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/o-divinah/',
+                language: 'ru', topics: ['news', 'divin'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/vinodely/',
+                language: 'ru', topics: ['news', 'winery'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/urojai-po-godam/',
+                language: 'ru', topics: ['news', 'wine'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/v-moldobe/',
+                language: 'ru', topics: ['news'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/nasi-dostijenia/',
+                language: 'ru', topics: ['news'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/statistika/',
+                language: 'ru', topics: ['news', 'statistics'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/na-exportnih-rinkah/',
+                language: 'ru', topics: ['news', 'export'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/den-vina/',
+                language: 'ru', topics: ['news', 'tourism'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/interviu/',
+                language: 'ru', topics: ['news', 'interview'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/gde-kupiti/',
+                language: 'ru', topics: ['news'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/o-sortah/',
+                language: 'ru', topics: ['news', 'grape'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/o-vinogradnikah/',
+                language: 'ru', topics: ['news', 'grape'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/o-vine/',
+                language: 'ru', topics: ['news', 'wine'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/o-degustatsii/',
+                language: 'ru', topics: ['news', 'tasting'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
         ],
     },
 ];
