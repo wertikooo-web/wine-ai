@@ -15,7 +15,11 @@ const knowledgeLoader = require('./knowledge/loader');
 const discoveredStore = require('./knowledge/discovered/store');
 const { promote } = require('./knowledge/discovered/promote');
 const { runUpdateCycle } = require('./knowledge/updateCycle');
-const { SUPPORTED_LANGUAGES, WELCOME_MESSAGE, defaultPersonaPrompt } = require('./persona/wineExpertPersona');
+const {
+    SUPPORTED_LANGUAGES, defaultPersonaPrompt,
+    currentPersonaName, currentPersonaDescription, currentWelcomeMessage,
+} = require('./persona/wineExpertPersona');
+const personaStore = require('./persona/personaStore');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const env = require('./config/env');
 
@@ -41,6 +45,13 @@ process.on('unhandledRejection', (reason) => {
 // Only 'mock' is implemented in v1 — see src/avatar/AvatarProvider.js for
 // the interface a real provider adapter would implement.
 const avatarProvider = new MockAvatarProvider();
+
+// Warm the persona-override cache at boot so the very first realtime
+// session (and the first /api/persona GET) already reflects any saved
+// customization instead of the built-in defaults for a brief window.
+personaStore.load().catch((error) => {
+    console.error('[WineAI] persona_override_load_failed:', error);
+});
 
 function createProviderFactory() {
     // Function-calling tools (search_wine_knowledge etc.) are core to this
@@ -217,13 +228,47 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && pathname === '/api/persona') {
         return sendJson(res, 200, {
             ok: true,
-            name: 'Wine AI',
-            description: 'Цифровой эксперт по молдавскому вину, винодельням, сортам винограда, регионам, гастрономическим сочетаниям и винному туризму.',
+            name: currentPersonaName(),
+            description: currentPersonaDescription(),
             languages: SUPPORTED_LANGUAGES,
-            welcome_message: WELCOME_MESSAGE,
+            welcome_message: currentWelcomeMessage(),
             system_prompt: defaultPersonaPrompt(),
-            voice: DEFAULT_GEMINI_LIVE_VOICE,
         });
+    }
+
+    // Persists name/description/welcome_message/system_prompt (Postgres-
+    // backed when DATABASE_URL is set, file-backed for local dev — see
+    // src/persona/personaStore.js). Every realtime session started AFTER a
+    // successful save picks up the change immediately, since
+    // defaultPersonaPrompt() reads the same in-memory cache this updates.
+    // Languages are deliberately not editable here — SUPPORTED_LANGUAGES
+    // drives real language-detection/UI behavior elsewhere, not just display.
+    if (req.method === 'POST' && pathname === '/api/persona') {
+        let body;
+        try {
+            body = await readJsonBody(req);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        try {
+            const saved = await personaStore.save({
+                name: body.name,
+                description: body.description,
+                welcome_message: body.welcome_message,
+                system_prompt: body.system_prompt,
+            });
+            return sendJson(res, 200, {
+                ok: true,
+                name: currentPersonaName(),
+                description: currentPersonaDescription(),
+                languages: SUPPORTED_LANGUAGES,
+                welcome_message: currentWelcomeMessage(),
+                system_prompt: defaultPersonaPrompt(),
+                saved,
+            });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'persona_save_failed', message: error.message });
+        }
     }
 
     if (req.method === 'GET' && pathname === '/api/knowledge/status') {

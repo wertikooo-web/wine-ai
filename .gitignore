@@ -6,3 +6,6 @@ knowledge/index/*.json
 # Local file-based fallback for the discovered-docs store (prod uses Postgres
 # via DATABASE_URL) — this is throwaway local dev/test state, not source data.
 knowledge/discovered/*.json
+# Same reasoning for the local persona-overrides fallback (prod uses
+# Postgres — see src/persona/personaStore.js).
+data/persona-overrides.json

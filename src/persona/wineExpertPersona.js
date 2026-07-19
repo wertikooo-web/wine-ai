@@ -7,6 +7,8 @@
 // src/realtime/realtimePrompt.js, the same injection point the transport
 // core already exposed for its original (unrelated) persona.
 
+const personaStore = require('./personaStore');
+
 const SUPPORTED_LANGUAGES = ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja'];
 const DEFAULT_LANGUAGE = 'auto';
 
@@ -180,8 +182,32 @@ const CORE_PERSONA_PROMPT = `РОЛЬ
 - язык ответа соответствует языку пользователя;
 - ответ помогает продолжить живой разговор, а не завершает его формально.`;
 
+const DEFAULT_NAME = 'Wine AI';
+const DEFAULT_DESCRIPTION = 'Цифровой эксперт по молдавскому вину, винодельням, сортам винограда, регионам, гастрономическим сочетаниям и винному туризму.';
+
+// Each of these reads the synchronously-cached persistent override (see
+// ./personaStore.js — Postgres/file-backed, edited from the dashboard's
+// Settings tab) and falls back to the built-in default whenever no override
+// is set for that field. Kept synchronous deliberately: realtimePrompt.js
+// calls defaultPersonaPrompt() during session setup without an await.
 function defaultPersonaPrompt() {
-    return CORE_PERSONA_PROMPT;
+    const override = personaStore.getCached();
+    return (override && override.system_prompt) || CORE_PERSONA_PROMPT;
+}
+
+function currentPersonaName() {
+    const override = personaStore.getCached();
+    return (override && override.name) || DEFAULT_NAME;
+}
+
+function currentPersonaDescription() {
+    const override = personaStore.getCached();
+    return (override && override.description) || DEFAULT_DESCRIPTION;
+}
+
+function currentWelcomeMessage() {
+    const override = personaStore.getCached();
+    return (override && override.welcome_message) || WELCOME_MESSAGE;
 }
 
 module.exports = {
@@ -190,5 +216,10 @@ module.exports = {
     DEFAULT_LANGUAGE,
     WELCOME_MESSAGE,
     CORE_PERSONA_PROMPT,
+    DEFAULT_NAME,
+    DEFAULT_DESCRIPTION,
     defaultPersonaPrompt,
+    currentPersonaName,
+    currentPersonaDescription,
+    currentWelcomeMessage,
 };
