@@ -75,22 +75,32 @@
   .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--wine); text-transform: uppercase; letter-spacing: 0.04em; }
 
   /* ---- Avatar (circular figure) ---- */
-  @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+  @keyframes wobble {
+    0%, 100% { transform: perspective(700px) rotateY(0deg) scale(1); }
+    25% { transform: perspective(700px) rotateY(6deg) scale(1.015); }
+    50% { transform: perspective(700px) rotateY(0deg) scale(1.03); }
+    75% { transform: perspective(700px) rotateY(-6deg) scale(1.015); }
+  }
   @keyframes listenPulse { 0%, 100% { box-shadow: 0 0 16px 3px rgba(74,222,128,0.45); } 50% { box-shadow: 0 0 26px 7px rgba(74,222,128,0.75); } }
   @keyframes speakPulse { 0%, 100% { box-shadow: 0 0 16px 3px rgba(201,168,106,0.5); } 50% { box-shadow: 0 0 26px 7px rgba(201,168,106,0.8); } }
 
+  .avatar-stage { perspective: 700px; margin: 0 auto; width: 200px; max-width: 100%; }
   .avatar-box {
-    width: 200px; height: 200px; max-width: 100%; margin: 0 auto 20px; position: relative;
-    border-radius: 50%; overflow: hidden;
+    width: 200px; height: 200px; max-width: 100%; margin: 0 auto 14px; position: relative;
+    border-radius: 50%; overflow: hidden; transform-style: preserve-3d;
     background: radial-gradient(circle at 35% 30%, #8a2e3d, var(--wine-dark));
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 10px 28px rgba(20,8,10,0.25);
-    animation: breathe 5s ease-in-out infinite;
+    animation: wobble 8s ease-in-out infinite;
   }
   .avatar-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar-ring {
     position: absolute; inset: -8px; border-radius: 50%; border: 2px solid transparent;
     transition: border-color 0.2s ease;
+  }
+  .avatar-status {
+    text-align: center; font-size: 13px; font-weight: 600; color: var(--muted);
+    margin-bottom: 16px; transition: color 0.2s ease;
   }
   .avatar-box.listening .avatar-ring { border-color: rgba(74,222,128,0.85); animation: listenPulse 1.1s ease-in-out infinite; }
   .avatar-box.speaking .avatar-ring { border-color: rgba(201,168,106,0.9); animation: speakPulse 0.9s ease-in-out infinite; }
@@ -177,9 +187,9 @@
 </header>
 
 <nav class="tabs">
-  <button data-tab="avatar" class="active">Live avatar</button>
-  <button data-tab="knowledge">Knowledge base</button>
-  <button data-tab="persona">Persona</button>
+  <button data-tab="avatar" class="active">Talk</button>
+  <button data-tab="knowledge">Knowledge</button>
+  <button data-tab="persona">Settings</button>
 </nav>
 
 <main>
@@ -187,10 +197,13 @@
   <section class="panel active" id="tab-avatar">
     <div class="grid" style="grid-template-columns: minmax(0,360px) minmax(0,300px); align-items: start; justify-content: center;">
       <div class="card" style="text-align:center; max-width: 360px;">
-        <div class="avatar-box" id="avatarBox">
-          <img src="/avatar.png" alt="Wine AI avatar">
-          <div class="avatar-ring"></div>
+        <div class="avatar-stage">
+          <div class="avatar-box" id="avatarBox">
+            <img src="/avatar.png" alt="Wine AI avatar">
+            <div class="avatar-ring"></div>
+          </div>
         </div>
+        <div class="avatar-status" id="avatarStatus">⚪ Disconnected</div>
 
         <div class="btn-row">
           <button class="btn-icon primary" id="connectBtn">🎙️ Connect</button>
@@ -403,6 +416,7 @@
       el('textInput').disabled = false;
       el('textSendBtn').disabled = false;
       el('langSelect').disabled = false;
+      setText('avatarStatus', '🟢 Ready to talk');
       // Acquire the mic (and therefore know its real AudioContext sample
       // rate) BEFORE declaring session.start's sampleRate — sending a
       // hardcoded 16000 here regardless of what the browser actually
@@ -428,6 +442,7 @@
       el('textInput').disabled = true;
       el('textSendBtn').disabled = true;
       el('langSelect').disabled = true;
+      setText('avatarStatus', '⚪ Disconnected');
       log('ws_close', {});
     });
 
@@ -491,6 +506,7 @@
         if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
         setText('speakerState', 'assistant');
+        setText('avatarStatus', '🗣 Speaking…');
         el('avatarBox').classList.add('speaking');
         break;
       case 'audio.chunk':
@@ -499,10 +515,12 @@
       case 'audio.end':
         if (inputEndedAt) setText('dFullResponse', Math.round(performance.now() - inputEndedAt) + ' ms');
         setText('speakerState', '—');
+        setText('avatarStatus', '🟢 Ready to talk');
         el('avatarBox').classList.remove('speaking');
         break;
       case 'response.cancelled':
         setText('latencyState', (payload.cancel_latency_ms || 0) + ' ms (interrupted)');
+        setText('avatarStatus', '🟢 Ready to talk');
         el('avatarBox').classList.remove('speaking');
         clearPlayback();
         break;
@@ -578,6 +596,7 @@
     ensureMic().then(() => {
       isHolding = true;
       setText('micState', 'recording');
+      setText('avatarStatus', '🎤 Listening…');
       el('pttBtn').classList.add('active');
       el('avatarBox').classList.add('listening');
       ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk' }));
@@ -588,6 +607,7 @@
     if (!isHolding) return;
     isHolding = false;
     setText('micState', 'ready');
+    setText('avatarStatus', '🧠 Thinking…');
     el('pttBtn').classList.remove('active');
     el('avatarBox').classList.remove('listening');
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -599,6 +619,7 @@
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     clearPlayback();
     el('avatarBox').classList.remove('speaking');
+    setText('avatarStatus', '🟢 Ready to talk');
     ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'manual_stop' }));
   }
 
@@ -612,6 +633,7 @@
     // for the round-trip either.
     clearPlayback();
     el('avatarBox').classList.remove('speaking');
+    setText('avatarStatus', '🧠 Thinking…');
     // The server echoes this back as its own transcript.user event (same
     // path voice input uses), so the transcript panel stays a single
     // source of truth instead of the UI adding its own optimistic copy.
