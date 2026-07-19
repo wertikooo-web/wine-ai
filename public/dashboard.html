@@ -128,16 +128,6 @@
   }
   button.secondary:hover { border-color: var(--wine); }
 
-  /* ---- Stat cards (mic / language / latency / speaker) ---- */
-  .stat-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
-  .stat-card {
-    background: #fdfbf7; border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 12px; text-align: center;
-  }
-  .stat-card .stat-icon { font-size: 18px; }
-  .stat-card .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin-top: 2px; }
-  .stat-card .stat-value { font-size: 13px; font-weight: 600; margin-top: 2px; }
-
   /* ---- Capabilities sidebar ---- */
   .capabilities { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
   .capabilities h2 { font-size: 14px; margin: 0 0 14px; color: var(--wine); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -232,28 +222,6 @@
           </select>
         </div>
 
-        <div class="stat-cards">
-          <div class="stat-card">
-            <div class="stat-icon">🎤</div>
-            <div class="stat-label">Microphone</div>
-            <div class="stat-value" id="micState">idle</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🌍</div>
-            <div class="stat-label">Language</div>
-            <div class="stat-value" id="langState">auto</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-label">Response</div>
-            <div class="stat-value" id="latencyState">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">👤</div>
-            <div class="stat-label">Speaker</div>
-            <div class="stat-value" id="speakerState">—</div>
-          </div>
-        </div>
       </div>
 
       <div class="capabilities">
@@ -493,7 +461,7 @@
       case 'session.config.applied':
         setText('dInputRate', payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—');
         if (payload.prompt_debug && payload.prompt_debug.meta) {
-          el('langState').textContent = 'auto';
+          setText('langState', 'auto');
         }
         break;
       case 'provider.ready':
@@ -503,11 +471,11 @@
       case 'input_audio.start':
         currentTurnId = payload.turn_id;
         setText('dTurn', currentTurnId || '—');
-        el('speakerState').textContent = 'you';
+        setText('speakerState', 'you');
         break;
       case 'input_audio.end':
         inputEndedAt = performance.now();
-        el('speakerState').textContent = 'thinking…';
+        setText('speakerState', 'thinking…');
         break;
       case 'transcript.user':
         addTranscriptTurn('user', payload.text);
@@ -516,13 +484,13 @@
         addTranscriptTurn('assistant', payload.text);
         break;
       case 'language.switch_detected':
-        el('langState').textContent = payload.to_language || '—';
+        setText('langState', payload.to_language || '—');
         break;
       case 'audio.start':
         firstAudioAt = performance.now();
         if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
-        el('speakerState').textContent = 'assistant';
+        setText('speakerState', 'assistant');
         el('avatarBox').classList.add('speaking');
         break;
       case 'audio.chunk':
@@ -530,11 +498,11 @@
         break;
       case 'audio.end':
         if (inputEndedAt) setText('dFullResponse', Math.round(performance.now() - inputEndedAt) + ' ms');
-        el('speakerState').textContent = '—';
+        setText('speakerState', '—');
         el('avatarBox').classList.remove('speaking');
         break;
       case 'response.cancelled':
-        el('latencyState').textContent = (payload.cancel_latency_ms || 0) + ' ms (interrupted)';
+        setText('latencyState', (payload.cancel_latency_ms || 0) + ' ms (interrupted)');
         el('avatarBox').classList.remove('speaking');
         clearPlayback();
         break;
@@ -585,13 +553,13 @@
     };
     source.connect(processor);
     processor.connect(audioContext.destination);
-    el('micState').textContent = 'ready';
+    setText('micState', 'ready');
   }
 
   function stopMic() {
     if (micStream) micStream.getTracks().forEach((t) => t.stop());
     micStream = null;
-    el('micState').textContent = 'idle';
+    setText('micState', 'idle');
   }
 
   function startTurn() {
@@ -606,10 +574,10 @@
     // makes the *local* stop instant instead of network-latency-bound.
     clearPlayback();
     el('avatarBox').classList.remove('speaking');
-    el('speakerState').textContent = 'you';
+    setText('speakerState', 'you');
     ensureMic().then(() => {
       isHolding = true;
-      el('micState').textContent = 'recording';
+      setText('micState', 'recording');
       el('pttBtn').classList.add('active');
       el('avatarBox').classList.add('listening');
       ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk' }));
@@ -619,7 +587,7 @@
   function endTurn() {
     if (!isHolding) return;
     isHolding = false;
-    el('micState').textContent = 'ready';
+    setText('micState', 'ready');
     el('pttBtn').classList.remove('active');
     el('avatarBox').classList.remove('listening');
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -716,7 +684,7 @@
   el('textInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTextTurn(); });
   el('langSelect').addEventListener('change', () => {
     const language = el('langSelect').value;
-    el('langState').textContent = language === 'auto' ? 'auto' : language;
+    setText('langState', language === 'auto' ? 'auto' : language);
     // Re-applies session.start with the new language preference — allowed
     // any time the session is idle (see realtimeServer.js's
     // session_config_busy guard); harmless no-op if not yet connected.
