@@ -68,6 +68,10 @@
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
 
+  .avatar-grid { grid-template-columns: minmax(0,360px) minmax(0,300px); align-items: start; justify-content: center; }
+  .avatar-card { text-align: center; max-width: 360px; margin-left: auto; margin-right: auto; }
+  @media (max-width: 800px) { .avatar-grid { grid-template-columns: 1fr; justify-content: stretch; } }
+
   .card {
     background: white; border: 1px solid var(--border); border-radius: 10px;
     padding: 18px; margin-bottom: 18px;
@@ -232,8 +236,8 @@
 <main>
 
   <section class="panel active" id="tab-avatar">
-    <div class="grid" style="grid-template-columns: minmax(0,360px) minmax(0,300px); align-items: start; justify-content: center;">
-      <div class="card" style="text-align:center; max-width: 360px;">
+    <div class="grid avatar-grid">
+      <div class="card avatar-card">
         <div class="device-stage" id="deviceStage">
           <div class="device-glow" aria-hidden="true"></div>
           <div class="avatar-box" id="avatarBox">
