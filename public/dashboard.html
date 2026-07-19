@@ -224,7 +224,18 @@
   button.btn-icon.primary:hover:not(:disabled) { background: var(--wine-dark); }
   button.btn-icon.danger { color: var(--err); }
 
+  @keyframes pttReadyPulse {
+    0%, 100% { box-shadow: 0 6px 16px rgba(107,30,43,0.4); }
+    50% { box-shadow: 0 6px 16px rgba(107,30,43,0.4), 0 0 0 9px rgba(107,30,43,0.12); }
+  }
+  @keyframes pttListenRing {
+    0%, 100% { box-shadow: 0 6px 16px rgba(107,30,43,0.4), 0 0 0 0 rgba(74,222,128,0.5); }
+    50% { box-shadow: 0 6px 16px rgba(107,30,43,0.4), 0 0 0 11px rgba(74,222,128,0.22); }
+  }
+  @keyframes pttSpin { to { transform: rotate(360deg); } }
+
   button.ptt {
+    position: relative;
     width: 92px; height: 92px; margin: 10px auto 6px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 1px;
     border-radius: 50%; border: none; cursor: pointer; user-select: none;
@@ -236,7 +247,20 @@
   button.ptt .ptt-icon { font-size: 30px; line-height: 1; }
   button.ptt:active:not(:disabled) { transform: scale(0.96); }
   button.ptt:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
-  button.ptt.active { background: radial-gradient(circle at 35% 30%, #a8384a 0%, var(--wine-dark) 100%); box-shadow: 0 0 0 6px rgba(107,30,43,0.18), 0 6px 16px rgba(107,30,43,0.5); }
+  /* State-driven look — color/icon/animation carry the meaning, not text
+     (see DeviceVisual.setState): a soft idle pulse when ready, an active
+     green ring while recording, a spinning amber ring while thinking, and a
+     plain steady button (icon already swapped to ■) while speaking/Stop. */
+  button.ptt.state-ready:not(:disabled) { animation: pttReadyPulse 2.6s ease-in-out infinite; }
+  button.ptt.state-listening:not(:disabled) { animation: pttListenRing 1s ease-in-out infinite; }
+  button.ptt.state-thinking::before {
+    content: ''; position: absolute; inset: -7px; border-radius: 50%;
+    border: 3px solid transparent; border-top-color: rgba(251,191,36,0.85);
+    animation: pttSpin 0.9s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button.ptt.state-ready, button.ptt.state-listening, button.ptt.state-thinking::before { animation: none; }
+  }
   button.secondary {
     padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
     background: white; cursor: pointer; font-size: 13px; margin-right: 8px;
@@ -262,8 +286,6 @@
   .app-primary-btn:hover:not(:disabled) { background: var(--wine-dark); }
   .app-primary-btn:active:not(:disabled) { transform: scale(0.98); }
   .app-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .app-secondary-row { display: flex; gap: 8px; margin-top: 8px; width: 100%; }
-  .app-secondary-row .btn-icon { flex: 1; justify-content: center; padding: 9px 8px; font-size: 12px; }
   .app-input-row { display: flex; gap: 8px; margin-top: 18px; width: 100%; }
   .app-language-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; width: 100%; text-align: left; }
   .app-language-row label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
@@ -379,13 +401,9 @@
               </div>
 
               <button class="app-primary-btn" id="connectBtn">Connect</button>
-              <div class="app-secondary-row">
-                <button class="btn-icon" id="disconnectBtn" disabled>Disconnect</button>
-                <button class="btn-icon danger" id="stopBtn" disabled>Stop</button>
-              </div>
 
               <button class="ptt" id="pttBtn" disabled>
-                <span class="ptt-icon">🎤</span>
+                <span class="ptt-icon" id="pttIcon">🎤</span>
               </button>
 
               <div class="app-input-row">
@@ -636,28 +654,47 @@
   // need to change since it never touches #avatarBox or #avatarStatus
   // directly.
   const DeviceVisual = (function () {
+    // Minimal-text philosophy: state is read from the dot color + mic-icon
+    // shape + button animation first, a short label second. Colors follow
+    // the simple scheme requested — green=ready/listening, amber=thinking,
+    // red=speaking/error, grey=disconnected — not literal error semantics.
     const STATUS_META = {
       disconnected: { text: 'Disconnected', dot: '' },
       connecting: { text: 'Connecting…', dot: 'warn' },
-      ready: { text: 'Ready to talk', dot: 'ok' },
-      listening: { text: 'Listening…', dot: 'ok' },
-      thinking: { text: 'Thinking…', dot: 'warn' },
-      speaking: { text: 'Speaking…', dot: 'ok' },
+      ready: { text: 'Connected', dot: 'ok' },
+      listening: { text: 'Listening', dot: 'ok' },
+      thinking: { text: '', dot: 'warn' },
+      speaking: { text: 'Speaking', dot: 'err' },
       error: { text: 'Error', dot: 'err' },
     };
+    // States that map onto the mic/stop button's own animation classes —
+    // disconnected/connecting/error intentionally excluded (button is
+    // either disabled or mid-transition, not "listening for a turn").
+    const PTT_STATES = ['ready', 'listening', 'thinking', 'speaking'];
+    let current = 'disconnected';
+
     function setState(state) {
+      if (!STATUS_META[state]) return;
+      current = state;
       const box = el('avatarBox');
       if (box) {
         box.classList.toggle('listening', state === 'listening');
         box.classList.toggle('speaking', state === 'speaking');
       }
-      const meta = STATUS_META[state];
-      if (!meta) return;
-      setText('avatarStatus', meta.text);
+      setText('avatarStatus', STATUS_META[state].text);
       const dot = el('avatarStatusDot');
-      if (dot) dot.className = 'status-dot ' + (meta.dot || '');
+      if (dot) dot.className = 'status-dot ' + (STATUS_META[state].dot || '');
+
+      const ptt = el('pttBtn');
+      if (ptt) {
+        PTT_STATES.forEach((s) => ptt.classList.remove('state-' + s));
+        if (PTT_STATES.includes(state)) ptt.classList.add('state-' + state);
+      }
+      const icon = el('pttIcon');
+      if (icon) icon.textContent = state === 'speaking' ? '■' : '🎤';
     }
-    return { setState };
+    function getState() { return current; }
+    return { setState, getState };
   })();
 
   function log(stage, extra) {
@@ -704,6 +741,7 @@
 
   function connect() {
     DeviceVisual.setState('connecting');
+    setConnectionButton('connecting');
     ws = new WebSocket(socketUrl());
     ws.binaryType = 'arraybuffer';
 
@@ -711,8 +749,7 @@
       setDot('wsDot', 'ok');
       el('wsLabel').textContent = 'connected';
       setText('dWs', 'open');
-      el('connectBtn').disabled = true;
-      el('disconnectBtn').disabled = false;
+      setConnectionButton('connected');
       el('pttBtn').disabled = false;
       el('textInput').disabled = false;
       el('textSendBtn').disabled = false;
@@ -737,8 +774,7 @@
       setDot('wsDot', '');
       el('wsLabel').textContent = 'disconnected';
       setText('dWs', 'closed');
-      el('connectBtn').disabled = false;
-      el('disconnectBtn').disabled = true;
+      setConnectionButton('disconnected');
       el('pttBtn').disabled = true;
       el('textInput').disabled = true;
       el('textSendBtn').disabled = true;
@@ -763,6 +799,25 @@
   function disconnect() {
     if (ws) ws.close();
     stopMic();
+  }
+
+  // Single connection button — toggles label/behavior instead of showing
+  // separate Connect/Disconnect controls, per the "one button, no control-
+  // panel feel" requirement.
+  const CONNECTION_BUTTON_LABEL = { disconnected: 'Connect', connecting: 'Connecting…', connected: 'Disconnect' };
+  function setConnectionButton(state) {
+    const btn = el('connectBtn');
+    if (!btn) return;
+    btn.textContent = CONNECTION_BUTTON_LABEL[state] || 'Connect';
+    btn.disabled = state === 'connecting';
+    btn.dataset.state = state;
+  }
+  function toggleConnection() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      disconnect();
+    } else {
+      connect();
+    }
   }
 
   function handleEvent(payload) {
@@ -898,7 +953,6 @@
       isHolding = true;
       setText('micState', 'recording');
       DeviceVisual.setState('listening');
-      el('pttBtn').classList.add('active');
       ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk' }));
     }).catch((err) => log('mic_error', { message: err.message }));
   }
@@ -908,7 +962,6 @@
     isHolding = false;
     setText('micState', 'ready');
     DeviceVisual.setState('thinking');
-    el('pttBtn').classList.remove('active');
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'input_audio.end' }));
     }
@@ -1096,10 +1149,7 @@
   }
 
   // ---- Wiring ----
-  el('connectBtn').addEventListener('click', connect);
-  el('disconnectBtn').addEventListener('click', disconnect);
-  el('stopBtn').addEventListener('click', interrupt);
-  el('stopBtn').disabled = false;
+  el('connectBtn').addEventListener('click', toggleConnection);
   el('textSendBtn').addEventListener('click', sendTextTurn);
   el('textInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTextTurn(); });
   el('langSelect').addEventListener('change', () => {
@@ -1111,9 +1161,19 @@
     sendSessionStart();
   });
 
+  // The mic button doubles as the Stop control: while the assistant is
+  // speaking its icon is a stop-square (see DeviceVisual.setState) and a
+  // press interrupts that response only — the realtime session/WebSocket
+  // stays open, same as the old dedicated Stop button did.
   const pttBtn = el('pttBtn');
-  pttBtn.addEventListener('pointerdown', startTurn);
-  pttBtn.addEventListener('pointerup', endTurn);
+  pttBtn.addEventListener('pointerdown', () => {
+    if (DeviceVisual.getState() === 'speaking') { interrupt(); return; }
+    startTurn();
+  });
+  pttBtn.addEventListener('pointerup', () => {
+    if (DeviceVisual.getState() === 'speaking') return;
+    endTurn();
+  });
   pttBtn.addEventListener('pointerleave', () => { if (isHolding) endTurn(); });
 
   // ---- Panels: knowledge / persona / avatar status ----
