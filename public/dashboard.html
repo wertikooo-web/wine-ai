@@ -72,69 +72,26 @@
   }
   .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--wine); text-transform: uppercase; letter-spacing: 0.04em; }
 
-  /* ---- Avatar "bottle" ---- */
-  @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
+  /* ---- Avatar (circular figure) ---- */
+  @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
   @keyframes listenPulse { 0%, 100% { box-shadow: 0 0 16px 3px rgba(74,222,128,0.45); } 50% { box-shadow: 0 0 26px 7px rgba(74,222,128,0.75); } }
   @keyframes speakPulse { 0%, 100% { box-shadow: 0 0 16px 3px rgba(201,168,106,0.5); } 50% { box-shadow: 0 0 26px 7px rgba(201,168,106,0.8); } }
-  @keyframes baseGlow { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
 
-  .avatar-bottle { width: 176px; margin: 0 auto 20px; display: flex; flex-direction: column; align-items: center; }
-  .bottle-cap {
-    width: 58px; height: 26px; border-radius: 8px 8px 0 0;
-    background: linear-gradient(180deg, #1c1310, #0a0605);
-    box-shadow: inset 0 2px 3px rgba(255,255,255,0.08);
-  }
-  .bottle-neck {
-    width: 58px; height: 84px; position: relative; overflow: hidden;
-    background: linear-gradient(160deg, rgba(28,19,16,0.97), rgba(10,6,5,0.98));
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  }
-  .bottle-neck .neck-icon { font-size: 15px; filter: sepia(1) saturate(2) hue-rotate(-10deg) brightness(1.3); }
-  .bottle-neck .neck-label { font-size: 7px; letter-spacing: 0.14em; color: #c9a86a; font-weight: 600; text-align: center; line-height: 1.5; }
-  .bottle-shoulder {
-    width: 176px; height: 34px; margin-top: -1px;
-    background: linear-gradient(160deg, rgba(48,17,24,0.96), rgba(14,6,7,0.98));
-    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  }
   .avatar-box {
-    width: 176px; height: 300px; margin: -1px 0 0; position: relative;
-    border-radius: 0 0 26px 26px; overflow: hidden;
-    background: linear-gradient(160deg, rgba(58,20,28,0.95), rgba(16,7,8,0.97) 55%, rgba(8,4,5,0.98));
+    width: 200px; height: 200px; max-width: 100%; margin: 0 auto 20px; position: relative;
+    border-radius: 50%; overflow: hidden;
+    background: radial-gradient(circle at 35% 30%, #8a2e3d, var(--wine-dark));
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 14px 32px rgba(20,8,10,0.35), inset 0 0 50px rgba(0,0,0,0.5);
-    animation: breathe 6s ease-in-out infinite;
+    box-shadow: 0 10px 28px rgba(20,8,10,0.25);
+    animation: breathe 5s ease-in-out infinite;
   }
-  .avatar-box::after {
-    content: ''; position: absolute; top: 0; left: 14%; width: 14%; height: 100%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0));
-    filter: blur(2px); pointer-events: none;
-  }
-  .avatar-photo-wrap { width: 108px; height: 108px; border-radius: 50%; position: relative; z-index: 1; }
-  .avatar-photo-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; box-shadow: 0 0 0 3px rgba(201,168,106,0.55); display: block; }
+  .avatar-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar-ring {
     position: absolute; inset: -8px; border-radius: 50%; border: 2px solid transparent;
     transition: border-color 0.2s ease;
   }
   .avatar-box.listening .avatar-ring { border-color: rgba(74,222,128,0.85); animation: listenPulse 1.1s ease-in-out infinite; }
   .avatar-box.speaking .avatar-ring { border-color: rgba(201,168,106,0.9); animation: speakPulse 0.9s ease-in-out infinite; }
-  .base-glow {
-    position: absolute; left: 50%; bottom: 22px; width: 90px; height: 20px; transform: translateX(-50%);
-    background: radial-gradient(ellipse at center, rgba(120,180,255,0.55), rgba(120,180,255,0) 70%);
-    filter: blur(4px); animation: baseGlow 4s ease-in-out infinite; pointer-events: none;
-  }
-  .bottle-base {
-    width: 176px; height: 46px; margin-top: -6px; border-radius: 10px;
-    background: linear-gradient(180deg, #2a2018, #100b08);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-  }
-  .mic-btn {
-    width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(201,168,106,0.35);
-    font-size: 13px; color: #8f8578; transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-  .avatar-box.listening ~ .bottle-base .mic-btn { color: #4ade80; border-color: #4ade80; box-shadow: 0 0 10px 2px rgba(74,222,128,0.55); }
-  .avatar-box.speaking ~ .bottle-base .mic-btn { color: #c9a86a; border-color: #c9a86a; box-shadow: 0 0 10px 2px rgba(201,168,106,0.5); }
 
   /* ---- Buttons ---- */
   .btn-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center; }
@@ -151,18 +108,18 @@
   button.btn-icon.danger { color: var(--err); }
 
   button.ptt {
-    width: 132px; height: 132px; margin: 6px auto 4px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 4px;
+    width: 66px; height: 66px; margin: 6px auto 4px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
     border-radius: 50%; border: none; cursor: pointer; user-select: none;
     background: radial-gradient(circle at 35% 30%, var(--wine) 0%, var(--wine-dark) 100%);
-    color: white; font-size: 13px; font-weight: 600;
-    box-shadow: 0 6px 18px rgba(107,30,43,0.35);
+    color: white; font-size: 8px; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(107,30,43,0.35);
     transition: transform 0.1s ease, box-shadow 0.15s ease;
   }
-  button.ptt .ptt-icon { font-size: 34px; line-height: 1; }
+  button.ptt .ptt-icon { font-size: 20px; line-height: 1; }
   button.ptt:active:not(:disabled) { transform: scale(0.96); }
   button.ptt:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
-  button.ptt.active { background: radial-gradient(circle at 35% 30%, #a8384a 0%, var(--wine-dark) 100%); box-shadow: 0 0 0 8px rgba(107,30,43,0.18), 0 6px 18px rgba(107,30,43,0.45); }
+  button.ptt.active { background: radial-gradient(circle at 35% 30%, #a8384a 0%, var(--wine-dark) 100%); box-shadow: 0 0 0 5px rgba(107,30,43,0.18), 0 4px 12px rgba(107,30,43,0.45); }
   button.secondary {
     padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
     background: white; cursor: pointer; font-size: 13px; margin-right: 8px;
@@ -238,21 +195,9 @@
   <section class="panel active" id="tab-avatar">
     <div class="grid" style="grid-template-columns: minmax(0,360px) minmax(0,300px); align-items: start; justify-content: center;">
       <div class="card" style="text-align:center; max-width: 360px;">
-        <div class="avatar-bottle">
-          <div class="bottle-cap"></div>
-          <div class="bottle-neck">
-            <span class="neck-icon">🍇</span>
-            <span class="neck-label">WINE AI<br>MOLDOVA EXPERT</span>
-          </div>
-          <div class="bottle-shoulder"></div>
-          <div class="avatar-box" id="avatarBox">
-            <div class="avatar-photo-wrap">
-              <img src="/avatar.png" alt="Wine AI avatar">
-            </div>
-            <div class="avatar-ring"></div>
-            <div class="base-glow"></div>
-          </div>
-          <div class="bottle-base"><span class="mic-btn">🎤</span></div>
+        <div class="avatar-box" id="avatarBox">
+          <img src="/avatar.png" alt="Wine AI avatar">
+          <div class="avatar-ring"></div>
         </div>
 
         <div class="btn-row">
