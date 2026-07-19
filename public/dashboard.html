@@ -130,15 +130,11 @@
     width: 110px; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.28);
     margin: 8px auto 2px; flex-shrink: 0;
   }
-  /* "Product showcase" desktop treatment — a very light symmetric tilt so
-     the pair reads as a marketing shot rather than two flat rectangles.
-     Desktop-only per the brief; tablet/mobile stay perfectly flat. */
+  /* Desktop spacing only — phones stay flat/static and face the viewer
+     directly at every width (an earlier tilt-on-hover treatment looked
+     "crooked" and shifted on interaction, per feedback; removed). */
   @media (min-width: 1024px) {
     .phone-row { gap: 64px; }
-    .phone-shell--left .phone-frame { transform: rotateY(6deg) rotateX(1deg); }
-    .phone-shell--right .phone-frame { transform: rotateY(-6deg) rotateX(1deg); }
-    .phone-shell--left .phone-frame:hover,
-    .phone-shell--right .phone-frame:hover { transform: rotateY(0deg) rotateX(0deg); }
   }
   @media (prefers-reduced-motion: reduce) {
     .phone-frame { transition: none; }
