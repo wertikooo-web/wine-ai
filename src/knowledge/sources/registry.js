@@ -201,6 +201,13 @@ const SOURCES = [
                 language: 'ru', topics: ['news', 'tasting'],
                 linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
             },
+            // Added 2026-07-20 per explicit user request — verified live via
+            // WebFetch before adding.
+            {
+                url: 'https://wine-and-spirits.md/category/gotovim-s-vinom/',
+                language: 'ru', topics: ['news', 'food'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
         ],
     },
 ];
