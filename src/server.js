@@ -198,6 +198,23 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
+    // Generic static-PNG route for dashboard concept/vision images (e.g.
+    // wine-screen-sample.png, winery-screen-sample.png). The filename
+    // pattern itself is the path-traversal guard — no dots or slashes are
+    // permitted, so this can only ever resolve to a plain file directly
+    // inside publicDir, never an arbitrary path.
+    const staticPngMatch = /^\/([a-zA-Z0-9_-]+)\.png$/.exec(pathname);
+    if (req.method === 'GET' && staticPngMatch) {
+        const filePath = path.join(publicDir, `${staticPngMatch[1]}.png`);
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'image_not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
     if (req.method === 'GET' && pathname === '/api/voices') {
         return sendJson(res, 200, { ok: true, default_voice: DEFAULT_VOICE_NAME, voices: GEMINI_VOICES });
     }
