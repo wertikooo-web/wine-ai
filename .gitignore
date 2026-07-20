@@ -9,3 +9,9 @@ knowledge/discovered/*.json
 # Same reasoning for the local persona-overrides fallback (prod uses
 # Postgres — see src/persona/personaStore.js).
 data/persona-overrides.json
+# Source PDFs for the wine-book knowledge extraction (raw books, not app
+# code/assets) and other large local-only media — never part of the deploy.
+/DATABASE WINE ALL/
+*.mp4
+*.pptx
+
