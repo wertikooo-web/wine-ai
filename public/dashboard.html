@@ -609,20 +609,20 @@
                   </g>
                 </svg>
                 <div class="entity-hero-overlay">
-                  <div class="entity-hero-title">Crama Dealul de Aur</div>
-                  <div class="entity-hero-sub">Регион Кодру · основана в 1998</div>
+                  <div class="entity-hero-title" id="wineryHeroTitle">Crama Dealul de Aur</div>
+                  <div class="entity-hero-sub" id="wineryHeroSub">Регион Кодру · основана в 1998</div>
                 </div>
-                <span class="demo-badge">Демонстрационная винодельня</span>
+                <span class="demo-badge" id="wineryBadge">Демонстрационная винодельня</span>
               </div>
 
               <div class="entity-body">
                 <div class="stat-mini-row">
-                  <div class="stat-mini"><div class="stat-mini-label">Основана</div><div class="stat-mini-value">1998</div></div>
-                  <div class="stat-mini"><div class="stat-mini-label">Гектаров</div><div class="stat-mini-value">64 га</div></div>
-                  <div class="stat-mini"><div class="stat-mini-label">Рейтинг</div><div class="stat-mini-value ok">4.7 ★</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label" id="wineryStatFoundedLabel">Основана</div><div class="stat-mini-value">1998</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label" id="wineryStatHectaresLabel">Гектаров</div><div class="stat-mini-value" id="wineryStatHectaresValue">64 га</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label" id="wineryStatRatingLabel">Рейтинг</div><div class="stat-mini-value ok">4.7 ★</div></div>
                 </div>
 
-                <p class="entity-lead">Семейная винодельня в сердце Кодру, известная выдержанными винами из автохтонных сортов и небольшими партиями ручного сбора.</p>
+                <p class="entity-lead" id="wineryLead">Семейная винодельня в сердце Кодру, известная выдержанными винами из автохтонных сортов и небольшими партиями ручного сбора.</p>
 
                 <div class="chip-row">
                   <span class="lang-chip">Fetească Neagră</span><span class="lang-chip">Rară Neagră</span>
@@ -631,28 +631,28 @@
                 </div>
 
                 <div class="entity-details" id="wineryDetails" hidden>
-                  <p><strong>История и философия.</strong> Винодельню основали агроном Андрей Русу и его жена Елена в 1998 году, объединив семейные участки — часть из них принадлежала ещё деду Андрея. Сегодня винодельню возглавляет их сын Михаил Русу. Философия семьи — минимальное вмешательство в терруар и ставка на местные сорта.</p>
-                  <p><strong>Дегустации и экскурсии.</strong> По предварительной записи, группы до 20 человек, дегустационный зал с видом на виноградник; экскурсия по погребу и виноградникам — около 90 минут.</p>
-                  <p><strong>Местоположение.</strong> 40 км от Кишинёва, южный склон холма в центральной части региона Кодру, высота посадок 150–220 м.</p>
-                  <p><strong>Интересный факт.</strong> При рытье котлована под погреб в 1999 году рабочие нашли старую монету — с тех пор её хранят на винодельне как талисман.</p>
+                  <p id="wineryDetail1"><strong>История и философия.</strong> Винодельню основали агроном Андрей Русу и его жена Елена в 1998 году, объединив семейные участки — часть из них принадлежала ещё деду Андрея. Сегодня винодельню возглавляет их сын Михаил Русу. Философия семьи — минимальное вмешательство в терруар и ставка на местные сорта.</p>
+                  <p id="wineryDetail2"><strong>Дегустации и экскурсии.</strong> По предварительной записи, группы до 20 человек, дегустационный зал с видом на виноградник; экскурсия по погребу и виноградникам — около 90 минут.</p>
+                  <p id="wineryDetail3"><strong>Местоположение.</strong> 40 км от Кишинёва, южный склон холма в центральной части региона Кодру, высота посадок 150–220 м.</p>
+                  <p id="wineryDetail4"><strong>Интересный факт.</strong> При рытье котлована под погреб в 1999 году рабочие нашли старую монету — с тех пор её хранят на винодельне как талисман.</p>
                 </div>
                 <button class="secondary" id="wineryDetailsToggle" style="width:100%; margin:4px 0 12px;">Подробнее</button>
 
-                <div class="entity-section-label">Вина винодельни</div>
+                <div class="entity-section-label" id="wineryWinesLabel">Вина винодельни</div>
                 <div class="entity-wine-list">
                   <div class="entity-wine-row">
-                    <span>Dealul de Aur Classic</span><span class="entity-wine-tag">повседневная линейка</span>
+                    <span>Dealul de Aur Classic</span><span class="entity-wine-tag" id="wineryWineTag1">повседневная линейка</span>
                   </div>
                   <div class="entity-wine-row entity-wine-row--active">
-                    <span>Dealul de Aur Fetească Neagră Reserve 2019</span><span class="entity-wine-tag">резерв</span>
+                    <span>Dealul de Aur Fetească Neagră Reserve 2019</span><span class="entity-wine-tag" id="wineryWineTag2">резерв</span>
                   </div>
                   <div class="entity-wine-row">
-                    <span>Colecția Familiei Rusu</span><span class="entity-wine-tag">коллекционная</span>
+                    <span>Colecția Familiei Rusu</span><span class="entity-wine-tag" id="wineryWineTag3">коллекционная</span>
                   </div>
                 </div>
 
                 <div style="flex:1;"></div>
-                <button class="app-primary-btn entity-ask-btn" data-context-type="winery" data-context-id="crama-dealul-de-aur">Спросить Wine AI об этой винодельне</button>
+                <button class="app-primary-btn entity-ask-btn" id="askWineryBtn" data-context-type="winery" data-context-id="crama-dealul-de-aur">Спросить Wine AI об этой винодельне</button>
               </div>
             </div>
           </div>
@@ -677,36 +677,36 @@
                   <text x="23" y="77" text-anchor="middle" font-size="3.2" fill="#8a7a68" font-family="Georgia, serif">RESERVE</text>
                   <rect x="19" y="2" width="8" height="4" fill="#c9a86a" opacity="0.8"/>
                 </svg>
-                <span class="demo-badge demo-badge--wine">Демонстрационное вино</span>
+                <span class="demo-badge demo-badge--wine" id="wineBadge">Демонстрационное вино</span>
               </div>
 
               <div class="entity-body">
-                <div class="entity-hero-title" style="color:var(--wine); margin-bottom:2px;">Dealul de Aur Fetească Neagră Reserve 2019</div>
-                <div class="entity-hero-sub" style="color:var(--muted); margin-bottom:12px;">Crama Dealul de Aur · Регион Кодру</div>
+                <div class="entity-hero-title" id="wineHeroTitle" style="color:var(--wine); margin-bottom:2px;">Dealul de Aur Fetească Neagră Reserve 2019</div>
+                <div class="entity-hero-sub" id="wineHeroSub" style="color:var(--muted); margin-bottom:12px;">Crama Dealul de Aur · Регион Кодру</div>
 
                 <div class="stat-mini-row">
-                  <div class="stat-mini"><div class="stat-mini-label">Сорт</div><div class="stat-mini-value" style="font-size:12px;">100% F. Neagră</div></div>
-                  <div class="stat-mini"><div class="stat-mini-label">Крепость</div><div class="stat-mini-value">13.5%</div></div>
-                  <div class="stat-mini"><div class="stat-mini-label">Выдержка</div><div class="stat-mini-value" style="font-size:12px;">16 мес.</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label" id="wineStatGrapeLabel">Сорт</div><div class="stat-mini-value" style="font-size:12px;">100% F. Neagră</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label" id="wineStatAbvLabel">Крепость</div><div class="stat-mini-value">13.5%</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label" id="wineStatAgingLabel">Выдержка</div><div class="stat-mini-value" style="font-size:12px;" id="wineStatAgingValue">16 мес.</div></div>
                 </div>
 
-                <p class="entity-lead">Флагманское красное сухое вино, выпущенное к 20-летию первых посадок Fetească Neagră на участке «Dealul Vechi». Глубокий рубиновый цвет, тёмная вишня, ежевика, чёрный перец и ваниль в аромате.</p>
+                <p class="entity-lead" id="wineLead">Флагманское красное сухое вино, выпущенное к 20-летию первых посадок Fetească Neagră на участке «Dealul Vechi». Глубокий рубиновый цвет, тёмная вишня, ежевика, чёрный перец и ваниль в аромате.</p>
 
                 <div class="chip-row">
-                  <span class="lang-chip">Полнотелое</span><span class="lang-chip">Бархатистые танины</span>
+                  <span class="lang-chip" id="wineChipBody">Полнотелое</span><span class="lang-chip" id="wineChipTannins">Бархатистые танины</span>
                   <span class="lang-chip">16–18°C</span>
                 </div>
 
                 <div class="entity-details" id="wineDetailsBlock" hidden>
-                  <p><strong>Выдержка.</strong> 16 месяцев во французском дубе (баррик 225 л, ~30% новых), затем 8 месяцев в бутылке перед выпуском.</p>
-                  <p><strong>Подача.</strong> 16–18°C, рекомендуется декантация за 30–45 минут. Потенциал хранения — 8–10 лет с урожая, оптимальный период употребления — 2023–2029.</p>
-                  <p><strong>Сочетания.</strong> Красное мясо, жареная баранина, выдержанные сыры, мамалыга с мясной подливой.</p>
-                  <p><strong>Тираж.</strong> Ограниченная партия — 8 400 бутылок. Ориентировочная цена — около 350 MDL (демо-данные).</p>
+                  <p id="wineDetail1"><strong>Выдержка.</strong> 16 месяцев во французском дубе (баррик 225 л, ~30% новых), затем 8 месяцев в бутылке перед выпуском.</p>
+                  <p id="wineDetail2"><strong>Подача.</strong> 16–18°C, рекомендуется декантация за 30–45 минут. Потенциал хранения — 8–10 лет с урожая, оптимальный период употребления — 2023–2029.</p>
+                  <p id="wineDetail3"><strong>Сочетания.</strong> Красное мясо, жареная баранина, выдержанные сыры, мамалыга с мясной подливой.</p>
+                  <p id="wineDetail4"><strong>Тираж.</strong> Ограниченная партия — 8 400 бутылок. Ориентировочная цена — около 350 MDL (демо-данные).</p>
                 </div>
                 <button class="secondary" id="wineDetailsToggle" style="width:100%; margin:4px 0 12px;">Подробнее</button>
 
                 <div style="flex:1;"></div>
-                <button class="app-primary-btn entity-ask-btn" data-context-type="wine" data-context-id="dealul-de-aur-feteasca-neagra-reserve-2019">Спросить Wine AI об этом вине</button>
+                <button class="app-primary-btn entity-ask-btn" id="askWineBtn" data-context-type="wine" data-context-id="dealul-de-aur-feteasca-neagra-reserve-2019">Спросить Wine AI об этом вине</button>
               </div>
             </div>
           </div>
@@ -875,6 +875,14 @@
     if (target) target.textContent = value;
   }
 
+  function setHtml(id, value) {
+    // Only used for the fixed, hand-authored entity-detail strings in
+    // UI_STRINGS (never for anything sourced from the network/user), so
+    // innerHTML here isn't an XSS vector.
+    const target = el(id);
+    if (target) target.innerHTML = value;
+  }
+
   // ---- Dashboard UI language (interface chrome, not the AI's spoken
   // language — that's the separate Language dropdown on the Talk screen) ----
   const UI_STRINGS = {
@@ -890,6 +898,26 @@
       feature2: 'Suggest food pairings for wine',
       feature3: 'Plan wine routes and recommend wineries',
       feature4: 'Share the history and character of wineries',
+      wineryHeroSub: 'Codru region · founded in 1998', wineryBadge: 'Demo winery',
+      wineryStatFoundedLabel: 'Founded', wineryStatHectaresLabel: 'Hectares', wineryStatRatingLabel: 'Rating',
+      wineryHectaresValue: '64 ha', wineAgingValue: '16 mo.',
+      wineryLead: 'A family winery in the heart of Codru, known for aged wines from native grape varieties and small hand-harvested batches.',
+      wineryDetail1: '<strong>History and philosophy.</strong> The winery was founded in 1998 by agronomist Andrei Rusu and his wife Elena, who combined family plots — some of which had belonged to Andrei\'s grandfather. Today it is run by their son Mihail Rusu. The family\'s philosophy is minimal intervention in the terroir and a focus on native grape varieties.',
+      wineryDetail2: '<strong>Tastings and tours.</strong> By appointment, groups of up to 20 people, a tasting room overlooking the vineyard; a tour of the cellar and vineyards takes about 90 minutes.',
+      wineryDetail3: '<strong>Location.</strong> 40 km from Chișinău, on the southern slope of a hill in the central Codru region, at 150–220 m elevation.',
+      wineryDetail4: '<strong>Fun fact.</strong> While digging the cellar\'s foundation in 1999, workers found an old coin — it has been kept at the winery as a good-luck charm ever since.',
+      wineryWinesLabel: 'Wines from this winery', wineryWineTag1: 'everyday range', wineryWineTag2: 'reserve', wineryWineTag3: "collector's",
+      askWinery: 'Ask Wine AI about this winery',
+      wineHeroSub: 'Crama Dealul de Aur · Codru region', wineBadge: 'Demo wine',
+      wineStatGrapeLabel: 'Grape', wineStatAbvLabel: 'ABV', wineStatAgingLabel: 'Aging',
+      wineLead: "The flagship dry red, released for the 20th anniversary of the first Fetească Neagră plantings in the 'Dealul Vechi' plot. Deep ruby color, dark cherry, blackberry, black pepper and vanilla on the nose.",
+      wineChipBody: 'Full-bodied', wineChipTannins: 'Velvety tannins',
+      wineDetail1: '<strong>Aging.</strong> 16 months in French oak (225 L barrels, ~30% new), then 8 months in the bottle before release.',
+      wineDetail2: '<strong>Serving.</strong> 16–18°C, decanting for 30–45 minutes is recommended. Cellar potential is 8–10 years from harvest; the optimal drinking window is 2023–2029.',
+      wineDetail3: '<strong>Food pairing.</strong> Red meat, roast lamb, aged cheeses, mămăligă with meat sauce.',
+      wineDetail4: '<strong>Production run.</strong> Limited batch — 8,400 bottles. Indicative price — around 350 MDL (demo data).',
+      askWine: 'Ask Wine AI about this wine',
+      detailsMore: 'More', detailsLess: 'Hide',
     },
     ru: {
       sub: 'Цифровой эксперт по молдавскому вину',
@@ -903,6 +931,26 @@
       feature2: 'Подбирать сочетания вина с блюдами',
       feature3: 'Планировать винные маршруты и подсказывать винодельни',
       feature4: 'Рассказывать историю и особенности виноделен',
+      wineryHeroSub: 'Регион Кодру · основана в 1998', wineryBadge: 'Демонстрационная винодельня',
+      wineryStatFoundedLabel: 'Основана', wineryStatHectaresLabel: 'Гектаров', wineryStatRatingLabel: 'Рейтинг',
+      wineryHectaresValue: '64 га', wineAgingValue: '16 мес.',
+      wineryLead: 'Семейная винодельня в сердце Кодру, известная выдержанными винами из автохтонных сортов и небольшими партиями ручного сбора.',
+      wineryDetail1: '<strong>История и философия.</strong> Винодельню основали агроном Андрей Русу и его жена Елена в 1998 году, объединив семейные участки — часть из них принадлежала ещё деду Андрея. Сегодня винодельню возглавляет их сын Михаил Русу. Философия семьи — минимальное вмешательство в терруар и ставка на местные сорта.',
+      wineryDetail2: '<strong>Дегустации и экскурсии.</strong> По предварительной записи, группы до 20 человек, дегустационный зал с видом на виноградник; экскурсия по погребу и виноградникам — около 90 минут.',
+      wineryDetail3: '<strong>Местоположение.</strong> 40 км от Кишинёва, южный склон холма в центральной части региона Кодру, высота посадок 150–220 м.',
+      wineryDetail4: '<strong>Интересный факт.</strong> При рытье котлована под погреб в 1999 году рабочие нашли старую монету — с тех пор её хранят на винодельне как талисман.',
+      wineryWinesLabel: 'Вина винодельни', wineryWineTag1: 'повседневная линейка', wineryWineTag2: 'резерв', wineryWineTag3: 'коллекционная',
+      askWinery: 'Спросить Wine AI об этой винодельне',
+      wineHeroSub: 'Crama Dealul de Aur · Регион Кодру', wineBadge: 'Демонстрационное вино',
+      wineStatGrapeLabel: 'Сорт', wineStatAbvLabel: 'Крепость', wineStatAgingLabel: 'Выдержка',
+      wineLead: 'Флагманское красное сухое вино, выпущенное к 20-летию первых посадок Fetească Neagră на участке «Dealul Vechi». Глубокий рубиновый цвет, тёмная вишня, ежевика, чёрный перец и ваниль в аромате.',
+      wineChipBody: 'Полнотелое', wineChipTannins: 'Бархатистые танины',
+      wineDetail1: '<strong>Выдержка.</strong> 16 месяцев во французском дубе (баррик 225 л, ~30% новых), затем 8 месяцев в бутылке перед выпуском.',
+      wineDetail2: '<strong>Подача.</strong> 16–18°C, рекомендуется декантация за 30–45 минут. Потенциал хранения — 8–10 лет с урожая, оптимальный период употребления — 2023–2029.',
+      wineDetail3: '<strong>Сочетания.</strong> Красное мясо, жареная баранина, выдержанные сыры, мамалыга с мясной подливой.',
+      wineDetail4: '<strong>Тираж.</strong> Ограниченная партия — 8 400 бутылок. Ориентировочная цена — около 350 MDL (демо-данные).',
+      askWine: 'Спросить Wine AI об этом вине',
+      detailsMore: 'Подробнее', detailsLess: 'Скрыть',
     },
     ro: {
       sub: 'Expert digital în vinul moldovenesc',
@@ -916,6 +964,26 @@
       feature2: 'Recomande asocieri de vin cu mâncare',
       feature3: 'Planifice trasee ale vinului și recomande crame',
       feature4: 'Povestească istoria și particularitățile cramelor',
+      wineryHeroSub: 'Regiunea Codru · fondată în 1998', wineryBadge: 'Cramă demonstrativă',
+      wineryStatFoundedLabel: 'Fondată', wineryStatHectaresLabel: 'Hectare', wineryStatRatingLabel: 'Rating',
+      wineryHectaresValue: '64 ha', wineAgingValue: '16 luni',
+      wineryLead: 'O cramă de familie în inima regiunii Codru, cunoscută pentru vinuri maturate din soiuri autohtone și loturi mici culese manual.',
+      wineryDetail1: '<strong>Istorie și filozofie.</strong> Crama a fost fondată în 1998 de agronomul Andrei Rusu și soția sa Elena, care au unit parcelele familiei — unele aparținând bunicului lui Andrei. Astăzi crama este condusă de fiul lor, Mihail Rusu. Filozofia familiei este intervenția minimă în terroir și accentul pe soiurile locale.',
+      wineryDetail2: '<strong>Degustări și tururi.</strong> Pe bază de programare, grupuri de până la 20 de persoane, o sală de degustare cu vedere spre vie; turul pivniței și al viilor durează circa 90 de minute.',
+      wineryDetail3: '<strong>Locație.</strong> La 40 km de Chișinău, pe versantul sudic al unui deal din centrul regiunii Codru, la altitudini de 150–220 m.',
+      wineryDetail4: '<strong>Curiozitate.</strong> La săparea fundației pivniței în 1999, muncitorii au găsit o monedă veche — de atunci este păstrată la cramă ca talisman.',
+      wineryWinesLabel: 'Vinurile cramei', wineryWineTag1: 'gamă de zi cu zi', wineryWineTag2: 'rezervă', wineryWineTag3: 'de colecție',
+      askWinery: 'Întreabă Wine AI despre această cramă',
+      wineHeroSub: 'Crama Dealul de Aur · Regiunea Codru', wineBadge: 'Vin demonstrativ',
+      wineStatGrapeLabel: 'Soi', wineStatAbvLabel: 'Alcool', wineStatAgingLabel: 'Maturare',
+      wineLead: 'Vinul roșu sec emblematic, lansat cu ocazia a 20 de ani de la primele plantații de Fetească Neagră din parcela „Dealul Vechi”. Culoare rubinie intensă, cireșe negre, mure, piper negru și vanilie în aromă.',
+      wineChipBody: 'Corpolent', wineChipTannins: 'Tanini catifelați',
+      wineDetail1: '<strong>Maturare.</strong> 16 luni în stejar francez (baric de 225 l, ~30% nou), apoi 8 luni în sticlă înainte de lansare.',
+      wineDetail2: '<strong>Servire.</strong> 16–18°C, se recomandă decantare de 30–45 minute. Potențial de păstrare 8–10 ani de la recoltă; perioada optimă de consum este 2023–2029.',
+      wineDetail3: '<strong>Asocieri gastronomice.</strong> Carne roșie, miel la cuptor, brânzeturi maturate, mămăligă cu sos de carne.',
+      wineDetail4: '<strong>Producție.</strong> Lot limitat — 8 400 de sticle. Preț indicativ — circa 350 MDL (date demonstrative).',
+      askWine: 'Întreabă Wine AI despre acest vin',
+      detailsMore: 'Mai multe', detailsLess: 'Ascunde',
     },
     fr: {
       sub: 'Expert numérique du vin moldave',
@@ -929,6 +997,26 @@
       feature2: 'Suggérer des accords mets-vins',
       feature3: 'Planifier des routes des vins et recommander des domaines',
       feature4: "Raconter l'histoire et les particularités des domaines",
+      wineryHeroSub: 'Région de Codru · fondée en 1998', wineryBadge: 'Domaine de démonstration',
+      wineryStatFoundedLabel: 'Fondé', wineryStatHectaresLabel: 'Hectares', wineryStatRatingLabel: 'Note',
+      wineryHectaresValue: '64 ha', wineAgingValue: '16 mois',
+      wineryLead: "Un domaine familial au cœur de Codru, réputé pour ses vins vieillis issus de cépages autochtones et de petites récoltes manuelles.",
+      wineryDetail1: "<strong>Histoire et philosophie.</strong> Le domaine a été fondé en 1998 par l'agronome Andrei Rusu et son épouse Elena, réunissant des parcelles familiales — certaines ayant appartenu au grand-père d'Andrei. Il est aujourd'hui dirigé par leur fils, Mihail Rusu. La philosophie de la famille : une intervention minimale sur le terroir et la mise en valeur des cépages locaux.",
+      wineryDetail2: "<strong>Dégustations et visites.</strong> Sur réservation, groupes de 20 personnes maximum, salle de dégustation avec vue sur le vignoble ; la visite du chai et des vignes dure environ 90 minutes.",
+      wineryDetail3: "<strong>Localisation.</strong> À 40 km de Chișinău, sur le versant sud d'une colline au centre de la région de Codru, à 150–220 m d'altitude.",
+      wineryDetail4: "<strong>Anecdote.</strong> En creusant les fondations du chai en 1999, les ouvriers ont trouvé une vieille pièce de monnaie — conservée depuis comme un talisman du domaine.",
+      wineryWinesLabel: 'Les vins du domaine', wineryWineTag1: 'gamme du quotidien', wineryWineTag2: 'réserve', wineryWineTag3: 'collection',
+      askWinery: 'Demander à Wine AI à propos de ce domaine',
+      wineHeroSub: 'Crama Dealul de Aur · Région de Codru', wineBadge: 'Vin de démonstration',
+      wineStatGrapeLabel: 'Cépage', wineStatAbvLabel: 'Alcool', wineStatAgingLabel: 'Élevage',
+      wineLead: "Le rouge sec emblématique du domaine, lancé pour le 20e anniversaire des premières plantations de Fetească Neagră sur la parcelle « Dealul Vechi ». Robe rubis profonde, cerise noire, mûre, poivre noir et vanille au nez.",
+      wineChipBody: 'Corsé', wineChipTannins: 'Tanins veloutés',
+      wineDetail1: "<strong>Élevage.</strong> 16 mois en fûts de chêne français (225 L, ~30% neufs), puis 8 mois en bouteille avant la sortie.",
+      wineDetail2: "<strong>Service.</strong> 16–18°C, une carafe de 30–45 minutes est recommandée. Potentiel de garde de 8 à 10 ans après la récolte ; fenêtre de dégustation optimale : 2023–2029.",
+      wineDetail3: "<strong>Accords mets-vins.</strong> Viande rouge, agneau rôti, fromages affinés, mămăligă en sauce à la viande.",
+      wineDetail4: "<strong>Production.</strong> Lot limité — 8 400 bouteilles. Prix indicatif — environ 350 MDL (données de démonstration).",
+      askWine: 'Demander à Wine AI à propos de ce vin',
+      detailsMore: 'Plus de détails', detailsLess: 'Masquer',
     },
     it: {
       sub: 'Esperto digitale del vino moldavo',
@@ -942,6 +1030,26 @@
       feature2: 'Suggerire abbinamenti cibo-vino',
       feature3: 'Pianificare percorsi del vino e consigliare cantine',
       feature4: 'Raccontare la storia e le caratteristiche delle cantine',
+      wineryHeroSub: 'Regione di Codru · fondata nel 1998', wineryBadge: 'Cantina demo',
+      wineryStatFoundedLabel: 'Fondata', wineryStatHectaresLabel: 'Ettari', wineryStatRatingLabel: 'Valutazione',
+      wineryHectaresValue: '64 ha', wineAgingValue: '16 mesi',
+      wineryLead: "Una cantina familiare nel cuore di Codru, nota per i vini affinati da varietà autoctone e piccole partite vendemmiate a mano.",
+      wineryDetail1: "<strong>Storia e filosofia.</strong> La cantina è stata fondata nel 1998 dall'agronomo Andrei Rusu e dalla moglie Elena, unendo i terreni di famiglia — alcuni appartenuti al nonno di Andrei. Oggi è gestita dal figlio, Mihail Rusu. La filosofia della famiglia: intervento minimo sul terroir e valorizzazione dei vitigni locali.",
+      wineryDetail2: "<strong>Degustazioni e visite.</strong> Su prenotazione, gruppi fino a 20 persone, sala degustazione con vista sul vigneto; la visita alla cantina e ai vigneti dura circa 90 minuti.",
+      wineryDetail3: "<strong>Posizione.</strong> A 40 km da Chișinău, sul versante sud di una collina nella parte centrale della regione di Codru, a 150–220 m di altitudine.",
+      wineryDetail4: "<strong>Curiosità.</strong> Scavando le fondamenta della cantina nel 1999, gli operai trovarono una vecchia moneta — conservata da allora come talismano.",
+      wineryWinesLabel: 'I vini della cantina', wineryWineTag1: 'linea quotidiana', wineryWineTag2: 'riserva', wineryWineTag3: 'da collezione',
+      askWinery: 'Chiedi a Wine AI di questa cantina',
+      wineHeroSub: 'Crama Dealul de Aur · Regione di Codru', wineBadge: 'Vino demo',
+      wineStatGrapeLabel: 'Vitigno', wineStatAbvLabel: 'Gradazione', wineStatAgingLabel: 'Affinamento',
+      wineLead: "Il rosso secco di punta, lanciato per il 20° anniversario dei primi impianti di Fetească Neagră nella parcella «Dealul Vechi». Colore rubino intenso, ciliegia nera, mora, pepe nero e vaniglia al naso.",
+      wineChipBody: 'Corposo', wineChipTannins: 'Tannini vellutati',
+      wineDetail1: "<strong>Affinamento.</strong> 16 mesi in rovere francese (barrique da 225 l, ~30% nuove), poi 8 mesi in bottiglia prima dell'uscita.",
+      wineDetail2: "<strong>Servizio.</strong> 16–18°C, si consiglia decantazione di 30–45 minuti. Potenziale di invecchiamento 8–10 anni dalla vendemmia; finestra di consumo ottimale 2023–2029.",
+      wineDetail3: "<strong>Abbinamenti.</strong> Carne rossa, agnello arrosto, formaggi stagionati, mămăligă con sugo di carne.",
+      wineDetail4: "<strong>Produzione.</strong> Lotto limitato — 8.400 bottiglie. Prezzo indicativo — circa 350 MDL (dati demo).",
+      askWine: 'Chiedi a Wine AI di questo vino',
+      detailsMore: 'Altri dettagli', detailsLess: 'Nascondi',
     },
     es: {
       sub: 'Experto digital en vino moldavo',
@@ -955,6 +1063,26 @@
       feature2: 'Sugerir maridajes de vino y comida',
       feature3: 'Planificar rutas del vino y recomendar bodegas',
       feature4: 'Contar la historia y particularidades de las bodegas',
+      wineryHeroSub: 'Región de Codru · fundada en 1998', wineryBadge: 'Bodega de demostración',
+      wineryStatFoundedLabel: 'Fundada', wineryStatHectaresLabel: 'Hectáreas', wineryStatRatingLabel: 'Valoración',
+      wineryHectaresValue: '64 ha', wineAgingValue: '16 meses',
+      wineryLead: "Una bodega familiar en el corazón de Codru, conocida por sus vinos envejecidos de variedades autóctonas y pequeños lotes de vendimia manual.",
+      wineryDetail1: "<strong>Historia y filosofía.</strong> La bodega fue fundada en 1998 por el agrónomo Andrei Rusu y su esposa Elena, uniendo parcelas familiares — algunas heredadas del abuelo de Andrei. Hoy la dirige su hijo, Mihail Rusu. La filosofía familiar: intervención mínima en el terruño y apuesta por variedades locales.",
+      wineryDetail2: "<strong>Catas y visitas.</strong> Con reserva previa, grupos de hasta 20 personas, sala de catas con vista al viñedo; el recorrido por la bodega y los viñedos dura unos 90 minutos.",
+      wineryDetail3: "<strong>Ubicación.</strong> A 40 km de Chișinău, en la ladera sur de una colina en el centro de la región de Codru, a 150–220 m de altitud.",
+      wineryDetail4: "<strong>Dato curioso.</strong> Al excavar los cimientos de la bodega en 1999, los trabajadores encontraron una moneda antigua — desde entonces se conserva como talismán.",
+      wineryWinesLabel: 'Los vinos de la bodega', wineryWineTag1: 'línea diaria', wineryWineTag2: 'reserva', wineryWineTag3: 'de colección',
+      askWinery: 'Pregunta a Wine AI sobre esta bodega',
+      wineHeroSub: 'Crama Dealul de Aur · Región de Codru', wineBadge: 'Vino de demostración',
+      wineStatGrapeLabel: 'Variedad', wineStatAbvLabel: 'Alcohol', wineStatAgingLabel: 'Crianza',
+      wineLead: "El tinto seco insignia, lanzado en el 20.º aniversario de las primeras plantaciones de Fetească Neagră en la parcela «Dealul Vechi». Color rubí profundo, cereza negra, mora, pimienta negra y vainilla en nariz.",
+      wineChipBody: 'Con cuerpo', wineChipTannins: 'Taninos aterciopelados',
+      wineDetail1: "<strong>Crianza.</strong> 16 meses en roble francés (barricas de 225 l, ~30% nuevas), y luego 8 meses en botella antes de salir al mercado.",
+      wineDetail2: "<strong>Servicio.</strong> 16–18°C, se recomienda decantar 30–45 minutos. Potencial de guarda de 8 a 10 años desde la cosecha; la ventana óptima de consumo es 2023–2029.",
+      wineDetail3: "<strong>Maridaje.</strong> Carnes rojas, cordero asado, quesos curados, mămăligă con salsa de carne.",
+      wineDetail4: "<strong>Producción.</strong> Lote limitado — 8.400 botellas. Precio indicativo — unos 350 MDL (datos de demostración).",
+      askWine: 'Pregunta a Wine AI sobre este vino',
+      detailsMore: 'Más detalles', detailsLess: 'Ocultar',
     },
     de: {
       sub: 'Digitaler Experte für moldauischen Wein',
@@ -968,6 +1096,26 @@
       feature2: 'Speiseempfehlungen zum Wein geben',
       feature3: 'Weinrouten planen und Weingüter empfehlen',
       feature4: 'Geschichte und Besonderheiten der Weingüter erzählen',
+      wineryHeroSub: 'Region Codru · gegründet 1998', wineryBadge: 'Demo-Weingut',
+      wineryStatFoundedLabel: 'Gegründet', wineryStatHectaresLabel: 'Hektar', wineryStatRatingLabel: 'Bewertung',
+      wineryHectaresValue: '64 ha', wineAgingValue: '16 Monate',
+      wineryLead: "Ein Familienweingut im Herzen von Codru, bekannt für gereifte Weine aus einheimischen Rebsorten und kleine, handgelesene Partien.",
+      wineryDetail1: "<strong>Geschichte und Philosophie.</strong> Das Weingut wurde 1998 vom Agronomen Andrei Rusu und seiner Frau Elena gegründet, die Familienparzellen zusammenführten — einige stammten noch vom Großvater Andreis. Heute wird es von ihrem Sohn Mihail Rusu geführt. Die Philosophie der Familie: minimaler Eingriff ins Terroir und der Fokus auf einheimische Rebsorten.",
+      wineryDetail2: "<strong>Verkostungen und Führungen.</strong> Nach Voranmeldung, Gruppen bis zu 20 Personen, ein Verkostungsraum mit Blick auf den Weinberg; die Führung durch Keller und Weinberge dauert etwa 90 Minuten.",
+      wineryDetail3: "<strong>Lage.</strong> 40 km von Chișinău entfernt, am Südhang eines Hügels im Zentrum der Region Codru, auf 150–220 m Höhe.",
+      wineryDetail4: "<strong>Kuriosität.</strong> Beim Aushub für den Keller fanden die Arbeiter 1999 eine alte Münze — seitdem wird sie als Glücksbringer im Weingut aufbewahrt.",
+      wineryWinesLabel: 'Die Weine des Weinguts', wineryWineTag1: 'Alltagslinie', wineryWineTag2: 'Reserve', wineryWineTag3: 'Sammleredition',
+      askWinery: 'Wine AI zu diesem Weingut fragen',
+      wineHeroSub: 'Crama Dealul de Aur · Region Codru', wineBadge: 'Demo-Wein',
+      wineStatGrapeLabel: 'Rebsorte', wineStatAbvLabel: 'Alkohol', wineStatAgingLabel: 'Reifung',
+      wineLead: "Der rote Flaggschiff-Trockenwein, anlässlich des 20. Jahrestags der ersten Fetească-Neagră-Pflanzungen in der Parzelle „Dealul Vechi“ herausgebracht. Tiefes Rubinrot, dunkle Kirsche, Brombeere, schwarzer Pfeffer und Vanille in der Nase.",
+      wineChipBody: 'Vollmundig', wineChipTannins: 'Samtige Tannine',
+      wineDetail1: "<strong>Reifung.</strong> 16 Monate in französischer Eiche (225-l-Barriques, ~30% neu), danach 8 Monate Flaschenreifung vor der Freigabe.",
+      wineDetail2: "<strong>Servieren.</strong> 16–18°C, eine Dekantierzeit von 30–45 Minuten wird empfohlen. Lagerpotenzial 8–10 Jahre ab Ernte; optimales Trinkfenster 2023–2029.",
+      wineDetail3: "<strong>Speisebegleitung.</strong> Rotes Fleisch, Lammbraten, gereifter Käse, Mămăligă mit Fleischsauce.",
+      wineDetail4: "<strong>Produktion.</strong> Limitierte Partie — 8.400 Flaschen. Richtpreis — etwa 350 MDL (Demodaten).",
+      askWine: 'Wine AI zu diesem Wein fragen',
+      detailsMore: 'Mehr Details', detailsLess: 'Ausblenden',
     },
     zh: {
       sub: '摩尔多瓦葡萄酒数字专家',
@@ -981,6 +1129,26 @@
       feature2: '推荐葡萄酒与美食搭配',
       feature3: '规划葡萄酒路线并推荐酒庄',
       feature4: '讲述酒庄的历史与特色',
+      wineryHeroSub: '科德鲁产区 · 1998年创立', wineryBadge: '演示酒庄',
+      wineryStatFoundedLabel: '创立', wineryStatHectaresLabel: '公顷', wineryStatRatingLabel: '评分',
+      wineryHectaresValue: '64公顷', wineAgingValue: '16个月',
+      wineryLead: '位于科德鲁核心地带的家族酒庄，以本地葡萄品种酿制的陈年葡萄酒和小批量手工采摘而闻名。',
+      wineryDetail1: '<strong>历史与理念。</strong> 酒庄由农艺师安德烈·鲁苏和妻子叶莲娜于1998年创立，合并了家族地块——其中部分曾属于安德烈的祖父。如今由他们的儿子米哈伊尔·鲁苏经营。家族理念是对风土最小干预，专注本地品种。',
+      wineryDetail2: '<strong>品鉴与参观。</strong> 需提前预约，每组最多20人，品鉴室可俯瞰葡萄园；地窖与葡萄园参观约需90分钟。',
+      wineryDetail3: '<strong>位置。</strong> 距基希讷乌40公里，位于科德鲁中部一座山丘的南坡，海拔150–220米。',
+      wineryDetail4: '<strong>趣闻。</strong> 1999年挖掘地窖地基时，工人发现了一枚旧硬币——从此作为幸运符保存在酒庄。',
+      wineryWinesLabel: '酒庄旗下酒款', wineryWineTag1: '日常系列', wineryWineTag2: '珍藏', wineryWineTag3: '收藏系列',
+      askWinery: '向Wine AI询问这家酒庄',
+      wineHeroSub: 'Crama Dealul de Aur · 科德鲁产区', wineBadge: '演示酒款',
+      wineStatGrapeLabel: '品种', wineStatAbvLabel: '酒精度', wineStatAgingLabel: '陈酿',
+      wineLead: '为纪念「Dealul Vechi」地块首次种植费特亚斯卡·涅阿格拉葡萄20周年而推出的旗舰干红。深宝石红色，黑樱桃、黑莓、黑胡椒与香草香气。',
+      wineChipBody: '酒体饱满', wineChipTannins: '丝滑单宁',
+      wineDetail1: '<strong>陈酿。</strong> 在法国橡木桶（225升，约30%新桶）中陈酿16个月，随后瓶中陈放8个月方才发售。',
+      wineDetail2: '<strong>侍酒。</strong> 建议16–18°C饮用，醒酒30–45分钟。陈放潜力为采收后8–10年，最佳饮用期为2023–2029年。',
+      wineDetail3: '<strong>餐酒搭配。</strong> 红肉、烤羊肉、陈年奶酪、肉汁玉米糊。',
+      wineDetail4: '<strong>产量。</strong> 限量8,400瓶。参考价格约350摩尔多瓦列伊（演示数据）。',
+      askWine: '向Wine AI询问这款酒',
+      detailsMore: '更多详情', detailsLess: '收起',
     },
     ja: {
       sub: 'モルドバワインのデジタルエキスパート',
@@ -994,6 +1162,26 @@
       feature2: '料理とワインのペアリングを提案する',
       feature3: 'ワインルートを計画し、ワイナリーを勧める',
       feature4: 'ワイナリーの歴史と特徴を紹介する',
+      wineryHeroSub: 'コドル地方・1998年創業', wineryBadge: 'デモワイナリー',
+      wineryStatFoundedLabel: '創業', wineryStatHectaresLabel: 'ヘクタール', wineryStatRatingLabel: '評価',
+      wineryHectaresValue: '64ha', wineAgingValue: '16ヶ月',
+      wineryLead: 'コドルの中心にある家族経営のワイナリーで、土着品種を使った熟成ワインと手摘みの少量生産で知られています。',
+      wineryDetail1: '<strong>歴史と理念。</strong> このワイナリーは1998年、農学者アンドレイ・ルスと妻エレナによって、家族の土地（一部はアンドレイの祖父の代からのもの）を統合して創業されました。現在は息子のミハイル・ルスが経営しています。家族の理念は、テロワールへの介入を最小限にし、土着品種を大切にすることです。',
+      wineryDetail2: '<strong>テイスティングとツアー。</strong> 事前予約制で最大20名まで、ぶどう畑を望むテイスティングルームがあります。セラーとぶどう畑のツアーは約90分です。',
+      wineryDetail3: '<strong>所在地。</strong> キシナウから40km、コドル地方中央部の丘の南斜面、標高150〜220mに位置します。',
+      wineryDetail4: '<strong>ちょっとした話。</strong> 1999年にセラーの基礎を掘っていた際、作業員が古い硬貨を見つけ、以来ワイナリーの縁起物として保管されています。',
+      wineryWinesLabel: 'ワイナリーのワイン', wineryWineTag1: 'デイリーレンジ', wineryWineTag2: 'リザーブ', wineryWineTag3: 'コレクション',
+      askWinery: 'このワイナリーについてWine AIに聞く',
+      wineHeroSub: 'Crama Dealul de Aur・コドル地方', wineBadge: 'デモワイン',
+      wineStatGrapeLabel: '品種', wineStatAbvLabel: 'アルコール度数', wineStatAgingLabel: '熟成',
+      wineLead: '「Dealul Vechi」区画で最初にフェテアスカ・ネアグラが植えられてから20周年を記念してリリースされたフラッグシップの辛口赤ワイン。深いルビー色で、ブラックチェリー、ブラックベリー、黒胡椒、バニラの香り。',
+      wineChipBody: 'フルボディ', wineChipTannins: 'きめ細かなタンニン',
+      wineDetail1: '<strong>熟成。</strong> フレンチオーク（225L樽、新樽約30%）で16ヶ月、その後瓶内で8ヶ月熟成させてリリースします。',
+      wineDetail2: '<strong>提供方法。</strong> 16〜18°Cで、30〜45分のデカンタージュを推奨します。収穫から8〜10年の熟成可能性があり、最適な飲用期間は2023〜2029年です。',
+      wineDetail3: '<strong>料理との相性。</strong> 赤身肉、ロースト仔羊、熟成チーズ、肉ソースのママリガ。',
+      wineDetail4: '<strong>生産量。</strong> 限定生産8,400本。参考価格は約350MDL（デモデータ）。',
+      askWine: 'このワインについてWine AIに聞く',
+      detailsMore: '詳細を見る', detailsLess: '閉じる',
     },
   };
   let uiLang = localStorage.getItem('wineAiUiLang') || 'en';
@@ -1606,7 +1794,7 @@
     toggleBtn.addEventListener('click', () => {
       const nowHidden = !details.hidden;
       details.hidden = nowHidden;
-      toggleBtn.textContent = nowHidden ? 'Подробнее' : 'Скрыть';
+      toggleBtn.textContent = getUiString(nowHidden ? 'detailsMore' : 'detailsLess');
     });
   }
   wireDetailsToggle('wineryDetailsToggle', 'wineryDetails');
@@ -1906,6 +2094,47 @@
     setText('feature2Text', getUiString('feature2'));
     setText('feature3Text', getUiString('feature3'));
     setText('feature4Text', getUiString('feature4'));
+
+    setText('wineryHeroSub', getUiString('wineryHeroSub'));
+    setText('wineryBadge', getUiString('wineryBadge'));
+    setText('wineryStatFoundedLabel', getUiString('wineryStatFoundedLabel'));
+    setText('wineryStatHectaresLabel', getUiString('wineryStatHectaresLabel'));
+    setText('wineryStatRatingLabel', getUiString('wineryStatRatingLabel'));
+    setText('wineryStatHectaresValue', getUiString('wineryHectaresValue'));
+    setText('wineryLead', getUiString('wineryLead'));
+    setHtml('wineryDetail1', getUiString('wineryDetail1'));
+    setHtml('wineryDetail2', getUiString('wineryDetail2'));
+    setHtml('wineryDetail3', getUiString('wineryDetail3'));
+    setHtml('wineryDetail4', getUiString('wineryDetail4'));
+    setText('wineryWinesLabel', getUiString('wineryWinesLabel'));
+    setText('wineryWineTag1', getUiString('wineryWineTag1'));
+    setText('wineryWineTag2', getUiString('wineryWineTag2'));
+    setText('wineryWineTag3', getUiString('wineryWineTag3'));
+    setText('askWineryBtn', getUiString('askWinery'));
+
+    setText('wineHeroSub', getUiString('wineHeroSub'));
+    setText('wineBadge', getUiString('wineBadge'));
+    setText('wineStatGrapeLabel', getUiString('wineStatGrapeLabel'));
+    setText('wineStatAbvLabel', getUiString('wineStatAbvLabel'));
+    setText('wineStatAgingLabel', getUiString('wineStatAgingLabel'));
+    setText('wineStatAgingValue', getUiString('wineAgingValue'));
+    setText('wineLead', getUiString('wineLead'));
+    setText('wineChipBody', getUiString('wineChipBody'));
+    setText('wineChipTannins', getUiString('wineChipTannins'));
+    setHtml('wineDetail1', getUiString('wineDetail1'));
+    setHtml('wineDetail2', getUiString('wineDetail2'));
+    setHtml('wineDetail3', getUiString('wineDetail3'));
+    setHtml('wineDetail4', getUiString('wineDetail4'));
+    setText('askWineBtn', getUiString('askWine'));
+
+    // Details toggles keep whatever open/closed state they're currently in —
+    // just relabel them in the new language instead of resetting visibility.
+    const wineryToggle = el('wineryDetailsToggle');
+    const wineryDetails = el('wineryDetails');
+    if (wineryToggle && wineryDetails) wineryToggle.textContent = getUiString(wineryDetails.hidden ? 'detailsMore' : 'detailsLess');
+    const wineToggle = el('wineDetailsToggle');
+    const wineDetails = el('wineDetailsBlock');
+    if (wineToggle && wineDetails) wineToggle.textContent = getUiString(wineDetails.hidden ? 'detailsMore' : 'detailsLess');
   }
   const uiLangSelect = el('uiLangSelect');
   if (uiLangSelect) {
