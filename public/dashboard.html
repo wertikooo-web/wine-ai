@@ -749,8 +749,8 @@
         <button class="secondary" id="kbRefreshBtn">Refresh</button>
       </div>
       <div id="kbDropZone" style="margin-top:14px; border:2px dashed var(--border); border-radius:10px; padding:20px; text-align:center; font-size:13px; color:var(--muted); cursor:pointer;">
-        Перетащите сюда .md / .txt / .json / .csv файл — или нажмите, чтобы выбрать
-        <input type="file" id="kbFileInput" accept=".md,.txt,.json,.csv" style="display:none;" multiple>
+        Перетащите сюда .md / .txt / .json / .csv / .pdf файл — или нажмите, чтобы выбрать
+        <input type="file" id="kbFileInput" accept=".md,.txt,.json,.csv,.pdf" style="display:none;" multiple>
       </div>
       <div id="kbUploadStatus" style="font-size:12px; margin-top:8px;"></div>
     </div>
@@ -2069,16 +2069,31 @@
     });
   }
 
+  // PDFs are binary — base64-encode via readAsDataURL and strip the
+  // "data:application/pdf;base64," prefix, so the server can decode a real
+  // Buffer and run pdf-parse on it. Text formats never take this path.
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',').pop());
+      reader.onerror = () => reject(reader.error || new Error('file_read_failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function uploadKnowledgeFile(file) {
     const statusEl = el('kbUploadStatus');
     statusEl.textContent = `Uploading ${file.name}...`;
     statusEl.style.color = 'var(--muted)';
     try {
-      const content = await readFileAsText(file);
+      const isPdf = file.name.toLowerCase().endsWith('.pdf');
+      const payload = isPdf
+        ? { filename: file.name, contentBase64: await readFileAsBase64(file) }
+        : { filename: file.name, content: await readFileAsText(file) };
       const res = await fetch('/api/knowledge/upload', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, content }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {

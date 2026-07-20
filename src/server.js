@@ -23,11 +23,18 @@ const personaStore = require('./persona/personaStore');
 const { getScreenContext, buildContextualPersona } = require('./persona/screenContexts');
 const { getPurchaseOptions } = require('./data/purchaseOptions');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
+const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
+const db = require('./knowledge/db');
 const env = require('./config/env');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
 const publicDir = path.join(__dirname, '..', 'public');
+
+// Initialize WINE AI KOS database schema (idempotent, safe fallback)
+initKosSchema().catch((error) => {
+    console.error('[WineAI] KOS schema initialization failed:', error);
+});
 
 // Defense in depth beyond the per-request try/catch below: this process
 // also owns every active realtime WebSocket session, so a bug anywhere
@@ -158,12 +165,26 @@ async function handleRequest(req, res) {
     const pathname = new URL(req.url, 'http://localhost').pathname;
 
     if (req.method === 'GET' && pathname === '/health') {
+        const isDbPostgres = db.isEnabled();
+        const storageProvider = process.env.KOS_STORAGE_PROVIDER || 'local';
+        const isStorageS3 = storageProvider === 's3';
+
         return sendJson(res, 200, {
             ok: true,
             service: 'wine-ai-realtime',
             provider,
             model: providerFactory.metadata.model,
             endpoints: KNOWN_ENDPOINTS,
+            kos: {
+                enabled: true,
+                ready: isKosSchemaReady(),
+                databaseMode: isDbPostgres ? 'postgres' : 'file',
+                databaseProductionReady: isDbPostgres,
+                storageProvider,
+                storageProductionReady: isStorageS3,
+                productionIngestionReady: Boolean(isDbPostgres && isStorageS3 && isKosSchemaReady()),
+                error: getKosSchemaError(),
+            },
         });
     }
 
@@ -367,36 +388,99 @@ async function handleRequest(req, res) {
     }
 
     // Drag-and-drop upload for the Knowledge base tab. Body is JSON
-    // ({filename, content}) rather than multipart — every source document
-    // in this project is plain text (.md/.txt/.json/.csv), so the browser
+    // ({filename, content}) rather than multipart — every plain-text source
+    // document in this project is already text end to end, so the browser
     // just reads the dropped File as text (FileReader) and posts it,
-    // avoiding a multipart-parsing dependency for a format that's already
-    // text end to end.
+    // avoiding a multipart-parsing dependency.
+    //
+    // PDFs are the one binary exception: the client base64-encodes the file
+    // (contentBase64) instead, and the server extracts text via pdf-parse
+    // before writing it out as a normal .md source — the loader/index/
+    // search pipeline never has to know a PDF was involved.
     if (req.method === 'POST' && pathname === '/api/knowledge/upload') {
         let body;
         try {
-            body = await readJsonBody(req, 2 * 1024 * 1024); // 2MB — generous for a text knowledge doc
+            body = await readJsonBody(req, 20 * 1024 * 1024); // 20MB — generous for a base64-encoded PDF
         } catch (error) {
             return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
         const rawName = String(body.filename || '').trim();
-        const content = String(body.content || '');
-        if (!rawName || !content) {
-            return sendJson(res, 400, { ok: false, error: 'filename_and_content_required' });
+        if (!rawName) {
+            return sendJson(res, 400, { ok: false, error: 'filename_required' });
         }
         // path.basename strips any directory component the client sent —
         // this must never be able to write outside knowledge/source/.
         const safeName = path.basename(rawName).replace(/[^a-zA-Z0-9_.-]/g, '_');
         const ext = path.extname(safeName).toLowerCase();
+        const sourceDir = knowledgeLoader.DEFAULT_SOURCE_DIR;
+
+        if (ext === '.pdf') {
+            const contentBase64 = String(body.contentBase64 || '');
+            if (!contentBase64) {
+                return sendJson(res, 400, { ok: false, error: 'content_base64_required_for_pdf' });
+            }
+            let extractedText;
+            try {
+                const buffer = Buffer.from(contentBase64, 'base64');
+                const { PDFParse } = require('pdf-parse');
+                const parser = new PDFParse({ data: buffer });
+                try {
+                    const result = await parser.getText();
+                    extractedText = String(result.text || '').trim();
+                } finally {
+                    await parser.destroy();
+                }
+            } catch (error) {
+                return sendJson(res, 400, { ok: false, error: 'pdf_parse_failed', message: error.message });
+            }
+            if (extractedText.length < 50) {
+                return sendJson(res, 400, {
+                    ok: false,
+                    error: 'pdf_text_extraction_empty',
+                    message: 'No extractable text found — this is likely a scanned PDF without a text layer (needs OCR, not supported here).',
+                });
+            }
+            const mdName = safeName.replace(/\.pdf$/i, '') + '.md';
+            const title = rawName.replace(/\.pdf$/i, '');
+            const frontmatter = [
+                '---',
+                `title: ${title}`,
+                'language: ru',
+                'doc_type: uploaded_pdf',
+                `source: Uploaded PDF via dashboard (${rawName}) — raw pdf-parse text extraction, not reviewed`,
+                'confidence: unverified',
+                '---',
+                '',
+                extractedText,
+            ].join('\n');
+            try {
+                fs.mkdirSync(sourceDir, { recursive: true });
+                fs.writeFileSync(path.join(sourceDir, mdName), frontmatter, 'utf8');
+                const result = buildIndex();
+                return sendJson(res, 200, {
+                    ok: true,
+                    filename: mdName,
+                    document_count: result.documentCount,
+                    chunk_count: result.chunkCount,
+                    errors: result.errors,
+                });
+            } catch (error) {
+                return sendJson(res, 500, { ok: false, error: 'upload_failed', message: error.message });
+            }
+        }
+
+        const content = String(body.content || '');
+        if (!content) {
+            return sendJson(res, 400, { ok: false, error: 'content_required' });
+        }
         if (!knowledgeLoader.SUPPORTED_EXTENSIONS.has(ext)) {
             return sendJson(res, 400, {
                 ok: false,
                 error: 'unsupported_file_type',
-                allowed: Array.from(knowledgeLoader.SUPPORTED_EXTENSIONS),
+                allowed: [...knowledgeLoader.SUPPORTED_EXTENSIONS, '.pdf'],
             });
         }
         try {
-            const sourceDir = knowledgeLoader.DEFAULT_SOURCE_DIR;
             fs.mkdirSync(sourceDir, { recursive: true });
             fs.writeFileSync(path.join(sourceDir, safeName), content, 'utf8');
             const result = buildIndex();
