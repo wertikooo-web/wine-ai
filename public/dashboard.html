@@ -1411,16 +1411,35 @@
     setTimeout(() => block.classList.remove('highlight'), 2000);
   }
 
-  async function startContextualConversation(type, id) {
-    let data;
+  // Winery/wine screen contexts are only these two fixed objects — prefetch
+  // both once at load so pressing an ask-button is instant (same latency
+  // as pressing the round mic button) instead of waiting on a network
+  // round-trip before it can even start listening.
+  const screenContextCache = {};
+  async function prefetchScreenContext(type, id) {
     try {
       const res = await fetch(`/api/screen-context/${type}/${id}`);
-      data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'screen_context_failed');
+      const data = await res.json();
+      if (data.ok) screenContextCache[`${type}:${id}`] = data;
     } catch (err) {
-      log('screen_context_load_error', { message: err.message });
-      return;
+      log('screen_context_prefetch_error', { type, id, message: err.message });
     }
+  }
+
+  let pendingContextTurnStart = false;
+
+  // Press-and-hold, same logic as the round mic button: pointerdown
+  // interrupts whatever is playing and starts listening immediately (even
+  // while switching context or reconnecting), pointerup sends what was
+  // captured. No more auto "Здравствуйте" text kickoff — the user's real
+  // question is now the first turn, and the persona still opens with its
+  // scripted line per buildContextualPersona()'s first-turn instruction.
+  function beginContextualTurn(type, id) {
+    const data = screenContextCache[`${type}:${id}`];
+    if (!data) { log('screen_context_not_ready', { type, id }); return; }
+    clearPlayback();
+    DeviceVisual.setState('ready');
+    const isNewContext = !activeScreenContext || activeScreenContext.type !== type || activeScreenContext.id !== id;
     activeScreenContext = {
       type, id,
       persona: data.persona,
@@ -1430,21 +1449,17 @@
     renderContextChips();
     document.querySelector('[data-tab="avatar"]').click();
     if (ws && ws.readyState === WebSocket.OPEN) {
-      // Already connected — stop whatever the previous context was saying
-      // instantly (same barge-in as startTurn()/interrupt()), then re-apply
-      // the new persona on the live session and nudge the model into
-      // producing its scripted opening line for the new context.
-      clearPlayback();
-      DeviceVisual.setState('ready');
-      sendSessionStart();
-      setTimeout(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'input_text.submit', text: 'Здравствуйте' }));
-        }
-      }, 300);
+      if (isNewContext) sendSessionStart();
+      startTurn();
     } else {
+      pendingContextTurnStart = true;
       connect();
     }
+  }
+
+  function endContextualTurn() {
+    pendingContextTurnStart = false;
+    if (isHolding) endTurn();
   }
 
   function connect() {
@@ -1476,15 +1491,13 @@
       }
       sendSessionStart();
       log('ws_open', { sampleRate: inputSampleRate });
-      // Fresh connect into an active screen context (winery/wine button) —
-      // nudge the model so it produces its scripted opening line right
-      // away instead of waiting silently for the user to speak first.
-      if (activeScreenContext) {
-        setTimeout(() => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'input_text.submit', text: 'Здравствуйте' }));
-          }
-        }, 400);
+      // A winery/wine ask-button was pressed-and-held before the connection
+      // finished opening — start recording now that it's ready. If the user
+      // already released the button (pendingContextTurnStart cleared by
+      // endContextualTurn), don't start a turn nobody is holding for.
+      if (pendingContextTurnStart) {
+        pendingContextTurnStart = false;
+        startTurn();
       }
     });
 
@@ -1874,11 +1887,15 @@
   // ---- Wiring ----
   el('connectBtn').addEventListener('click', toggleConnection);
 
-  // Winery/wine "Ask Wine AI" buttons + their "Подробнее" toggles.
+  // Winery/wine "Ask Wine AI" buttons behave exactly like the round mic
+  // button: press interrupts whatever is playing and starts listening,
+  // release sends what was captured. See beginContextualTurn/endContextualTurn.
   document.querySelectorAll('.entity-ask-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      startContextualConversation(btn.dataset.contextType, btn.dataset.contextId);
-    });
+    const type = btn.dataset.contextType;
+    const id = btn.dataset.contextId;
+    btn.addEventListener('pointerdown', () => beginContextualTurn(type, id));
+    btn.addEventListener('pointerup', endContextualTurn);
+    btn.addEventListener('pointerleave', endContextualTurn);
   });
   function wireDetailsToggle(toggleId, detailsId) {
     const toggleBtn = el(toggleId);
@@ -2245,6 +2262,8 @@
   loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
+  prefetchScreenContext('winery', 'crama-dealul-de-aur');
+  prefetchScreenContext('wine', 'dealul-de-aur-feteasca-neagra-reserve-2019');
   loadPipelineStatus().catch((err) => log('pipeline_status_load_error', { message: err.message }));
   loadDiscoveredList().catch((err) => log('discovered_list_load_error', { message: err.message }));
 })();
