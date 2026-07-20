@@ -359,6 +359,17 @@
   }
   .entity-wine-row--active { border-color: var(--wine); background: #fbeceb; font-weight: 600; }
   .entity-wine-tag { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+  .where-to-buy { margin: 4px 0 12px; padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.03); }
+  .where-to-buy-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .where-to-buy-row:last-of-type { border-bottom: none; }
+  .where-to-buy-seller { font-size: 12px; color: var(--ink); }
+  .where-to-buy-price { font-size: 11px; color: var(--muted); }
+  .where-to-buy-btn { font-size: 11px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--wine); color: var(--wine); background: transparent; cursor: pointer; flex-shrink: 0; }
+  .where-to-buy-qr { display: none; width: 96px; height: 96px; margin: 8px auto 0; border-radius: 8px; }
+  @media (min-width: 720px) {
+    .where-to-buy-qr:not([hidden]) { display: block; }
+  }
+  .where-to-buy.highlight { outline: 2px solid var(--wine); outline-offset: 2px; }
   .entity-ask-btn { margin-top: 10px; }
   .context-chip { cursor: pointer; font-family: inherit; transition: background 0.15s ease; }
   .context-chip:hover { background: #f3d5d3; }
@@ -705,6 +716,12 @@
                 </div>
                 <button class="secondary" id="wineDetailsToggle" style="width:100%; margin:4px 0 12px;">Подробнее</button>
 
+                <div class="where-to-buy" id="whereToBuyBlock">
+                  <div class="entity-section-label" id="whereToBuyLabel">Где купить</div>
+                  <div id="whereToBuyList"></div>
+                  <img id="whereToBuyQr" class="where-to-buy-qr" alt="QR code" hidden />
+                </div>
+
                 <div style="flex:1;"></div>
                 <button class="app-primary-btn entity-ask-btn" id="askWineBtn" data-context-type="wine" data-context-id="dealul-de-aur-feteasca-neagra-reserve-2019">Спросить Wine AI об этом вине</button>
               </div>
@@ -918,6 +935,7 @@
       wineDetail4: '<strong>Production run.</strong> Limited batch — 8,400 bottles. Indicative price — around 350 MDL (demo data).',
       askWine: 'Ask Wine AI about this wine',
       detailsMore: 'More', detailsLess: 'Hide',
+      whereToBuyLabel: 'Where to buy', whereToBuyGo: 'Go to store',
     },
     ru: {
       sub: 'Цифровой эксперт по молдавскому вину',
@@ -951,6 +969,7 @@
       wineDetail4: '<strong>Тираж.</strong> Ограниченная партия — 8 400 бутылок. Ориентировочная цена — около 350 MDL (демо-данные).',
       askWine: 'Спросить Wine AI об этом вине',
       detailsMore: 'Подробнее', detailsLess: 'Скрыть',
+      whereToBuyLabel: 'Где купить', whereToBuyGo: 'Перейти в магазин',
     },
     ro: {
       sub: 'Expert digital în vinul moldovenesc',
@@ -984,6 +1003,7 @@
       wineDetail4: '<strong>Producție.</strong> Lot limitat — 8 400 de sticle. Preț indicativ — circa 350 MDL (date demonstrative).',
       askWine: 'Întreabă Wine AI despre acest vin',
       detailsMore: 'Mai multe', detailsLess: 'Ascunde',
+      whereToBuyLabel: 'Unde poți cumpăra', whereToBuyGo: 'Mergi la magazin',
     },
     fr: {
       sub: 'Expert numérique du vin moldave',
@@ -1017,6 +1037,7 @@
       wineDetail4: "<strong>Production.</strong> Lot limité — 8 400 bouteilles. Prix indicatif — environ 350 MDL (données de démonstration).",
       askWine: 'Demander à Wine AI à propos de ce vin',
       detailsMore: 'Plus de détails', detailsLess: 'Masquer',
+      whereToBuyLabel: 'Où acheter', whereToBuyGo: 'Aller à la boutique',
     },
     it: {
       sub: 'Esperto digitale del vino moldavo',
@@ -1050,6 +1071,7 @@
       wineDetail4: "<strong>Produzione.</strong> Lotto limitato — 8.400 bottiglie. Prezzo indicativo — circa 350 MDL (dati demo).",
       askWine: 'Chiedi a Wine AI di questo vino',
       detailsMore: 'Altri dettagli', detailsLess: 'Nascondi',
+      whereToBuyLabel: 'Dove acquistare', whereToBuyGo: 'Vai al negozio',
     },
     es: {
       sub: 'Experto digital en vino moldavo',
@@ -1083,6 +1105,7 @@
       wineDetail4: "<strong>Producción.</strong> Lote limitado — 8.400 botellas. Precio indicativo — unos 350 MDL (datos de demostración).",
       askWine: 'Pregunta a Wine AI sobre este vino',
       detailsMore: 'Más detalles', detailsLess: 'Ocultar',
+      whereToBuyLabel: 'Dónde comprar', whereToBuyGo: 'Ir a la tienda',
     },
     de: {
       sub: 'Digitaler Experte für moldauischen Wein',
@@ -1116,6 +1139,7 @@
       wineDetail4: "<strong>Produktion.</strong> Limitierte Partie — 8.400 Flaschen. Richtpreis — etwa 350 MDL (Demodaten).",
       askWine: 'Wine AI zu diesem Wein fragen',
       detailsMore: 'Mehr Details', detailsLess: 'Ausblenden',
+      whereToBuyLabel: 'Wo zu kaufen', whereToBuyGo: 'Zum Shop',
     },
     zh: {
       sub: '摩尔多瓦葡萄酒数字专家',
@@ -1149,6 +1173,7 @@
       wineDetail4: '<strong>产量。</strong> 限量8,400瓶。参考价格约350摩尔多瓦列伊（演示数据）。',
       askWine: '向Wine AI询问这款酒',
       detailsMore: '更多详情', detailsLess: '收起',
+      whereToBuyLabel: '在哪里购买', whereToBuyGo: '前往商店',
     },
     ja: {
       sub: 'モルドバワインのデジタルエキスパート',
@@ -1182,6 +1207,7 @@
       wineDetail4: '<strong>生産量。</strong> 限定生産8,400本。参考価格は約350MDL（デモデータ）。',
       askWine: 'このワインについてWine AIに聞く',
       detailsMore: '詳細を見る', detailsLess: '閉じる',
+      whereToBuyLabel: '購入先', whereToBuyGo: 'ストアへ',
     },
   };
   let uiLang = localStorage.getItem('wineAiUiLang') || 'en';
@@ -1310,6 +1336,75 @@
       });
       box.appendChild(chip);
     });
+  }
+
+  // "Где купить" — the AI never invents links/prices; it only decides when
+  // to draw attention to this permanent block (see maybeHighlightWhereToBuy
+  // below). The data always comes from GET /api/purchase-options/:wineId,
+  // which is backed by src/data/purchaseOptions.js, not the model.
+  const WHERE_TO_BUY_TRIGGERS = ['где купить', 'какая цена', 'заказать бутылку', 'where to buy', 'how much does it cost'];
+  async function loadWhereToBuy(wineId) {
+    const list = el('whereToBuyList');
+    const qr = el('whereToBuyQr');
+    if (!list || !qr) return;
+    list.innerHTML = '';
+    qr.hidden = true;
+    try {
+      const res = await fetch(`/api/purchase-options/${wineId}`);
+      const data = await res.json();
+      const options = (data.options || []).slice(0, 2);
+      if (options.length === 0) return;
+      options.forEach((opt) => {
+        const row = document.createElement('div');
+        row.className = 'where-to-buy-row';
+        const info = document.createElement('div');
+        const seller = document.createElement('div');
+        seller.className = 'where-to-buy-seller';
+        seller.textContent = opt.sellerName;
+        info.appendChild(seller);
+        if (opt.price) {
+          const price = document.createElement('div');
+          price.className = 'where-to-buy-price';
+          price.textContent = `${opt.price} ${opt.currency || ''}`.trim();
+          info.appendChild(price);
+        }
+        row.appendChild(info);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'where-to-buy-btn';
+        btn.textContent = getUiString('whereToBuyGo');
+        btn.addEventListener('click', () => {
+          fetch('/api/analytics/purchase-click', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wineId, optionId: opt.id, source: 'where_to_buy_block' }),
+          }).catch(() => {});
+          window.open(opt.url, '_blank', 'noopener');
+        });
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+      // QR is desktop/kiosk-only (see the media query on .where-to-buy-qr) —
+      // on mobile the user is already on the device the link opens on, so a
+      // QR code would be pointless; the button alone covers that case.
+      const primary = options[0];
+      qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(primary.url)}`;
+      qr.hidden = false;
+    } catch (err) {
+      log('purchase_options_load_error', { message: err.message });
+    }
+  }
+
+  function maybeHighlightWhereToBuy(text) {
+    if (!activeScreenContext || activeScreenContext.type !== 'wine' || !text) return;
+    const lower = text.toLowerCase();
+    if (!WHERE_TO_BUY_TRIGGERS.some((phrase) => lower.includes(phrase))) return;
+    document.querySelector('[data-tab="avatar"]')?.click();
+    const block = el('whereToBuyBlock');
+    if (!block) return;
+    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    block.classList.add('highlight');
+    setTimeout(() => block.classList.remove('highlight'), 2000);
   }
 
   async function startContextualConversation(type, id) {
@@ -1483,6 +1578,7 @@
         break;
       case 'transcript.user':
         addTranscriptTurn('user', payload.text);
+        maybeHighlightWhereToBuy(payload.text);
         break;
       case 'transcript.model':
         addTranscriptTurn('assistant', payload.text);
@@ -2126,6 +2222,8 @@
     setHtml('wineDetail3', getUiString('wineDetail3'));
     setHtml('wineDetail4', getUiString('wineDetail4'));
     setText('askWineBtn', getUiString('askWine'));
+    setText('whereToBuyLabel', getUiString('whereToBuyLabel'));
+    loadWhereToBuy('dealul-de-aur-feteasca-neagra-reserve-2019').catch(() => {});
 
     // Details toggles keep whatever open/closed state they're currently in —
     // just relabel them in the new language instead of resetting visibility.
