@@ -150,11 +150,8 @@
   /* Photo-mock cards (vision screens): the phone bezel is already part of
      the image itself, so these render as plain photo cards at the same
      width as a real PhoneShell, without an extra dark frame around them. */
-  .photo-mock { width: var(--phone-width); }
-  .photo-mock img {
-    display: block; width: 100%; border-radius: 40px;
-    box-shadow: var(--phone-shadow);
-  }
+  .phone-screen--image { padding: 0; }
+  .phone-screen--image img { display: block; width: 100%; height: 100%; object-fit: cover; }
   /* Desktop spacing only — phones stay flat/static and face the viewer
      directly at every width (an earlier tilt-on-hover treatment looked
      "crooked" and shifted on interaction, per feedback; removed). */
@@ -542,17 +539,30 @@
         </div>
       </div>
 
-      <!-- Vision mockups: photorealistic concept screens (static images, not
-           wired to real data yet) showing where the product could go next —
-           a winery profile "passport" and a wine tasting-notes "passport".
-           Order per request: winery first, then wine. Rendered as plain
-           photo cards (no extra PhoneShell chrome) since the phone bezel is
-           already baked into each image. -->
-      <div class="phone-shell photo-mock">
-        <img src="/winery-screen-sample.png" alt="Концепт: экран профиля винодельни в приложении Wine AI">
+      <!-- Vision mockups: concept screens (static images, not wired to real
+           data yet) showing where the product could go next — a winery
+           profile "passport" and a wine tasting-notes "passport". Order per
+           request: winery first, then wine. Unlike an earlier version of
+           these two, these source images have no phone bezel baked in, so
+           they're wrapped in our own PhoneShell chrome (dark frame + island
+           + gesture bar) for a consistent look with Talk/Capabilities. -->
+      <div class="phone-shell">
+        <div class="phone-frame">
+          <div class="phone-island" aria-hidden="true"></div>
+          <div class="phone-screen phone-screen--image">
+            <img src="/winery-screen-sample.png" alt="Концепт: экран профиля винодельни в приложении Wine AI">
+          </div>
+          <div class="phone-gesture-bar" aria-hidden="true"></div>
+        </div>
       </div>
-      <div class="phone-shell photo-mock">
-        <img src="/wine-screen-sample.png" alt="Концепт: экран Wine Passport с картой вкусов">
+      <div class="phone-shell">
+        <div class="phone-frame">
+          <div class="phone-island" aria-hidden="true"></div>
+          <div class="phone-screen phone-screen--image">
+            <img src="/wine-screen-sample.png" alt="Концепт: экран Wine Passport с картой вкусов">
+          </div>
+          <div class="phone-gesture-bar" aria-hidden="true"></div>
+        </div>
       </div>
 
     </div>
