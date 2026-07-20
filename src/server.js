@@ -20,6 +20,7 @@ const {
     currentPersonaName, currentPersonaDescription, currentWelcomeMessage,
 } = require('./persona/wineExpertPersona');
 const personaStore = require('./persona/personaStore');
+const { getScreenContext, buildContextualPersona } = require('./persona/screenContexts');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const env = require('./config/env');
 
@@ -129,7 +130,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/screen-context/:type/:id', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -286,6 +287,27 @@ async function handleRequest(req, res) {
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'persona_save_failed', message: error.message });
         }
+    }
+
+    // Powers the "Спросить Wine AI об этой винодельне/вине" buttons — the
+    // dashboard fetches the combined persona text once here, then sends it
+    // straight through the EXISTING session.start `config.persona` override
+    // (see realtimePrompt.js's sanitizePromptConfig / DASHBOARD_ALLOW_CUSTOM_PROMPT).
+    // No new realtime/session code; this is purely "which text goes in".
+    const screenContextMatch = /^\/api\/screen-context\/([a-z]+)\/([a-z0-9-]+)\/?$/.exec(pathname);
+    if (req.method === 'GET' && screenContextMatch) {
+        const [, type, id] = screenContextMatch;
+        const ctx = getScreenContext(type, id);
+        if (!ctx) return sendJson(res, 404, { ok: false, error: 'screen_context_not_found' });
+        return sendJson(res, 200, {
+            ok: true,
+            type: ctx.type,
+            id: ctx.id,
+            name: ctx.name,
+            opening_line: ctx.openingLine,
+            suggested_prompts: ctx.suggestedPrompts,
+            persona: buildContextualPersona(ctx),
+        });
     }
 
     if (req.method === 'GET' && pathname === '/api/knowledge/status') {

@@ -328,6 +328,41 @@
   .lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .lang-chip { padding: 4px 10px; border-radius: 999px; background: #fbeceb; color: var(--wine); font-size: 11px; font-weight: 600; border: 1px solid rgba(107,30,43,0.15); }
 
+  /* ---- Entity screens (winery / wine) ---- */
+  .entity-screen { display: flex; flex-direction: column; height: 100%; }
+  .entity-hero { position: relative; margin: -18px -14px 0; }
+  .entity-hero--wine { display: flex; align-items: center; justify-content: center; height: 130px; background: linear-gradient(160deg,#1b130e,#050302 70%); }
+  .entity-hero-overlay { position: absolute; bottom: 8px; left: 14px; right: 14px; color: #fff; }
+  .entity-hero-title { font-size: 16px; font-weight: 700; text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  .entity-hero-sub { font-size: 10.5px; opacity: 0.95; text-shadow: 0 1px 4px rgba(0,0,0,0.55); margin-top: 2px; }
+  .demo-badge {
+    position: absolute; top: 8px; right: 10px; background: rgba(20,8,10,0.55); color: #f3d9a8;
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 3px 8px; border-radius: 999px; backdrop-filter: blur(2px);
+  }
+  .demo-badge--wine { top: 8px; right: 8px; position: absolute; }
+  .entity-body { padding: 12px 0 0; display: flex; flex-direction: column; flex: 1; }
+  .stat-mini-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .stat-mini { flex: 1; background: #fbeceb; border-radius: 12px; padding: 8px; text-align: center; }
+  .stat-mini-label { font-size: 9px; color: var(--muted); text-transform: uppercase; }
+  .stat-mini-value { font-size: 13px; font-weight: 700; color: var(--wine); margin-top: 2px; }
+  .stat-mini-value.ok { color: var(--ok); }
+  .entity-lead { font-size: 12.5px; line-height: 1.5; color: var(--ink); margin: 0 0 10px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .entity-details p { font-size: 12px; line-height: 1.5; color: var(--ink); margin: 0 0 10px; }
+  .entity-details p strong { color: var(--wine); }
+  .entity-section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin: 4px 0 8px; }
+  .entity-wine-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .entity-wine-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 9px 10px; border-radius: 10px; background: #fdfbf7; border: 1px solid var(--border); font-size: 12px;
+  }
+  .entity-wine-row--active { border-color: var(--wine); background: #fbeceb; font-weight: 600; }
+  .entity-wine-tag { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+  .entity-ask-btn { margin-top: 10px; }
+  .context-chip { cursor: pointer; font-family: inherit; transition: background 0.15s ease; }
+  .context-chip:hover { background: #f3d5d3; }
+
   .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
   .row:last-child { border-bottom: none; }
   .row .k { color: var(--muted); }
@@ -464,6 +499,7 @@
                 <input type="text" id="textInput" placeholder="Напишите вопрос… / Type your question…" disabled>
                 <button class="secondary" id="textSendBtn" disabled>Send</button>
               </div>
+              <div class="chip-row" id="contextChips" style="display:none; margin-top:10px;"></div>
               <div class="app-language-row">
                 <label>Language</label>
                 <select id="langSelect" disabled>
@@ -546,20 +582,133 @@
            these two, these source images have no phone bezel baked in, so
            they're wrapped in our own PhoneShell chrome (dark frame + island
            + gesture bar) for a consistent look with Talk/Capabilities. -->
+      <!-- Winery screen: real structured content (see WINERY_CARD below),
+           not just a static photo. "Подробнее" reveals the extended text;
+           the full profile (all fields from the task spec) lives in
+           knowledge/source/demo-crama-dealul-de-aur.md for Wine AI to draw
+           on, not duplicated here in the DOM. -->
       <div class="phone-shell">
         <div class="phone-frame">
           <div class="phone-island" aria-hidden="true"></div>
-          <div class="phone-screen phone-screen--image">
-            <img src="/winery-screen-sample.png" alt="Концепт: экран профиля винодельни в приложении Wine AI">
+          <div class="phone-screen">
+            <div class="app-screen entity-screen" id="wineryScreen">
+              <div class="entity-hero">
+                <svg viewBox="0 0 320 150" width="100%" height="130" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="wsky" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#f3d9a8"/><stop offset="100%" stop-color="#f7f1e8"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="320" height="150" fill="url(#wsky)"/>
+                  <circle cx="260" cy="35" r="22" fill="#e8b563" opacity="0.85"/>
+                  <path d="M0,95 C60,70 100,100 160,80 C220,60 260,90 320,75 L320,150 L0,150 Z" fill="#8a7a4a" opacity="0.9"/>
+                  <path d="M0,115 C70,95 120,120 180,100 C240,82 280,108 320,95 L320,150 L0,150 Z" fill="#6b1e2b" opacity="0.85"/>
+                  <g stroke="#4a1420" stroke-width="1.4" opacity="0.55">
+                    <path d="M0,150 L60,100"/><path d="M45,150 L110,100"/><path d="M110,150 L168,100"/>
+                    <path d="M195,150 L235,100"/><path d="M290,150 L305,100"/>
+                  </g>
+                </svg>
+                <div class="entity-hero-overlay">
+                  <div class="entity-hero-title">Crama Dealul de Aur</div>
+                  <div class="entity-hero-sub">Регион Кодру · основана в 1998</div>
+                </div>
+                <span class="demo-badge">Демонстрационная винодельня</span>
+              </div>
+
+              <div class="entity-body">
+                <div class="stat-mini-row">
+                  <div class="stat-mini"><div class="stat-mini-label">Основана</div><div class="stat-mini-value">1998</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label">Гектаров</div><div class="stat-mini-value">64 га</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label">Рейтинг</div><div class="stat-mini-value ok">4.7 ★</div></div>
+                </div>
+
+                <p class="entity-lead">Семейная винодельня в сердце Кодру, известная выдержанными винами из автохтонных сортов и небольшими партиями ручного сбора.</p>
+
+                <div class="chip-row">
+                  <span class="lang-chip">Fetească Neagră</span><span class="lang-chip">Rară Neagră</span>
+                  <span class="lang-chip">Fetească Albă</span><span class="lang-chip">Fetească Regală</span>
+                  <span class="lang-chip">Chardonnay</span><span class="lang-chip">Cabernet Sauvignon</span>
+                </div>
+
+                <div class="entity-details" id="wineryDetails" hidden>
+                  <p><strong>История и философия.</strong> Винодельню основали агроном Андрей Русу и его жена Елена в 1998 году, объединив семейные участки — часть из них принадлежала ещё деду Андрея. Сегодня винодельню возглавляет их сын Михаил Русу. Философия семьи — минимальное вмешательство в терруар и ставка на местные сорта.</p>
+                  <p><strong>Дегустации и экскурсии.</strong> По предварительной записи, группы до 20 человек, дегустационный зал с видом на виноградник; экскурсия по погребу и виноградникам — около 90 минут.</p>
+                  <p><strong>Местоположение.</strong> 40 км от Кишинёва, южный склон холма в центральной части региона Кодру, высота посадок 150–220 м.</p>
+                  <p><strong>Интересный факт.</strong> При рытье котлована под погреб в 1999 году рабочие нашли старую монету — с тех пор её хранят на винодельне как талисман.</p>
+                </div>
+                <button class="secondary" id="wineryDetailsToggle" style="width:100%; margin:4px 0 12px;">Подробнее</button>
+
+                <div class="entity-section-label">Вина винодельни</div>
+                <div class="entity-wine-list">
+                  <div class="entity-wine-row">
+                    <span>Dealul de Aur Classic</span><span class="entity-wine-tag">повседневная линейка</span>
+                  </div>
+                  <div class="entity-wine-row entity-wine-row--active">
+                    <span>Dealul de Aur Fetească Neagră Reserve 2019</span><span class="entity-wine-tag">резерв</span>
+                  </div>
+                  <div class="entity-wine-row">
+                    <span>Colecția Familiei Rusu</span><span class="entity-wine-tag">коллекционная</span>
+                  </div>
+                </div>
+
+                <div style="flex:1;"></div>
+                <button class="app-primary-btn entity-ask-btn" data-context-type="winery" data-context-id="crama-dealul-de-aur">Спросить Wine AI об этой винодельне</button>
+              </div>
+            </div>
           </div>
           <div class="phone-gesture-bar" aria-hidden="true"></div>
         </div>
       </div>
+
+      <!-- Wine screen: same pattern as the winery screen, full profile in
+           knowledge/source/demo-dealul-de-aur-feteasca-neagra-reserve-2019.md -->
       <div class="phone-shell">
         <div class="phone-frame">
           <div class="phone-island" aria-hidden="true"></div>
-          <div class="phone-screen phone-screen--image">
-            <img src="/wine-screen-sample.png" alt="Концепт: экран Wine Passport с картой вкусов">
+          <div class="phone-screen">
+            <div class="app-screen entity-screen" id="wineScreen">
+              <div class="entity-hero entity-hero--wine">
+                <svg width="72" height="140" viewBox="0 0 46 92">
+                  <rect x="17" y="0" width="12" height="14" rx="2" fill="#17110d"/>
+                  <path d="M15 14 C15 14 13 22 13 28 L13 34 C7 40 5 48 5 58 L5 86 A6 6 0 0 0 11 92 L35 92 A6 6 0 0 0 41 86 L41 58 C41 48 39 40 33 34 L33 28 C33 22 31 14 31 14 Z" fill="#4a1420" stroke="#6b1e2b" stroke-width="1"/>
+                  <rect x="9" y="52" width="28" height="30" rx="2" fill="#fdfbf7" opacity="0.95"/>
+                  <text x="23" y="63" text-anchor="middle" font-size="4.2" font-weight="700" fill="#6b1e2b" font-family="Georgia, serif">DEALUL</text>
+                  <text x="23" y="69" text-anchor="middle" font-size="4.2" font-weight="700" fill="#6b1e2b" font-family="Georgia, serif">DE AUR</text>
+                  <text x="23" y="77" text-anchor="middle" font-size="3.2" fill="#8a7a68" font-family="Georgia, serif">RESERVE</text>
+                  <rect x="19" y="2" width="8" height="4" fill="#c9a86a" opacity="0.8"/>
+                </svg>
+                <span class="demo-badge demo-badge--wine">Демонстрационное вино</span>
+              </div>
+
+              <div class="entity-body">
+                <div class="entity-hero-title" style="color:var(--wine); margin-bottom:2px;">Dealul de Aur Fetească Neagră Reserve 2019</div>
+                <div class="entity-hero-sub" style="color:var(--muted); margin-bottom:12px;">Crama Dealul de Aur · Регион Кодру</div>
+
+                <div class="stat-mini-row">
+                  <div class="stat-mini"><div class="stat-mini-label">Сорт</div><div class="stat-mini-value" style="font-size:12px;">100% F. Neagră</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label">Крепость</div><div class="stat-mini-value">13.5%</div></div>
+                  <div class="stat-mini"><div class="stat-mini-label">Выдержка</div><div class="stat-mini-value" style="font-size:12px;">16 мес.</div></div>
+                </div>
+
+                <p class="entity-lead">Флагманское красное сухое вино, выпущенное к 20-летию первых посадок Fetească Neagră на участке «Dealul Vechi». Глубокий рубиновый цвет, тёмная вишня, ежевика, чёрный перец и ваниль в аромате.</p>
+
+                <div class="chip-row">
+                  <span class="lang-chip">Полнотелое</span><span class="lang-chip">Бархатистые танины</span>
+                  <span class="lang-chip">16–18°C</span>
+                </div>
+
+                <div class="entity-details" id="wineDetailsBlock" hidden>
+                  <p><strong>Выдержка.</strong> 16 месяцев во французском дубе (баррик 225 л, ~30% новых), затем 8 месяцев в бутылке перед выпуском.</p>
+                  <p><strong>Подача.</strong> 16–18°C, рекомендуется декантация за 30–45 минут. Потенциал хранения — 8–10 лет с урожая, оптимальный период употребления — 2023–2029.</p>
+                  <p><strong>Сочетания.</strong> Красное мясо, жареная баранина, выдержанные сыры, мамалыга с мясной подливой.</p>
+                  <p><strong>Тираж.</strong> Ограниченная партия — 8 400 бутылок. Ориентировочная цена — около 350 MDL (демо-данные).</p>
+                </div>
+                <button class="secondary" id="wineDetailsToggle" style="width:100%; margin:4px 0 12px;">Подробнее</button>
+
+                <div style="flex:1;"></div>
+                <button class="app-primary-btn entity-ask-btn" data-context-type="wine" data-context-id="dealul-de-aur-feteasca-neagra-reserve-2019">Спросить Wine AI об этом вине</button>
+              </div>
+            </div>
           </div>
           <div class="phone-gesture-bar" aria-hidden="true"></div>
         </div>
@@ -938,13 +1087,75 @@
     return `${proto}//${location.host}/realtime`;
   }
 
+  // Screen-launch context ("Спросить Wine AI об этой винодельне/вине") —
+  // reuses this exact session.start/config.persona mechanism instead of a
+  // second voice module. null = general mode (default persona, no forced
+  // opening line). Cleared whenever the plain Talk-tab Connect button is
+  // used directly, set by startContextualConversation() otherwise.
+  let activeScreenContext = null;
+
   function sendSessionStart() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     const language = el('langSelect').value;
     const payload = { type: 'session.start', sampleRate: inputSampleRate, include_prompt_debug: true };
     if (language && language !== 'auto') payload.language = language;
     if (selectedVoiceName) payload.voiceName = selectedVoiceName;
+    if (activeScreenContext) payload.config = { persona: activeScreenContext.persona };
     ws.send(JSON.stringify(payload));
+  }
+
+  function renderContextChips() {
+    const box = el('contextChips');
+    if (!box) return;
+    box.innerHTML = '';
+    const prompts = activeScreenContext ? activeScreenContext.suggestedPrompts : [];
+    if (!prompts || prompts.length === 0) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    prompts.forEach((text) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'lang-chip context-chip';
+      chip.textContent = text;
+      chip.addEventListener('click', () => {
+        el('textInput').value = text;
+        sendTextTurn();
+      });
+      box.appendChild(chip);
+    });
+  }
+
+  async function startContextualConversation(type, id) {
+    let data;
+    try {
+      const res = await fetch(`/api/screen-context/${type}/${id}`);
+      data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'screen_context_failed');
+    } catch (err) {
+      log('screen_context_load_error', { message: err.message });
+      return;
+    }
+    activeScreenContext = {
+      type, id,
+      persona: data.persona,
+      openingLine: data.opening_line,
+      suggestedPrompts: data.suggested_prompts || [],
+    };
+    renderContextChips();
+    document.querySelector('[data-tab="avatar"]').click();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Already connected — re-apply the new persona on the live session,
+      // then nudge the model into producing its scripted opening line for
+      // the new context (same idle-session guard the server already
+      // enforces on session.start).
+      sendSessionStart();
+      setTimeout(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'input_text.submit', text: 'Здравствуйте' }));
+        }
+      }, 300);
+    } else {
+      connect();
+    }
   }
 
   function connect() {
@@ -976,6 +1187,16 @@
       }
       sendSessionStart();
       log('ws_open', { sampleRate: inputSampleRate });
+      // Fresh connect into an active screen context (winery/wine button) —
+      // nudge the model so it produces its scripted opening line right
+      // away instead of waiting silently for the user to speak first.
+      if (activeScreenContext) {
+        setTimeout(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'input_text.submit', text: 'Здравствуйте' }));
+          }
+        }, 400);
+      }
     });
 
     ws.addEventListener('close', () => {
@@ -1026,6 +1247,10 @@
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
       disconnect();
     } else {
+      // The plain Talk-tab Connect button always starts a general session —
+      // only startContextualConversation() sets activeScreenContext.
+      activeScreenContext = null;
+      renderContextChips();
       connect();
     }
   }
@@ -1360,6 +1585,25 @@
 
   // ---- Wiring ----
   el('connectBtn').addEventListener('click', toggleConnection);
+
+  // Winery/wine "Ask Wine AI" buttons + their "Подробнее" toggles.
+  document.querySelectorAll('.entity-ask-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      startContextualConversation(btn.dataset.contextType, btn.dataset.contextId);
+    });
+  });
+  function wireDetailsToggle(toggleId, detailsId) {
+    const toggleBtn = el(toggleId);
+    const details = el(detailsId);
+    if (!toggleBtn || !details) return;
+    toggleBtn.addEventListener('click', () => {
+      const nowHidden = !details.hidden;
+      details.hidden = nowHidden;
+      toggleBtn.textContent = nowHidden ? 'Подробнее' : 'Скрыть';
+    });
+  }
+  wireDetailsToggle('wineryDetailsToggle', 'wineryDetails');
+  wireDetailsToggle('wineDetailsToggle', 'wineDetailsBlock');
   el('textSendBtn').addEventListener('click', sendTextTurn);
   el('textInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTextTurn(); });
   el('langSelect').addEventListener('change', () => {
