@@ -208,6 +208,33 @@ const SOURCES = [
                 language: 'ru', topics: ['news', 'food'],
                 linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
             },
+            // Added 2026-07-20 per explicit user request — verified live via
+            // WebFetch before adding. Health-content note: the persona
+            // prompt already forbids categorical medical claims and
+            // requires deferring to a doctor regardless of source material
+            // (see src/persona/wineExpertPersona.js's "АЛКОГОЛЬ И ЗДОРОВЬЕ"
+            // section) — that guardrail applies to anything retrieved from
+            // this category too, no extra handling needed here.
+            {
+                url: 'https://wine-and-spirits.md/category/eda-i-vino/',
+                language: 'ru', topics: ['news', 'food'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/napitki-na-osnove-vina-i-divina/',
+                language: 'ru', topics: ['news', 'divin'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/o-vliyanii-alkogolya-na-zdorove/',
+                language: 'ru', topics: ['news', 'health'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
+            {
+                url: 'https://wine-and-spirits.md/category/wine-hacks/',
+                language: 'ru', topics: ['news', 'tips'],
+                linkPattern: '^https://wine-and-spirits\\.md/[a-z0-9-]+/?$', maxNewLinksPerRun: 10,
+            },
         ],
     },
 ];
