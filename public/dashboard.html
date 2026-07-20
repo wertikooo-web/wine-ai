@@ -256,6 +256,10 @@
   }
   @keyframes pttSpin { to { transform: rotate(360deg); } }
 
+  button, .lang-chip, .context-chip, .entity-wine-row, .demo-badge {
+    -webkit-user-select: none; -moz-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
   button.ptt {
     position: relative;
     width: 92px; height: 92px; margin: 10px auto 6px; display: flex; flex-direction: column;
@@ -1693,13 +1697,6 @@
     }
   }
 
-  function interrupt() {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    clearPlayback();
-    DeviceVisual.setState('ready');
-    ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'manual_stop' }));
-  }
-
   function sendTextTurn() {
     const input = el('textInput');
     const text = input.value.trim();
@@ -1906,17 +1903,18 @@
     sendSessionStart();
   });
 
-  // The mic button doubles as the Stop control: while the assistant is
-  // speaking its icon is a stop-square (see DeviceVisual.setState) and a
-  // press interrupts that response only — the realtime session/WebSocket
-  // stays open, same as the old dedicated Stop button did.
+  // Pressing the mic button always starts recording immediately, even while
+  // the assistant is mid-response — startTurn() already interrupts whatever
+  // was playing (clearPlayback() + the server-side cancelCurrent() triggered
+  // by input_audio.start) before it opens the mic, so one press both stops
+  // the old reply and starts capturing the new one. It used to just
+  // interrupt-and-stop on that first press, requiring a second press to
+  // actually talk — fixed so a single press does both.
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', () => {
-    if (DeviceVisual.getState() === 'speaking') { interrupt(); return; }
     startTurn();
   });
   pttBtn.addEventListener('pointerup', () => {
-    if (DeviceVisual.getState() === 'speaking') return;
     endTurn();
   });
   pttBtn.addEventListener('pointerleave', () => { if (isHolding) endTurn(); });
