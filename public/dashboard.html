@@ -756,6 +756,15 @@
     </div>
 
     <details class="card pm-card" open>
+      <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Sources <span class="badge" id="kbSourceCount">0</span></h2></summary>
+      <p style="font-size:12px; color:var(--muted); margin:10px 0;">
+        Every file currently indexed from <code>knowledge/source/</code> — hand-authored docs, uploaded files, and anything promoted from the crawler below. This is what the model can actually retrieve via search_wine_knowledge.
+      </p>
+      <button class="secondary" id="kbSourcesRefreshBtn">Refresh</button>
+      <div id="kbSourceList" style="margin-top:10px;"></div>
+    </details>
+
+    <details class="card pm-card" open>
       <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Knowledge Monitor</h2></summary>
       <div class="grid" style="margin:14px 0;">
         <div>
@@ -2002,7 +2011,41 @@
     el('kbBuiltAt').textContent = data.built_at || 'never — run indexing';
   }
 
+  // Every file the RAG search can actually retrieve from — including
+  // hand-authored docs (the wine-book extracts, demo winery/wine profiles)
+  // that never pass through the crawler's discovered-queue below, so they
+  // wouldn't otherwise show up anywhere in the dashboard.
+  async function loadKnowledgeSources() {
+    const listBox = el('kbSourceList');
+    try {
+      const res = await fetch('/api/knowledge/sources');
+      const data = await res.json();
+      const sources = (data.sources || []).sort((a, b) => a.title.localeCompare(b.title));
+      el('kbSourceCount').textContent = sources.length;
+      listBox.innerHTML = '';
+      if (sources.length === 0) {
+        listBox.innerHTML = '<p style="color:var(--muted); font-size:13px; margin:8px 0 0;">Nothing indexed yet.</p>';
+        return;
+      }
+      sources.forEach((src) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px;';
+        row.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:8px;">
+            <strong>${src.title}</strong>
+            <span class="badge">${src.chunk_count} chunk${src.chunk_count === 1 ? '' : 's'}</span>
+          </div>
+          <div style="color:var(--muted); margin:4px 0;">${src.doc_type} · ${src.language} · confidence: ${src.confidence} · ${src.source_file}</div>
+        `;
+        listBox.appendChild(row);
+      });
+    } catch (err) {
+      listBox.innerHTML = `<p style="color:var(--err); font-size:13px;">Failed to load: ${err.message}</p>`;
+    }
+  }
+
   el('kbRefreshBtn').addEventListener('click', loadKnowledgeStatus);
+  el('kbSourcesRefreshBtn').addEventListener('click', loadKnowledgeSources);
   el('kbReindexBtn').addEventListener('click', async () => {
     el('kbReindexBtn').disabled = true;
     try {
@@ -2010,6 +2053,7 @@
       const data = await res.json();
       el('kbErrors').textContent = (data.errors || []).length;
       await loadKnowledgeStatus();
+      await loadKnowledgeSources();
     } finally {
       el('kbReindexBtn').disabled = false;
     }
@@ -2045,6 +2089,7 @@
       statusEl.textContent = `${file.name} uploaded — ${data.document_count} documents, ${data.chunk_count} chunks indexed.`;
       statusEl.style.color = 'var(--ok)';
       await loadKnowledgeStatus();
+      await loadKnowledgeSources();
     } catch (err) {
       statusEl.textContent = `${file.name}: ${err.message}`;
       statusEl.style.color = 'var(--err)';
@@ -2157,6 +2202,7 @@
     await fetch(`/api/knowledge/discovered/${id}/${action}`, { method: 'POST' });
     await loadDiscoveredList();
     await loadKnowledgeStatus();
+    await loadKnowledgeSources();
   }
 
   el('pmRefreshBtn').addEventListener('click', () => { loadPipelineStatus(); loadDiscoveredList(); });
@@ -2261,6 +2307,7 @@
   loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
   loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
+  loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
   loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
   prefetchScreenContext('winery', 'crama-dealul-de-aur');
   prefetchScreenContext('wine', 'dealul-de-aur-feteasca-neagra-reserve-2019');
