@@ -761,7 +761,19 @@
         Every file currently indexed from <code>knowledge/source/</code> — hand-authored docs, uploaded files, and anything promoted from the crawler below. This is what the model can actually retrieve via search_wine_knowledge.
       </p>
       <button class="secondary" id="kbSourcesRefreshBtn">Refresh</button>
-      <div id="kbSourceList" style="margin-top:10px;"></div>
+
+      <details class="pm-group" open>
+        <summary>Загруженные файлы (PDF и т.д.) <span class="badge" id="kbSourceCountUploaded">0</span></summary>
+        <div class="pm-doc-list" id="kbSourceListUploaded"></div>
+      </details>
+      <details class="pm-group" open>
+        <summary>Авторские / справочные материалы <span class="badge" id="kbSourceCountCurated">0</span></summary>
+        <div class="pm-doc-list" id="kbSourceListCurated"></div>
+      </details>
+      <details class="pm-group">
+        <summary>С сайтов (crawler) <span class="badge" id="kbSourceCountCrawled">0</span></summary>
+        <div class="pm-doc-list" id="kbSourceListCrawled"></div>
+      </details>
     </details>
 
     <details class="card pm-card" open>
@@ -2015,32 +2027,63 @@
   // hand-authored docs (the wine-book extracts, demo winery/wine profiles)
   // that never pass through the crawler's discovered-queue below, so they
   // wouldn't otherwise show up anywhere in the dashboard.
+  //
+  // Grouped into three buckets so "the books I uploaded" don't get lost in
+  // a long alphabetical list dominated by wine-and-spirits.md crawl pages:
+  //   - crawled: promote.js always names crawler output "discovered-*"
+  //   - uploaded: this dashboard's PDF upload path always tags doc_type
+  //     'uploaded_pdf' (see server.js's /api/knowledge/upload) — text
+  //     files dropped via the same zone keep whatever frontmatter they
+  //     already had, so they fall through to "curated" below, same as any
+  //     other hand-authored .md
+  //   - curated: everything else — hand-written docs (general-wine-*,
+  //     demo-*, moldova-*, etc.)
+  function classifySource(src) {
+    if (src.source_file.startsWith('discovered-')) return 'crawled';
+    if (src.doc_type === 'uploaded_pdf') return 'uploaded';
+    return 'curated';
+  }
+
+  function renderSourceRow(src) {
+    const row = document.createElement('div');
+    row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px;';
+    row.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:8px;">
+        <strong>${src.title}</strong>
+        <span class="badge">${src.chunk_count} chunk${src.chunk_count === 1 ? '' : 's'}</span>
+      </div>
+      <div style="color:var(--muted); margin:4px 0;">${src.doc_type} · ${src.language} · confidence: ${src.confidence} · ${src.source_file}</div>
+    `;
+    return row;
+  }
+
+  function renderSourceGroup(groupKey, sources) {
+    const listBox = el('kbSourceList' + groupKey);
+    const countBadge = el('kbSourceCount' + groupKey);
+    countBadge.textContent = sources.length;
+    listBox.innerHTML = '';
+    if (sources.length === 0) {
+      listBox.innerHTML = '<p style="color:var(--muted); font-size:13px; margin:8px 0 0;">Nothing here yet.</p>';
+      return;
+    }
+    sources.forEach((src) => listBox.appendChild(renderSourceRow(src)));
+  }
+
   async function loadKnowledgeSources() {
-    const listBox = el('kbSourceList');
     try {
       const res = await fetch('/api/knowledge/sources');
       const data = await res.json();
       const sources = (data.sources || []).sort((a, b) => a.title.localeCompare(b.title));
       el('kbSourceCount').textContent = sources.length;
-      listBox.innerHTML = '';
-      if (sources.length === 0) {
-        listBox.innerHTML = '<p style="color:var(--muted); font-size:13px; margin:8px 0 0;">Nothing indexed yet.</p>';
-        return;
-      }
-      sources.forEach((src) => {
-        const row = document.createElement('div');
-        row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px;';
-        row.innerHTML = `
-          <div style="display:flex; justify-content:space-between; gap:8px;">
-            <strong>${src.title}</strong>
-            <span class="badge">${src.chunk_count} chunk${src.chunk_count === 1 ? '' : 's'}</span>
-          </div>
-          <div style="color:var(--muted); margin:4px 0;">${src.doc_type} · ${src.language} · confidence: ${src.confidence} · ${src.source_file}</div>
-        `;
-        listBox.appendChild(row);
-      });
+
+      const byGroup = { uploaded: [], curated: [], crawled: [] };
+      sources.forEach((src) => byGroup[classifySource(src)].push(src));
+
+      renderSourceGroup('Uploaded', byGroup.uploaded);
+      renderSourceGroup('Curated', byGroup.curated);
+      renderSourceGroup('Crawled', byGroup.crawled);
     } catch (err) {
-      listBox.innerHTML = `<p style="color:var(--err); font-size:13px;">Failed to load: ${err.message}</p>`;
+      el('kbSourceListCurated').innerHTML = `<p style="color:var(--err); font-size:13px;">Failed to load: ${err.message}</p>`;
     }
   }
 
