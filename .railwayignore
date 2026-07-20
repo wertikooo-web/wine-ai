@@ -1,0 +1,5 @@
+DATABASE WINE ALL/
+*.mp4
+*.pptx
+node_modules/
+.git/
