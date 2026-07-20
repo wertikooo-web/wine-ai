@@ -1143,10 +1143,12 @@
     renderContextChips();
     document.querySelector('[data-tab="avatar"]').click();
     if (ws && ws.readyState === WebSocket.OPEN) {
-      // Already connected — re-apply the new persona on the live session,
-      // then nudge the model into producing its scripted opening line for
-      // the new context (same idle-session guard the server already
-      // enforces on session.start).
+      // Already connected — stop whatever the previous context was saying
+      // instantly (same barge-in as startTurn()/interrupt()), then re-apply
+      // the new persona on the live session and nudge the model into
+      // producing its scripted opening line for the new context.
+      clearPlayback();
+      DeviceVisual.setState('ready');
       sendSessionStart();
       setTimeout(() => {
         if (ws && ws.readyState === WebSocket.OPEN) {
@@ -1226,6 +1228,11 @@
   }
 
   function disconnect() {
+    // Same instant local stop as PTT/text barge-in (see startTurn()) — closing
+    // the connection must not leave a previous assistant reply audibly
+    // finishing itself out while the UI already shows "disconnected".
+    clearPlayback();
+    DeviceVisual.setState('ready');
     if (ws) ws.close();
     stopMic();
   }
