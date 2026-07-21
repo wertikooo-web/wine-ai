@@ -487,6 +487,11 @@ const MIGRATIONS = [
             `);
 
             await client.query(`
+                UPDATE kos_candidate_drafts SET status = 'pending' WHERE status IS NULL;
+                ALTER TABLE kos_candidate_drafts ALTER COLUMN status SET NOT NULL;
+            `);
+
+            await client.query(`
                 CREATE UNIQUE INDEX IF NOT EXISTS uk_draft_identity
                 ON kos_candidate_drafts (parsed_document_id, identity_hash)
                 WHERE identity_hash IS NOT NULL;
@@ -500,8 +505,13 @@ const MIGRATIONS = [
                     ADD COLUMN IF NOT EXISTS source_document_version_id TEXT REFERENCES kos_source_document_versions(id) ON DELETE SET NULL,
                     ADD COLUMN IF NOT EXISTS parsed_document_id TEXT REFERENCES kos_parsed_documents(id) ON DELETE SET NULL,
                     ADD COLUMN IF NOT EXISTS candidate_draft_id TEXT REFERENCES kos_candidate_drafts(id) ON DELETE SET NULL,
-                    ADD COLUMN IF NOT EXISTS version INT DEFAULT 1,
+                    ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 1 CHECK (version > 0),
                     ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ DEFAULT NOW();
+            `);
+
+            // Make evidence_id nullable in kos_knowledge_facts if needed
+            await client.query(`
+                ALTER TABLE kos_knowledge_facts ALTER COLUMN evidence_id DROP NOT NULL;
             `);
 
             await client.query(`
@@ -514,6 +524,29 @@ const MIGRATIONS = [
                 CREATE UNIQUE INDEX IF NOT EXISTS uk_fact_candidate_draft
                 ON kos_knowledge_facts (candidate_draft_id)
                 WHERE candidate_draft_id IS NOT NULL;
+            `);
+
+            // 3. Enrich kos_fact_evidences for candidate draft linking and multiple evidences per fact
+            await client.query(`
+                ALTER TABLE kos_fact_evidences
+                    ADD COLUMN IF NOT EXISTS fact_id TEXT REFERENCES kos_knowledge_facts(id) ON DELETE CASCADE,
+                    ADD COLUMN IF NOT EXISTS candidate_draft_id TEXT REFERENCES kos_candidate_drafts(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS parsed_document_id TEXT REFERENCES kos_parsed_documents(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS source_document_id TEXT REFERENCES kos_source_documents(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS source_document_version_id TEXT REFERENCES kos_source_document_versions(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS quote TEXT,
+                    ADD COLUMN IF NOT EXISTS char_start INT,
+                    ADD COLUMN IF NOT EXISTS char_end INT;
+            `);
+
+            await client.query(`
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_fact_evidence_candidate
+                ON kos_fact_evidences (candidate_draft_id)
+                WHERE candidate_draft_id IS NOT NULL;
+            `);
+
+            await client.query(`
+                CREATE INDEX IF NOT EXISTS idx_kos_evidences_fact ON kos_fact_evidences(fact_id);
             `);
         },
     },

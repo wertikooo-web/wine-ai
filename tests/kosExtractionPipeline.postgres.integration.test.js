@@ -175,10 +175,32 @@ async function runIntegrationTest() {
     const pubWine2Res = await publishCandidate({ candidateDraftId: wine2DraftId, dependencies: { db } });
     assert.strictEqual(pubWine2Res.status, 'published');
     assert.strictEqual(pubWine2Res.version, 1, 'Separate entity_key Alb_de_Purcari must start at version 1 without conflict');
-    console.log('  ✓ 9. Verified multi-entity scoping: two wines of the same winery can share properties without conflict.');
+    // --- Scenario 10: Same value from a second source reinforces existing fact version with a new evidence record ---
+    const reinforceDraftId = 'draft_reinforce_alb_alcohol';
+    await db.query(
+        `INSERT INTO kos_candidate_drafts (
+            id, parsed_document_id, entity_type, entity_ref, field_path, raw_value, normalized_value,
+            value_type, evidence_drafts, confidence_score, extractor_name, extractor_version,
+            source_document_id, source_document_version_id, identity_hash
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [
+            reinforceDraftId, parsedDocId, 'Wine', JSON.stringify({ key: 'Alb_de_Purcari' }), pubRes1.fact.property, '13.5%',
+            JSON.stringify(13.5), 'number',
+            JSON.stringify({ charStart: 60, charEnd: 65, text: '13.5%' }), 0.95,
+            'labelExtractor', '1.0.0', docId, verId, 'hash_alb_alcohol_doc2'
+        ]
+    );
+    await validateCandidateDraft({ candidateDraftId: reinforceDraftId, dependencies: { db } });
+
+    const pubReinforceRes = await publishCandidate({ candidateDraftId: reinforceDraftId, dependencies: { db } });
+    assert.strictEqual(pubReinforceRes.status, 'published');
+    assert.strictEqual(pubReinforceRes.version, 1, 'Same value must reinforce existing fact without creating new version');
+    assert.strictEqual(pubReinforceRes.factId, pubWine2Res.factId, 'Reinforced publication must reference same fact ID');
+    assert.notStrictEqual(pubReinforceRes.evidence.id, pubWine2Res.evidence.id, 'Must create a new distinct evidence entry');
+    console.log('  ✓ 10. Verified evidence reinforcement: second source with identical value attached new evidence to existing fact version.');
 
     console.log('\nALL 10 STEP 2D ACCEPTANCE SCENARIOS PASSED SUCCESSFULLY!');
-    return { assertionCount: 10 };
+    return { assertionCount: 11 };
 }
 
 module.exports = { run: runIntegrationTest };

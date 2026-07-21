@@ -435,14 +435,20 @@ class MemoryPgEngine {
         if (/^UPDATE kos_candidate_drafts SET status =/i.test(sql)) {
             const table = this.tables.get('kos_candidate_drafts');
             if (!table) return { rows: [] };
-            const status = params[0];
-            const validation_errors = params[1];
-            const id = params[2];
+            
+            let status, validation_errors, id;
+            if (params.length >= 3) {
+                [status, validation_errors, id] = params;
+            } else {
+                [status, id] = params;
+            }
 
             const row = table.rows.find(r => r.id === id);
             if (row) {
                 row.status = status;
-                row.validation_errors = typeof validation_errors === 'string' ? JSON.parse(validation_errors) : validation_errors;
+                if (validation_errors !== undefined) {
+                    row.validation_errors = typeof validation_errors === 'string' ? JSON.parse(validation_errors) : validation_errors;
+                }
             }
             return { rows: row ? [row] : [] };
         }
@@ -473,21 +479,52 @@ class MemoryPgEngine {
             const table = this.tables.get('kos_fact_evidences') || { name: 'kos_fact_evidences', rows: [] };
             this.tables.set('kos_fact_evidences', table);
 
-            const [id, source_id, winery_id, page_number, page_url, section_title, evidence_text, start_offset, end_offset] = params;
+            let id, fact_id, candidate_draft_id, source_id, winery_id, evidence_text, quote, start_offset, end_offset, char_start, char_end, parsed_document_id, source_document_id, source_document_version_id;
+
+            if (params.length >= 10) {
+                [id, fact_id, candidate_draft_id, source_id, winery_id, evidence_text, quote, start_offset, end_offset, char_start, char_end, parsed_document_id, source_document_id, source_document_version_id] = params;
+            } else {
+                [id, source_id, winery_id, evidence_text, start_offset, end_offset] = params;
+            }
+
+            // Check UK uk_fact_evidence_candidate
+            if (candidate_draft_id && table.rows.some(r => r.candidate_draft_id === candidate_draft_id)) {
+                throw new PostgresError(`duplicate key value violates unique constraint "uk_fact_evidence_candidate"`, '23505', 'kos_fact_evidences', 'uk_fact_evidence_candidate');
+            }
+
             const newRow = {
                 id,
+                fact_id,
+                candidate_draft_id,
                 source_id,
                 winery_id,
-                page_number,
-                page_url,
-                section_title,
-                evidence_text,
-                start_offset,
-                end_offset,
+                evidence_text: evidence_text || quote,
+                quote: quote || evidence_text,
+                start_offset: start_offset !== undefined ? start_offset : char_start,
+                end_offset: end_offset !== undefined ? end_offset : char_end,
+                char_start: char_start !== undefined ? char_start : start_offset,
+                char_end: char_end !== undefined ? char_end : end_offset,
+                parsed_document_id,
+                source_document_id,
+                source_document_version_id,
                 captured_at: new Date().toISOString(),
             };
             table.rows.push(newRow);
             return { rows: [newRow] };
+        }
+
+        // SELECT FROM kos_fact_evidences by candidate_draft_id
+        if (/^SELECT \* FROM kos_fact_evidences WHERE candidate_draft_id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_fact_evidences');
+            const match = table ? table.rows.find(r => r.candidate_draft_id === params[0]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_knowledge_facts by id
+        if (/^SELECT \* FROM kos_knowledge_facts WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_knowledge_facts');
+            const match = table ? table.rows.find(r => r.id === params[0]) : null;
+            return { rows: match ? [match] : [] };
         }
 
         // SELECT FROM kos_knowledge_facts by candidate_draft_id
@@ -497,10 +534,13 @@ class MemoryPgEngine {
             return { rows: match ? [match] : [] };
         }
 
-        // SELECT FROM kos_knowledge_facts FOR UPDATE (concurrency lock query)
+        // SELECT FROM kos_knowledge_facts by scope
         if (/^SELECT \* FROM kos_knowledge_facts WHERE winery_id = \$1 AND entity_type = \$2 AND entity_key = \$3 AND property = \$4/i.test(sql)) {
             const table = this.tables.get('kos_knowledge_facts');
-            const matches = table ? table.rows.filter(r => r.winery_id === params[0] && r.entity_type === params[1] && r.entity_key === params[2] && r.property === params[3]) : [];
+            let matches = table ? table.rows.filter(r => r.winery_id === params[0] && r.entity_type === params[1] && r.entity_key === params[2] && r.property === params[3]) : [];
+            if (/ORDER BY version DESC/i.test(sql)) {
+                matches = [...matches].sort((a, b) => Number(b.version || 1) - Number(a.version || 1));
+            }
             return { rows: matches };
         }
 
@@ -509,7 +549,7 @@ class MemoryPgEngine {
             const table = this.tables.get('kos_knowledge_facts') || { name: 'kos_knowledge_facts', rows: [] };
             this.tables.set('kos_knowledge_facts', table);
 
-            const [id, winery_id, knowledge_type, entity_type, entity_id, field_key, value_json, normalized_value, extraction_confidence, source_authority, freshness_score, verification_status, source_id, evidence_id, extractor_name, extractor_version, entity_key, property, source_document_version_id, parsed_document_id, candidate_draft_id, version] = params;
+            const [id, winery_id, knowledge_type, entity_type, entity_id, field_key, value_json, normalized_value, extraction_confidence, source_authority, freshness_score, verification_status, source_id, extractor_name, extractor_version, entity_key, property, source_document_version_id, parsed_document_id, candidate_draft_id, version] = params;
 
             // Check candidate_draft_id uniqueness
             if (candidate_draft_id && table.rows.some(r => r.candidate_draft_id === candidate_draft_id)) {
@@ -530,7 +570,6 @@ class MemoryPgEngine {
                 freshness_score: Number(freshness_score || 1.0),
                 verification_status: verification_status || 'approved',
                 source_id,
-                evidence_id,
                 extractor_name,
                 extractor_version,
                 entity_key,

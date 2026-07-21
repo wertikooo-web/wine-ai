@@ -1,9 +1,10 @@
 /**
- * FactPublicationService (Step 2D)
+ * FactPublicationService (Step 2D - Refined Publication)
  * 
- * Publishes validated candidate drafts into the permanent Knowledge Store (kos_knowledge_facts).
- * Enforces transaction safety, creates evidence in kos_fact_evidences, and handles versioning
- * for updated property values without overwriting history.
+ * Publishes validated candidate drafts into Published Knowledge (kos_knowledge_facts).
+ * Uses PostgreSQL advisory transaction lock for concurrency safety, links evidence
+ * in kos_fact_evidences, supports multiple evidences per fact version, and increments
+ * version only when fact value changes.
  */
 
 const crypto = require('crypto');
@@ -13,13 +14,31 @@ function generateId(prefix = 'fact') {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
+function hashScopeToBigIntSigned(scopeKeyStr) {
+    const hashBuf = crypto.createHash('sha256').update(scopeKeyStr).digest();
+    const bigintVal = hashBuf.readBigInt64BE(0);
+    return bigintVal.toString();
+}
+
+function parseJsonIfNeeded(val) {
+    if (val === undefined || val === null) return val;
+    if (typeof val === 'string') {
+        try {
+            return JSON.parse(val);
+        } catch (_) {
+            return val;
+        }
+    }
+    return val;
+}
+
 /**
  * Publishes a validated candidate draft into Published Knowledge.
  * 
  * @param {Object} params
  * @param {string} params.candidateDraftId - ID of the kos_candidate_drafts record
  * @param {Object} [params.dependencies] - Injectable db, logger
- * @returns {Promise<{ status: 'published'|'already_published'|'unchanged', factId: string, version: number, fact: Object }>}
+ * @returns {Promise<{ status: 'published'|'already_published', factId: string, version: number, fact: Object, evidence: Object }>}
  */
 async function publishCandidate({ candidateDraftId, dependencies = {} }) {
     if (!candidateDraftId) {
@@ -45,24 +64,30 @@ async function publishCandidate({ candidateDraftId, dependencies = {} }) {
         throw new Error(`KOS_CANNOT_PUBLISH_UNVALIDATED_CANDIDATE: CandidateDraft ${candidateDraftId} has status '${draft.status}'`);
     }
 
-    // 3. Idempotency Check: Already published candidate draft
-    const publishedCheck = await db.query(
-        `SELECT * FROM kos_knowledge_facts WHERE candidate_draft_id = $1`,
+    // 3. Idempotency Check: Already published via evidence record
+    const evidenceCheck = await db.query(
+        `SELECT * FROM kos_fact_evidences WHERE candidate_draft_id = $1`,
         [candidateDraftId]
     );
 
-    if (publishedCheck && publishedCheck.rows && publishedCheck.rows.length > 0) {
-        const existingFact = publishedCheck.rows[0];
+    if (evidenceCheck && evidenceCheck.rows && evidenceCheck.rows.length > 0) {
+        const existingEv = evidenceCheck.rows[0];
+        const factRes = await db.query(
+            `SELECT * FROM kos_knowledge_facts WHERE id = $1`,
+            [existingEv.fact_id]
+        );
+        const existingFact = (factRes && factRes.rows && factRes.rows[0]) ? factRes.rows[0] : null;
         return {
             status: 'already_published',
-            factId: existingFact.id,
-            version: existingFact.version,
+            factId: existingEv.fact_id,
+            version: existingFact ? existingFact.version : 1,
             fact: existingFact,
+            evidence: existingEv,
         };
     }
 
     // 4. Resolve identity scope & source provenance
-    const entityRef = typeof draft.entity_ref === 'string' ? JSON.parse(draft.entity_ref) : draft.entity_ref;
+    const entityRef = parseJsonIfNeeded(draft.entity_ref);
     const entityKey = typeof entityRef === 'string' ? entityRef : (entityRef.key || entityRef.name || entityRef.slug || 'winery_main');
     const entityType = draft.entity_type;
     const property = draft.field_path;
@@ -72,7 +97,7 @@ async function publishCandidate({ candidateDraftId, dependencies = {} }) {
     }
 
     // Resolve winery_id from SourceDocument
-    let wineryId = 'winery_purcari'; // Default scope for domain
+    let wineryId = 'winery_purcari'; // Default domain scope
     if (draft.source_document_id) {
         const docRes = await db.query(
             `SELECT * FROM kos_source_documents WHERE id = $1`,
@@ -90,109 +115,156 @@ async function publishCandidate({ candidateDraftId, dependencies = {} }) {
         }
     }
 
-    // Prepare Evidence & Value
-    const evidence = typeof draft.evidence_drafts === 'string' ? JSON.parse(draft.evidence_drafts) : draft.evidence_drafts;
+    // Prepare Evidence & Normalized Value
+    const evidenceObj = parseJsonIfNeeded(draft.evidence_drafts);
     const rawValue = draft.raw_value;
-    const normValue = typeof draft.normalized_value === 'string' && (draft.normalized_value.startsWith('{') || draft.normalized_value.startsWith('['))
-        ? JSON.parse(draft.normalized_value)
-        : (draft.normalized_value || rawValue);
+    const normValue = parseJsonIfNeeded(draft.normalized_value) ?? rawValue;
+
+    // Compute Advisory Lock Key for (wineryId, entityType, entityKey, property)
+    const scopeKey = JSON.stringify({ wineryId, entityType, entityKey, property });
+    const lockKey = hashScopeToBigIntSigned(scopeKey);
 
     // 5. Concurrency-Safe Publication Transaction
     await db.query('BEGIN');
     try {
-        // Lock existing facts for this scope
+        // Transactional Advisory Lock guarantees single-thread processing per identity scope
+        await db.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
+
+        // Query existing published facts for scope
         const existingFactsRes = await db.query(
-            `SELECT * FROM kos_knowledge_facts WHERE winery_id = $1 AND entity_type = $2 AND entity_key = $3 AND property = $4 FOR UPDATE`,
+            `SELECT * FROM kos_knowledge_facts WHERE winery_id = $1 AND entity_type = $2 AND entity_key = $3 AND property = $4 ORDER BY version DESC`,
             [wineryId, entityType, entityKey, property]
         );
 
         const existingFacts = (existingFactsRes && existingFactsRes.rows) ? existingFactsRes.rows : [];
-        let nextVersion = 1;
+        let targetFact = null;
+        let version = 1;
 
-        if (existingFacts.length > 0) {
-            const maxVersion = Math.max(...existingFacts.map(f => Number(f.version || 1)));
-            const latestFact = existingFacts.find(f => Number(f.version) === maxVersion) || existingFacts[existingFacts.length - 1];
+        if (existingFacts.length === 0) {
+            // Case A: No existing fact -> create version 1
+            version = 1;
+            const factId = generateId('fact');
+            const insertFactRes = await db.query(
+                `INSERT INTO kos_knowledge_facts (
+                    id, winery_id, knowledge_type, entity_type, entity_id, field_key,
+                    value_json, normalized_value, extraction_confidence, source_authority,
+                    freshness_score, verification_status, source_id,
+                    extractor_name, extractor_version, entity_key, property,
+                    source_document_version_id, parsed_document_id, candidate_draft_id, version
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+                RETURNING *`,
+                [
+                    factId,
+                    wineryId,
+                    'extracted_fact',
+                    entityType,
+                    entityKey,
+                    property,
+                    JSON.stringify(normValue),
+                    String(rawValue),
+                    draft.confidence_score || 0.9,
+                    1.0,
+                    1.0,
+                    'approved',
+                    draft.source_document_id || 'src_default',
+                    draft.extractor_name,
+                    draft.extractor_version,
+                    entityKey,
+                    property,
+                    draft.source_document_version_id,
+                    draft.parsed_document_id,
+                    candidateDraftId,
+                    version,
+                ]
+            );
+            targetFact = (insertFactRes && insertFactRes.rows) ? insertFactRes.rows[0] : null;
+        } else {
+            const latestFact = existingFacts[0];
+            const latestVal = parseJsonIfNeeded(latestFact.value_json);
 
-            // If value is identical, return unchanged without creating duplicate version
-            let latestVal = latestFact.value_json;
-            if (typeof latestVal === 'string') {
-                try { latestVal = JSON.parse(latestVal); } catch (_) { /* keep raw string */ }
-            }
             if (JSON.stringify(latestVal) === JSON.stringify(normValue)) {
-                await db.query('COMMIT');
-                return {
-                    status: 'unchanged',
-                    factId: latestFact.id,
-                    version: latestFact.version,
-                    fact: latestFact,
-                };
+                // Case B: Value matches -> link new evidence to existing fact without incrementing version
+                targetFact = latestFact;
+                version = Number(latestFact.version || 1);
+            } else {
+                // Case C: Value changed -> increment version
+                const maxVer = Math.max(...existingFacts.map(f => Number(f.version || 1)));
+                version = maxVer + 1;
+                const factId = generateId('fact');
+                const insertFactRes = await db.query(
+                    `INSERT INTO kos_knowledge_facts (
+                        id, winery_id, knowledge_type, entity_type, entity_id, field_key,
+                        value_json, normalized_value, extraction_confidence, source_authority,
+                        freshness_score, verification_status, source_id,
+                        extractor_name, extractor_version, entity_key, property,
+                        source_document_version_id, parsed_document_id, candidate_draft_id, version
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+                    RETURNING *`,
+                    [
+                        factId,
+                        wineryId,
+                        'extracted_fact',
+                        entityType,
+                        entityKey,
+                        property,
+                        JSON.stringify(normValue),
+                        String(rawValue),
+                        draft.confidence_score || 0.9,
+                        1.0,
+                        1.0,
+                        'approved',
+                        draft.source_document_id || 'src_default',
+                        draft.extractor_name,
+                        draft.extractor_version,
+                        entityKey,
+                        property,
+                        draft.source_document_version_id,
+                        draft.parsed_document_id,
+                        candidateDraftId,
+                        version,
+                    ]
+                );
+                targetFact = (insertFactRes && insertFactRes.rows) ? insertFactRes.rows[0] : null;
             }
-
-            nextVersion = maxVersion + 1;
         }
 
-        // Create evidence record in kos_fact_evidences
+        // Always create kos_fact_evidences linking fact & candidate_draft
         const evidenceId = generateId('ev');
-        await db.query(
+        const insertEvRes = await db.query(
             `INSERT INTO kos_fact_evidences (
-                id, source_id, winery_id, evidence_text, start_offset, end_offset
-            ) VALUES ($1, $2, $3, $4, $5, $6)`,
-            [
-                evidenceId,
-                draft.source_document_id || 'src_default',
-                wineryId,
-                evidence.text,
-                evidence.charStart,
-                evidence.charEnd,
-            ]
-        );
-
-        // Create published fact in kos_knowledge_facts
-        const factId = generateId('fact');
-        const insertFactRes = await db.query(
-            `INSERT INTO kos_knowledge_facts (
-                id, winery_id, knowledge_type, entity_type, entity_id, field_key,
-                value_json, normalized_value, extraction_confidence, source_authority,
-                freshness_score, verification_status, source_id, evidence_id,
-                extractor_name, extractor_version, entity_key, property,
-                source_document_version_id, parsed_document_id, candidate_draft_id, version
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+                id, fact_id, candidate_draft_id, source_id, winery_id, evidence_text, quote,
+                start_offset, end_offset, char_start, char_end, parsed_document_id,
+                source_document_id, source_document_version_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *`,
             [
-                factId,
-                wineryId,
-                'extracted_fact',
-                entityType,
-                entityKey,
-                property,
-                JSON.stringify(normValue),
-                String(rawValue),
-                draft.confidence_score || 0.9,
-                1.0,
-                1.0,
-                'approved',
-                draft.source_document_id || 'src_default',
                 evidenceId,
-                draft.extractor_name,
-                draft.extractor_version,
-                entityKey,
-                property,
-                draft.source_document_version_id,
-                draft.parsed_document_id,
+                targetFact.id,
                 candidateDraftId,
-                nextVersion,
+                draft.source_document_id || 'src_default',
+                wineryId,
+                evidenceObj.text,
+                evidenceObj.text,
+                evidenceObj.charStart,
+                evidenceObj.charEnd,
+                evidenceObj.charStart,
+                evidenceObj.charEnd,
+                draft.parsed_document_id,
+                draft.source_document_id,
+                draft.source_document_version_id,
             ]
         );
 
         await db.query('COMMIT');
 
-        const publishedFact = (insertFactRes && insertFactRes.rows) ? insertFactRes.rows[0] : null;
+        const createdEvidence = (insertEvRes && insertEvRes.rows) ? insertEvRes.rows[0] : null;
 
         return {
             status: 'published',
-            factId,
-            version: nextVersion,
-            fact: publishedFact,
+            factId: targetFact.id,
+            version,
+            fact: targetFact,
+            evidence: createdEvidence,
         };
     } catch (err) {
         await db.query('ROLLBACK');
@@ -202,4 +274,5 @@ async function publishCandidate({ candidateDraftId, dependencies = {} }) {
 
 module.exports = {
     publishCandidate,
+    hashScopeToBigIntSigned,
 };
