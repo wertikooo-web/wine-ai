@@ -6,7 +6,7 @@ const { createSessionMemory } = require('../src/memory/sessionMemory');
 const t = require('./helpers/assertions');
 
 async function run() {
-    t.equal(TOOL_DECLARATIONS.length, 6, 'expected 6 tool declarations (5 required + update_session_memory)');
+    t.equal(TOOL_DECLARATIONS.length, 7, 'expected 7 tool declarations (5 required + update_session_memory + check_wine_md_availability)');
     for (const decl of TOOL_DECLARATIONS) {
         t.ok(decl.name && decl.description && decl.parameters, `tool ${decl.name || '(unnamed)'} must have name/description/parameters`);
     }
