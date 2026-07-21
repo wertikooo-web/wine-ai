@@ -275,7 +275,141 @@ class MemoryPgEngine {
             return { rows: [] };
         }
 
-        // Generic SELECT/INSERT/UPDATE handler for MemoryPgEngine v2 tables
+        // ALTER TABLE DDL (Migration v3 support)
+        if (/^ALTER TABLE/i.test(sql)) {
+            return { rows: [] };
+        }
+
+        // INSERT INTO kos_source_documents ON CONFLICT DO UPDATE
+        if (/^INSERT INTO kos_source_documents/i.test(sql)) {
+            const table = this.tables.get('kos_source_documents') || { name: 'kos_source_documents', rows: [] };
+            this.tables.set('kos_source_documents', table);
+
+            const [id, source_id, requested_url, canonical_url, content_type, content_length] = params;
+            let existingRow = table.rows.find(r => r.source_id === source_id && r.canonical_url === canonical_url);
+
+            if (existingRow) {
+                existingRow.requested_url = requested_url;
+                existingRow.content_type = content_type;
+                existingRow.content_length = content_length;
+                existingRow.updated_at = new Date();
+                return { rows: [existingRow] };
+            }
+
+            const newRow = {
+                id,
+                source_id,
+                requested_url,
+                canonical_url,
+                content_type,
+                content_length,
+                created_at: new Date(),
+                updated_at: new Date(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // INSERT INTO kos_source_document_versions
+        if (/^INSERT INTO kos_source_document_versions/i.test(sql)) {
+            const table = this.tables.get('kos_source_document_versions') || { name: 'kos_source_document_versions', rows: [] };
+            this.tables.set('kos_source_document_versions', table);
+
+            const [id, document_id, crawl_run_id, checksum_sha256, storage_key, size_bytes, declared_mime_type, detected_mime_type, http_headers, fetched_at] = params;
+
+            // Check UK uk_document_checksum (document_id, checksum_sha256)
+            if (table.rows.some(r => r.document_id === document_id && r.checksum_sha256 === checksum_sha256)) {
+                throw new PostgresError(`duplicate key value violates unique constraint "uk_document_checksum"`, '23505', 'kos_source_document_versions', 'uk_document_checksum');
+            }
+
+            const newRow = {
+                id,
+                document_id,
+                crawl_run_id,
+                checksum_sha256,
+                storage_key,
+                size_bytes: Number(size_bytes || 0),
+                declared_mime_type,
+                detected_mime_type,
+                http_headers,
+                fetched_at,
+                created_at: new Date(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // SELECT FROM kos_source_document_versions
+        if (/^SELECT \* FROM kos_source_document_versions WHERE document_id = \$1 AND checksum_sha256 = \$2/i.test(sql)) {
+            const table = this.tables.get('kos_source_document_versions');
+            const match = table ? table.rows.find(r => r.document_id === params[0] && r.checksum_sha256 === params[1]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // INSERT INTO kos_crawl_run_items
+        if (/^INSERT INTO kos_crawl_run_items/i.test(sql)) {
+            const table = this.tables.get('kos_crawl_run_items') || { name: 'kos_crawl_run_items', rows: [] };
+            this.tables.set('kos_crawl_run_items', table);
+
+            const [id, crawl_run_id, url, canonical_url, status, depth, parent_url, discovery_source, document_id, version_id, http_status] = params;
+
+            let existingRow = table.rows.find(r => r.crawl_run_id === crawl_run_id && r.canonical_url === (canonical_url || url));
+            if (existingRow) {
+                existingRow.status = status;
+                existingRow.document_id = document_id;
+                existingRow.version_id = version_id;
+                existingRow.http_status = http_status;
+                existingRow.attempt_count = (existingRow.attempt_count || 0) + 1;
+                existingRow.updated_at = new Date();
+                return { rows: [existingRow] };
+            }
+
+            const newRow = {
+                id,
+                crawl_run_id,
+                url,
+                canonical_url: canonical_url || url,
+                status,
+                depth: depth || 0,
+                parent_url: parent_url || null,
+                discovery_source: discovery_source || 'seed',
+                document_id,
+                version_id,
+                http_status: http_status || 200,
+                attempt_count: 1,
+                created_at: new Date(),
+                updated_at: new Date(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // UPDATE kos_crawl_runs
+        if (/^UPDATE kos_crawl_runs SET/i.test(sql)) {
+            const table = this.tables.get('kos_crawl_runs');
+            if (!table) return { rows: [] };
+            const [status, pages_discovered, pages_fetched, pages_failed, completed_at, id] = params;
+            const row = table.rows.find(r => r.id === id);
+            if (row) {
+                row.status = status;
+                row.pages_discovered = pages_discovered;
+                row.pages_fetched = pages_fetched;
+                row.pages_failed = pages_failed;
+                row.completed_at = completed_at;
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // DELETE FROM kos_sources
+        if (/^DELETE FROM kos_sources WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_sources');
+            if (table) {
+                table.rows = table.rows.filter(r => r.id !== params[0]);
+            }
+            return { rows: [] };
+        }
+
+        // Generic SELECT/INSERT/UPDATE handler for MemoryPgEngine v2/v3 tables
         if (/^INSERT INTO (\w+)/i.test(sql)) {
             const tableName = sql.match(/^INSERT INTO (\w+)/i)[1];
             const table = this.tables.get(tableName) || { name: tableName, rows: [] };
