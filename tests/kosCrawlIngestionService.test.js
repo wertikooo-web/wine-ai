@@ -246,6 +246,50 @@ async function run() {
     assert.strictEqual(draftsCount, 0, 'ZERO CandidateDrafts must be created during ingestion');
     assertionCount += 2;
 
+    // 13. Outer Error Boundary Recovery Test (mid-ingestion error recovery)
+    const poolError = createMemoryPgPool();
+    const failingRawStorage = {
+        saveRawDocumentVersion: async () => {
+            const err = new Error('ObjectStorage/DB Connection Lost');
+            err.code = 'KOS_STORAGE_CRASH';
+            throw err;
+        },
+    };
+
+    await assert.rejects(async () => {
+        await ingestSource({
+            sourceId: 'src_test_purcari',
+            dependencies: {
+                sourceRegistry: mockRegistry,
+                websiteCrawlerProvider: crawler1,
+                rawResourceStorage: failingRawStorage,
+                queryClient: poolError,
+            },
+        });
+    }, (err) => err.code === 'KOS_STORAGE_CRASH');
+
+    const { rows: recoveredRuns } = await poolError.query('SELECT status, error_details FROM kos_crawl_runs');
+    assert.ok(recoveredRuns.length > 0);
+    assert.notStrictEqual(recoveredRuns[0].status, 'crawling', 'CrawlRun must not be left hanging in crawling status on unhandled error');
+    assert.strictEqual(recoveredRuns[0].status, 'failed');
+    assertionCount += 3;
+
+    // 14. Unchanged Contract & Deduplication Verification
+    const versionRes1 = await storage1.saveRawDocumentVersion({
+        documentId: 'doc_100',
+        rawBuffer: Buffer.from('Identical Content Payload', 'utf8'),
+        httpHeaders: {},
+    });
+    const versionRes2 = await storage1.saveRawDocumentVersion({
+        documentId: 'doc_100',
+        rawBuffer: Buffer.from('Identical Content Payload', 'utf8'),
+        httpHeaders: {},
+    });
+    assert.strictEqual(versionRes1.existing, false);
+    assert.strictEqual(versionRes2.existing, true);
+    assert.strictEqual(versionRes1.version.id, versionRes2.version.id);
+    assertionCount += 3;
+
     console.log(`kosCrawlIngestionService.test.js: All ${assertionCount} assertions passed successfully!`);
     return { assertionCount };
 }
