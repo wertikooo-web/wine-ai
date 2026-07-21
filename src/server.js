@@ -138,7 +138,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -379,12 +379,36 @@ async function handleRequest(req, res) {
                     doc_type: chunk.metadata.doc_type,
                     language: chunk.metadata.language,
                     confidence: chunk.metadata.confidence,
+                    source: chunk.metadata.source,
                     chunk_count: 0,
                 });
             }
             bySource.get(key).chunk_count += 1;
         }
         return sendJson(res, 200, { ok: true, sources: Array.from(bySource.values()) });
+    }
+
+    // Full text of one indexed file — the Knowledge tab's Sources list only
+    // shows title/counts; this backs an expand-to-read view so "what
+    // exactly did it load from this book" has an actual answer instead of
+    // requiring someone to go read the file on disk/in git.
+    const sourceContentMatch = /^\/api\/knowledge\/sources\/([a-zA-Z0-9_.-]+)$/.exec(pathname);
+    if (req.method === 'GET' && sourceContentMatch) {
+        const [, fileName] = sourceContentMatch;
+        const index = loadIndex();
+        const chunks = (index.chunks || [])
+            .filter((chunk) => chunk.metadata.source_file === fileName)
+            .sort((a, b) => (a.metadata.chunk_index || 0) - (b.metadata.chunk_index || 0));
+        if (chunks.length === 0) {
+            return sendJson(res, 404, { ok: false, error: 'source_not_found' });
+        }
+        return sendJson(res, 200, {
+            ok: true,
+            source_file: fileName,
+            title: chunks[0].metadata.title,
+            source: chunks[0].metadata.source,
+            text: chunks.map((chunk) => chunk.text).join('\n\n'),
+        });
     }
 
     // Drag-and-drop upload for the Knowledge base tab. Body is JSON
