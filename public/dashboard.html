@@ -2044,6 +2044,37 @@
     return 'curated';
   }
 
+  // Clicking a source row fetches its full indexed text on demand (not
+  // preloaded — the list can have 200+ entries, no reason to ship every
+  // book's full text up front) and toggles it open inline, so "what
+  // exactly did it load from this book" has a direct answer in the UI
+  // instead of requiring someone to go find the file in the repo.
+  async function toggleSourceContent(src, contentBox, toggleBtn) {
+    if (contentBox.dataset.loaded === 'true') {
+      const collapsed = contentBox.style.display === 'none';
+      contentBox.style.display = collapsed ? 'block' : 'none';
+      toggleBtn.textContent = collapsed ? 'Скрыть текст' : 'Показать текст';
+      return;
+    }
+    toggleBtn.disabled = true;
+    toggleBtn.textContent = 'Загрузка…';
+    try {
+      const res = await fetch(`/api/knowledge/sources/${encodeURIComponent(src.source_file)}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'load_failed');
+      contentBox.textContent = data.text;
+      contentBox.dataset.loaded = 'true';
+      contentBox.style.display = 'block';
+      toggleBtn.textContent = 'Скрыть текст';
+    } catch (err) {
+      contentBox.textContent = `Не удалось загрузить: ${err.message}`;
+      contentBox.style.display = 'block';
+      toggleBtn.textContent = 'Показать текст';
+    } finally {
+      toggleBtn.disabled = false;
+    }
+  }
+
   function renderSourceRow(src) {
     const row = document.createElement('div');
     row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px;';
@@ -2053,7 +2084,13 @@
         <span class="badge">${src.chunk_count} chunk${src.chunk_count === 1 ? '' : 's'}</span>
       </div>
       <div style="color:var(--muted); margin:4px 0;">${src.doc_type} · ${src.language} · confidence: ${src.confidence} · ${src.source_file}</div>
+      ${src.source ? `<div style="color:var(--muted); font-size:12px; font-style:italic; margin-bottom:6px;">${src.source}</div>` : ''}
+      <button class="secondary" data-toggle-content style="font-size:12px; padding:4px 10px;">Показать текст</button>
+      <pre data-content-box style="display:none; white-space:pre-wrap; font-family:inherit; font-size:12.5px; margin:8px 0 0; padding:10px; background:rgba(0,0,0,0.03); border-radius:8px; max-height:400px; overflow-y:auto;"></pre>
     `;
+    const toggleBtn = row.querySelector('[data-toggle-content]');
+    const contentBox = row.querySelector('[data-content-box]');
+    toggleBtn.addEventListener('click', () => toggleSourceContent(src, contentBox, toggleBtn));
     return row;
   }
 
