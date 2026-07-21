@@ -339,11 +339,54 @@ class MemoryPgEngine {
             return { rows: [newRow] };
         }
 
+        // SELECT FROM kos_source_document_versions by id
+        if (/^SELECT \* FROM kos_source_document_versions WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_source_document_versions');
+            const match = table ? table.rows.find(r => r.id === params[0]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
         // SELECT FROM kos_source_document_versions
         if (/^SELECT \* FROM kos_source_document_versions WHERE document_id = \$1 AND checksum_sha256 = \$2/i.test(sql)) {
             const table = this.tables.get('kos_source_document_versions');
             const match = table ? table.rows.find(r => r.document_id === params[0] && r.checksum_sha256 === params[1]) : null;
             return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_parsed_documents
+        if (/^SELECT \* FROM kos_parsed_documents WHERE version_id = \$1 AND adapter_name = \$2 AND adapter_version = \$3/i.test(sql)) {
+            const table = this.tables.get('kos_parsed_documents');
+            const match = table ? table.rows.find(r => r.version_id === params[0] && r.adapter_name === params[1] && r.adapter_version === params[2]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // INSERT INTO kos_parsed_documents ON CONFLICT DO NOTHING
+        if (/^INSERT INTO kos_parsed_documents/i.test(sql)) {
+            const table = this.tables.get('kos_parsed_documents') || { name: 'kos_parsed_documents', rows: [] };
+            this.tables.set('kos_parsed_documents', table);
+
+            const [id, version_id, document_id, adapter_name, adapter_version, canonical_text, structural_units, metadata, parsed_at] = params;
+
+            let existingRow = table.rows.find(r => r.version_id === version_id && r.adapter_name === adapter_name && r.adapter_version === adapter_version);
+
+            if (existingRow) {
+                // DO NOTHING, return empty rows
+                return { rows: [] };
+            }
+
+            const newRow = {
+                id,
+                version_id,
+                document_id,
+                adapter_name,
+                adapter_version,
+                canonical_text,
+                structural_units: typeof structural_units === 'string' ? JSON.parse(structural_units) : structural_units,
+                metadata: typeof metadata === 'string' ? JSON.parse(metadata) : metadata,
+                parsed_at: parsed_at || new Date().toISOString(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
         }
 
         // INSERT INTO kos_crawl_run_items
