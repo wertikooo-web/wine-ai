@@ -285,6 +285,79 @@ const SOURCES = [
             { url: 'https://vinuridecomrat.md/ru/turizm/', language: 'ru', topics: ['winery', 'tourism'] },
         ],
     },
+    // The following wineries were found and verified (page fetched, real
+    // content confirmed) by a research agent on 2026-07-21 per explicit
+    // user request ("найди все сайты виноделен молдовы"). Two of the
+    // agent's browser-verified candidates (atu.wine, vinariadinvale.com)
+    // did NOT work through this project's plain fetch()+cheerio crawler —
+    // atu.wine returned an almost-empty JS-shell page and
+    // vinariadinvale.com/en/ 404'd on a direct request — likely
+    // JS-rendered SPAs that need a headless browser to crawl; left out
+    // rather than registering a source with no working page. Other
+    // candidates checked and deliberately excluded: Radacini (age-gate JS
+    // interstitial), Lion Gri and Chateau Cristi (HTTP 403 — bot-blocked),
+    // Doina Vin (expired TLS cert), Novak/Vinia Traian/Migdal-P/Ig Vin (no
+    // dedicated official site found), Kvint (Transnistria, out of scope),
+    // Prince Stirbey (confirmed Romanian, not Moldovan).
+    {
+        id: 'castel-mimi',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Castel Mimi',
+        pages: [{ url: 'https://castelmimi.md/en/', language: 'en', topics: ['winery', 'tourism'] }],
+    },
+    {
+        id: 'chateau-vartely',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Chateau Vartely',
+        pages: [{ url: 'https://vartely.md/en/', language: 'en', topics: ['winery', 'wine', 'tourism'] }],
+    },
+    {
+        id: 'asconi',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Asconi Winery',
+        pages: [{ url: 'https://asconiwinery.com/', language: 'en', topics: ['winery', 'tourism'] }],
+    },
+    {
+        id: 'et-cetera',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Et Cetera',
+        pages: [{ url: 'https://etcetera.md/en/', language: 'en', topics: ['winery', 'wine', 'tourism'] }],
+    },
+    {
+        id: 'gitana-winery',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Gitana Winery',
+        pages: [{ url: 'https://www.gitanawinery.com/en/', language: 'en', topics: ['winery', 'wine'] }],
+    },
+    {
+        id: 'fautor',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Fautor',
+        pages: [{ url: 'https://fautor.wine/', language: 'en', topics: ['winery', 'wine'] }],
+    },
+    {
+        id: 'salcuta',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Salcuța',
+        pages: [{ url: 'https://salcutawine.md/en/', language: 'en', topics: ['winery', 'wine'] }],
+    },
+    {
+        id: 'basavin',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Basavin',
+        pages: [
+            { url: 'https://basavin.md/en/despre-noi/', language: 'en', topics: ['winery'] },
+            { url: 'https://basavin.md/en/shop/', language: 'en', topics: ['wine'] },
+        ],
+    },
 ];
 
 function requireValidTrust(trust) {
