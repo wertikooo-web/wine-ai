@@ -237,12 +237,21 @@ function fetchSingleHop({
             const chunks = [];
             let totalBytes = 0;
 
+            const cleanupStream = () => {
+                if (timeoutTimer) {
+                    clearTimeout(timeoutTimer);
+                    timeoutTimer = null;
+                }
+                try { stream.unpipe(); } catch {}
+                try { stream.destroy(); } catch {}
+                try { res.destroy(); } catch {}
+                try { req.destroy(); } catch {}
+            };
+
             stream.on('data', (chunk) => {
                 totalBytes += chunk.length;
                 if (totalBytes > maxBytes) {
-                    if (timeoutTimer) clearTimeout(timeoutTimer);
-                    req.destroy();
-                    stream.destroy();
+                    cleanupStream();
                     return reject(createStructuredError('KOS_HTTP_RESPONSE_TOO_LARGE', `Downloaded bytes exceeded maxBytes ${maxBytes}`, { maxBytes }, false));
                 }
                 chunks.push(chunk);
@@ -270,7 +279,7 @@ function fetchSingleHop({
             });
 
             stream.on('error', (err) => {
-                if (timeoutTimer) clearTimeout(timeoutTimer);
+                cleanupStream();
                 if (isAborted) return;
                 reject(createStructuredError('KOS_HTTP_CONNECTION_FAILED', `Stream error: ${err.message}`, {}, true));
             });
