@@ -7,6 +7,7 @@ const compareGrapeVarieties = require('./compareGrapeVarieties');
 const recommendWinePairing = require('./recommendWinePairing');
 const getWineRouteInformation = require('./getWineRouteInformation');
 const updateSessionMemory = require('./updateSessionMemory');
+const checkWineMdAvailability = require('./checkWineMdAvailability');
 
 const TOOLS = [
     searchWineKnowledge,
@@ -15,6 +16,7 @@ const TOOLS = [
     recommendWinePairing,
     getWineRouteInformation,
     updateSessionMemory,
+    checkWineMdAvailability,
 ];
 
 // Static schema list for Gemini Live's `tools: [{ functionDeclarations }]`
