@@ -353,6 +353,13 @@ class MemoryPgEngine {
             return { rows: match ? [match] : [] };
         }
 
+        // SELECT FROM kos_parsed_documents by id
+        if (/^SELECT \* FROM kos_parsed_documents WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_parsed_documents');
+            const match = table ? table.rows.find(r => r.id === params[0]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
         // SELECT FROM kos_parsed_documents
         if (/^SELECT \* FROM kos_parsed_documents WHERE version_id = \$1 AND adapter_name = \$2 AND adapter_version = \$3/i.test(sql)) {
             const table = this.tables.get('kos_parsed_documents');
@@ -370,7 +377,6 @@ class MemoryPgEngine {
             let existingRow = table.rows.find(r => r.version_id === version_id && r.adapter_name === adapter_name && r.adapter_version === adapter_version);
 
             if (existingRow) {
-                // DO NOTHING, return empty rows
                 return { rows: [] };
             }
 
@@ -384,6 +390,157 @@ class MemoryPgEngine {
                 structural_units: typeof structural_units === 'string' ? JSON.parse(structural_units) : structural_units,
                 metadata: typeof metadata === 'string' ? JSON.parse(metadata) : metadata,
                 parsed_at: parsed_at || new Date().toISOString(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // INSERT INTO kos_candidate_drafts
+        if (/^INSERT INTO kos_candidate_drafts/i.test(sql)) {
+            const table = this.tables.get('kos_candidate_drafts') || { name: 'kos_candidate_drafts', rows: [] };
+            this.tables.set('kos_candidate_drafts', table);
+
+            const [id, parsed_document_id, entity_type, entity_ref, field_path, raw_value, normalized_value, value_type, evidence_drafts, confidence_score, extractor_name, extractor_version, source_document_id, source_document_version_id, identity_hash] = params;
+
+            // Check UK uk_draft_identity
+            if (identity_hash && table.rows.some(r => r.parsed_document_id === parsed_document_id && r.identity_hash === identity_hash)) {
+                return { rows: [] }; // ON CONFLICT DO NOTHING
+            }
+
+            const newRow = {
+                id,
+                parsed_document_id,
+                entity_type,
+                entity_ref: typeof entity_ref === 'string' ? JSON.parse(entity_ref) : entity_ref,
+                field_path,
+                raw_value,
+                normalized_value: typeof normalized_value === 'string' ? JSON.parse(normalized_value) : normalized_value,
+                value_type,
+                evidence_drafts: typeof evidence_drafts === 'string' ? JSON.parse(evidence_drafts) : evidence_drafts,
+                confidence_score: Number(confidence_score || 0.8),
+                extractor_name,
+                extractor_version,
+                source_document_id,
+                source_document_version_id,
+                identity_hash,
+                status: 'pending',
+                validation_errors: null,
+                extracted_at: new Date().toISOString(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // UPDATE kos_candidate_drafts status
+        if (/^UPDATE kos_candidate_drafts SET status =/i.test(sql)) {
+            const table = this.tables.get('kos_candidate_drafts');
+            if (!table) return { rows: [] };
+            const status = params[0];
+            const validation_errors = params[1];
+            const id = params[2];
+
+            const row = table.rows.find(r => r.id === id);
+            if (row) {
+                row.status = status;
+                row.validation_errors = typeof validation_errors === 'string' ? JSON.parse(validation_errors) : validation_errors;
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT FROM kos_candidate_drafts by id
+        if (/^SELECT \* FROM kos_candidate_drafts WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_candidate_drafts');
+            const match = table ? table.rows.find(r => r.id === params[0]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_candidate_drafts by parsed_document_id & identity_hash
+        if (/^SELECT \* FROM kos_candidate_drafts WHERE parsed_document_id = \$1 AND identity_hash = \$2/i.test(sql)) {
+            const table = this.tables.get('kos_candidate_drafts');
+            const match = table ? table.rows.find(r => r.parsed_document_id === params[0] && r.identity_hash === params[1]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_candidate_drafts by parsed_document_id
+        if (/^SELECT \* FROM kos_candidate_drafts WHERE parsed_document_id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_candidate_drafts');
+            const matches = table ? table.rows.filter(r => r.parsed_document_id === params[0]) : [];
+            return { rows: matches };
+        }
+
+        // INSERT INTO kos_fact_evidences
+        if (/^INSERT INTO kos_fact_evidences/i.test(sql)) {
+            const table = this.tables.get('kos_fact_evidences') || { name: 'kos_fact_evidences', rows: [] };
+            this.tables.set('kos_fact_evidences', table);
+
+            const [id, source_id, winery_id, page_number, page_url, section_title, evidence_text, start_offset, end_offset] = params;
+            const newRow = {
+                id,
+                source_id,
+                winery_id,
+                page_number,
+                page_url,
+                section_title,
+                evidence_text,
+                start_offset,
+                end_offset,
+                captured_at: new Date().toISOString(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // SELECT FROM kos_knowledge_facts by candidate_draft_id
+        if (/^SELECT \* FROM kos_knowledge_facts WHERE candidate_draft_id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_knowledge_facts');
+            const match = table ? table.rows.find(r => r.candidate_draft_id === params[0]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_knowledge_facts FOR UPDATE (concurrency lock query)
+        if (/^SELECT \* FROM kos_knowledge_facts WHERE winery_id = \$1 AND entity_type = \$2 AND entity_key = \$3 AND property = \$4/i.test(sql)) {
+            const table = this.tables.get('kos_knowledge_facts');
+            const matches = table ? table.rows.filter(r => r.winery_id === params[0] && r.entity_type === params[1] && r.entity_key === params[2] && r.property === params[3]) : [];
+            return { rows: matches };
+        }
+
+        // INSERT INTO kos_knowledge_facts
+        if (/^INSERT INTO kos_knowledge_facts/i.test(sql)) {
+            const table = this.tables.get('kos_knowledge_facts') || { name: 'kos_knowledge_facts', rows: [] };
+            this.tables.set('kos_knowledge_facts', table);
+
+            const [id, winery_id, knowledge_type, entity_type, entity_id, field_key, value_json, normalized_value, extraction_confidence, source_authority, freshness_score, verification_status, source_id, evidence_id, extractor_name, extractor_version, entity_key, property, source_document_version_id, parsed_document_id, candidate_draft_id, version] = params;
+
+            // Check candidate_draft_id uniqueness
+            if (candidate_draft_id && table.rows.some(r => r.candidate_draft_id === candidate_draft_id)) {
+                throw new PostgresError(`duplicate key value violates unique constraint "uk_fact_candidate_draft"`, '23505', 'kos_knowledge_facts', 'uk_fact_candidate_draft');
+            }
+
+            const newRow = {
+                id,
+                winery_id,
+                knowledge_type: knowledge_type || 'extracted',
+                entity_type,
+                entity_id,
+                field_key: field_key || property,
+                value_json: typeof value_json === 'string' ? JSON.parse(value_json) : value_json,
+                normalized_value,
+                extraction_confidence: Number(extraction_confidence || 0.9),
+                source_authority: Number(source_authority || 0.8),
+                freshness_score: Number(freshness_score || 1.0),
+                verification_status: verification_status || 'approved',
+                source_id,
+                evidence_id,
+                extractor_name,
+                extractor_version,
+                entity_key,
+                property,
+                source_document_version_id,
+                parsed_document_id,
+                candidate_draft_id,
+                version: Number(version || 1),
+                published_at: new Date().toISOString(),
+                extracted_at: new Date().toISOString(),
             };
             table.rows.push(newRow);
             return { rows: [newRow] };

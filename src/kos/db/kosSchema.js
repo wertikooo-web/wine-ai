@@ -472,6 +472,51 @@ const MIGRATIONS = [
             `);
         },
     },
+    {
+        version: 4,
+        name: 'v4_extraction_and_publication_enrichment',
+        up: async (client) => {
+            // 1. Enrich kos_candidate_drafts
+            await client.query(`
+                ALTER TABLE kos_candidate_drafts
+                    ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'validated', 'rejected')),
+                    ADD COLUMN IF NOT EXISTS validation_errors JSONB,
+                    ADD COLUMN IF NOT EXISTS source_document_id TEXT REFERENCES kos_source_documents(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS source_document_version_id TEXT REFERENCES kos_source_document_versions(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS identity_hash TEXT;
+            `);
+
+            await client.query(`
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_draft_identity
+                ON kos_candidate_drafts (parsed_document_id, identity_hash)
+                WHERE identity_hash IS NOT NULL;
+            `);
+
+            // 2. Enrich kos_knowledge_facts for published facts tracking
+            await client.query(`
+                ALTER TABLE kos_knowledge_facts
+                    ADD COLUMN IF NOT EXISTS entity_key TEXT,
+                    ADD COLUMN IF NOT EXISTS property TEXT,
+                    ADD COLUMN IF NOT EXISTS source_document_version_id TEXT REFERENCES kos_source_document_versions(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS parsed_document_id TEXT REFERENCES kos_parsed_documents(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS candidate_draft_id TEXT REFERENCES kos_candidate_drafts(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS version INT DEFAULT 1,
+                    ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ DEFAULT NOW();
+            `);
+
+            await client.query(`
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_published_fact_version
+                ON kos_knowledge_facts (winery_id, entity_type, entity_key, property, version)
+                WHERE winery_id IS NOT NULL AND entity_key IS NOT NULL AND property IS NOT NULL;
+            `);
+
+            await client.query(`
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_fact_candidate_draft
+                ON kos_knowledge_facts (candidate_draft_id)
+                WHERE candidate_draft_id IS NOT NULL;
+            `);
+        },
+    },
 ];
 
 const crypto = require('crypto');
