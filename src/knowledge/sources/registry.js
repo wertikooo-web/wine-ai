@@ -237,6 +237,21 @@ const SOURCES = [
             },
         ],
     },
+    {
+        // Official Moldovan national tourism portal. Added 2026-07-21 per
+        // explicit user request; page existence and content verified live
+        // (WebFetch) before adding — a one-day wine-tourism route covering
+        // 6 small family wineries/artisan stops (Mihai Sava, Tronciu,
+        // Conacul Mierii, Ceramica Triboi, Crama Tudor, Vornic Winery,
+        // Pomușoara Dulcișoara), ~1500 words of real descriptive content.
+        id: 'moldova-travel-official',
+        type: 'official',
+        trust: 'A',
+        publisher: 'Moldova.Travel (National Tourism Portal)',
+        pages: [
+            { url: 'https://moldova.travel/ru/turisticheskiye-priklyucheniya/marshrut-avtorskih-vin/', language: 'ru', topics: ['tourism', 'winery'] },
+        ],
+    },
 ];
 
 function requireValidTrust(trust) {
