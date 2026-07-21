@@ -418,6 +418,60 @@ const MIGRATIONS = [
             await client.query('CREATE INDEX IF NOT EXISTS idx_kos_drafts_parsed_doc ON kos_candidate_drafts(parsed_document_id);');
         },
     },
+    {
+        version: 3,
+        name: 'v3_crawl_items_enrichment_and_constraints',
+        up: async (client) => {
+            // 1. Add enriched columns to kos_crawl_run_items
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items
+                    ADD COLUMN IF NOT EXISTS depth INT DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS parent_url TEXT,
+                    ADD COLUMN IF NOT EXISTS discovery_source TEXT,
+                    ADD COLUMN IF NOT EXISTS document_id TEXT REFERENCES kos_source_documents(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS version_id TEXT REFERENCES kos_source_document_versions(id) ON DELETE SET NULL,
+                    ADD COLUMN IF NOT EXISTS error_code TEXT,
+                    ADD COLUMN IF NOT EXISTS error_details JSONB;
+            `);
+
+            // 2. Update status CHECK constraint on kos_crawl_run_items
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items DROP CONSTRAINT IF EXISTS kos_crawl_run_items_status_check;
+                ALTER TABLE kos_crawl_run_items ADD CONSTRAINT kos_crawl_run_items_status_check
+                    CHECK (status IN ('queued', 'fetching', 'fetched', 'stored', 'unchanged', 'failed', 'skipped'));
+            `);
+
+            // 3. Add UNIQUE constraint UNIQUE(crawl_run_id, canonical_url)
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items DROP CONSTRAINT IF EXISTS uk_crawl_item_url;
+                ALTER TABLE kos_crawl_run_items ADD CONSTRAINT uk_crawl_item_url
+                    UNIQUE (crawl_run_id, canonical_url);
+            `);
+
+            // 4. Add CHECK constraints for non-negative counters and sizes
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items DROP CONSTRAINT IF EXISTS chk_crawl_items_attempt_count;
+                ALTER TABLE kos_crawl_run_items ADD CONSTRAINT chk_crawl_items_attempt_count
+                    CHECK (attempt_count >= 0);
+
+                ALTER TABLE kos_crawl_runs DROP CONSTRAINT IF EXISTS chk_crawl_runs_discovered;
+                ALTER TABLE kos_crawl_runs ADD CONSTRAINT chk_crawl_runs_discovered
+                    CHECK (pages_discovered >= 0);
+
+                ALTER TABLE kos_crawl_runs DROP CONSTRAINT IF EXISTS chk_crawl_runs_fetched;
+                ALTER TABLE kos_crawl_runs ADD CONSTRAINT chk_crawl_runs_fetched
+                    CHECK (pages_fetched >= 0);
+
+                ALTER TABLE kos_crawl_runs DROP CONSTRAINT IF EXISTS chk_crawl_runs_failed;
+                ALTER TABLE kos_crawl_runs ADD CONSTRAINT chk_crawl_runs_failed
+                    CHECK (pages_failed >= 0);
+
+                ALTER TABLE kos_source_document_versions DROP CONSTRAINT IF EXISTS chk_doc_versions_size;
+                ALTER TABLE kos_source_document_versions ADD CONSTRAINT chk_doc_versions_size
+                    CHECK (size_bytes >= 0);
+            `);
+        },
+    },
 ];
 
 const crypto = require('crypto');
