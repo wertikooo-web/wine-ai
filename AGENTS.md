@@ -93,15 +93,14 @@ Provider-specific behavior belongs behind explicit adapters. Do not spread provi
 
 ## Required verification
 
+- **Во время разработки**: запускать только тесты тех файлов/модулей, которые вы изменяли (релевантные тесты).
+- **Перед закрытием этапа**: выполнить полный тестовый сюит и smoke один раз:
 ```text
-npm run smoke:http
-npm run smoke:realtime
-npm run smoke:language
-npm run smoke:knowledge
 npm test
+npm run test:smoke
 ```
 
-Choose checks based on the changed surface. Report commands run, passed checks, skipped checks, failures, files changed, and remaining uncertainty.
+Choose checks based on the changed surface during iteration. Report commands run, passed checks, skipped checks, failures, files changed, and remaining uncertainty.
 
 ## Completion bar
 
