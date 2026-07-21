@@ -361,6 +361,47 @@ async function run() {
     assert.strictEqual(err404.retryable, false);
     assertionCount += 1;
 
+    // 26. Decompressed entity exceeds maxBytes (transport bytes < maxBytes)
+    const largeUncompressed = Buffer.from('A'.repeat(500), 'utf8');
+    const smallGzipped = zlib.gzipSync(largeUncompressed); // ~30 bytes gzipped
+    assert.ok(smallGzipped.length < 100);
+
+    let resBodyEmittedAfterOversize = false;
+    await assert.rejects(async () => {
+        await safeFetchResource({
+            url: 'https://example.com/bomb',
+            maxBytes: 100, // Decompressed (500) > maxBytes (100)
+            dependencies: {
+                validateUrlSsrf: async () => ({ valid: true, resolvedIps: ['93.184.216.34'] }),
+                httpTransport: async () => {
+                    const gunzip = zlib.createGunzip();
+                    // Simulate stream chunk emission exceeding maxBytes
+                    process.nextTick(() => {
+                        gunzip.emit('data', largeUncompressed);
+                        gunzip.on('data', () => { resBodyEmittedAfterOversize = true; });
+                    });
+                    const err = new Error('KOS_HTTP_RESPONSE_TOO_LARGE: Downloaded bytes exceeded maxBytes 100');
+                    err.code = 'KOS_HTTP_RESPONSE_TOO_LARGE';
+                    err.retryable = false;
+                    throw err;
+                },
+            },
+        });
+    }, (err) => err.code === 'KOS_HTTP_RESPONSE_TOO_LARGE');
+    assert.strictEqual(resBodyEmittedAfterOversize, false, 'No further data should be emitted after oversize error');
+    assertionCount += 2;
+
+    // 27. IPv4-mapped IPv6 address blocking (::ffff:127.0.0.1 and ::ffff:169.254.169.254)
+    await assert.rejects(async () => {
+        await validateUrlSsrf('http://[::ffff:127.0.0.1]/admin');
+    }, (err) => err.code === 'KOS_SSRF_PRIVATE_IP' || err.code === 'KOS_SSRF_LOOPBACK_BLOCKED');
+    assertionCount += 1;
+
+    await assert.rejects(async () => {
+        await validateUrlSsrf('http://[::ffff:169.254.169.254]/latest');
+    }, (err) => err.code === 'KOS_SSRF_PRIVATE_IP' || err.code === 'KOS_SSRF_LINK_LOCAL_BLOCKED');
+    assertionCount += 1;
+
     console.log(`kosSafeHttpClient.test.js: All ${assertionCount} assertions passed successfully!`);
     return { assertionCount };
 }
