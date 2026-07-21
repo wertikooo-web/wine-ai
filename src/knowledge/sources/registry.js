@@ -252,6 +252,39 @@ const SOURCES = [
             { url: 'https://moldova.travel/ru/turisticheskiye-priklyucheniya/marshrut-avtorskih-vin/', language: 'ru', topics: ['tourism', 'winery'] },
         ],
     },
+    {
+        // Chișinău municipal tourism portal. Verified live (WebFetch)
+        // 2026-07-21 per explicit user request — lists 13 wine venues
+        // (urban tasting bars + ATU, Mileștii Mici, Cricova, Stăuceni wine
+        // museum) as a city wine route.
+        id: 'visit-chisinau-official',
+        type: 'official',
+        trust: 'A',
+        publisher: 'Visit Chișinău (Municipal Tourism Portal)',
+        pages: [
+            { url: 'https://visit.chisinau.md/ru/routes/vinnyj-marshrut/', language: 'ru', topics: ['tourism', 'winery'] },
+        ],
+    },
+    {
+        // Verified live (WebFetch) 2026-07-21 per explicit user request.
+        id: 'carlevana',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Carlevana Winery',
+        pages: [
+            { url: 'https://carlevana.md/ru/vinnyy-tur-v-vinodelnyu-carlevana/', language: 'ru', topics: ['winery', 'tourism'] },
+        ],
+    },
+    {
+        // Verified live (WebFetch) 2026-07-21 per explicit user request.
+        id: 'vinuri-de-comrat',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'Vinuri de Comrat',
+        pages: [
+            { url: 'https://vinuridecomrat.md/ru/turizm/', language: 'ru', topics: ['winery', 'tourism'] },
+        ],
+    },
 ];
 
 function requireValidTrust(trust) {
