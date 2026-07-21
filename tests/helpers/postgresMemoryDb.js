@@ -266,13 +266,30 @@ class MemoryPgEngine {
                 wineriesTable.rows = wineriesTable.rows.filter(r => !targetIds.includes(r.id));
             }
             // CASCADE deletes
-            ['kos_knowledge_sources', 'kos_winery_profile_state', 'kos_profile_versions', 'kos_wines'].forEach(tblName => {
+            ['kos_knowledge_sources', 'kos_winery_profile_state', 'kos_profile_versions', 'kos_wines', 'kos_sources'].forEach(tblName => {
                 const tbl = this.tables.get(tblName);
                 if (tbl) {
                     tbl.rows = tbl.rows.filter(r => !targetIds.includes(r.winery_id));
                 }
             });
             return { rows: [] };
+        }
+
+        // Generic SELECT/INSERT/UPDATE handler for MemoryPgEngine v2 tables
+        if (/^INSERT INTO (\w+)/i.test(sql)) {
+            const tableName = sql.match(/^INSERT INTO (\w+)/i)[1];
+            const table = this.tables.get(tableName) || { name: tableName, rows: [] };
+            this.tables.set(tableName, table);
+            return { rows: [] };
+        }
+
+        if (/^SELECT/i.test(sql)) {
+            const tableNameMatch = sql.match(/FROM (\w+)/i);
+            if (tableNameMatch) {
+                const tableName = tableNameMatch[1];
+                const table = this.tables.get(tableName);
+                return { rows: table ? table.rows : [] };
+            }
         }
 
         return { rows: [] };

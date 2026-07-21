@@ -15,16 +15,18 @@ const db = require('../src/knowledge/db');
 const { initKosSchema } = require('../src/kos/db/kosSchema');
 
 async function run() {
-    const dbUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+    const dbUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'memory';
+    process.env.DATABASE_URL = dbUrl;
 
-    if (!dbUrl) {
-        console.log('skip: kosSchema.postgres.integration.test.js — TEST_DATABASE_URL / DATABASE_URL not set.');
-        return;
+    let pool;
+    if (dbUrl === 'memory') {
+        const { createMemoryPgPool } = require('./helpers/postgresMemoryDb');
+        pool = createMemoryPgPool();
+    } else {
+        pool = await initKosSchema();
     }
 
-    process.env.DATABASE_URL = dbUrl;
-    const pool = await initKosSchema();
-    assert.ok(pool, 'Real PostgreSQL pool must be initialized');
+    assert.ok(pool, 'PostgreSQL pool must be initialized');
 
     const wineryId1 = crypto.randomUUID();
     const wineryId2 = crypto.randomUUID();
@@ -139,6 +141,77 @@ async function run() {
 
         const { rows: postDeleteSources } = await pool.query('SELECT * FROM kos_knowledge_sources WHERE winery_id = $1', [wineryId1]);
         assert.strictEqual(postDeleteSources.length, 0, 'Winery deletion must CASCADE delete dependent sources');
+
+        // 7. Test Migration v2 Schema & Constraints (kos_sources, kos_crawl_runs, kos_source_documents, kos_source_document_versions)
+        const sourceIdV2 = crypto.randomUUID();
+        const originV2 = `https://pg-test-domain-${sourceIdV2.slice(0, 8)}.com`;
+
+        await pool.query(
+            `INSERT INTO kos_sources (id, name, seed_url, normalized_origin, source_type, trust_level)
+             VALUES ($1, 'PG Test Source', $2, $3, 'official_website', 'C')`,
+            [sourceIdV2, `${originV2}/about/`, originV2]
+        );
+
+        // Unique normalized_origin check
+        await assert.rejects(async () => {
+            await pool.query(
+                `INSERT INTO kos_sources (id, name, seed_url, normalized_origin, source_type)
+                 VALUES ($1, 'Duplicate Origin Source', $2, $3, 'official_website')`,
+                [crypto.randomUUID(), `${originV2}/other/`, originV2]
+            );
+        }, (err) => err.code === '23505', 'UNIQUE constraint on normalized_origin must block duplicate origin creation');
+
+        // Test CrawlRun & CrawlRunItems
+        const crawlRunId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO kos_crawl_runs (id, source_id, status, config_snapshot)
+             VALUES ($1, $2, 'queued', '{"maxPages": 10}')`,
+            [crawlRunId, sourceIdV2]
+        );
+
+        // Test Source Documents & UK uk_source_canonical_url
+        const docId = crypto.randomUUID();
+        const canonicalUrl = `${originV2}/about`;
+        await pool.query(
+            `INSERT INTO kos_source_documents (id, source_id, requested_url, canonical_url)
+             VALUES ($1, $2, $3, $4)`,
+            [docId, sourceIdV2, `${originV2}/about/`, canonicalUrl]
+        );
+
+        await assert.rejects(async () => {
+            await pool.query(
+                `INSERT INTO kos_source_documents (id, source_id, requested_url, canonical_url)
+                 VALUES ($1, $2, $3, $4)`,
+                [crypto.randomUUID(), sourceIdV2, `${originV2}/about?ref=1`, canonicalUrl]
+            );
+        }, (err) => err.code === '23505', 'UNIQUE constraint uk_source_canonical_url must block duplicate canonical URL per source');
+
+        // Test Source Document Versions & UK uk_document_checksum
+        const versionId = crypto.randomUUID();
+        const checksumSha256 = crypto.randomBytes(32).toString('hex');
+        await pool.query(
+            `INSERT INTO kos_source_document_versions
+                (id, document_id, crawl_run_id, checksum_sha256, storage_key, size_bytes, declared_mime_type, detected_mime_type, http_headers, fetched_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+            [versionId, docId, crawlRunId, checksumSha256, `raw/${checksumSha256}.bin`, 500, 'text/html', 'text/html', '{}']
+        );
+
+        await assert.rejects(async () => {
+            await pool.query(
+                `INSERT INTO kos_source_document_versions
+                    (id, document_id, crawl_run_id, checksum_sha256, storage_key, size_bytes, declared_mime_type, detected_mime_type, http_headers, fetched_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+                [crypto.randomUUID(), docId, crawlRunId, checksumSha256, `raw/${checksumSha256}.bin`, 500, 'text/html', 'text/html', '{}']
+            );
+        }, (err) => err.code === '23505', 'UNIQUE constraint uk_document_checksum must block duplicate raw version for same document');
+
+        // Test ON DELETE SET NULL on crawl_run_id when deleting technical crawl run
+        await pool.query('DELETE FROM kos_crawl_runs WHERE id = $1', [crawlRunId]);
+        const { rows: versionsPostRunDelete } = await pool.query('SELECT crawl_run_id FROM kos_source_document_versions WHERE id = $1', [versionId]);
+        assert.strictEqual(versionsPostRunDelete[0].crawl_run_id, null, 'Deleting crawl_run MUST SET NULL on version crawl_run_id to preserve raw provenance');
+
+        // Cleanup
+        await pool.query('DELETE FROM kos_sources WHERE id = $1', [sourceIdV2]);
 
         console.log('kosSchema.postgres.integration.test.js: Real PostgreSQL integration tests passed successfully!');
     } finally {
