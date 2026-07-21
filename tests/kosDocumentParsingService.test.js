@@ -69,7 +69,7 @@ async function run() {
 
     assert.strictEqual(parsedDoc1.existing, false);
     assert.strictEqual(parsedDoc1.adapter_name, 'html_adapter');
-    assert.strictEqual(parsedDoc1.adapter_version, '1.0.0');
+    assert.strictEqual(parsedDoc1.adapter_version, '1.0.0+builder-1.0.0');
     assert.strictEqual(parsedDoc1.metadata.title, 'Purcari');
     assert.strictEqual(parsedDoc1.structural_units.length, 2);
     assertionCount += 5;
@@ -94,19 +94,19 @@ async function run() {
     assert.strictEqual(parsedDoc2.id, parsedDoc1.id);
     assertionCount += 2;
 
-    // 5. New Parser Version creates NEW ParsedDocument
-    const parsedDocNewVersion = await parseDocumentVersion({
+    // 5. New Builder / Parser Version creates NEW ParsedDocument
+    const parsedDocNewBuilder = await parseDocumentVersion({
         versionId,
-        overrideAdapterVersion: '2.0.0',
+        overrideAdapterVersion: '1.0.0+builder-2.0.0',
         dependencies: {
             rawResourceStorage: mockStorage,
             queryClient: pool,
         },
     });
 
-    assert.strictEqual(parsedDocNewVersion.existing, false);
-    assert.strictEqual(parsedDocNewVersion.adapter_version, '2.0.0');
-    assert.notStrictEqual(parsedDocNewVersion.id, parsedDoc1.id);
+    assert.strictEqual(parsedDocNewBuilder.existing, false);
+    assert.strictEqual(parsedDocNewBuilder.adapter_version, '1.0.0+builder-2.0.0');
+    assert.notStrictEqual(parsedDocNewBuilder.id, parsedDoc1.id);
     assertionCount += 3;
 
     // 6. Checksum Mismatch Error (KOS_RAW_CHECKSUM_MISMATCH)

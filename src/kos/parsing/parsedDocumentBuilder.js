@@ -10,6 +10,8 @@
 
 const crypto = require('crypto');
 
+const BUILDER_VERSION = '1.0.0';
+
 function generateId(prefix = 'pdoc') {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
@@ -115,4 +117,5 @@ function buildParsedDocument({
 module.exports = {
     buildParsedDocument,
     normalizeText,
+    BUILDER_VERSION,
 };

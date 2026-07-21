@@ -50,10 +50,11 @@ async function parseDocumentVersion({
     const version = versionRes.rows[0];
     const mimeType = version.detected_mime_type || version.declared_mime_type;
 
-    // 2. Resolve Format Adapter
+    // 2. Resolve Format Adapter & Composite Parser Version
     const adapter = registry.getAdapterForMime(mimeType);
     const adapterName = adapter.ADAPTER_NAME;
-    const adapterVersion = overrideAdapterVersion || adapter.ADAPTER_VERSION;
+    const builderVersion = builder.BUILDER_VERSION || '1.0.0';
+    const adapterVersion = overrideAdapterVersion || `${adapter.ADAPTER_VERSION}+builder-${builderVersion}`;
 
     // 3. Idempotency Check
     const existingParsedRes = await queryClient.query(

@@ -12,6 +12,10 @@ const testsDir = path.join(__dirname, '..', 'tests');
 const files = fs.readdirSync(testsDir).filter((f) => f.endsWith('.test.js')).sort();
 const PER_FILE_TIMEOUT_MS = 20000;
 
+if (!process.env.DATABASE_URL && !process.env.TEST_DATABASE_URL) {
+    process.env.DATABASE_URL = 'memory';
+}
+
 function withTimeout(promise, ms, label) {
     return Promise.race([
         promise,
@@ -29,6 +33,7 @@ async function main() {
         const fullPath = path.join(testsDir, file);
         const fileStartedAt = Date.now();
         try {
+            delete require.cache[fullPath];
             const mod = require(fullPath);
             let wasSkipped = false;
             let assertionCount = 0;
@@ -43,9 +48,11 @@ async function main() {
             };
 
             try {
-                const testResult = await withTimeout(mod.run(), PER_FILE_TIMEOUT_MS, file);
-                if (testResult && typeof testResult.assertionCount === 'number') {
-                    assertionCount = testResult.assertionCount;
+                if (typeof mod.run === 'function') {
+                    const testResult = await withTimeout(mod.run(), PER_FILE_TIMEOUT_MS, file);
+                    if (testResult && typeof testResult.assertionCount === 'number') {
+                        assertionCount = testResult.assertionCount;
+                    }
                 }
             } finally {
                 console.log = origLog;
