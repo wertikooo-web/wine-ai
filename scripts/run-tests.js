@@ -22,6 +22,7 @@ function withTimeout(promise, ms, label) {
 async function main() {
     let passed = 0;
     let failed = 0;
+    let skipped = 0;
     const startedAt = Date.now();
 
     for (const file of files) {
@@ -29,21 +30,48 @@ async function main() {
         const fileStartedAt = Date.now();
         try {
             const mod = require(fullPath);
-            await withTimeout(mod.run(), PER_FILE_TIMEOUT_MS, file);
-            console.log(`ok   ${file} (${Date.now() - fileStartedAt}ms)`);
-            passed += 1;
+            let wasSkipped = false;
+            let assertionCount = 0;
+
+            const origLog = console.log;
+            console.log = (...args) => {
+                const line = args.join(' ');
+                if (line.startsWith('skip:')) {
+                    wasSkipped = true;
+                }
+                origLog(...args);
+            };
+
+            try {
+                const testResult = await withTimeout(mod.run(), PER_FILE_TIMEOUT_MS, file);
+                if (testResult && typeof testResult.assertionCount === 'number') {
+                    assertionCount = testResult.assertionCount;
+                }
+            } finally {
+                console.log = origLog;
+            }
+
+            if (wasSkipped) {
+                console.log(`[STATUS: SKIP] ${file}`);
+                skipped += 1;
+            } else {
+                const assertStr = assertionCount > 0 ? `, ${assertionCount} assertion(s)` : '';
+                console.log(`[STATUS: OK]   ${file}${assertStr}`);
+                passed += 1;
+            }
         } catch (error) {
-            console.error(`FAIL ${file} (${Date.now() - fileStartedAt}ms)`);
-            console.error(`     ${error.message}`);
-            if (error.stack) console.error(error.stack.split('\n').slice(1, 4).join('\n'));
+            console.log(`[STATUS: FAIL] ${file}`);
+            console.error(`\n============================`);
+            console.error(`FAIL IN FILE: ${file}`);
+            console.error(`Error Code: ${error.code}`);
+            console.error(`Error Message: ${error.message}`);
+            console.error(error.stack);
+            console.error(`============================\n`);
             failed += 1;
         }
     }
 
-    console.log(`\n${passed} passed, ${failed} failed, ${files.length} total (${Date.now() - startedAt}ms)`);
-    // Explicit exit rather than letting the event loop drain naturally — a
-    // timed-out test may have left a server/socket handle open, which would
-    // otherwise hang this whole script forever even after results are in.
+    console.log(`\n${passed} passed, ${failed} failed, ${skipped} skipped, ${files.length} total (${Date.now() - startedAt}ms)`);
     process.exit(failed > 0 ? 1 : 0);
 }
 
