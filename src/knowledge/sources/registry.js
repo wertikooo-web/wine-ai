@@ -358,6 +358,27 @@ const SOURCES = [
             { url: 'https://basavin.md/en/shop/', language: 'en', topics: ['wine'] },
         ],
     },
+    {
+        // Tiraspol Winery & Distillery "KVINT" — Transnistria/Pridnestrovie.
+        // Included 2026-07-21 per explicit user request ("винодельни
+        // приднестровья тоже нужны"), reversing the earlier exclusion.
+        // This is a factual wine-industry data source, not a political
+        // statement about the region's status — same treatment as any
+        // other winery in the registry. Verified live: kvint.md only
+        // answers over plain HTTP (refuses HTTPS connections — likely an
+        // outdated TLS setup), so URLs here are deliberately http://, not
+        // https://; confirmed working via the project's own fetchPage()
+        // (WebFetch couldn't reach it because it force-upgrades to HTTPS).
+        id: 'kvint',
+        type: 'winery',
+        trust: 'A',
+        publisher: 'KVINT (Tiraspol Winery & Distillery)',
+        pages: [
+            { url: 'http://www.kvint.md/en/start/', language: 'en', topics: ['winery'] },
+            { url: 'http://www.kvint.md/en/about/', language: 'en', topics: ['winery'] },
+            { url: 'http://www.kvint.md/en/products/', language: 'en', topics: ['wine'] },
+        ],
+    },
 ];
 
 function requireValidTrust(trust) {
