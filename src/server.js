@@ -210,12 +210,44 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
+    // Local avatar lab is deliberately unavailable in production unless an
+    // operator explicitly enables it. It contains no provider or secret data.
+    if (req.method === 'GET' && (pathname === '/avatar-lab' || pathname === '/avatar-dev')) {
+        const avatarLabEnabled = /^(1|true|yes|on|enabled)$/i.test(process.env.AVATAR_DEV_PANEL || '');
+        if (process.env.NODE_ENV === 'production' && !avatarLabEnabled) {
+            return sendJson(res, 404, { ok: false, error: 'not_found' });
+        }
+        const filePath = path.join(publicDir, 'avatar-dev.html');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'avatar_dev_not_available' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
     if (req.method === 'GET' && pathname === '/avatar.png') {
         const filePath = path.join(publicDir, 'avatar.png');
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 404, { ok: false, error: 'avatar_image_not_available' }))
             .once('open', () => {
                 res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    const avatarDemoAudio = {
+        '/avatar-demo-ru.wav': 'avatar-demo-ru.wav',
+        '/avatar-demo-gemini-orus.wav': 'avatar-demo-gemini-orus.wav',
+    }[pathname];
+    if (req.method === 'GET' && avatarDemoAudio) {
+        const filePath = path.join(publicDir, avatarDemoAudio);
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'avatar_demo_audio_not_available' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'audio/wav', 'cache-control': 'no-store' });
             })
             .pipe(res);
         return undefined;
