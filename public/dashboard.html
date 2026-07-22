@@ -83,6 +83,16 @@
     font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent;
   }
   nav.tabs button.active { color: var(--wine); border-bottom-color: var(--wine); font-weight: 600; }
+  nav.tabs .avatar-lab-link {
+    margin-left: auto;
+    align-self: center;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  nav.tabs .avatar-lab-link:hover { color: var(--wine); }
 
   main { padding: 24px; max-width: 1100px; margin: 0 auto; }
   /* Compact chrome on small phones so the primary Connect action and mic
@@ -476,6 +486,7 @@
   <button data-tab="avatar" class="active">Talk</button>
   <button data-tab="knowledge">Knowledge</button>
   <button data-tab="persona">Settings</button>
+  <a class="avatar-lab-link" href="/avatar-lab" target="_blank" rel="noopener">Avatar Lab ↗</a>
 </nav>
 
 <main>

@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Wine AI — Avatar Animation Lab</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #11080b; color: #f7ede2; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 45% 12%, #551827, #18090e 48%, #0b0507); }
+    main { width: min(1080px, 100%); margin: 0 auto; padding: 28px 18px 44px; }
+    h1 { margin: 0 0 7px; font-size: clamp(25px, 4vw, 42px); }
+    .lead { color: #cfbfb5; margin: 0 0 22px; }
+    .layout { display: grid; grid-template-columns: minmax(320px, 540px) 1fr; gap: 22px; align-items: start; }
+    .stage { position: relative; height: min(74vh, 680px); min-height: 520px; overflow: hidden; border: 1px solid #8d5962; border-radius: 30px; background: radial-gradient(circle at 50% 36%, #832d42, #3a101b 60%, #16080c); box-shadow: 0 34px 90px #000a; }
+    .stage::before { content: ''; position: absolute; inset: 7% 10% 18%; border-radius: 50%; background: radial-gradient(circle, #e8b97928, transparent 67%); filter: blur(5px); }
+    .stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 90px #0d0007bb; }
+    .badge { position: absolute; z-index: 5; left: 18px; top: 18px; padding: 8px 12px; border-radius: 999px; background: #19090dcc; border: 1px solid #ffffff25; color: #e1bd80; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
+    .state-label { position: absolute; z-index: 5; right: 18px; top: 18px; color: #f7d9a9; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .cartoon-avatar { position: absolute; z-index: 2; inset: 24px 0 0; width: 100%; height: calc(100% - 24px); overflow: visible; }
+    .character { transform-origin: 250px 500px; animation: breathe 4.2s ease-in-out infinite; }
+    .head-group { transform-origin: 250px 245px; transition: transform .35s ease; }
+    .pupils { transform: translate(var(--gaze-x, 0px), var(--gaze-y, 0px)); transition: transform .18s ease; }
+    .brow { transition: transform .25s ease; }
+    .jaw-rig { transform: translateY(calc(var(--mouth-level, 0) * 8px)); }
+    .viseme { display: none; }
+    .viseme-rest { display: block; }
+    .stage[data-viseme="A"] .viseme-rest, .stage[data-viseme="E"] .viseme-rest, .stage[data-viseme="O"] .viseme-rest,
+    .stage[data-viseme="U"] .viseme-rest, .stage[data-viseme="FV"] .viseme-rest, .stage[data-viseme="L"] .viseme-rest { display: none; }
+    .stage[data-viseme="A"] .viseme-a, .stage[data-viseme="E"] .viseme-e, .stage[data-viseme="O"] .viseme-o,
+    .stage[data-viseme="U"] .viseme-u, .stage[data-viseme="FV"] .viseme-fv, .stage[data-viseme="L"] .viseme-l { display: block; }
+    .eyelid { transform-box: fill-box; transform-origin: center; animation: blink 5.2s infinite; }
+    .thought-bubbles, .error-mark { opacity: 0; transition: opacity .2s ease; }
+    @keyframes breathe { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.006); } }
+    @keyframes blink { 0%,45%,49%,100% { transform: scaleY(.04); } 47% { transform: scaleY(1); } }
+    @keyframes nodHello { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-5deg) translateY(4px); } 52% { transform: rotate(3deg); } }
+    @keyframes handWave { 0%,100% { transform: rotate(0); } 30% { transform: rotate(-14deg); } 65% { transform: rotate(12deg); } }
+    @keyframes thinkFloat { 0%,100% { transform: translateY(0); opacity: .35; } 50% { transform: translateY(-9px); opacity: 1; } }
+    @keyframes errorShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+    .stage[data-lab-state="greeting"] .head-group { animation: nodHello 1.3s ease-in-out 2; }
+    .stage[data-lab-state="greeting"] .brow { transform: translateY(-4px); }
+    .stage[data-lab-state="listening"] .head-group { transform: rotate(-6deg) translate(-4px, 5px); }
+    .stage[data-lab-state="listening"] { box-shadow: 0 0 0 2px #51c98d66, 0 34px 90px #000a; }
+    .stage[data-lab-state="thinking"] .head-group { transform: rotate(5deg) translate(4px, -2px); }
+    .stage[data-lab-state="thinking"] .brow-right { transform: translateY(-7px) rotate(-5deg); }
+    .stage[data-lab-state="thinking"] .thought-bubbles { opacity: 1; animation: thinkFloat 1.5s ease-in-out infinite; }
+    .stage[data-lab-state="speaking"] .brow { transform: translateY(-2px); }
+    .stage[data-lab-state="speaking"] { box-shadow: 0 0 0 2px #e1bd8066, 0 34px 90px #000a; }
+    .stage[data-lab-state="presenting"] .head-group { transform: rotate(-3deg); }
+    .stage[data-lab-state="presenting"] .brow { transform: translateY(-3px); }
+    .stage[data-lab-state="error"] .character { animation: errorShake .32s ease-in-out 3; }
+    .stage[data-lab-state="error"] .error-mark { opacity: 1; }
+    .stage[data-lab-state="error"] .brow-left { transform: rotate(12deg) translateY(5px); }
+    .stage[data-lab-state="error"] .brow-right { transform: rotate(-12deg) translateY(5px); }
+    .stage[data-lab-state="unavailable"] .character { filter: grayscale(1); opacity: .42; animation: none; }
+    .stage[data-lab-state="unavailable"] .eyelid { transform: scaleY(1); animation: none; }
+    .stage[data-expression="warm"] .cheek { opacity: .34; }
+    .stage[data-expression="focused"] .brow-left { transform: rotate(5deg); }
+    .stage[data-expression="focused"] .brow-right { transform: rotate(-5deg); }
+    .stage[data-expression="confident"] .brow-right { transform: translateY(-5px); }
+    .stage[data-expression="concerned"] .brow-left { transform: rotate(12deg) translateY(5px); }
+    .stage[data-expression="concerned"] .brow-right { transform: rotate(-12deg) translateY(5px); }
+
+    .panel { padding: 18px; border: 1px solid #ffffff20; border-radius: 20px; background: #220e14e8; }
+    .panel h2 { margin: 0 0 12px; font-size: 14px; color: #e1bd80; text-transform: uppercase; letter-spacing: .05em; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 19px; }
+    button, label.file { border: 1px solid #8d5962; border-radius: 999px; background: #411420; color: #fff7ef; padding: 10px 14px; cursor: pointer; font-weight: 650; }
+    button:hover, label.file:hover { background: #642033; }
+    button.active { background: #d4a45f; border-color: #f0cc91; color: #1a0a0e; }
+    .speak { width: 100%; justify-content: center; font-size: 14px; padding: 13px 16px; background: #7e263a; }
+    input[type=file] { display: none; }
+    .test-copy { margin: 0 0 12px; padding: 13px 14px; border-left: 3px solid #d4a45f; border-radius: 8px; background: #14090d; color: #efe1d6; line-height: 1.55; font-size: 13px; }
+    .test-copy strong { display: block; margin-bottom: 4px; color: #d4a45f; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    audio { width: 100%; height: 38px; margin: 0 0 12px; }
+    .status { padding: 12px; min-height: 45px; border-radius: 10px; background: #10070a; color: #d5c7bf; font-family: ui-monospace, monospace; font-size: 12px; }
+    .note { color: #ad9ba2; font-size: 12px; line-height: 1.5; }
+    .lab-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .back-link { color: #e1bd80; text-decoration: none; font-size: 13px; font-weight: 700; }
+    .back-link:hover { color: #ffe0a8; }
+    .isolation { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid #4f773f; border-radius: 999px; color: #bfe5aa; background: #142010; font-size: 11px; }
+    .catalog { margin-bottom: 22px; padding: 17px; border: 1px solid #ffffff20; border-radius: 20px; background: #170a0fe8; }
+    .catalog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 13px; }
+    .catalog-head h2 { margin: 0 0 5px; font-size: 17px; }
+    .catalog-head p { margin: 0; color: #ad9ba2; font-size: 12px; line-height: 1.45; }
+    .catalog-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .avatar-card { position: relative; min-height: 104px; padding: 12px; border: 1px solid #633542; border-radius: 14px; background: #260f16; color: #f7ede2; text-align: left; cursor: pointer; }
+    .avatar-card:hover { border-color: #b77557; background: #35131e; }
+    .avatar-card.active { border-color: #efc47f; box-shadow: 0 0 0 2px #efc47f30; }
+    .avatar-card strong { display: block; margin: 24px 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .avatar-card small { color: #ad9ba2; font-size: 10px; text-transform: uppercase; letter-spacing: .07em; }
+    .avatar-type { position: absolute; left: 10px; top: 10px; padding: 4px 7px; border-radius: 999px; background: #10070a; color: #e1bd80; font-size: 9px; font-weight: 800; }
+    .candidate-mark { position: absolute; right: 10px; top: 10px; color: #bfe5aa; font-size: 15px; }
+    .catalog-empty { grid-column: 1 / -1; padding: 12px; color: #ad9ba2; border: 1px dashed #633542; border-radius: 12px; font-size: 12px; }
+    .catalog-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: #ad9ba2; font-size: 11px; }
+    .catalog-foot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .catalog-foot button { padding: 8px 11px; font-size: 11px; }
+    .uploaded-avatar { position: absolute; z-index: 2; inset: 68px 48px 36px; width: calc(100% - 96px); height: calc(100% - 104px); object-fit: contain; border-radius: 22px; display: none; transform-origin: 50% 70%; }
+    .model-placeholder { position: absolute; z-index: 2; inset: 72px 45px 42px; display: none; place-items: center; padding: 28px; border: 1px dashed #d4a45f80; border-radius: 22px; background: #16080ccc; color: #ead8cb; text-align: center; line-height: 1.55; }
+    .model-placeholder strong { display: block; margin-bottom: 8px; color: #e1bd80; }
+    .stage[data-preview-mode="image"] .cartoon-avatar, .stage[data-preview-mode="model"] .cartoon-avatar { display: none; }
+    .stage[data-preview-mode="image"] .uploaded-avatar { display: block; }
+    .stage[data-preview-mode="model"] .model-placeholder { display: grid; }
+    .stage[data-preview-mode="image"][data-lab-state="greeting"] .uploaded-avatar { animation: imageGreeting 1.3s ease-in-out 2; }
+    .stage[data-preview-mode="image"][data-lab-state="listening"] .uploaded-avatar { transform: rotate(-2deg) translateY(3px); }
+    .stage[data-preview-mode="image"][data-lab-state="thinking"] .uploaded-avatar { transform: rotate(2deg) translateY(-3px); }
+    .stage[data-preview-mode="image"][data-lab-state="speaking"] .uploaded-avatar { animation: imageSpeaking .38s ease-in-out infinite alternate; }
+    .stage[data-preview-mode="image"][data-lab-state="error"] .uploaded-avatar { animation: errorShake .32s ease-in-out 3; }
+    .stage[data-preview-mode="image"][data-lab-state="unavailable"] .uploaded-avatar { filter: grayscale(1); opacity: .42; }
+    @keyframes imageGreeting { 0%,100% { transform: rotate(0); } 35% { transform: rotate(-3deg) translateY(4px); } 70% { transform: rotate(2deg); } }
+    @keyframes imageSpeaking { from { transform: scale(1); } to { transform: scale(1.012) translateY(-2px); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } .stage { height: 580px; min-height: 500px; } .catalog-head, .catalog-foot { align-items: stretch; flex-direction: column; } .catalog-actions { justify-content: flex-start; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="lab-topbar">
+    <a class="back-link" href="/dashboard">← Вернуться в Dashboard</a>
+    <span class="isolation">● Изолированная тестовая страница</span>
+  </div>
+  <h1>Wine AI Avatar Animation Lab</h1>
+  <p class="lead">Крупный временный персонаж для проверки мимики, состояний и речи до подключения финальной 3D-модели.</p>
+
+  <section class="catalog" aria-labelledby="catalogTitle">
+    <div class="catalog-head">
+      <div>
+        <h2 id="catalogTitle">Каталог тестовых аватаров</h2>
+        <p>Файлы сохраняются только в этом локальном браузере. Dashboard и исходная статичная картинка не меняются.</p>
+      </div>
+      <div class="catalog-actions">
+        <label class="file">＋ Добавить аватар<input id="avatarFile" type="file" accept=".jpg,.jpeg,.png,.webp,.svg,.glb,.vrm,image/jpeg,image/png,image/webp,image/svg+xml,model/gltf-binary"></label>
+      </div>
+    </div>
+    <div class="catalog-grid" id="avatarCatalog">
+      <button class="avatar-card active" type="button" data-avatar-id="builtin-orus">
+        <span class="avatar-type">SVG RIG</span>
+        <strong>Sommelier Orus</strong>
+        <small>Мимика + Gemini voice</small>
+      </button>
+      <div class="catalog-empty" id="catalogEmpty">Загрузите JPG/JPEG, PNG, WebP, SVG, GLB или VRM — они появятся рядом с тестовым сомелье.</div>
+    </div>
+    <div class="catalog-foot">
+      <span id="selectedAvatarInfo">Выбран Sommelier Orus · тестовый SVG-риг</span>
+      <div class="catalog-foot-actions">
+        <button id="candidateAvatar" type="button">Назначить кандидатом</button>
+        <button id="deleteAvatar" type="button" disabled>Удалить загруженный</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div class="stage" id="avatarStage" data-lab-state="ready">
+      <div class="badge">Orus · Gemini voice</div>
+      <div class="state-label" id="stateLabel">IDLE</div>
+      <img class="uploaded-avatar" id="uploadedAvatar" alt="Загруженный тестовый аватар">
+      <div class="model-placeholder" id="modelPlaceholder"><div><strong>3D-файл добавлен в каталог</strong><span id="modelPlaceholderText"></span><br>GLB/VRM сохранён локально. Просмотр конкретной модели подключается после проверки её рига и morph targets.</div></div>
+      <svg class="cartoon-avatar" viewBox="0 0 500 600" role="img" aria-label="Мультипликационный цифровой сомелье">
+        <defs>
+          <linearGradient id="jacket" x1="0" x2="1"><stop stop-color="#32101a"/><stop offset="1" stop-color="#6f2034"/></linearGradient>
+          <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#efb18c"/><stop offset="1" stop-color="#c97958"/></linearGradient>
+          <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity=".35"/></filter>
+        </defs>
+        <g class="character" filter="url(#shadow)">
+          <path d="M85 590 Q95 430 177 397 L323 397 Q405 430 415 590Z" fill="url(#jacket)"/>
+          <path d="M185 404 L250 505 L315 404 L282 388 L218 388Z" fill="#f6eadb"/>
+          <path d="M168 410 L232 505 L195 548 L126 445Z" fill="#8d2f45"/>
+          <path d="M332 410 L268 505 L305 548 L374 445Z" fill="#8d2f45"/>
+          <path d="M220 407 L250 438 L280 407 L270 390 L230 390Z" fill="#d6ac68"/>
+          <circle cx="347" cy="483" r="18" fill="#d6ac68"/><path d="M338 483h18M347 474v18" stroke="#5f2230" stroke-width="3"/>
+          <rect x="219" y="345" width="62" height="86" rx="27" fill="#c97958"/>
+          <g class="head-group">
+            <path d="M145 205 Q145 105 250 84 Q355 105 355 205 L350 302 Q328 387 250 405 Q172 387 150 302Z" fill="url(#skin)"/>
+            <ellipse cx="135" cy="254" rx="23" ry="37" fill="#d98b69"/><ellipse cx="365" cy="254" rx="23" ry="37" fill="#d98b69"/>
+            <path d="M145 201 Q142 91 250 78 Q359 93 356 205 Q328 159 284 142 Q223 168 145 201Z" fill="#281619"/>
+            <path d="M161 151 Q190 78 264 82 Q197 101 174 177Z" fill="#422127" opacity=".8"/>
+            <path d="M148 181 Q151 122 183 103 L188 178Z" fill="#8b7770" opacity=".78"/>
+            <path d="M352 181 Q349 122 317 103 L312 178Z" fill="#8b7770" opacity=".72"/>
+            <path class="brow brow-left" d="M175 217 Q207 197 229 216" fill="none" stroke="#4a2722" stroke-width="10" stroke-linecap="round"/>
+            <path class="brow brow-right" d="M271 216 Q298 197 327 217" fill="none" stroke="#4a2722" stroke-width="10" stroke-linecap="round"/>
+            <g class="eyes">
+              <ellipse cx="204" cy="241" rx="31" ry="21" fill="#fff8ee"/><ellipse cx="296" cy="241" rx="31" ry="21" fill="#fff8ee"/>
+              <g class="pupils"><circle cx="207" cy="243" r="11" fill="#5d3424"/><circle cx="299" cy="243" r="11" fill="#5d3424"/><circle cx="210" cy="239" r="3" fill="white"/><circle cx="302" cy="239" r="3" fill="white"/></g>
+              <ellipse class="eyelid" cx="204" cy="241" rx="33" ry="22" fill="#d98b69"/><ellipse class="eyelid" cx="296" cy="241" rx="33" ry="22" fill="#d98b69"/>
+            </g>
+            <ellipse class="cheek" cx="180" cy="285" rx="27" ry="14" fill="#a84b59" opacity="0"/><ellipse class="cheek" cx="320" cy="285" rx="27" ry="14" fill="#a84b59" opacity="0"/>
+            <path d="M250 246 Q232 284 250 292 Q267 289 272 281" fill="none" stroke="#b8674e" stroke-width="7" stroke-linecap="round"/>
+            <path d="M197 309 Q224 294 250 313 Q276 294 303 309 Q282 329 250 322 Q218 329 197 309Z" fill="#3b2020"/>
+            <path d="M199 313 Q250 347 301 313 Q293 379 250 391 Q207 379 199 313Z" fill="#3c2424" opacity=".88"/>
+            <g class="jaw-rig">
+              <g class="viseme viseme-rest"><path d="M218 337 Q250 349 282 337" fill="none" stroke="#a24d58" stroke-width="9" stroke-linecap="round"/></g>
+              <g class="viseme viseme-a"><ellipse cx="250" cy="344" rx="34" ry="27" fill="#64192a"/><ellipse cx="250" cy="354" rx="19" ry="8" fill="#c85e6d"/></g>
+              <g class="viseme viseme-e"><path d="M207 338 Q250 320 293 338 Q275 365 250 366 Q225 365 207 338Z" fill="#64192a"/><path d="M216 337 H284 Q275 347 250 347 Q225 347 216 337Z" fill="#fff4e8"/></g>
+              <g class="viseme viseme-o"><ellipse cx="250" cy="345" rx="23" ry="30" fill="#64192a"/><ellipse cx="250" cy="345" rx="10" ry="17" fill="#2d1118"/></g>
+              <g class="viseme viseme-u"><ellipse cx="250" cy="344" rx="15" ry="23" fill="#64192a"/><path d="M235 342 Q250 330 265 342" fill="none" stroke="#b95462" stroke-width="6"/></g>
+              <g class="viseme viseme-fv"><path d="M213 338 Q250 323 287 338 Q272 354 250 354 Q228 354 213 338Z" fill="#fff4e8"/><path d="M220 353 Q250 365 280 353" fill="none" stroke="#b95462" stroke-width="9"/></g>
+              <g class="viseme viseme-l"><ellipse cx="250" cy="345" rx="30" ry="25" fill="#64192a"/><path d="M222 333 H278" stroke="#fff4e8" stroke-width="10"/><ellipse cx="250" cy="355" rx="17" ry="8" fill="#d06b78"/></g>
+            </g>
+            <path d="M181 333 Q193 389 250 401 Q307 389 319 333 Q301 382 250 385 Q199 382 181 333Z" fill="#251719" opacity=".88"/>
+          </g>
+          <g class="thought-bubbles" fill="#f3d59d"><circle cx="375" cy="148" r="10"/><circle cx="397" cy="118" r="15"/><circle cx="430" cy="78" r="24"/></g>
+          <g class="error-mark" stroke="#ff7d83" stroke-width="12" stroke-linecap="round"><path d="M397 91l35 35M432 91l-35 35"/></g>
+        </g>
+      </svg>
+    </div>
+
+    <section class="panel">
+      <h2>Все состояния</h2>
+      <div class="buttons" id="stateButtons">
+        <button data-state="ready" class="active">Idle</button>
+        <button data-state="greeting">Greeting</button>
+        <button data-state="listening">Listening</button>
+        <button data-state="thinking">Thinking</button>
+        <button data-state="presenting">Presenting</button>
+        <button data-state="error">Error</button>
+        <button data-state="unavailable">Unavailable</button>
+      </div>
+
+      <h2>Тест речи и рта</h2>
+      <div class="test-copy"><strong>Тестовая фраза · Gemini Orus</strong><span id="testText">Добрый вечер. Я ваш цифровой сомелье Wine AI. Позвольте представить выразительное молдавское вино и рассказать о винодельне Аурелиус.</span></div>
+      <button class="speak" id="speechDemo">▶ Произнести реальным голосом Gemini Orus</button>
+      <audio id="demoAudio" controls preload="auto" src="/avatar-demo-gemini-orus.wav"></audio>
+      <div class="buttons">
+        <button id="localFallback">▶ Локальный резервный WAV</button>
+        <label class="file">Открыть свой аудиофайл<input id="audioFile" type="file" accept="audio/*"></label>
+        <button id="stopAudio">■ Стоп</button>
+      </div>
+      <p class="note">Анимация ограничена лицом и головой: формы рта, взгляд, веки, брови, щёки, эмоции, кивки и повороты. Руки и карточки намеренно не используются.</p>
+      <div class="status" id="status">Готово: idle, дыхание и моргание.</div>
+    </section>
+  </div>
+</main>
+
+<script>
+  (() => {
+    const DEFAULT_AUDIO = '/avatar-demo-gemini-orus.wav';
+    const LOCAL_FALLBACK_AUDIO = '/avatar-demo-ru.wav';
+    const stage = document.getElementById('avatarStage');
+    const stateLabel = document.getElementById('stateLabel');
+    const status = document.getElementById('status');
+    const audio = document.getElementById('demoAudio');
+    const catalog = document.getElementById('avatarCatalog');
+    const catalogEmpty = document.getElementById('catalogEmpty');
+    const uploadedAvatar = document.getElementById('uploadedAvatar');
+    const modelPlaceholderText = document.getElementById('modelPlaceholderText');
+    const selectedAvatarInfo = document.getElementById('selectedAvatarInfo');
+    const deleteAvatarButton = document.getElementById('deleteAvatar');
+    const candidateButton = document.getElementById('candidateAvatar');
+    const stateExpression = {
+      ready: 'neutral', greeting: 'warm', listening: 'focused', thinking: 'focused',
+      speaking: 'warm', presenting: 'confident', error: 'concerned', unavailable: 'neutral',
+    };
+    let objectUrl = '';
+    let greetingReset = null;
+    let envelope = [];
+    let envelopeStepSeconds = 0.02;
+    let playbackActive = false;
+    let selectedAvatarId = 'builtin-orus';
+    let selectedAvatarRecord = null;
+    let previewObjectUrl = '';
+
+    const avatarDb = new Promise((resolve, reject) => {
+      const request = indexedDB.open('wine-ai-avatar-lab', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('avatars', { keyPath: 'id' });
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    async function avatarStore(mode, operation) {
+      const db = await avatarDb;
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction('avatars', mode);
+        const request = operation(transaction.objectStore('avatars'));
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function clearPreviewObjectUrl() {
+      if (!previewObjectUrl) return;
+      URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = '';
+    }
+
+    function formatKind(record) {
+      const extension = record.name.split('.').pop().toUpperCase();
+      return extension === 'JPG' ? 'JPEG' : extension;
+    }
+
+    function markSelectedCard(id) {
+      document.querySelectorAll('[data-avatar-id]').forEach((card) => card.classList.toggle('active', card.dataset.avatarId === id));
+      document.querySelectorAll('.candidate-mark').forEach((mark) => mark.remove());
+      const candidate = localStorage.getItem('wine-ai-avatar-candidate');
+      const candidateCard = candidate && document.querySelector(`[data-avatar-id="${CSS.escape(candidate)}"]`);
+      if (candidateCard) {
+        const mark = document.createElement('span');
+        mark.className = 'candidate-mark';
+        mark.title = 'Кандидат';
+        mark.textContent = '✓';
+        candidateCard.appendChild(mark);
+      }
+    }
+
+    function selectBuiltin() {
+      clearPreviewObjectUrl();
+      selectedAvatarId = 'builtin-orus';
+      selectedAvatarRecord = null;
+      stage.dataset.previewMode = 'builtin';
+      uploadedAvatar.removeAttribute('src');
+      selectedAvatarInfo.textContent = 'Выбран Sommelier Orus · тестовый SVG-риг';
+      deleteAvatarButton.disabled = true;
+      markSelectedCard(selectedAvatarId);
+      markState('ready', 'Готово: Sommelier Orus, мимика и Gemini Orus.');
+    }
+
+    function selectUploaded(record) {
+      clearPreviewObjectUrl();
+      selectedAvatarId = record.id;
+      selectedAvatarRecord = record;
+      const kind = formatKind(record);
+      const isImage = ['JPEG', 'PNG', 'WEBP', 'SVG'].includes(kind);
+      stage.dataset.previewMode = isImage ? 'image' : 'model';
+      if (isImage) {
+        previewObjectUrl = URL.createObjectURL(record.blob);
+        uploadedAvatar.src = previewObjectUrl;
+      } else {
+        uploadedAvatar.removeAttribute('src');
+        modelPlaceholderText.textContent = `${record.name} · ${kind}`;
+      }
+      selectedAvatarInfo.textContent = `Выбран ${record.name} · ${kind} · локальный файл`;
+      deleteAvatarButton.disabled = false;
+      markSelectedCard(selectedAvatarId);
+      markState('ready', isImage ? `Готово: ${record.name}. Для плоского изображения доступны мягкие состояния.` : `Файл ${record.name} сохранён. Для 3D-просмотра требуется совместимый риг.`);
+    }
+
+    function renderUploadedCard(record) {
+      const card = document.createElement('button');
+      card.className = 'avatar-card';
+      card.type = 'button';
+      card.dataset.avatarId = record.id;
+      const type = document.createElement('span');
+      type.className = 'avatar-type';
+      type.textContent = formatKind(record);
+      const name = document.createElement('strong');
+      name.textContent = record.name;
+      const detail = document.createElement('small');
+      detail.textContent = 'Локальный тестовый файл';
+      card.append(type, name, detail);
+      card.addEventListener('click', () => selectUploaded(record));
+      catalog.insertBefore(card, catalogEmpty);
+    }
+
+    async function loadAvatarCatalog() {
+      try {
+        const records = await avatarStore('readonly', (store) => store.getAll());
+        records.forEach(renderUploadedCard);
+        catalogEmpty.hidden = records.length > 0;
+        markSelectedCard(selectedAvatarId);
+      } catch (error) {
+        catalogEmpty.textContent = `Локальное хранилище недоступно: ${error.message}`;
+      }
+    }
+
+    function buildEnvelope(pcmBytes, sampleRate) {
+      const view = new DataView(pcmBytes.buffer, pcmBytes.byteOffset, pcmBytes.byteLength);
+      const samplesPerBin = Math.max(1, Math.floor(sampleRate * envelopeStepSeconds));
+      const values = [];
+      let sum = 0;
+      let count = 0;
+      for (let offset = 0; offset + 1 < view.byteLength; offset += 2) {
+        const sample = view.getInt16(offset, true) / 32768;
+        sum += sample * sample;
+        count += 1;
+        if (count >= samplesPerBin) {
+          values.push(Math.sqrt(sum / count));
+          sum = 0;
+          count = 0;
+        }
+      }
+      const sorted = values.slice().sort((a, b) => a - b);
+      const reference = sorted[Math.floor(sorted.length * 0.92)] || 0.12;
+      return values.map((value) => Math.max(0, Math.min(1, value / reference)));
+    }
+
+    function parsePcmFromWav(arrayBuffer) {
+      const view = new DataView(arrayBuffer);
+      let sampleRate = 24000;
+      let channels = 1;
+      let bits = 16;
+      let offset = 12;
+      while (offset + 8 <= view.byteLength) {
+        const chunk = String.fromCharCode(view.getUint8(offset), view.getUint8(offset + 1), view.getUint8(offset + 2), view.getUint8(offset + 3));
+        const size = view.getUint32(offset + 4, true);
+        if (chunk === 'fmt ') {
+          channels = view.getUint16(offset + 10, true);
+          sampleRate = view.getUint32(offset + 12, true);
+          bits = view.getUint16(offset + 22, true);
+        }
+        if (chunk === 'data') {
+          if (channels !== 1 || bits !== 16) return null;
+          return { pcm: new Uint8Array(arrayBuffer, offset + 8, Math.min(size, view.byteLength - offset - 8)), sampleRate };
+        }
+        offset += 8 + size + (size % 2);
+      }
+      return null;
+    }
+
+    function setAudioBlob(blob, pcmBytes, sampleRate) {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(blob);
+      audio.src = objectUrl;
+      envelope = pcmBytes ? buildEnvelope(pcmBytes, sampleRate) : [];
+      audio.load();
+    }
+
+    function markState(state, message) {
+      clearTimeout(greetingReset);
+      greetingReset = null;
+      stage.dataset.labState = state;
+      stage.dataset.expression = stateExpression[state] || 'neutral';
+      stateLabel.textContent = state === 'ready' ? 'IDLE' : state.toUpperCase();
+      document.querySelectorAll('[data-state]').forEach((button) => button.classList.toggle('active', button.dataset.state === state));
+      if (message) status.textContent = message;
+      if (state === 'greeting') {
+        greetingReset = setTimeout(() => markState('ready', 'Greeting завершён. Возврат в idle.'), 2700);
+      }
+    }
+
+    function stopAudio(message = 'Воспроизведение остановлено. Возврат в idle.') {
+      playbackActive = false;
+      audio.pause();
+      audio.currentTime = 0;
+      markState('ready', message);
+      stage.dataset.viseme = 'M';
+      stage.style.setProperty('--mouth-level', '0');
+    }
+
+    async function playCurrentAudio(label) {
+      audio.currentTime = 0;
+      try {
+        await audio.play();
+        playbackActive = true;
+        markState('speaking', `Talking: ${label}`);
+      } catch (error) {
+        markState('error', `Браузер не разрешил звук: ${error.message}`);
+      }
+    }
+
+    async function loadWavAsset(url, label, button) {
+      button.disabled = true;
+      playbackActive = false;
+      audio.pause();
+      status.textContent = `Загрузка: ${label}…`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`audio_http_${response.status}`);
+        const wav = await response.arrayBuffer();
+        const parsed = parsePcmFromWav(wav);
+        if (!parsed) throw new Error('unsupported_wav_format');
+        setAudioBlob(new Blob([wav], { type: 'audio/wav' }), parsed.pcm, parsed.sampleRate);
+        await playCurrentAudio(label);
+      } catch (error) {
+        markState('error', `Ошибка голосового файла: ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function loadGeminiSample() {
+      return loadWavAsset(DEFAULT_AUDIO, 'Gemini Orus — реальная генерация', document.getElementById('speechDemo'));
+    }
+
+    async function loadLocalFallback() {
+      return loadWavAsset(LOCAL_FALLBACK_AUDIO, 'локальный резервный WAV', document.getElementById('localFallback'));
+    }
+
+    const visemeCycle = ['A', 'E', 'O', 'U', 'FV', 'L'];
+    function animationFrame(now) {
+      const seconds = now / 1000;
+      const state = stage.dataset.labState;
+      let gazeX = Math.sin(seconds * 0.71) * 2.2 + Math.sin(seconds * 0.19) * 1.1;
+      let gazeY = Math.sin(seconds * 0.43) * 1.3;
+      if (state === 'listening') gazeX -= 3;
+      if (state === 'thinking') { gazeX += 4; gazeY -= 5; }
+      if (state === 'presenting') gazeX += 2;
+      stage.style.setProperty('--gaze-x', `${gazeX.toFixed(2)}px`);
+      stage.style.setProperty('--gaze-y', `${gazeY.toFixed(2)}px`);
+
+      if (state === 'speaking' && !audio.paused) {
+        const envelopeIndex = Math.floor(audio.currentTime / envelopeStepSeconds);
+        const amplitude = envelope[envelopeIndex] ?? (0.32 + Math.abs(Math.sin(audio.currentTime * 8.7)) * 0.5);
+        const viseme = amplitude < 0.1 ? 'M' : visemeCycle[Math.floor(audio.currentTime * 9 + amplitude * 3) % visemeCycle.length];
+        stage.dataset.viseme = viseme;
+        stage.style.setProperty('--mouth-level', amplitude.toFixed(3));
+        stage.dataset.expression = Math.floor(audio.currentTime / 2.4) % 2 ? 'confident' : 'warm';
+      } else if (state !== 'speaking') {
+        stage.dataset.viseme = 'M';
+        stage.style.setProperty('--mouth-level', '0');
+      }
+      requestAnimationFrame(animationFrame);
+    }
+
+    document.getElementById('stateButtons').addEventListener('click', (event) => {
+      const state = event.target.dataset.state;
+      if (!state) return;
+      audio.pause();
+      markState(state, `Состояние: ${state}`);
+    });
+    document.querySelector('[data-avatar-id="builtin-orus"]').addEventListener('click', selectBuiltin);
+    document.getElementById('avatarFile').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const extension = file.name.split('.').pop().toLowerCase();
+      const supported = ['jpg', 'jpeg', 'png', 'webp', 'svg', 'glb', 'vrm'];
+      if (!supported.includes(extension)) {
+        markState('error', 'Поддерживаются JPG/JPEG, PNG, WebP, SVG, GLB и VRM.');
+        event.target.value = '';
+        return;
+      }
+      const record = {
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        blob: file,
+        addedAt: new Date().toISOString(),
+      };
+      try {
+        await avatarStore('readwrite', (store) => store.put(record));
+        renderUploadedCard(record);
+        catalogEmpty.hidden = true;
+        selectUploaded(record);
+      } catch (error) {
+        markState('error', `Не удалось сохранить файл локально: ${error.message}`);
+      } finally {
+        event.target.value = '';
+      }
+    });
+    candidateButton.addEventListener('click', () => {
+      localStorage.setItem('wine-ai-avatar-candidate', selectedAvatarId);
+      markSelectedCard(selectedAvatarId);
+      markState('ready', 'Кандидат отмечен только в Avatar Lab. Dashboard и его статичная картинка не изменены.');
+    });
+    deleteAvatarButton.addEventListener('click', async () => {
+      if (!selectedAvatarRecord) return;
+      const removedId = selectedAvatarRecord.id;
+      try {
+        await avatarStore('readwrite', (store) => store.delete(removedId));
+        document.querySelector(`[data-avatar-id="${CSS.escape(removedId)}"]`)?.remove();
+        if (localStorage.getItem('wine-ai-avatar-candidate') === removedId) {
+          localStorage.removeItem('wine-ai-avatar-candidate');
+        }
+        catalogEmpty.hidden = catalog.querySelectorAll('[data-avatar-id]').length > 1;
+        selectBuiltin();
+        markState('ready', 'Загруженный аватар удалён из локального тестового каталога.');
+      } catch (error) {
+        markState('error', `Не удалось удалить файл: ${error.message}`);
+      }
+    });
+    document.getElementById('speechDemo').addEventListener('click', loadGeminiSample);
+    document.getElementById('localFallback').addEventListener('click', loadLocalFallback);
+    document.getElementById('stopAudio').addEventListener('click', () => stopAudio());
+    document.getElementById('audioFile').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const buffer = await file.arrayBuffer();
+      const parsed = file.type === 'audio/wav' || file.name.toLowerCase().endsWith('.wav') ? parsePcmFromWav(buffer) : null;
+      setAudioBlob(new Blob([buffer], { type: file.type || 'audio/mpeg' }), parsed?.pcm || null, parsed?.sampleRate || 24000);
+      await playCurrentAudio(file.name);
+    });
+    audio.addEventListener('play', () => { playbackActive = true; markState('speaking', 'Talking: воспроизводится настоящая звуковая дорожка.'); });
+    audio.addEventListener('ended', () => {
+      if (!playbackActive) return;
+      playbackActive = false;
+      markState('ready', 'Речь завершена. Возврат в idle.');
+    });
+    audio.addEventListener('error', () => markState('error', 'Не удалось загрузить звуковой файл.'));
+    window.addEventListener('beforeunload', () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      clearPreviewObjectUrl();
+    });
+    stage.dataset.viseme = 'M';
+    stage.dataset.expression = 'neutral';
+    stage.dataset.previewMode = 'builtin';
+    loadAvatarCatalog();
+    requestAnimationFrame(animationFrame);
+  })();
+</script>
+</body>
+</html>
