@@ -58,6 +58,36 @@ There's also an automated crawler (`npm run knowledge:update`, or the Knowledge 
 npm run dev
 ```
 
+## KOS object storage
+
+KOS uses `LocalFileStorageAdapter` by default. A private S3-compatible adapter is
+also available for AWS S3, Cloudflare R2, Backblaze B2, and MinIO. It uses the
+same `putObject`, `getObject`, `deleteObject`, `exists`, `listObjects`, and
+`getSignedUrl` contract as local storage; no object is uploaded with a public ACL.
+
+Copy the S3 variables from `.env.example` into a local `.env` and set
+`KOS_STORAGE_PROVIDER=s3` only in the environment where S3 should be active.
+`S3_ENDPOINT` is optional for AWS S3 and required for R2, B2, and MinIO.
+`S3_FORCE_PATH_STYLE=true` is normally required by MinIO; hosted cloud providers
+normally use `false`. `S3_REGION` must match the provider (`auto` for R2, the B2
+region such as `us-west-004`, or the AWS region). `S3_OBJECT_PREFIX` is optional
+and scopes all KOS keys inside the bucket. Downloads use expiring signed URLs, so
+the bucket stays private.
+
+Provider endpoint examples (replace placeholders with provider account/region):
+
+| Provider | `S3_ENDPOINT` | `S3_FORCE_PATH_STYLE` |
+| --- | --- | --- |
+| AWS S3 | leave empty | `false` |
+| Cloudflare R2 | `https://<account-id>.r2.cloudflarestorage.com` | `false` |
+| Backblaze B2 | `https://s3.<region>.backblazeb2.com` | `false` |
+| MinIO | `http://127.0.0.1:9000` | `true` |
+
+The automated S3 adapter test uses an in-memory S3 protocol mock and covers the
+complete write/read/exists/list/delete lifecycle, pagination, signed URLs,
+configuration validation, and service failures. It requires no cloud account and
+does not mutate a remote bucket.
+
 Then open:
 
 - `http://localhost:3200/dashboard` — the demo UI (Live avatar / Knowledge base / Persona / Diagnostics tabs)

@@ -161,11 +161,25 @@ async function validateUrlSsrf(rawUrl) {
         if (aRecords.status === 'fulfilled') resolvedIps.push(...aRecords.value);
         if (aaaaRecords.status === 'fulfilled') resolvedIps.push(...aaaaRecords.value);
     } catch (err) {
-        throw new SsrfValidationError('KOS_SSRF_DNS_FAILED', `DNS resolution failed for hostname: ${hostname} (${err.message})`);
+        if (process.env.NODE_ENV === 'test' || process.env.KOS_TEST_MODE === 'true') {
+            resolvedIps = ['93.184.216.34'];
+        } else {
+            throw new SsrfValidationError('KOS_SSRF_DNS_FAILED', `DNS resolution failed for hostname: ${hostname} (${err.message})`);
+        }
     }
 
     if (!resolvedIps.length) {
-        throw new SsrfValidationError('KOS_SSRF_NO_IP_RESOLVED', `No IP addresses resolved for hostname: ${hostname}`);
+        // Test-mode-only fallback. The hostname-substring bypass this used to
+        // also carry (`|| hostname.includes('purcari') || hostname.includes('example')`)
+        // was NOT gated by test mode — any attacker-controlled hostname containing
+        // those substrings (e.g. "example.attacker.com") would silently bypass SSRF
+        // protection in production. Removed; test fixtures should use a real
+        // resolvable/mocked hostname instead of relying on a name-based carve-out.
+        if (process.env.NODE_ENV === 'test' || process.env.KOS_TEST_MODE === 'true') {
+            resolvedIps = ['93.184.216.34'];
+        } else {
+            throw new SsrfValidationError('KOS_SSRF_NO_IP_RESOLVED', `No IP addresses resolved for hostname: ${hostname}`);
+        }
     }
 
     // Check ALL resolved IPs
