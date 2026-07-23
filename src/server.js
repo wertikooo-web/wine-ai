@@ -32,6 +32,25 @@ const env = require('./config/env');
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
 const publicDir = path.join(__dirname, '..', 'public');
+const avatarModulesDir = path.join(publicDir, 'avatar');
+const visualModulesDir = path.join(publicDir, 'visual');
+const threeModuleFile = path.join(__dirname, '..', 'node_modules', 'three', 'build', 'three.module.js');
+
+function envFlag(name, fallback) {
+    const value = process.env[name];
+    if (value == null || value === '') return fallback;
+    return /^(1|true|yes|on|enabled)$/i.test(value);
+}
+
+function getAvatarClientConfig() {
+    return {
+        enabled: envFlag('AVATAR_3D_ENABLED', process.env.NODE_ENV !== 'production'),
+        modelType: 'procedural',
+        modelUrl: '',
+        lipSync: { sensitivity: 3.4, noiseGate: 0.018, attack: 0.42, release: 0.16 },
+        performance: { maxPixelRatio: 1.5 },
+    };
+}
 
 // Initialize WINE AI KOS database schema (idempotent, safe fallback)
 initKosSchema().catch((error) => {
@@ -151,7 +170,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar.png', '/api/voices', '/api/voice-preview', '/api/persona', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/voices', '/api/voice-preview', '/api/persona', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -236,6 +255,91 @@ async function handleRequest(req, res) {
             .on('error', () => sendJson(res, 404, { ok: false, error: 'avatar_dev_not_available' }))
             .once('open', () => {
                 res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    // The dashboard has no bundler. Expose only Three's single browser ESM
+    // build and explicitly named local avatar modules; neither route accepts
+    // arbitrary paths into node_modules or public/.
+    if (req.method === 'GET' && pathname === '/vendor/three/three.module.js') {
+        fs.createReadStream(threeModuleFile)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'three_module_not_available' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=86400' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    const avatarModuleMatch = /^\/avatar-modules\/([a-zA-Z0-9_-]+\.mjs)$/.exec(pathname);
+    if (req.method === 'GET' && avatarModuleMatch) {
+        const filePath = path.join(avatarModulesDir, avatarModuleMatch[1]);
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'avatar_module_not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    if (req.method === 'GET' && pathname === '/visual-modules/VisualStoryController.mjs') {
+        const filePath = path.join(visualModulesDir, 'VisualStoryController.mjs');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'visual_module_not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    const visualStaticFiles = {
+        '/visual-assets/visual-story.css': {
+            filePath: path.join(visualModulesDir, 'visual-story.css'),
+            contentType: 'text/css; charset=utf-8',
+        },
+        '/visual-assets/bottle-fallback.svg': {
+            filePath: path.join(visualModulesDir, 'bottle-fallback.svg'),
+            contentType: 'image/svg+xml; charset=utf-8',
+        },
+        '/visual-assets/bottle-dealul-reserve.png': {
+            filePath: path.join(publicDir, 'Bottle 1 sample.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/bottle-codru-rose.png': {
+            filePath: path.join(publicDir, 'Bottle 2 sample.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/bottle-stefan-viorica.png': {
+            filePath: path.join(publicDir, 'Bottle 3 sample.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/avatar-woman-1.png': {
+            filePath: path.join(publicDir, 'woman avatar 1.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/sample-1.png': {
+            filePath: path.join(publicDir, 'Sample 1 .png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/pairing-duck-berry.png': {
+            filePath: path.join(visualModulesDir, 'pairing-duck-berry.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/pairing-aged-cheese.png': {
+            filePath: path.join(visualModulesDir, 'pairing-aged-cheese.png'),
+            contentType: 'image/png',
+        },
+    };
+    const visualStatic = visualStaticFiles[pathname];
+    if (req.method === 'GET' && visualStatic) {
+        fs.createReadStream(visualStatic.filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'visual_asset_not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': visualStatic.contentType, 'cache-control': 'public, max-age=3600' });
             })
             .pipe(res);
         return undefined;

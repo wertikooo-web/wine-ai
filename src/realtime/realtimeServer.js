@@ -24,6 +24,7 @@ const {
     GEMINI_INPUT_SAMPLE_RATE,
 } = require('./inputAudioResampling');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./mockRealtimeProvider');
+const { createVisualOrchestrator } = require('../visual/visualOrchestrator');
 const {
     DASHBOARD_ALLOW_CUSTOM_PROMPT,
     PROMPT_MAX_CHARS,
@@ -321,6 +322,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             ...payload,
         });
     }
+
+    // One visual lifecycle per realtime connection. It consumes the same
+    // authoritative generation ids for Gemini, Grok and mock providers.
+    const visualOrchestrator = createVisualOrchestrator({ emit, log });
 
     function rememberTurn(role, text) {
         const clean = String(text || '').trim();
@@ -835,6 +840,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             return true;
         }
         if (eventType === 'response.failed') {
+            visualOrchestrator.cancel(generation.generationId, payload.reason || 'provider_failed');
             recoverFromProviderFailure(generation, payload.reason || 'provider_failed', payload).catch((error) => {
                 log('turn_timeout_recovery_error', {
                     generationId: generation.generationId,
@@ -856,6 +862,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // memory extraction (triggered later, at audio.end) sees the full
             // user turn, not just the first partial chunk.
             generation.userTranscriptBuffer += String(payload.text || '');
+            visualOrchestrator.noteUserText(generation.generationId, payload.text);
         }
         if (eventType === 'transcript.user' && generation.inputEndedAt && !generation.firstInputTranscriptionAt) {
             rememberTurn('user', payload.text);
@@ -908,6 +915,13 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             response_id: generation.responseId,
             turn_id: generation.turnId,
         });
+        if (eventType === 'audio.start') {
+            visualOrchestrator.onAudioStart(generation.generationId);
+        } else if (eventType === 'audio.end') {
+            visualOrchestrator.onAudioEnd(generation.generationId);
+        } else if (eventType === 'response.cancelled') {
+            visualOrchestrator.cancel(generation.generationId, payload.reason || 'provider_cancelled');
+        }
         if (shouldRotateAfterAudioEnd && generation === currentGeneration) {
             rotateProviderSession(payload.cause === 'turnComplete'
                 ? 'output_turn_complete'
@@ -951,6 +965,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         });
         currentGeneration.status = 'cancelled';
         clearGenerationTimeout(currentGeneration);
+        visualOrchestrator.cancel(currentGeneration.generationId, reason);
         const cancelLatencyMs = Date.now() - cancelRequestedAt;
         emit({
             type: 'response.cancelled',
@@ -1058,6 +1073,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         turnCounter += 1;
         currentTurnId = payload.turn_id || id(`turn${turnCounter}`);
         currentGeneration = createGeneration({ turnId: currentTurnId });
+        visualOrchestrator.beginGeneration({
+            generationId: currentGeneration.generationId,
+            turnId: currentTurnId,
+        });
         currentMode = payload.mode || 'push_to_talk';
         inputStartedAt = Date.now();
         inputEndedAt = 0;
@@ -1165,6 +1184,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             session_input_bytes: sessionInputBytes,
             end_reason: payload.end_reason || null,
         });
+        visualOrchestrator.markThinking(currentGeneration.generationId);
         log('input_audio_end', {
             turnId: currentTurnId,
             durationMs: recordingDurationMs,
@@ -1240,6 +1260,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             turn_id: currentTurnId,
             text,
         });
+        visualOrchestrator.markThinking(generationForText.generationId);
         armPttTurnTimeout(generationForText);
         const textContext = buildProviderContext(generationForText);
         providerSession.sendText(text, textContext).catch((error) => {
@@ -1493,6 +1514,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     });
     socket.on('close', () => {
         socketClosed = true;
+        if (currentGeneration) visualOrchestrator.cancel(currentGeneration.generationId, 'disconnect');
         closeProvider('disconnect');
         log('disconnect', { connectedMs: Date.now() - connectedAt });
     });

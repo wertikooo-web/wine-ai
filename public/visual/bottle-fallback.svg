@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 520" role="img" aria-label="Wine bottle placeholder">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1"><stop stop-color="#19110f"/><stop offset=".5" stop-color="#53232b"/><stop offset="1" stop-color="#120b0c"/></linearGradient>
+    <linearGradient id="l" x1="0" x2="1"><stop stop-color="#efe2c6"/><stop offset="1" stop-color="#caa969"/></linearGradient>
+  </defs>
+  <path fill="url(#g)" d="M65 8h50v98c0 24 32 42 32 78v292c0 24-19 36-42 36H75c-23 0-42-12-42-36V184c0-36 32-54 32-78z"/>
+  <path fill="#6b1e2b" d="M61 25h58v55H61z"/>
+  <rect x="45" y="235" width="90" height="122" rx="7" fill="url(#l)"/>
+  <circle cx="90" cy="278" r="17" fill="#6b1e2b"/>
+  <path d="M90 261c-7 10-11 20 0 34 11-14 7-24 0-34z" fill="#d8b76d"/>
+  <text x="90" y="326" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="#54202a">WINE MD</text>
+</svg>
