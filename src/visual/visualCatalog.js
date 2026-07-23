@@ -89,9 +89,7 @@ const VISUAL_BINDINGS = Object.freeze({
 // conversation, not a reaction to the mic button. Without this check,
 // chooseWineId() would fall through to a default for every turn — including
 // "what is decanting?" or "tell me about Codru region" — which is exactly
-// the reported bug (card fires on almost every reply). Only fire once the
-// turn actually mentions a wine, a demo wine name, or a wine-recommendation
-// cue (e.g. "что взять к утке").
+// the reported bug (card fires on almost every reply).
 // NOTE: \b is ASCII-only in JS regex, even with the /u flag — it does not
 // recognize Cyrillic letters as word characters, so a Cyrillic \b silently
 // never matches. Plain substrings are used for the Cyrillic branches instead.
@@ -100,19 +98,23 @@ const VISUAL_BINDINGS = Object.freeze({
 // "Как хранить вино?", "Чем красное вино отличается от белого?", and
 // "Какие винодельни стоит посетить?" all contain that substring but must NOT
 // show a wine card (generic wine-topic questions, not a specific-wine ask).
-// The gate below only fires on a named demo wine, or an explicit
-// recommendation/purchase cue — this is a keyword heuristic, not real intent
-// resolution, so it won't catch every phrasing; see visualIntentGate.js /
+//
+// Also deliberately NOT matching generic recommendation/purchase cues
+// ("посоветуй", "что взять", "купить", "какое вино"...) anymore — a first
+// try of that fired the card on completely ordinary opening chit-chat with
+// a wine sommelier bot ("посоветуй что-нибудь", "какое вино выбрать"),
+// which is exactly the "should just be normal conversation" bug reported
+// after the first fix. This only fires when a specific demo wine is
+// actually named — a keyword heuristic, not real intent resolution, so it
+// won't catch every phrasing; see visualIntentGate.js /
 // docs/BROLL_IMPLEMENTATION_PLAN.md for the real fix (verified wineId from a
 // tool result, not text-sniffing).
-const WINE_TOPIC_PATTERN = /(feteasc|dealul|codru\b|viorica|ștefan\s*vod[aă]|stefan\s*voda|rosé|розе|какое вино|что (взять|подойдёт|порекоменд)|посовету|порекоменд|купить|закажи|заказать)/iu;
-
 function chooseWineId(text = '') {
     const normalized = String(text).toLocaleLowerCase('ru');
-    if (!WINE_TOPIC_PATTERN.test(normalized)) return null;
-    if (/(рыб|лосос|морепродукт|salmon|fish|pește)/u.test(normalized)) return 'demo-wine-002';
-    if (/(бел|цветоч|viorica|white|alb)/u.test(normalized)) return 'demo-wine-003';
-    return 'demo-wine-001';
+    if (/(feteasc|dealul)/u.test(normalized)) return 'demo-wine-001';
+    if (/(codru|rosé|розе)/u.test(normalized)) return 'demo-wine-002';
+    if (/(viorica|ștefan\s*vod[aă]|stefan\s*voda)/u.test(normalized)) return 'demo-wine-003';
+    return null;
 }
 
 function getValidatedPresentation(wineId) {
