@@ -1999,10 +1999,17 @@
   // visualCatalog.js's chooseWineId() gate deterministically (named demo
   // wine), instead of adding a separate "force-show a card" backdoor that
   // would bypass the gate we just fixed.
+  // Grounded with enough of the demo wine's own facts (winery, grapes,
+  // style) that the model answers directly instead of treating an
+  // unfamiliar-sounding demo name as ambiguous and asking clarifying
+  // questions back — "Codru Rosé" alone previously got a hedging "which
+  // wine/winery did you mean?" reply instead of describing the actual demo
+  // wine. Facts must match visualCatalog.js's WINE_KNOWLEDGE for the visual
+  // card and the spoken answer to stay consistent.
   const DEMO_WINE_PROMPTS = {
-    red: 'Расскажи про Dealul de Aur Fetească Neagră Reserve',
-    rose: 'Расскажи про Codru Rosé',
-    white: 'Расскажи про Ștefan Vodă Viorica',
+    red: 'Расскажи про Dealul de Aur Fetească Neagră Reserve 2019 — выдержанное красное демо-вино от Crama Dealul de Aur из сорта Фетяска Нягрэ',
+    rose: 'Расскажи про Codru Rosé 2023 — свежее сухое розовое демо-вино от Crama Dealul de Aur (Мерло и Фетяска Нягрэ), с ягодным ароматом',
+    white: 'Расскажи про Ștefan Vodă Viorica 2023 — ароматное сухое белое демо-вино от Vinăria Ștefan из сорта Виорика',
   };
 
   function askAboutDemoWine(kind) {
