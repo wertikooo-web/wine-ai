@@ -19,6 +19,18 @@ function makeInstanceId() {
     return `grok_session_${crypto.randomBytes(6).toString('hex')}`;
 }
 
+function normalizeJsonSchema(value) {
+    if (Array.isArray(value)) return value.map(normalizeJsonSchema);
+    if (!value || typeof value !== 'object') return value;
+    const normalized = {};
+    for (const [key, child] of Object.entries(value)) {
+        normalized[key] = key === 'type' && typeof child === 'string'
+            ? child.toLowerCase()
+            : normalizeJsonSchema(child);
+    }
+    return normalized;
+}
+
 function buildGrokTools(declarations = []) {
     if (!Array.isArray(declarations)) return [];
     return declarations
@@ -29,7 +41,9 @@ function buildGrokTools(declarations = []) {
                 type: 'function',
                 name,
                 description: String(declaration.description || ''),
-                parameters: declaration.parameters || { type: 'object', properties: {} },
+                parameters: normalizeJsonSchema(
+                    declaration.parameters || { type: 'object', properties: {} },
+                ),
             };
         })
         .filter(Boolean);
@@ -422,4 +436,5 @@ module.exports = {
     DEFAULT_GROK_REALTIME_URL,
     buildGrokSessionConfig,
     buildGrokTools,
+    normalizeJsonSchema,
 };
