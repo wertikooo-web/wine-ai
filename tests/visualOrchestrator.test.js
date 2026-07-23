@@ -35,7 +35,7 @@ function harness() {
 async function run() {
     const full = harness();
     full.orchestrator.beginGeneration({ generationId: 'gen-full', turnId: 'turn-full' });
-    full.orchestrator.noteUserText('gen-full', 'Что посоветуешь к утке?');
+    full.orchestrator.noteUserText('gen-full', 'Расскажи про Dealul de Aur Fetească Neagră Reserve, что взять к утке?');
     full.orchestrator.markThinking('gen-full');
     full.orchestrator.onAudioStart('gen-full');
     full.flushTimers();
