@@ -1,6 +1,7 @@
 'use strict';
 
 const { isValidVoiceName, DEFAULT_VOICE_NAME } = require('./geminiVoices');
+const { normalizeGrokVoiceId, DEFAULT_GROK_VOICE_ID } = require('./grokVoices');
 
 const TTS_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
 const MAX_PREVIEW_TEXT_CHARS = 300;
@@ -57,8 +58,70 @@ async function synthesizeVoicePreview({ voiceName, text, apiKey } = {}) {
     };
 }
 
+async function synthesizeGrokVoicePreview({ voiceName, text, apiKey, fetchImpl = globalThis.fetch } = {}) {
+    const resolvedVoice = normalizeGrokVoiceId(voiceName, DEFAULT_GROK_VOICE_ID);
+    const resolvedText = String(text || DEFAULT_PREVIEW_TEXT).trim().slice(0, MAX_PREVIEW_TEXT_CHARS) || DEFAULT_PREVIEW_TEXT;
+    const key = apiKey || process.env.GROK_API_KEY || process.env.XAI_API_KEY || '';
+
+    if (!key) {
+        const error = new Error('grok_api_key_missing');
+        error.code = 'grok_api_key_missing';
+        throw error;
+    }
+    if (typeof fetchImpl !== 'function') {
+        const error = new Error('grok_tts_fetch_unavailable');
+        error.code = 'grok_tts_fetch_unavailable';
+        throw error;
+    }
+
+    const response = await fetchImpl('https://api.x.ai/v1/tts', {
+        method: 'POST',
+        headers: {
+            authorization: `Bearer ${key}`,
+            'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+            text: resolvedText,
+            voice_id: resolvedVoice,
+            language: 'auto',
+            output_format: { codec: 'mp3' },
+        }),
+    });
+
+    if (!response.ok) {
+        const error = new Error(`grok_tts_http_${response.status}`);
+        error.code = response.status === 401 || response.status === 403
+            ? 'grok_tts_unauthorized'
+            : 'grok_tts_failed';
+        throw error;
+    }
+
+    const audio = Buffer.from(await response.arrayBuffer());
+    if (audio.length === 0) {
+        const error = new Error('empty_audio_response');
+        error.code = 'empty_audio_response';
+        throw error;
+    }
+
+    return {
+        voiceName: resolvedVoice,
+        mimeType: String(response.headers?.get?.('content-type') || 'audio/mpeg').split(';')[0],
+        sampleRate: null,
+        audioBase64: audio.toString('base64'),
+    };
+}
+
+async function synthesizeProviderVoicePreview({ provider = 'gemini', ...options } = {}) {
+    if (String(provider).toLowerCase() === 'grok' || String(provider).toLowerCase() === 'xai') {
+        return synthesizeGrokVoicePreview(options);
+    }
+    return synthesizeVoicePreview(options);
+}
+
 module.exports = {
     synthesizeVoicePreview,
+    synthesizeGrokVoicePreview,
+    synthesizeProviderVoicePreview,
     TTS_MODEL,
     DEFAULT_PREVIEW_TEXT,
     MAX_PREVIEW_TEXT_CHARS,
