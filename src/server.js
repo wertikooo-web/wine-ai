@@ -310,13 +310,21 @@ async function handleRequest(req, res) {
             filePath: path.join(publicDir, 'Bottle 1 sample.png'),
             contentType: 'image/png',
         },
-        '/visual-assets/bottle-codru-rose.png': {
-            filePath: path.join(publicDir, 'Bottle 2 sample.png'),
-            contentType: 'image/png',
+        // Codru Rosé / Ștefan Vodă Viorica: the previous entries here
+        // (bottle-codru-rose.png -> "Bottle 2 sample.png",
+        // bottle-stefan-viorica.png -> "Bottle 3 sample.png") all turned out
+        // to be crops of the same AI-generated red-wine mockup regardless of
+        // which wine they were nominally for — see the commit that replaced
+        // them. Routed to new purpose-made SVG illustrations instead;
+        // visualAssetRegistry.js's bottleUrl was updated to request these
+        // .svg paths directly.
+        '/visual-assets/bottle-codru-rose.svg': {
+            filePath: path.join(visualModulesDir, 'bottle-codru-rose.svg'),
+            contentType: 'image/svg+xml; charset=utf-8',
         },
-        '/visual-assets/bottle-stefan-viorica.png': {
-            filePath: path.join(publicDir, 'Bottle 3 sample.png'),
-            contentType: 'image/png',
+        '/visual-assets/bottle-stefan-viorica.svg': {
+            filePath: path.join(visualModulesDir, 'bottle-stefan-viorica.svg'),
+            contentType: 'image/svg+xml; charset=utf-8',
         },
         '/visual-assets/avatar-woman-1.png': {
             filePath: path.join(publicDir, 'woman avatar 1.png'),
