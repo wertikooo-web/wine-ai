@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wine AI Realtime — Dashboard</title>
+    <link rel="stylesheet" href="/visual-assets/visual-story.css?v=19">
 <style>
   :root {
     --wine: #6b1e2b;
@@ -94,7 +95,7 @@
   }
   nav.tabs .avatar-lab-link:hover { color: var(--wine); }
 
-  main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
   /* Compact chrome on small phones so the primary Connect action and mic
      button sit close to the first screenful — a first-time visitor should
      reach them without hunting, not just "eventually via scroll". */
@@ -166,7 +167,7 @@
      directly at every width (an earlier tilt-on-hover treatment looked
      "crooked" and shifted on interaction, per feedback; removed). */
   @media (min-width: 1024px) {
-    .phone-row { gap: 64px; }
+    .phone-row { gap: 28px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .phone-frame { transition: none; }
@@ -523,7 +524,7 @@
               <div class="device-stage" id="deviceStage">
                 <div class="device-glow" aria-hidden="true"></div>
                 <div class="avatar-box" id="avatarBox">
-                  <img src="/avatar.png" alt="Wine AI avatar">
+                  <img class="avatar-fallback" src="/visual-assets/avatar-woman-1.png" alt="WineMD sommelier avatar">
                   <div class="device-sheen" aria-hidden="true"></div>
                   <div class="avatar-ring"></div>
                 </div>
@@ -567,16 +568,24 @@
         </div>
       </div>
 
-      <!-- PhoneShell #2: CapabilitiesScreen — same chrome as #1. Text content
-           is translated to match the dashboard UI language (see
-           applyUiLanguage()/UI_STRINGS) — ids below are what gets updated;
-           the underlying 4 capabilities + language list stay the same set
-           of facts across every language, only their wording changes. -->
+      <!-- PhoneShell #2: Live Visual Storytelling -->
       <div class="phone-shell phone-shell--right">
         <div class="phone-frame">
           <div class="phone-island" aria-hidden="true"></div>
+          <div class="phone-screen visual-story-host">
+            <div id="visualStoryRoot" class="visual-story-shell"></div>
+          </div>
+          <div class="phone-gesture-bar" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- PhoneShell #3: CapabilitiesScreen. Text content is translated to
+           match the dashboard UI language by applyUiLanguage()/UI_STRINGS. -->
+      <div class="phone-shell phone-shell--capabilities">
+        <div class="phone-frame">
+          <div class="phone-island" aria-hidden="true"></div>
           <div class="phone-screen">
-            <div class="app-screen features-screen">
+              <div class="app-screen features-screen">
               <div class="features-header">
                 <div class="features-icon-badge">🍷</div>
                 <h2 id="featuresTitle">Wine AI умеет</h2>
@@ -916,6 +925,12 @@
   let firstAudioAt = 0;
   let playbackQueueTime = 0;
   let activeSources = [];
+  let serverAudioEnded = true;
+  let avatar3d = null;
+  let avatarOutputAnalyser = null;
+  let avatarOutputAnalyserContext = null;
+  let visualStoryController = null;
+  const pendingVisualEvents = [];
   let selectedRealtimeProvider = localStorage.getItem('wineAiRealtimeProvider') || '';
   let realtimeProviderConfigs = [];
   let selectedVoiceName = '';
@@ -937,6 +952,17 @@
   };
 
   const el = (id) => document.getElementById(id);
+
+  async function initVisualStory() {
+    const { VisualStoryController } = await import('/visual-modules/VisualStoryController.mjs');
+    visualStoryController = new VisualStoryController(el('visualStoryRoot'), {
+      log,
+      language: uiLang,
+      onAvatarState: (state) => DeviceVisual.setState(state),
+    });
+    if (avatarOutputAnalyser) visualStoryController.attachAnalyser(avatarOutputAnalyser);
+    while (pendingVisualEvents.length) visualStoryController.handle(pendingVisualEvents.shift());
+  }
 
   function setDot(id, state) {
     // Header connection/provider pills were removed per request — guarded
@@ -1572,6 +1598,7 @@
       el('langSelect').disabled = true;
       setProviderControlsDisabled(false);
       DeviceVisual.setState('disconnected');
+      visualStoryController?.reset();
       log('ws_close', {});
     });
 
@@ -1638,6 +1665,11 @@
   function handleEvent(payload) {
     log(payload.type, { turn: payload.turn_id, gen: payload.generation_id });
     setText('dSession', payload.session_id || '—');
+    if (String(payload.type || '').startsWith('visual.')) {
+      if (visualStoryController) visualStoryController.handle(payload);
+      else if (pendingVisualEvents.length < 40) pendingVisualEvents.push(payload);
+      return;
+    }
 
     switch (payload.type) {
       case 'session.ready':
@@ -2057,16 +2089,41 @@
     schedulePlayback(buffer);
   }
 
+  function ensureAvatarOutputAnalyser() {
+    if (!audioContext) return null;
+    if (avatarOutputAnalyser && avatarOutputAnalyserContext === audioContext) return avatarOutputAnalyser;
+    if (avatarOutputAnalyser) {
+      try { avatarOutputAnalyser.disconnect(); } catch { /* old context already closed */ }
+    }
+    avatarOutputAnalyser = audioContext.createAnalyser();
+    avatarOutputAnalyser.fftSize = 256;
+    avatarOutputAnalyser.smoothingTimeConstant = 0.18;
+    avatarOutputAnalyser.connect(audioContext.destination);
+    avatarOutputAnalyserContext = audioContext;
+    if (avatar3d) avatar3d.attachAnalyser(avatarOutputAnalyser);
+    if (visualStoryController) visualStoryController.attachAnalyser(avatarOutputAnalyser);
+    return avatarOutputAnalyser;
+  }
+
+  function maybeFinishSpeaking() {
+    if (!serverAudioEnded || activeSources.length > 0) return;
+    if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
+    if (avatar3d) avatar3d.resetAudio();
+  }
+
   function schedulePlayback(buffer) {
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
-    src.connect(audioContext.destination);
+    src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
     const now = audioContext.currentTime;
     const startAt = Math.max(now, playbackQueueTime);
     src.start(startAt);
     playbackQueueTime = startAt + buffer.duration;
     activeSources.push(src);
-    src.onended = () => { activeSources = activeSources.filter((s) => s !== src); };
+    src.onended = () => {
+      activeSources = activeSources.filter((s) => s !== src);
+      maybeFinishSpeaking();
+    };
   }
 
   // Stops every scheduled/currently-playing audio chunk immediately. The
@@ -2081,7 +2138,9 @@
       try { src.onended = null; src.stop(); } catch { /* already stopped */ }
     }
     activeSources = [];
+    serverAudioEnded = true;
     playbackQueueTime = audioContext ? audioContext.currentTime : 0;
+    if (avatar3d) avatar3d.resetAudio();
   }
 
   function playAudioChunk(payload) {
@@ -2518,6 +2577,7 @@
   function applyUiLanguage(lang) {
     uiLang = lang;
     localStorage.setItem('wineAiUiLang', lang);
+    if (visualStoryController) visualStoryController.setLanguage(lang);
     setText('headerSub', getUiString('sub'));
     const tabAvatar = document.querySelector('nav.tabs [data-tab="avatar"]');
     const tabKnowledge = document.querySelector('nav.tabs [data-tab="knowledge"]');
@@ -2594,6 +2654,7 @@
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
   loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
+  initVisualStory().catch((err) => log('visual_story_load_error', { message: err.message }));
   prefetchScreenContext('winery', 'crama-dealul-de-aur');
   prefetchScreenContext('wine', 'dealul-de-aur-feteasca-neagra-reserve-2019');
   loadPipelineStatus().catch((err) => log('pipeline_status_load_error', { message: err.message }));
