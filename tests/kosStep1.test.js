@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { initKosSchema } = require('../src/kos/db/kosSchema');
-const { createObjectStorageProvider, LocalFileStorageAdapter, S3StorageAdapterStub } = require('../src/kos/storage/objectStorage');
+const { createObjectStorageProvider, LocalFileStorageAdapter, S3StorageAdapter } = require('../src/kos/storage/objectStorage');
 const { getFieldPolicy, calculateFreshnessScore } = require('../src/kos/config/fieldPolicies');
 const {
     calculateChecksum,
@@ -54,7 +54,7 @@ async function run() {
 
         // 3. Object Storage Adapter S3 configuration validation
         assert.throws(() => {
-            new S3StorageAdapterStub({}); // Missing credentials
+            new S3StorageAdapter({ bucket: '', accessKeyId: '', secretAccessKey: '' });
         }, /s3_storage_missing_credentials/);
 
         // 4. Source Registration & Metadata Sanitization

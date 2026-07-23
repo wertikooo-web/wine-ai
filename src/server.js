@@ -26,6 +26,7 @@ const { getScreenContext, buildContextualPersona } = require('./persona/screenCo
 const { getPurchaseOptions } = require('./data/purchaseOptions');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
+const sourceIngestionService = require('./kos/sources/sourceIngestionService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
 
@@ -535,6 +536,67 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
     }
 
+    // Step 2E: the smallest complete Dashboard -> Source Registry -> crawler
+    // flow. Crawls run in this request on purpose: the existing ingestion
+    // service owns the crawl-run state, and the Dashboard shows a local
+    // `running` state while it waits. No second queue/worker/progress channel
+    // is introduced here. Ingested resources remain pending_review and this
+    // route never writes to kos_knowledge_facts.
+    const kosSourceMatch = /^\/api\/kos\/sources\/(src_[a-zA-Z0-9]+)\/?$/.exec(pathname);
+    const kosSourceCrawlMatch = /^\/api\/kos\/sources\/(src_[a-zA-Z0-9]+)\/crawl\/?$/.exec(pathname);
+    const isKosSourceRoute = pathname === '/api/kos/sources'
+        || pathname === '/api/kos/sources/'
+        || pathname === '/api/kos/sources/website'
+        || pathname === '/api/kos/sources/website/'
+        || Boolean(kosSourceMatch)
+        || Boolean(kosSourceCrawlMatch);
+
+    if (isKosSourceRoute) {
+        if (!db.isEnabled() || !isKosSchemaReady()) {
+            return sendJson(res, 503, {
+                ok: false,
+                error: 'kos_source_registry_unavailable',
+                message: 'The KOS source registry is not ready. Check PostgreSQL and KOS schema initialization.',
+            });
+        }
+
+        try {
+            if (req.method === 'GET' && (pathname === '/api/kos/sources' || pathname === '/api/kos/sources/')) {
+                return sendJson(res, 200, await sourceIngestionService.listSourcesWithStatus());
+            }
+
+            if (req.method === 'POST' && (pathname === '/api/kos/sources/website' || pathname === '/api/kos/sources/website/')) {
+                const body = await readJsonBody(req);
+                const result = await sourceIngestionService.addWebsiteAndStartCrawl({
+                    url: body.url,
+                    name: body.name,
+                    wineryId: body.wineryId || null,
+                });
+                return sendJson(res, 201, { ok: true, ...result });
+            }
+
+            if (req.method === 'GET' && kosSourceMatch) {
+                return sendJson(res, 200, await sourceIngestionService.getSourceWithStatus({ sourceId: kosSourceMatch[1] }));
+            }
+
+            if (req.method === 'POST' && kosSourceCrawlMatch) {
+                const result = await sourceIngestionService.triggerCrawlForSource({ sourceId: kosSourceCrawlMatch[1] });
+                return sendJson(res, 200, { ok: true, ...result });
+            }
+
+            return sendJson(res, 405, { ok: false, error: 'method_not_allowed' });
+        } catch (error) {
+            const statusCode = error.code === 'body_too_large'
+                ? 413
+                : (error.code === 'invalid_json' ? 400 : (error.statusCode || 500));
+            return sendJson(res, statusCode, {
+                ok: false,
+                error: error.code || 'kos_source_request_failed',
+                message: error.message || 'KOS source request failed',
+            });
+        }
+    }
+
     if (req.method === 'GET' && pathname === '/api/knowledge/status') {
         const index = loadIndex();
         return sendJson(res, 200, {
@@ -714,6 +776,10 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && pathname === '/api/avatar/status') {
         return sendJson(res, 200, { ok: true, ...avatarProvider.getStatus() });
+    }
+
+    if (req.method === 'GET' && pathname === '/api/avatar/config') {
+        return sendJson(res, 200, { ok: true, ...getAvatarClientConfig() });
     }
 
     // ---- Knowledge Pipeline / Knowledge Monitor (see

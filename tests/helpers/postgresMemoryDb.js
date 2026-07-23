@@ -623,18 +623,69 @@ class MemoryPgEngine {
             return { rows: [newRow] };
         }
 
+        // INSERT INTO kos_crawl_runs
+        if (/^INSERT INTO kos_crawl_runs/i.test(sql)) {
+            const table = this.tables.get('kos_crawl_runs') || { name: 'kos_crawl_runs', rows: [] };
+            this.tables.set('kos_crawl_runs', table);
+
+            const [id, source_id, status, config_snapshot, started_at] = params;
+            const newRow = {
+                id,
+                source_id,
+                status: status || 'crawling',
+                config_snapshot: typeof config_snapshot === 'string' ? JSON.parse(config_snapshot) : config_snapshot,
+                pages_discovered: 0,
+                pages_fetched: 0,
+                pages_failed: 0,
+                started_at: started_at || new Date().toISOString(),
+                created_at: new Date().toISOString(),
+            };
+            table.rows.push(newRow);
+            return { rows: [newRow] };
+        }
+
+        // SELECT FROM kos_crawl_runs by source_id
+        if (/^SELECT \* FROM kos_crawl_runs WHERE source_id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_crawl_runs');
+            const sourceId = params[0];
+            let matches = table ? table.rows.filter(r => r.source_id === sourceId) : [];
+            if (/ORDER BY/i.test(sql)) {
+                matches = [...matches].sort((a, b) => new Date(b.started_at || b.created_at) - new Date(a.started_at || a.created_at));
+            }
+            if (/LIMIT 1/i.test(sql)) {
+                matches = matches.slice(0, 1);
+            }
+            return { rows: matches };
+        }
+
         // UPDATE kos_crawl_runs
         if (/^UPDATE kos_crawl_runs SET/i.test(sql)) {
             const table = this.tables.get('kos_crawl_runs');
             if (!table) return { rows: [] };
+            
+            // Check if error update or final status update
+            if (/error_details/i.test(sql)) {
+                const errorDetails = params[0];
+                const id = params[1] || params[2];
+                const row = table.rows.find(r => r.id === id);
+                if (row) {
+                    if (/status = 'failed'/i.test(sql)) row.status = 'failed';
+                    else if (/status = \$1/i.test(sql)) row.status = params[0];
+                    row.error_details = typeof errorDetails === 'string' ? JSON.parse(errorDetails) : errorDetails;
+                    row.completed_at = new Date().toISOString();
+                }
+                return { rows: row ? [row] : [] };
+            }
+
             const [status, pages_discovered, pages_fetched, pages_failed, completed_at, id] = params;
-            const row = table.rows.find(r => r.id === id);
+            const targetId = id || params[params.length - 1];
+            const row = table.rows.find(r => r.id === targetId);
             if (row) {
                 row.status = status;
-                row.pages_discovered = pages_discovered;
-                row.pages_fetched = pages_fetched;
-                row.pages_failed = pages_failed;
-                row.completed_at = completed_at;
+                if (pages_discovered !== undefined) row.pages_discovered = pages_discovered;
+                if (pages_fetched !== undefined) row.pages_fetched = pages_fetched;
+                if (pages_failed !== undefined) row.pages_failed = pages_failed;
+                if (completed_at !== undefined) row.completed_at = completed_at;
             }
             return { rows: row ? [row] : [] };
         }
