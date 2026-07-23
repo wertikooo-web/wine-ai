@@ -8,22 +8,23 @@ const ASSET_SETS = Object.freeze({
         bottleUrl: '/visual-assets/bottle-dealul-reserve.png',
         fallbackUrl: '/visual-assets/bottle-fallback.svg',
     }),
-    // bottleUrl deliberately points at hand-drawn SVGs, not photos: the
-    // previously-deployed .png files at these same names (never committed —
-    // see docs/PROJECT_STATUS or the commit that restored them) all turned
-    // out to be crops of the same AI-generated red-wine mockup image, just
-    // wrapped in different UI framing. .vs-bottle's CSS crop
-    // (object-fit:cover / object-position:left center — see
-    // public/visual-assets/visual-story.css) always grabbed the same red
-    // bottle regardless of which "wine" it was supposedly illustrating.
+    // The original .png files at these same URLs (never committed — see the
+    // commit that restored them) all turned out to be crops of the same
+    // AI-generated red-wine mockup image, just wrapped in different UI
+    // framing. .vs-bottle's CSS crop (object-fit:cover / object-position:
+    // left center — see public/visual/visual-story.css) always grabbed the
+    // same red bottle regardless of which "wine" it was supposedly
+    // illustrating. Replaced with purpose-generated photos matching the red
+    // bottle's studio-shot style (a hand-drawn SVG placeholder briefly
+    // stood in here in between).
     'asset-codru-rose': Object.freeze({
         type: 'static-image',
-        bottleUrl: '/visual-assets/bottle-codru-rose.svg',
+        bottleUrl: '/visual-assets/bottle-codru-rose.png',
         fallbackUrl: '/visual-assets/bottle-fallback.svg',
     }),
     'asset-stefan-viorica': Object.freeze({
         type: 'static-image',
-        bottleUrl: '/visual-assets/bottle-stefan-viorica.svg',
+        bottleUrl: '/visual-assets/bottle-stefan-viorica.png',
         fallbackUrl: '/visual-assets/bottle-fallback.svg',
     }),
 });
