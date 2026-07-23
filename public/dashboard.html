@@ -1508,10 +1508,25 @@
     });
   }
 
-  function showReplyBox(text) {
+  // transcript.model streams as incremental fragments per generation (see
+  // realtimeServer.js/geminiLiveProvider.js), NOT one complete string per
+  // event — this accumulates fragments keyed by generation_id instead of
+  // replacing the box's content on every event. The earlier version
+  // replaced instead of appended, so the box only ever showed the LAST
+  // fragment of a reply (looked like the assistant answered with a random
+  // sentence-ending word, or "no real answer came through").
+  let replyBoxText = '';
+  let replyBoxGenerationId = null;
+  function showReplyBox(payload) {
     const box = el('replyBox');
-    if (!box || !text) return;
-    box.innerHTML = linkifyForReplyBox(text);
+    if (!box) return;
+    if (payload.generation_id !== replyBoxGenerationId) {
+      replyBoxGenerationId = payload.generation_id;
+      replyBoxText = '';
+    }
+    replyBoxText += String(payload.text || '');
+    if (!replyBoxText) return;
+    box.innerHTML = linkifyForReplyBox(replyBoxText);
     box.classList.add('visible');
   }
 
@@ -1842,7 +1857,7 @@
         break;
       case 'transcript.model':
         addTranscriptTurn('assistant', payload.text);
-        showReplyBox(payload.text);
+        showReplyBox(payload);
         break;
       case 'language.switch_detected':
         setText('langState', payload.to_language || '—');
