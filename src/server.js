@@ -6,8 +6,10 @@ const path = require('path');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./realtime/mockRealtimeProvider');
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./realtime/geminiLiveProvider');
+const { createRealtimeProviderRegistry, normalizeProviderName } = require('./realtime/providerRegistry');
 const { GEMINI_VOICES, DEFAULT_VOICE_NAME } = require('./geminiVoices');
-const { synthesizeVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./voicePreview');
+const { listGrokVoices } = require('./grokVoices');
+const { synthesizeProviderVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./voicePreview');
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex } = require('./knowledge/index');
@@ -101,6 +103,17 @@ function createProviderFactory() {
 }
 
 const providerFactory = createProviderFactory();
+const providerRegistry = createRealtimeProviderRegistry({
+    defaultProvider: provider,
+    geminiApiKey: env.GEMINI_API_KEY,
+    geminiModel: process.env.GEMINI_LIVE_MODEL,
+    geminiVoice: process.env.GEMINI_LIVE_VOICE,
+    grokApiKey: env.GROK_API_KEY,
+    grokModel: process.env.GROK_VOICE_MODEL || process.env.XAI_VOICE_MODEL,
+    grokRealtimeUrl: process.env.GROK_REALTIME_URL || process.env.XAI_REALTIME_URL,
+    grokVoice: process.env.GROK_VOICE_ID || process.env.XAI_VOICE_ID,
+}, providerFactory.metadata);
+const defaultProvider = providerRegistry.resolveDefault();
 
 function sendJson(res, statusCode, payload) {
     const body = JSON.stringify(payload, null, 2);
@@ -162,7 +175,8 @@ async function handleRequest(req, res) {
     // Route matching happens against the parsed pathname only, never raw
     // req.url — see docs/WINE_AI_MIGRATION_PLAN.md section 1.1 for why
     // that distinction matters once any route takes a query string.
-    const pathname = new URL(req.url, 'http://localhost').pathname;
+    const requestUrl = new URL(req.url, 'http://localhost');
+    const pathname = requestUrl.pathname;
 
     if (req.method === 'GET' && pathname === '/health') {
         const isDbPostgres = db.isEnabled();
@@ -172,8 +186,8 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, {
             ok: true,
             service: 'wine-ai-realtime',
-            provider,
-            model: providerFactory.metadata.model,
+            provider: defaultProvider.id,
+            model: defaultProvider.metadata.model,
             endpoints: KNOWN_ENDPOINTS,
             kos: {
                 enabled: true,
@@ -192,8 +206,8 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, {
             name: 'Wine AI Realtime',
             status: 'realtime-ready',
-            provider,
-            model: providerFactory.metadata.model,
+            provider: defaultProvider.id,
+            model: defaultProvider.metadata.model,
             endpoints: KNOWN_ENDPOINTS,
             next: 'Open /dashboard in a browser and start a conversation.',
         });
@@ -271,7 +285,19 @@ async function handleRequest(req, res) {
     }
 
     if (req.method === 'GET' && pathname === '/api/voices') {
-        return sendJson(res, 200, { ok: true, default_voice: DEFAULT_VOICE_NAME, voices: GEMINI_VOICES });
+        const requestedProvider = normalizeProviderName(requestUrl.searchParams.get('provider'), defaultProvider.id);
+        const providerDefinition = providerRegistry.get(requestedProvider);
+        const voices = requestedProvider === 'grok'
+            ? await listGrokVoices({ apiKey: env.GROK_API_KEY })
+            : providerDefinition.voices;
+        return sendJson(res, 200, {
+            ok: true,
+            default_provider: defaultProvider.id,
+            provider: requestedProvider,
+            providers: providerRegistry.list(),
+            default_voice: providerDefinition.default_voice,
+            voices,
+        });
     }
 
     if (req.method === 'POST' && pathname === '/api/voice-preview') {
@@ -282,9 +308,21 @@ async function handleRequest(req, res) {
             return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
         try {
-            const preview = await synthesizeVoicePreview({ voiceName: body.voice_name || body.voiceName, text: body.text });
+            const requestedProvider = normalizeProviderName(body.provider, defaultProvider.id);
+            const providerDefinition = providerRegistry.get(requestedProvider);
+            if (!providerDefinition.configured) {
+                const notConfigured = new Error(`${requestedProvider}_provider_not_configured`);
+                notConfigured.code = 'realtime_provider_not_configured';
+                throw notConfigured;
+            }
+            const preview = await synthesizeProviderVoicePreview({
+                provider: requestedProvider,
+                voiceName: body.voice_name || body.voiceName,
+                text: body.text,
+            });
             return sendJson(res, 200, {
                 ok: true,
+                provider: requestedProvider,
                 voice_name: preview.voiceName,
                 mime_type: preview.mimeType,
                 sample_rate: preview.sampleRate,
@@ -292,7 +330,11 @@ async function handleRequest(req, res) {
             });
         } catch (error) {
             const code = error.code || 'voice_preview_failed';
-            const statusCode = code === 'gemini_api_key_missing' ? 503 : 502;
+            const statusCode = code === 'gemini_api_key_missing'
+                || code === 'grok_api_key_missing'
+                || code === 'realtime_provider_not_configured'
+                ? 503
+                : 502;
             return sendJson(res, statusCode, { ok: false, error: code, max_chars: MAX_PREVIEW_TEXT_CHARS });
         }
     }
@@ -659,10 +701,11 @@ async function handleRequest(req, res) {
 }
 
 attachRealtimeServer(server, {
-    providerFactory: providerFactory.createSession,
-    providerMetadata: providerFactory.metadata,
+    providerFactory: defaultProvider.createSession,
+    providerMetadata: defaultProvider.metadata,
+    resolveProvider: (requestedProvider) => providerRegistry.resolve(requestedProvider),
 });
 
 server.listen(PORT, () => {
-    console.log(`[WineAI] listening port=${PORT} provider=${provider}`);
+    console.log(`[WineAI] listening port=${PORT} provider=${defaultProvider.id}`);
 });

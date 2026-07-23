@@ -198,6 +198,7 @@ function attachRealtimeServer(server, options = {}) {
     const defaultProvider = new MockRealtimeProvider(options.mockConfig || DEFAULT_CONFIG);
     const providerFactory = options.providerFactory || ((sessionOptions = {}) => defaultProvider.createSession(sessionOptions));
     const providerMetadata = options.providerMetadata || { provider: 'mock', model: 'mock' };
+    const resolveProvider = typeof options.resolveProvider === 'function' ? options.resolveProvider : null;
 
     server.on('upgrade', (req, socket) => {
         const url = new URL(req.url || '/', 'http://localhost');
@@ -207,8 +208,22 @@ function attachRealtimeServer(server, options = {}) {
             return;
         }
 
+        let connectionProviderFactory = providerFactory;
+        let connectionProviderMetadata = providerMetadata;
+        if (resolveProvider) {
+            try {
+                const resolved = resolveProvider(url.searchParams.get('provider'));
+                connectionProviderFactory = resolved.createSession;
+                connectionProviderMetadata = resolved.metadata;
+            } catch (error) {
+                socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nRealtime provider is not configured.');
+                socket.destroy();
+                return;
+            }
+        }
+
         if (!acceptWebSocket(req, socket)) return;
-        createRealtimeSession(socket, providerFactory, providerMetadata);
+        createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata);
     });
 }
 

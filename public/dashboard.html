@@ -420,6 +420,7 @@
 
   /* ---- Voice picker (Settings tab) ---- */
   .voice-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .voice-columns.single { grid-template-columns: 1fr; }
   @media (max-width: 800px) { .voice-columns { grid-template-columns: 1fr; } }
   .voice-group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--wine); margin: 0 0 8px; }
   .voice-list { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
@@ -438,6 +439,25 @@
   .voice-preview-btn:hover:not(:disabled) { border-color: var(--wine); }
   .voice-preview-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .voice-preview-btn.loading { cursor: wait; }
+  .provider-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .provider-option {
+    text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: white; color: var(--ink);
+  }
+  .provider-option.selected { border-color: var(--wine); background: #fbeceb; }
+  .provider-option:disabled { cursor: not-allowed; opacity: 0.55; }
+  .provider-option-name { display: block; font-weight: 600; }
+  .provider-option-model { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .provider-status { font-size: 11px; color: var(--ok); white-space: nowrap; }
+  .provider-status.unavailable { color: var(--muted); }
+  .voice-picker-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .voice-picker-select {
+    width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 10px; background: white; color: var(--ink); font: inherit;
+  }
+  @media (max-width: 620px) {
+    .provider-options { grid-template-columns: 1fr; }
+  }
 
   /* ---- Knowledge Monitor: collapsible card + collapsible status groups ---- */
   .pm-card-summary { cursor: pointer; list-style: none; margin-bottom: 4px; }
@@ -825,6 +845,10 @@
   <section class="panel" id="tab-persona">
     <div class="card">
       <h2>Voice</h2>
+      <div id="realtimeProviderOptions" class="provider-options" aria-label="Realtime provider"></div>
+      <p id="providerChoiceHint" style="font-size:12px; color:var(--muted); margin:0 0 14px;">
+        Выберите языковую модель до начала разговора.
+      </p>
       <div class="voice-columns">
         <div>
           <h3 class="voice-group-title">Женские (по звучанию)</h3>
@@ -892,7 +916,9 @@
   let firstAudioAt = 0;
   let playbackQueueTime = 0;
   let activeSources = [];
-  let selectedVoiceName = localStorage.getItem('wineAiVoiceName') || '';
+  let selectedRealtimeProvider = localStorage.getItem('wineAiRealtimeProvider') || '';
+  let realtimeProviderConfigs = [];
+  let selectedVoiceName = '';
   let currentPreviewSource = null;
 
   // Google does not publish an official gender for these 30 prebuilt Gemini
@@ -1334,7 +1360,8 @@
   // ---- WebSocket / protocol ----
   function socketUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${location.host}/realtime`;
+    const providerParam = selectedRealtimeProvider ? `?provider=${encodeURIComponent(selectedRealtimeProvider)}` : '';
+    return `${proto}//${location.host}/realtime${providerParam}`;
   }
 
   // Screen-launch context ("Спросить Wine AI об этой винодельне/вине") —
@@ -1509,6 +1536,7 @@
       el('textInput').disabled = false;
       el('textSendBtn').disabled = false;
       el('langSelect').disabled = false;
+      setProviderControlsDisabled(true);
       DeviceVisual.setState('ready');
       // Acquire the mic (and therefore know its real AudioContext sample
       // rate) BEFORE declaring session.start's sampleRate — sending a
@@ -1542,6 +1570,7 @@
       el('textInput').disabled = true;
       el('textSendBtn').disabled = true;
       el('langSelect').disabled = true;
+      setProviderControlsDisabled(false);
       DeviceVisual.setState('disconnected');
       log('ws_close', {});
     });
@@ -1574,6 +1603,18 @@
   // panel feel" requirement.
   const CONNECTION_BUTTON_KEY = { disconnected: 'connect', connecting: 'connecting', connected: 'disconnect' };
   let lastConnectionState = 'disconnected';
+  function setProviderControlsDisabled(disabled) {
+    document.querySelectorAll('.provider-option').forEach((button) => {
+      button.disabled = disabled || button.dataset.configured !== 'true';
+    });
+    document.querySelectorAll('.voice-select-btn, .voice-preview-btn').forEach((button) => {
+      button.disabled = disabled;
+    });
+    const hint = el('providerChoiceHint');
+    if (hint) hint.textContent = disabled
+      ? 'Чтобы сменить модель или голос, сначала завершите разговор.'
+      : 'Выберите языковую модель и голос до начала разговора.';
+  }
   function setConnectionButton(state) {
     lastConnectionState = state;
     const btn = el('connectBtn');
@@ -1604,7 +1645,7 @@
         setText('providerLabel', 'provider: ' + (payload.provider || '—'));
         setText('dProvider', payload.provider || '—');
         setText('dProviderInstance', payload.provider_instance_id || '—');
-        setText('dOutputRate', payload.provider === 'gemini' ? '24000 Hz' : '16000 Hz');
+        setText('dOutputRate', payload.provider === 'mock' ? '16000 Hz' : '24000 Hz');
         break;
       case 'session.config.applied':
         setText('dInputRate', payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—');
@@ -1655,8 +1696,14 @@
         DeviceVisual.setState('ready');
         clearPlayback();
         break;
+      case 'response.failed':
+        clearPlayback();
+        DeviceVisual.setState('error');
+        break;
       case 'error':
         log('error', payload);
+        clearPlayback();
+        DeviceVisual.setState('error');
         break;
       default:
         break;
@@ -1773,19 +1820,30 @@
   // `activeSources`, or `playbackQueueTime` (which belong to the realtime
   // WebSocket session) — so previewing a voice can never interfere with an
   // in-progress or subsequent conversation turn.
-  function playVoicePreview(base64, sampleRate) {
-    return new Promise((resolve) => {
+  function playVoicePreview(base64, sampleRate, mimeType) {
+    return new Promise(async (resolve, reject) => {
       if (currentPreviewSource) {
         try { currentPreviewSource.stop(); } catch { /* already stopped */ }
         currentPreviewSource = null;
       }
       const bytes = decodeBase64ToBytes(base64);
-      const samples = bytes.length / 2;
       const previewCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const buffer = previewCtx.createBuffer(1, samples, sampleRate || 24000);
-      const channel = buffer.getChannelData(0);
-      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+      let buffer;
+      try {
+        if (String(mimeType || '').includes('mpeg') || String(mimeType || '').includes('wav')) {
+          buffer = await previewCtx.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+        } else {
+          const samples = bytes.length / 2;
+          buffer = previewCtx.createBuffer(1, samples, sampleRate || 24000);
+          const channel = buffer.getChannelData(0);
+          const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+          for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+        }
+      } catch (error) {
+        previewCtx.close().catch(() => {});
+        reject(error);
+        return;
+      }
       const source = previewCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(previewCtx.destination);
@@ -1809,11 +1867,11 @@
       const res = await fetch('/api/voice-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voice_name: voiceName }),
+        body: JSON.stringify({ provider: selectedRealtimeProvider, voice_name: voiceName }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'preview_failed');
-      await playVoicePreview(data.audio_base64, data.sample_rate);
+      await playVoicePreview(data.audio_base64, data.sample_rate, data.mime_type);
     } catch (err) {
       log('voice_preview_error', { voice: voiceName, message: err.message });
     } finally {
@@ -1824,17 +1882,17 @@
   }
 
   function selectVoice(voiceName) {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     selectedVoiceName = voiceName;
-    localStorage.setItem('wineAiVoiceName', voiceName);
+    localStorage.setItem(`wineAiVoiceName:${selectedRealtimeProvider}`, voiceName);
     document.querySelectorAll('.voice-select-btn').forEach((btn) => {
       btn.classList.toggle('selected', btn.dataset.voice === voiceName);
     });
     // Same "apply immediately if connected, else on next Connect" pattern as
     // the language dropdown — harmless no-op if the session isn't open yet.
-    sendSessionStart();
   }
 
-  async function loadVoices() {
+  async function loadLegacyVoices() {
     const res = await fetch('/api/voices');
     const data = await res.json();
     const voices = data.voices || [];
@@ -1861,6 +1919,127 @@
       previewBtn.textContent = '▶';
       previewBtn.title = 'Прослушать';
       previewBtn.addEventListener('click', () => previewVoice(voice.name, previewBtn));
+
+      row.appendChild(selectBtn);
+      row.appendChild(previewBtn);
+      (gender === 'female' ? femaleBox : maleBox).appendChild(row);
+    });
+  }
+
+  function renderProviderOptions(providers) {
+    realtimeProviderConfigs = providers || realtimeProviderConfigs;
+    const box = el('realtimeProviderOptions');
+    if (!box) return;
+    box.innerHTML = '';
+    realtimeProviderConfigs.forEach((providerConfig) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'provider-option' + (providerConfig.id === selectedRealtimeProvider ? ' selected' : '');
+      button.dataset.provider = providerConfig.id;
+      button.dataset.configured = String(Boolean(providerConfig.configured));
+      button.disabled = !providerConfig.configured || Boolean(ws);
+
+      const copy = document.createElement('span');
+      const name = document.createElement('span');
+      name.className = 'provider-option-name';
+      name.textContent = providerConfig.label;
+      const model = document.createElement('span');
+      model.className = 'provider-option-model';
+      model.textContent = providerConfig.model;
+      copy.append(name, model);
+
+      const status = document.createElement('span');
+      status.className = 'provider-status' + (providerConfig.configured ? '' : ' unavailable');
+      status.textContent = providerConfig.configured ? 'доступен' : 'нет ключа';
+      button.append(copy, status);
+      button.addEventListener('click', () => selectRealtimeProvider(providerConfig.id));
+      box.appendChild(button);
+    });
+  }
+
+  async function selectRealtimeProvider(providerId) {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+    const config = realtimeProviderConfigs.find((item) => item.id === providerId);
+    if (!config?.configured) return;
+    selectedRealtimeProvider = providerId;
+    localStorage.setItem('wineAiRealtimeProvider', providerId);
+    selectedVoiceName = localStorage.getItem(`wineAiVoiceName:${providerId}`) || '';
+    renderProviderOptions(realtimeProviderConfigs);
+    await loadVoices();
+  }
+
+  async function loadVoices() {
+    const query = selectedRealtimeProvider ? `?provider=${encodeURIComponent(selectedRealtimeProvider)}` : '';
+    const res = await fetch(`/api/voices${query}`);
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || `voices_http_${res.status}`);
+
+    const selectedConfig = (data.providers || []).find((item) => item.id === selectedRealtimeProvider);
+    if (selectedRealtimeProvider && !selectedConfig?.configured) {
+      const fallback = (data.providers || []).find((item) => item.configured && item.id === data.default_provider)
+        || (data.providers || []).find((item) => item.configured);
+      selectedRealtimeProvider = fallback?.id || '';
+      localStorage.setItem('wineAiRealtimeProvider', selectedRealtimeProvider);
+      selectedVoiceName = '';
+      if (selectedRealtimeProvider && selectedRealtimeProvider !== data.provider) return loadVoices();
+    }
+
+    if (!selectedRealtimeProvider) {
+      const storedProvider = localStorage.getItem('wineAiRealtimeProvider');
+      const configuredIds = (data.providers || []).filter((item) => item.configured).map((item) => item.id);
+      selectedRealtimeProvider = configuredIds.includes(storedProvider)
+        ? storedProvider
+        : (configuredIds.includes(data.default_provider) ? data.default_provider : configuredIds[0]);
+      if (selectedRealtimeProvider && selectedRealtimeProvider !== data.provider) return loadVoices();
+    }
+
+    renderProviderOptions(data.providers || []);
+    const voices = data.voices || [];
+    const defaultVoice = data.default_voice || '';
+    selectedVoiceName = selectedVoiceName
+      || localStorage.getItem(`wineAiVoiceName:${selectedRealtimeProvider}`)
+      || (selectedRealtimeProvider === 'gemini' ? localStorage.getItem('wineAiVoiceName') : '')
+      || defaultVoice;
+    const voiceIds = voices.map((voice) => voice.id || voice.name);
+    if (!voiceIds.includes(selectedVoiceName)) selectedVoiceName = defaultVoice || voiceIds[0] || '';
+    if (selectedVoiceName) localStorage.setItem(`wineAiVoiceName:${selectedRealtimeProvider}`, selectedVoiceName);
+
+    const femaleBox = el('voiceListFemale');
+    const maleBox = el('voiceListMale');
+    if (!femaleBox || !maleBox) return;
+    femaleBox.innerHTML = '';
+    maleBox.innerHTML = '';
+    const columns = femaleBox.closest('.voice-columns');
+    if (columns) columns.classList.toggle('single', selectedRealtimeProvider === 'grok');
+    femaleBox.parentElement.hidden = selectedRealtimeProvider === 'grok';
+    const voiceHelp = maleBox.closest('.card')?.querySelector('p:last-child');
+    if (voiceHelp) voiceHelp.textContent = 'Выбор модели и голоса применяется при следующем подключении.';
+    maleBox.previousElementSibling.textContent = selectedRealtimeProvider === 'grok'
+      ? 'Grok voices'
+      : 'Мужские (по звучанию)';
+
+    voices.forEach((voice) => {
+      const voiceId = voice.id || voice.name;
+      const voiceName = voice.name || voiceId;
+      const gender = selectedRealtimeProvider === 'grok' ? 'male' : (VOICE_GENDER_GUESS[voiceName] || 'male');
+      const row = document.createElement('div');
+      row.className = 'voice-row';
+
+      const selectBtn = document.createElement('button');
+      selectBtn.className = 'voice-select-btn' + (voiceId === selectedVoiceName ? ' selected' : '');
+      selectBtn.dataset.voice = voiceId;
+      const voiceLabel = document.createTextNode(voiceName);
+      const characteristic = document.createElement('span');
+      characteristic.className = 'voice-characteristic';
+      characteristic.textContent = voice.characteristic || '';
+      selectBtn.append(voiceLabel, characteristic);
+      selectBtn.addEventListener('click', () => selectVoice(voiceId));
+
+      const previewBtn = document.createElement('button');
+      previewBtn.className = 'voice-preview-btn';
+      previewBtn.textContent = '▶';
+      previewBtn.title = 'Прослушать';
+      previewBtn.addEventListener('click', () => previewVoice(voiceId, previewBtn));
 
       row.appendChild(selectBtn);
       row.appendChild(previewBtn);
