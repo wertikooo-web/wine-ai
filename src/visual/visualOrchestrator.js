@@ -99,7 +99,10 @@ function createVisualOrchestrator({ emit, log = () => {}, setTimer = setTimeout,
     function createPlan(generationId) {
         if (!isActive(generationId)) return null;
         const wineId = chooseWineId(active.inputText);
-        const presentation = getValidatedPresentation(wineId) || getValidatedPresentation('demo-wine-001');
+        // No blind demo-wine-001 fallback: if the turn wasn't confidently
+        // about a wine, no card is created — avatar-only response.
+        if (!wineId) return null;
+        const presentation = getValidatedPresentation(wineId);
         if (!presentation) return null;
         active.plan = presentation;
         log('visual_plan_created', {

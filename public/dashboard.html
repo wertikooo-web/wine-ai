@@ -222,6 +222,10 @@
     will-change: transform;
   }
   .avatar-box img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 48%; border-radius: 50%; display: block; filter: brightness(1.2); }
+  .avatar-box .avatar-fallback { position: absolute; inset: 0; z-index: 1; transition: opacity 0.25s ease; }
+  .avatar-box.avatar-3d-ready .avatar-fallback { opacity: 0; pointer-events: none; }
+  .avatar-3d-canvas { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; display: block; }
+  .avatar-box .device-sheen, .avatar-box .avatar-ring { z-index: 3; }
   .device-sheen {
     position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
     background: linear-gradient(115deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.1) 100%);
@@ -400,6 +404,45 @@
   #transcript .turn.assistant { background: #fbeceb; }
   #transcript .role { font-size: 10px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 
+  /* Short reply box on the Talk screen — shows the assistant's latest
+     answer as plain text right under the mic/input, with any http(s) URL
+     in it turned into a tappable link (used e.g. for "нашёл на wine.md"
+     results). Hidden until the first assistant reply arrives. */
+  .app-reply-box {
+    display: none;
+    width: 100%;
+    max-width: 280px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fbeceb;
+    font-size: 13px;
+    line-height: 1.4;
+    max-height: 120px;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .app-reply-box.visible { display: block; }
+  .app-reply-box a { color: var(--wine); font-weight: 600; word-break: break-all; }
+
+  /* Demo-only manual wine-card triggers (red/rosé/white) at the bottom of
+     the Talk screen — for the demo, bypasses waiting on the assistant to
+     say a wine-qualifying phrase and asks about a named demo wine
+     directly, so the same gated visual-story pipeline (see
+     visualCatalog.js's chooseWineId) fires deterministically. */
+  .demo-wine-picker { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+  .demo-wine-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
+    background: #fff; font-size: 18px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .demo-wine-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.12); }
+  .demo-wine-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .demo-wine-btn--red { background: #f6e6e4; }
+  .demo-wine-btn--rose { background: #fbeef1; }
+  .demo-wine-btn--white { background: #fbf8ee; }
+
   textarea, input[type=text] {
     width: 100%; font-family: inherit; font-size: 13px; padding: 8px;
     border: 1px solid var(--border); border-radius: 6px; background: #fdfbf7;
@@ -474,6 +517,18 @@
   .pm-doc-list { padding: 0 12px 12px; }
   .pm-show-more { width: 100%; margin-top: 4px; }
 
+  .kos-source-form { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  .kos-source-field label { display: block; color: var(--muted); font-size: 11px; margin: 0 0 5px; }
+  .kos-source-actions { display: flex; gap: 8px; align-items: center; }
+  .kos-source-list { display: grid; gap: 9px; margin-top: 14px; }
+  .kos-source-card { border: 1px solid var(--border); border-radius: 9px; padding: 11px; font-size: 13px; }
+  .kos-source-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .kos-source-meta { color: var(--muted); font-size: 12px; margin-top: 5px; word-break: break-word; }
+  .kos-source-result { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .badge.running { background: #e3efff; color: #225ea8; }
+  .badge.partial { background: #fff1cf; color: #855b00; }
+  @media (max-width: 900px) { .kos-source-form { grid-template-columns: 1fr; } }
+
   #log { max-height: 220px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px; background: #201a15; color: #d8cdb8; padding: 10px; border-radius: 8px; }
   #log div { white-space: pre-wrap; word-break: break-all; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #eee; }
@@ -545,6 +600,12 @@
               <div class="app-input-row">
                 <input type="text" id="textInput" placeholder="Напишите вопрос… / Type your question…" disabled>
                 <button class="secondary" id="textSendBtn" disabled>Send</button>
+              </div>
+              <div class="app-reply-box" id="replyBox"></div>
+              <div class="demo-wine-picker" id="demoWinePicker">
+                <button type="button" class="demo-wine-btn demo-wine-btn--red" id="demoWineRed" disabled title="Красное — Fetească Neagră Reserve" aria-label="Показать демо-карточку красного вина">🍷</button>
+                <button type="button" class="demo-wine-btn demo-wine-btn--rose" id="demoWineRose" disabled title="Розовое — Codru Rosé" aria-label="Показать демо-карточку розового вина">🌸</button>
+                <button type="button" class="demo-wine-btn demo-wine-btn--white" id="demoWineWhite" disabled title="Белое — Ștefan Vodă Viorica" aria-label="Показать демо-карточку белого вина">🥂</button>
               </div>
               <div class="chip-row" id="contextChips" style="display:none; margin-top:10px;"></div>
               <div class="app-language-row">
@@ -779,6 +840,33 @@
   </section>
 
   <section class="panel" id="tab-knowledge">
+    <details class="card pm-card" open>
+      <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Реестр сайтов <span class="badge" id="kosSourceCount">0</span></h2></summary>
+      <p style="font-size:12px; color:var(--muted); margin:10px 0 14px;">
+        Добавьте сайт винодельни. Краулер соберёт страницы в хранилище со статусом <code>pending_review</code>; автоматической публикации в базу ответов нет.
+      </p>
+      <form id="kosSourceForm" class="kos-source-form">
+        <div class="kos-source-field">
+          <label for="kosSourceUrl">URL сайта *</label>
+          <input type="text" id="kosSourceUrl" placeholder="https://aurelius.md/ro/" required>
+        </div>
+        <div class="kos-source-field">
+          <label for="kosSourceName">Название</label>
+          <input type="text" id="kosSourceName" placeholder="Aurelius">
+        </div>
+        <div class="kos-source-field">
+          <label for="kosSourceWineryId">ID винодельни (необязательно)</label>
+          <input type="text" id="kosSourceWineryId" placeholder="winery_aurelius">
+        </div>
+        <div class="kos-source-actions">
+          <button type="submit" id="kosSourceAddBtn">Добавить сайт и собрать данные</button>
+          <button type="button" class="secondary" id="kosSourcesRefreshBtn">Обновить</button>
+        </div>
+      </form>
+      <div id="kosSourceActionStatus" style="font-size:12px; margin-top:10px;"></div>
+      <div id="kosSourceList" class="kos-source-list"></div>
+    </details>
+
     <div class="card">
       <h2>Status</h2>
       <div class="row"><span class="k">Documents</span><span class="v" id="kbDocs">—</span></div>
@@ -1335,6 +1423,7 @@
     function setState(state) {
       if (!STATUS_META[state]) return;
       current = state;
+      if (avatar3d) avatar3d.setState(state);
       const box = el('avatarBox');
       if (box) {
         box.classList.toggle('listening', state === 'listening');
@@ -1355,6 +1444,29 @@
     function getState() { return current; }
     return { setState, getState };
   })();
+
+  async function initAvatar3d() {
+    try {
+      const [{ loadAvatarConfig }, { AvatarView }] = await Promise.all([
+        import('/avatar-modules/avatarConfig.mjs'),
+        import('/avatar-modules/AvatarView.mjs'),
+      ]);
+      const config = await loadAvatarConfig();
+      if (!config.enabled) return;
+      avatar3d = new AvatarView(el('avatarBox'), config);
+      avatar3d.setState(DeviceVisual.getState());
+      if (avatarOutputAnalyser) avatar3d.attachAnalyser(avatarOutputAnalyser);
+      el('avatarBox').classList.add('avatar-3d-ready');
+    } catch (error) {
+      avatar3d = null;
+      el('avatarBox')?.classList.remove('avatar-3d-ready');
+      console.warn('[WineAI] 3D avatar unavailable; static fallback retained:', error.message);
+    }
+  }
+
+  // The production-like dashboard deliberately keeps the original static
+  // image. Animated avatars are isolated on /avatar-lab and are never mounted
+  // here without a separate, explicit product decision.
 
   function log(stage, extra) {
     // Diagnostics tab (and its #log console) was removed per request —
@@ -1381,6 +1493,26 @@
     wrap.innerHTML = `<div class="role">${role}</div><div>${text.replace(/</g, '&lt;')}</div>`;
     box.appendChild(wrap);
     box.scrollTop = box.scrollHeight;
+  }
+
+  // Escapes text for innerHTML use, then turns any http(s) URL into a real
+  // <a> tag — used to show the assistant's replies (voice or text) as a
+  // short readable answer with tappable links, e.g. a wine.md search hit
+  // surfaced by check_wine_md_availability.
+  function linkifyForReplyBox(text) {
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    return escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+      const clean = url.replace(/[.,;:!?)]+$/, '');
+      const trail = url.slice(clean.length);
+      return `<a href="${clean}" target="_blank" rel="noopener">${clean}</a>${trail}`;
+    });
+  }
+
+  function showReplyBox(text) {
+    const box = el('replyBox');
+    if (!box || !text) return;
+    box.innerHTML = linkifyForReplyBox(text);
+    box.classList.add('visible');
   }
 
   // ---- WebSocket / protocol ----
@@ -1561,6 +1693,9 @@
       el('pttBtn').disabled = false;
       el('textInput').disabled = false;
       el('textSendBtn').disabled = false;
+      el('demoWineRed').disabled = false;
+      el('demoWineRose').disabled = false;
+      el('demoWineWhite').disabled = false;
       el('langSelect').disabled = false;
       setProviderControlsDisabled(true);
       DeviceVisual.setState('ready');
@@ -1595,6 +1730,9 @@
       el('pttBtn').disabled = true;
       el('textInput').disabled = true;
       el('textSendBtn').disabled = true;
+      el('demoWineRed').disabled = true;
+      el('demoWineRose').disabled = true;
+      el('demoWineWhite').disabled = true;
       el('langSelect').disabled = true;
       setProviderControlsDisabled(false);
       DeviceVisual.setState('disconnected');
@@ -1704,6 +1842,7 @@
         break;
       case 'transcript.model':
         addTranscriptTurn('assistant', payload.text);
+        showReplyBox(payload.text);
         break;
       case 'language.switch_detected':
         setText('langState', payload.to_language || '—');
@@ -1712,6 +1851,7 @@
         firstAudioAt = performance.now();
         if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
+        serverAudioEnded = false;
         setText('speakerState', 'assistant');
         DeviceVisual.setState('speaking');
         break;
@@ -1721,7 +1861,8 @@
       case 'audio.end':
         if (inputEndedAt) setText('dFullResponse', Math.round(performance.now() - inputEndedAt) + ' ms');
         setText('speakerState', '—');
-        DeviceVisual.setState('ready');
+        serverAudioEnded = true;
+        maybeFinishSpeaking();
         break;
       case 'response.cancelled':
         setText('latencyState', (payload.cancel_latency_ms || 0) + ' ms (interrupted)');
@@ -1836,6 +1977,24 @@
     // source of truth instead of the UI adding its own optimistic copy.
     ws.send(JSON.stringify({ type: 'input_text.submit', text }));
     input.value = '';
+  }
+
+  // Demo-only manual wine-card triggers. Reuses the exact same text-turn
+  // path as typing a question — the phrase is chosen so it satisfies
+  // visualCatalog.js's chooseWineId() gate deterministically (named demo
+  // wine), instead of adding a separate "force-show a card" backdoor that
+  // would bypass the gate we just fixed.
+  const DEMO_WINE_PROMPTS = {
+    red: 'Расскажи про Dealul de Aur Fetească Neagră Reserve',
+    rose: 'Расскажи про Codru Rosé',
+    white: 'Расскажи про Ștefan Vodă Viorica',
+  };
+
+  function askAboutDemoWine(kind) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const input = el('textInput');
+    input.value = DEMO_WINE_PROMPTS[kind];
+    sendTextTurn();
   }
 
   // ---- Audio playback ----
@@ -2181,6 +2340,9 @@
   wireDetailsToggle('wineDetailsToggle', 'wineDetailsBlock');
   el('textSendBtn').addEventListener('click', sendTextTurn);
   el('textInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTextTurn(); });
+  el('demoWineRed').addEventListener('click', () => askAboutDemoWine('red'));
+  el('demoWineRose').addEventListener('click', () => askAboutDemoWine('rose'));
+  el('demoWineWhite').addEventListener('click', () => askAboutDemoWine('white'));
   el('langSelect').addEventListener('change', () => {
     const language = el('langSelect').value;
     setText('langState', language === 'auto' ? 'auto' : language);
@@ -2271,6 +2433,175 @@
     el('kbDocs').textContent = data.document_count;
     el('kbBuiltAt').textContent = data.built_at || 'never — run indexing';
   }
+
+  // ---- KOS website source registry (Step 2E) ----
+  // The POST deliberately stays open until the existing crawler finishes.
+  // While it runs, this screen supplies the `running` state; the persisted
+  // crawl-run status returned by the API becomes the final badge afterwards.
+  function kosStatusLabel(status) {
+    return ({
+      pending: 'pending',
+      running: 'running',
+      completed: 'completed',
+      partial: 'partial',
+      failed: 'failed',
+    })[status] || status || 'pending';
+  }
+
+  function kosStatusClass(status) {
+    if (status === 'completed') return 'ok';
+    if (status === 'failed') return 'err';
+    if (status === 'running') return 'running';
+    if (status === 'partial') return 'partial';
+    return '';
+  }
+
+  function setKosActionStatus(message, tone = 'muted') {
+    const statusEl = el('kosSourceActionStatus');
+    statusEl.textContent = message;
+    statusEl.style.color = tone === 'error' ? 'var(--err)' : (tone === 'ok' ? 'var(--ok)' : 'var(--muted)');
+  }
+
+  async function readApiResponse(res) {
+    const data = await res.json().catch(() => ({ ok: false, error: `http_${res.status}` }));
+    if (!res.ok || !data.ok) {
+      const error = new Error(data.message || data.error || `HTTP ${res.status}`);
+      error.code = data.error;
+      throw error;
+    }
+    return data;
+  }
+
+  function renderKosSource(source) {
+    const card = document.createElement('div');
+    card.className = 'kos-source-card';
+
+    const head = document.createElement('div');
+    head.className = 'kos-source-card-head';
+    const title = document.createElement('strong');
+    title.textContent = source.name || source.normalized_origin || source.seed_url;
+    const badge = document.createElement('span');
+    badge.className = `badge ${kosStatusClass(source.crawl_status)}`.trim();
+    badge.textContent = kosStatusLabel(source.crawl_status);
+    head.append(title, badge);
+
+    const link = document.createElement('a');
+    link.href = source.seed_url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = source.seed_url;
+    const meta = document.createElement('div');
+    meta.className = 'kos-source-meta';
+    meta.append(link, document.createTextNode(` · trust ${source.trust_level || 'C'} · ${source.winery_id || 'общий источник'}`));
+
+    const result = document.createElement('div');
+    result.className = 'kos-source-result';
+    const run = source.last_crawl;
+    result.textContent = run
+      ? `Найдено: ${run.pages_discovered || 0}; получено: ${run.pages_fetched || 0}; ошибок: ${run.pages_failed || 0}; документов: ${run.documents_created || 0}. Проверка: ${source.review_status}.`
+      : `Обход ещё не запускался. Проверка: ${source.review_status || 'pending_review'}.`;
+    if (run && run.error) {
+      result.append(document.createElement('br'), document.createTextNode(`Ошибка: ${run.error}`));
+    }
+
+    const actions = document.createElement('div');
+    actions.style.marginTop = '9px';
+    const crawlBtn = document.createElement('button');
+    crawlBtn.type = 'button';
+    crawlBtn.className = 'secondary';
+    crawlBtn.textContent = 'Собрать данные снова';
+    crawlBtn.disabled = source.crawl_status === 'running';
+    crawlBtn.addEventListener('click', async () => {
+      crawlBtn.disabled = true;
+      crawlBtn.textContent = 'running…';
+      badge.className = 'badge running';
+      badge.textContent = 'running';
+      setKosActionStatus(`Идёт обход ${source.seed_url}…`);
+      try {
+        const res = await fetch(`/api/kos/sources/${encodeURIComponent(source.id)}/crawl`, { method: 'POST' });
+        const data = await readApiResponse(res);
+        const finalStatus = data.crawlStatus || 'failed';
+        setKosActionStatus(
+          finalStatus === 'completed' ? 'Обход завершён. Данные ожидают проверки и не опубликованы.' : `Обход завершён со статусом ${finalStatus}.`,
+          finalStatus === 'completed' ? 'ok' : 'error'
+        );
+      } catch (error) {
+        setKosActionStatus(`Не удалось запустить обход: ${error.message}`, 'error');
+      } finally {
+        await loadKosSources();
+      }
+    });
+    actions.appendChild(crawlBtn);
+    card.append(head, meta, result, actions);
+    return card;
+  }
+
+  async function loadKosSources() {
+    const list = el('kosSourceList');
+    try {
+      const data = await readApiResponse(await fetch('/api/kos/sources'));
+      const sources = data.sources || [];
+      el('kosSourceCount').textContent = sources.length;
+      list.innerHTML = '';
+      if (!sources.length) {
+        const empty = document.createElement('p');
+        empty.style.cssText = 'color:var(--muted); font-size:13px; margin:0;';
+        empty.textContent = 'Сайты ещё не добавлены.';
+        list.appendChild(empty);
+        return;
+      }
+      sources.forEach((source) => list.appendChild(renderKosSource(source)));
+    } catch (error) {
+      list.innerHTML = '';
+      const failed = document.createElement('p');
+      failed.style.cssText = 'color:var(--err); font-size:13px; margin:0;';
+      failed.textContent = `Реестр источников недоступен: ${error.message}`;
+      list.appendChild(failed);
+    }
+  }
+
+  el('kosSourceForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const addBtn = el('kosSourceAddBtn');
+    let url = el('kosSourceUrl').value.trim();
+    if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
+    if (!url) return;
+
+    addBtn.disabled = true;
+    addBtn.textContent = 'running…';
+    setKosActionStatus(`Создаём Source и запускаем обход ${url}…`);
+    try {
+      const res = await fetch('/api/kos/sources/website', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          name: el('kosSourceName').value.trim() || null,
+          wineryId: el('kosSourceWineryId').value.trim() || null,
+        }),
+      });
+      const data = await readApiResponse(res);
+      const finalStatus = data.crawlStatus || 'failed';
+      const fetched = data.crawlRun && (data.crawlRun.pages_fetched ?? data.crawlRun.fetchedCount);
+      const suffix = Number.isFinite(Number(fetched)) ? ` Получено страниц: ${fetched}.` : '';
+      if (data.error || finalStatus === 'failed') {
+        setKosActionStatus(`Source сохранён, но обход завершился ошибкой: ${(data.error && data.error.message) || finalStatus}.${suffix}`, 'error');
+      } else {
+        setKosActionStatus(`Обход завершён: ${finalStatus}.${suffix} Данные ожидают проверки и не опубликованы.`, 'ok');
+        el('kosSourceUrl').value = '';
+        el('kosSourceName').value = '';
+      }
+      await loadKosSources();
+    } catch (error) {
+      setKosActionStatus(`Не удалось добавить сайт: ${error.message}`, 'error');
+      await loadKosSources();
+    } finally {
+      addBtn.disabled = false;
+      addBtn.textContent = 'Добавить сайт и собрать данные';
+    }
+  });
+
+  el('kosSourcesRefreshBtn').addEventListener('click', loadKosSources);
 
   // Every file the RAG search can actually retrieve from — including
   // hand-authored docs (the wine-book extracts, demo winery/wine profiles)
@@ -2653,6 +2984,7 @@
   loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
+  loadKosSources().catch((err) => log('kos_sources_load_error', { message: err.message }));
   loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
   initVisualStory().catch((err) => log('visual_story_load_error', { message: err.message }));
   prefetchScreenContext('winery', 'crama-dealul-de-aur');
