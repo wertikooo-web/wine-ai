@@ -14,4 +14,7 @@ data/persona-overrides.json
 /DATABASE WINE ALL/
 *.mp4
 *.pptx
+# LocalFileStorageAdapter's default write target (src/kos/storage/objectStorage.js)
+# — generated local dev/test data, not source.
+knowledge/raw_objects/
 

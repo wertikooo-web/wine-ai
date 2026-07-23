@@ -31,7 +31,7 @@ async function run() {
         const cancelled = await client.waitFor((event) => event.type === 'visual.timeline.cancel' && event.generationId === first.submitted.generation_id);
         t.equal(cancelled.generationId, first.submitted.generation_id);
 
-        const next = await startTextTurn(client, 'А к рыбе?');
+        const next = await startTextTurn(client, 'А какое вино к рыбе?');
         t.ok(next.submitted.generation_id !== first.submitted.generation_id);
         const nextWine = await client.waitFor((event) => event.type === 'visual.wine.show' && event.generationId === next.submitted.generation_id);
         t.equal(nextWine.wineId, 'demo-wine-002');

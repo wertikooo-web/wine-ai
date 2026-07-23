@@ -57,6 +57,7 @@ async function run() {
 
     const interrupted = harness();
     interrupted.orchestrator.beginGeneration({ generationId: 'gen-old', turnId: 'turn-old' });
+    interrupted.orchestrator.noteUserText('gen-old', 'Расскажи про Fetească Neagră Reserve');
     interrupted.orchestrator.onAudioStart('gen-old');
     t.ok(interrupted.timers.size > 0, 'audio start must schedule later phases');
     interrupted.orchestrator.cancel('gen-old', 'barge_in');
