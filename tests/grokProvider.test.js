@@ -55,7 +55,7 @@ test('Grok session config keeps PTT audio explicit and maps Wine tools', () => {
         toolDeclarations: [{
             name: 'search_wine_knowledge',
             description: 'Search Wine AI knowledge',
-            parameters: { type: 'object', properties: { query: { type: 'string' } } },
+            parameters: { type: 'OBJECT', properties: { query: { type: 'STRING' } } },
         }],
     }, { voiceId: 'eve' });
 
