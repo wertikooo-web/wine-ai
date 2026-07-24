@@ -68,13 +68,21 @@ const COMMERCE_CATALOG = Object.freeze({
         price: 245,
         currency: 'MDL',
     }),
+    // Was deliberately unavailable (empty orderUrl) to exercise the
+    // "CTA must stay hidden without a valid order URL" path in
+    // tests/visualOrchestrator.test.js — but that also meant the white
+    // demo card never showed a price/order button at all, which read as
+    // broken rather than intentional. Given demo-available like the other
+    // two; visualOrchestrator.js's COMMERCE phase still requires both
+    // orderUrl and availability === 'demo_available' before showing it, so
+    // this is the same code path as red/rosé, not a new one.
     'product-demo-003': Object.freeze({
         productId: 'product-demo-003',
         wineId: 'demo-wine-003',
-        orderUrl: '',
-        qrUrl: '',
-        availability: 'demo_unavailable',
-        price: null,
+        orderUrl: 'https://example.com/winemd/demo-wine-003',
+        qrUrl: 'https://example.com/winemd/demo-wine-003',
+        availability: 'demo_available',
+        price: 280,
         currency: 'MDL',
     }),
 });
