@@ -42,8 +42,27 @@ function extractBlockText($, container) {
     return parts.join('\n\n');
 }
 
+// Beyond generic chrome (nav/footer/header/form), WordPress-style blogs
+// (the majority of this corpus's crawled sources) repeat the same
+// boilerplate at the bottom of every single post: author byline, social
+// share icons, prev/next post links, and the full comment form + its
+// Akismet anti-spam notice. Measured directly against the indexed corpus
+// (src/knowledge/search.js's IDF stats): tokens from this boilerplate
+// ("akismet", "написать комментарий", "leave a comment", "next"/
+// "previous", the share-icon row) showed up in ~26% of ALL chunks —
+// diluting search relevance and wasting chunk budget on zero real
+// content. Removed by class/id rather than by content, since selectors
+// are far more reliable across different articles than text matching.
+const BOILERPLATE_SELECTOR = [
+    '.comments-area', '#comments', '.comment-respond', '.comment-form', '#respond',
+    '.entry-meta', '.post-meta', '.author-bio', '.author-info',
+    '.post-navigation', '.nav-links', '.entry-footer',
+    '.social-share', '.share-buttons', '.sharedaddy', '.jp-relatedposts',
+].join(', ');
+
 function extractMainText($) {
     $('script, style, noscript, nav, footer, header, form, iframe').remove();
+    $(BOILERPLATE_SELECTOR).remove();
     const candidates = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
     for (const selector of candidates) {
         const el = $(selector).first();
