@@ -136,6 +136,10 @@ async function ingestSource({
                 if (/html/i.test(contentType)) {
                     const $ = cheerio.load(rawBuffer.toString('utf8'));
                     $('script, style, noscript, nav, footer, header, form, iframe').remove();
+                    // Same WordPress-boilerplate cleanup as fetchPage.js —
+                    // see its comment for why (measured 26% of chunks were
+                    // comment-form/byline/share-button noise).
+                    $('.comments-area, #comments, .comment-respond, .comment-form, #respond, .entry-meta, .post-meta, .author-bio, .author-info, .post-navigation, .nav-links, .entry-footer, .social-share, .share-buttons, .sharedaddy, .jp-relatedposts').remove();
                     extractedTitle = $('title').first().text().trim() || $('h1').first().text().trim() || canonicalUrl;
                     // Join block-level elements with blank lines rather than
                     // flattening the whole container's .text() to one line —
