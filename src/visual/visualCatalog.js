@@ -30,8 +30,8 @@ const WINE_KNOWLEDGE = Object.freeze({
         servingTemperature: '8–10 °C',
         alcohol: '12.5%',
         shortDescription: 'Свежее сухое демовино с ягодным ароматом и чистым прохладным послевкусием.',
-        aromaDescriptorIds: ['strawberry', 'rose', 'citrus'],
-        pairingIds: ['salmon', 'salad'],
+        aromaDescriptorIds: ['strawberry', 'raspberry', 'rose'],
+        pairingIds: ['salmon_tuna', 'cheese_salad_1'],
     }),
     'demo-wine-003': Object.freeze({
         wineId: 'demo-wine-003',
@@ -44,8 +44,8 @@ const WINE_KNOWLEDGE = Object.freeze({
         servingTemperature: '8–10 °C',
         alcohol: '12.0%',
         shortDescription: 'Ароматное сухое белое демовино с цветочными, грушевыми и цитрусовыми нотами.',
-        aromaDescriptorIds: ['acacia', 'pear', 'citrus'],
-        pairingIds: ['salmon', 'salad'],
+        aromaDescriptorIds: ['linden', 'peach', 'grape'],
+        pairingIds: ['seafood_fish', 'cheese_salad_2'],
     }),
 });
 

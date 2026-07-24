@@ -100,11 +100,17 @@
 .vs-aroma-node .vs-asset-art[data-asset-id="blackberry"] { background-position: -230px -222px; }
 .vs-aroma-node .vs-asset-art[data-asset-id="plum"] { background-position: -350px -222px; }
 .vs-aroma-node .vs-asset-art[data-asset-id="oak"] { background-position: -292px -319px; }
-.vs-aroma-node .vs-asset-art[data-asset-id="strawberry"] { background-image: radial-gradient(circle at 42% 42%, #ff7d86 0 16%, #b61f3a 17% 38%, #641126 39% 58%, transparent 59%); }
-.vs-aroma-node .vs-asset-art[data-asset-id="rose"] { background-image: radial-gradient(circle at 50% 48%, #f0a5b1 0 12%, #bd506b 13% 31%, #7f2843 32% 51%, transparent 52%); }
 .vs-aroma-node .vs-asset-art[data-asset-id="citrus"] { background-image: radial-gradient(circle, #fff0a1 0 18%, #e8bf3d 19% 42%, #8b6915 43% 55%, transparent 56%); }
 .vs-aroma-node .vs-asset-art[data-asset-id="acacia"] { background-image: radial-gradient(circle, #fff3bb 0 13%, #d7b95b 14% 35%, #80682b 36% 50%, transparent 51%); }
 .vs-aroma-node .vs-asset-art[data-asset-id="pear"] { background-image: radial-gradient(ellipse at 50% 58%, #d9dc67 0 24%, #7e9131 25% 48%, transparent 49%); }
+/* Real cropped photos (from the rosé/white demo reference cards) instead of
+   CSS gradients — cover/center like the pairing-photo rules below. */
+.vs-aroma-node .vs-asset-art[data-asset-id="strawberry"] { background-image: url('/visual-assets/icon-aroma-strawberry.png'); background-size: cover; background-position: center; }
+.vs-aroma-node .vs-asset-art[data-asset-id="rose"] { background-image: url('/visual-assets/icon-aroma-rose.png'); background-size: cover; background-position: center; }
+.vs-aroma-node .vs-asset-art[data-asset-id="raspberry"] { background-image: url('/visual-assets/icon-aroma-raspberry.png'); background-size: cover; background-position: center; }
+.vs-aroma-node .vs-asset-art[data-asset-id="linden"] { background-image: url('/visual-assets/icon-aroma-linden.png'); background-size: cover; background-position: center; }
+.vs-aroma-node .vs-asset-art[data-asset-id="peach"] { background-image: url('/visual-assets/icon-aroma-peach.png'); background-size: cover; background-position: center; }
+.vs-aroma-node .vs-asset-art[data-asset-id="grape"] { background-image: url('/visual-assets/icon-aroma-grape.png'); background-size: cover; background-position: center; }
 .vs-chip-more {
   position: absolute; right: 0; bottom: 2px; z-index: 4; color: rgba(255,248,236,.62);
   font-size: 7px;
@@ -142,6 +148,10 @@
 .vs-pairing-item .vs-asset-art[data-asset-id="cheese"] { background-image: url('/visual-assets/pairing-aged-cheese.png'); }
 .vs-pairing-item .vs-asset-art[data-asset-id="salmon"] { background-image: linear-gradient(145deg, #ffbd91 0 34%, #d56c64 35% 68%, #f1d0a3 69%); }
 .vs-pairing-item .vs-asset-art[data-asset-id="salad"] { background-image: radial-gradient(circle at 35% 45%, #83b657 0 24%, transparent 25%), radial-gradient(circle at 65% 55%, #b7d56c 0 24%, transparent 25%), #35552c; }
+.vs-pairing-item .vs-asset-art[data-asset-id="salmon_tuna"] { background-image: url('/visual-assets/icon-pairing-salmon-tuna.png'); }
+.vs-pairing-item .vs-asset-art[data-asset-id="cheese_salad_1"] { background-image: url('/visual-assets/icon-pairing-cheese-salad-1.png'); }
+.vs-pairing-item .vs-asset-art[data-asset-id="seafood_fish"] { background-image: url('/visual-assets/icon-pairing-seafood-fish.png'); }
+.vs-pairing-item .vs-asset-art[data-asset-id="cheese_salad_2"] { background-image: url('/visual-assets/icon-pairing-cheese-salad-2.png'); }
 .vs-pairing-item b { font-size: 11px; font-weight: 580; line-height: 1.25; letter-spacing: .01em; }
 .vs-region { margin: 10px 0 8px; padding-top: 9px; border-top: 1px solid rgba(235,196,150,.18); color: #d9b974; font-size: 10px; animation: vsSlide .45s ease both; }
 .vs-card { padding: 5px 0 9px; border: 0; background: transparent; animation: vsSlide .45s ease both; }

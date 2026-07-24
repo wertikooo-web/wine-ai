@@ -45,6 +45,13 @@ const DESCRIPTOR_ASSETS = Object.freeze({
     citrus: Object.freeze({ glyph: '🍋', label: 'Цитрус', color: '#d6a42d' }),
     acacia: Object.freeze({ glyph: '🌼', label: 'Акация', color: '#d9bd68' }),
     pear: Object.freeze({ glyph: '🍐', label: 'Груша', color: '#a9b64f' }),
+    // Added for the rosé/white demo cards, backed by real cropped photos
+    // (icon-aroma-*.png) instead of CSS gradients — see visual-story.css's
+    // [data-asset-id] rules and VisualStoryController.mjs's AROMA_LABELS.
+    raspberry: Object.freeze({ glyph: '🍒', label: 'Малина', color: '#a3163e' }),
+    linden: Object.freeze({ glyph: '🌼', label: 'Цветы липы', color: '#cbb35a' }),
+    peach: Object.freeze({ glyph: '🍑', label: 'Белый персик', color: '#e2a15c' }),
+    grape: Object.freeze({ glyph: '🍇', label: 'Виноград', color: '#8a9b4e' }),
 });
 
 const PAIRING_ASSETS = Object.freeze({
@@ -52,6 +59,12 @@ const PAIRING_ASSETS = Object.freeze({
     cheese: Object.freeze({ glyph: '◒', label: 'Выдержанные сыры' }),
     salmon: Object.freeze({ glyph: '≈', label: 'Лосось и морепродукты' }),
     salad: Object.freeze({ glyph: '❧', label: 'Лёгкие салаты' }),
+    // Added for the rosé/white demo cards, backed by real cropped photos
+    // (icon-pairing-*.png) — see visual-story.css / PAIRING_LABELS.
+    salmon_tuna: Object.freeze({ glyph: '≈', label: 'Лосось и тунец' }),
+    cheese_salad_1: Object.freeze({ glyph: '❧', label: 'Лёгкие сыры и салаты' }),
+    seafood_fish: Object.freeze({ glyph: '≈', label: 'Морепродукты и рыба' }),
+    cheese_salad_2: Object.freeze({ glyph: '❧', label: 'Лёгкие салаты и мягкие сыры' }),
 });
 
 const REGION_ASSETS = Object.freeze({
