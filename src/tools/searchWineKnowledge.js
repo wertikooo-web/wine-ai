@@ -38,7 +38,18 @@ async function impl(args) {
     }));
 
     if (hits.length === 0) {
-        return { found: false, results: [] };
+        // Explicit per-call instruction, not just relying on the tool's
+        // static description — a strong nudge right at the point where the
+        // model is deciding what to say next, for exactly the scenario the
+        // knowledge base master on/off switch (Dashboard) exists to test:
+        // does the assistant genuinely have no data, or does it fall back
+        // to its own general/parametric knowledge instead of admitting
+        // that.
+        return {
+            found: false,
+            results: [],
+            instruction: 'No information about this was found in the knowledge base. Tell the user you do not have this information in your knowledge base. Do NOT answer from your own general/pretrained knowledge instead — that would misrepresent an unverified guess as a sourced fact.',
+        };
     }
 
     return {

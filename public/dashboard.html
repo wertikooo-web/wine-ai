@@ -896,6 +896,10 @@
             <input type="radio" name="kbSearchMode" id="kbSearchModeKeyword" value="keyword" style="width:1.3em; height:1.3em;">
             Keyword
           </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:2em; color:var(--err);" title="Master kill switch — the assistant gets zero knowledge-base results for every question, to verify it genuinely has no data access (not just answering badly).">
+            <input type="radio" name="kbSearchMode" id="kbSearchModeDisabled" value="disabled" style="width:1.3em; height:1.3em;">
+            Отключено (тест без базы)
+          </label>
         </span>
       </div>
       <div id="kbSearchModeStatus" style="font-size:12px; color:var(--muted); margin-top:4px;"></div>
@@ -953,7 +957,7 @@
       </details>
     </details>
 
-    <details class="card pm-card" open>
+    <details class="card pm-card" style="display: none;">
       <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Knowledge Monitor</h2></summary>
       <div class="grid" style="margin:14px 0;">
         <div>
@@ -2506,9 +2510,11 @@
 
     const hybridRadio = el('kbSearchModeHybrid');
     const keywordRadio = el('kbSearchModeKeyword');
+    const disabledRadio = el('kbSearchModeDisabled');
     const statusEl = el('kbSearchModeStatus');
     hybridRadio.checked = data.search_mode === 'hybrid';
-    keywordRadio.checked = data.search_mode !== 'hybrid';
+    keywordRadio.checked = data.search_mode === 'keyword';
+    disabledRadio.checked = data.search_mode === 'disabled';
     hybridRadio.disabled = !data.semantic_available;
     statusEl.textContent = data.semantic_available ? '' : 'Semantic not configured — keyword only.';
   }
@@ -2516,8 +2522,9 @@
   async function setSearchMode(mode) {
     const hybridRadio = el('kbSearchModeHybrid');
     const keywordRadio = el('kbSearchModeKeyword');
+    const disabledRadio = el('kbSearchModeDisabled');
     const statusEl = el('kbSearchModeStatus');
-    const previousMode = hybridRadio.checked ? 'hybrid' : 'keyword';
+    const previousMode = hybridRadio.checked ? 'hybrid' : (disabledRadio.checked ? 'disabled' : 'keyword');
     statusEl.textContent = 'Switching…';
     try {
       const res = await fetch('/api/knowledge/search-mode', {
@@ -2528,11 +2535,13 @@
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'search_mode_failed');
       hybridRadio.checked = data.mode === 'hybrid';
-      keywordRadio.checked = data.mode !== 'hybrid';
+      keywordRadio.checked = data.mode === 'keyword';
+      disabledRadio.checked = data.mode === 'disabled';
       statusEl.textContent = '';
     } catch (err) {
       hybridRadio.checked = previousMode === 'hybrid';
-      keywordRadio.checked = previousMode !== 'hybrid';
+      keywordRadio.checked = previousMode === 'keyword';
+      disabledRadio.checked = previousMode === 'disabled';
       statusEl.textContent = 'Switch failed: ' + err.message;
       log('search_mode_toggle_error', { message: err.message });
     }
@@ -2806,8 +2815,9 @@
 
   function renderSourceRow(src) {
     const row = document.createElement('div');
-    row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px; background:var(--card-bg);';
-    
+    const enabled = src.enabled !== false;
+    row.style.cssText = `border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px; background:var(--card-bg);${enabled ? '' : ' opacity:0.55;'}`;
+
     const displaySource = src.source || src.source_file;
     const isCrawled = src.source_file.startsWith('discovered-');
     const sourceLabel = isCrawled ? 'URL источника' : 'Имя файла';
@@ -2815,11 +2825,15 @@
     row.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <div style="min-width:0; flex-grow:1;">
-          <div style="font-weight:bold; font-size:13px; color:var(--ink); word-break:break-all;">${displaySource}</div>
+          <div style="font-weight:bold; font-size:13px; color:var(--ink); word-break:break-all;">${displaySource}${enabled ? '' : ' <span class="badge" style="font-weight:normal;">отключено</span>'}</div>
           <div style="font-size:12px; color:var(--muted); margin-top:3px; word-break:break-all;">Название страницы / заголовка: ${src.title}</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
           <span class="badge">${src.chunk_count} chunk${src.chunk_count === 1 ? '' : 's'}</span>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:11px;" title="Использовать этот источник в ответах ассистента">
+            <input type="checkbox" class="enable-toggle" ${enabled ? 'checked' : ''}>
+            Использовать
+          </label>
           <button class="secondary delete-btn" style="font-size:11px; padding:2px 8px; color:var(--err); border-color:var(--err); background:none;">Удалить</button>
         </div>
       </div>
@@ -2830,10 +2844,29 @@
     const toggleBtn = row.querySelector('[data-toggle-content]');
     const contentBox = row.querySelector('[data-content-box]');
     const deleteBtn = row.querySelector('.delete-btn');
-    
+    const enableToggle = row.querySelector('.enable-toggle');
+
     toggleBtn.addEventListener('click', () => toggleSourceContent(src, contentBox, toggleBtn));
     deleteBtn.addEventListener('click', () => deleteSourceFile(src, row));
+    enableToggle.addEventListener('change', () => setSourceEnabled(src, enableToggle.checked, row));
     return row;
+  }
+
+  async function setSourceEnabled(src, enabled, rowElement) {
+    try {
+      const res = await fetch(`/api/knowledge/sources/${encodeURIComponent(src.source_file)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'patch_failed');
+      src.enabled = enabled;
+      const replacement = renderSourceRow(src);
+      rowElement.replaceWith(replacement);
+    } catch (err) {
+      alert(`Не удалось изменить состояние источника: ${err.message}`);
+    }
   }
 
   function renderSourceGroup(groupKey, sources) {
@@ -2885,6 +2918,7 @@
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
           <span class="badge" style="font-weight:normal; font-size:11px;">${pages.length} стр.</span>
           <button class="secondary expand-all-btn" style="font-size:11px; padding:2px 8px; font-weight:normal;">Показать все тексты</button>
+          <button class="secondary toggle-group-enabled-btn" style="font-size:11px; padding:2px 8px; font-weight:normal;">${pages.every((p) => p.enabled === false) ? 'Включить всё' : 'Отключить всё'}</button>
           <button class="secondary delete-site-btn" style="font-size:11px; padding:2px 8px; color:var(--err); border-color:var(--err); background:none; font-weight:normal;">Удалить всё</button>
         </div>
       `;
@@ -2905,6 +2939,29 @@
         });
         expandAllBtn.dataset.expanded = collapsing ? '0' : '1';
         expandAllBtn.textContent = collapsing ? 'Показать все тексты' : 'Скрыть все тексты';
+      });
+
+      const toggleGroupBtn = summary.querySelector('.toggle-group-enabled-btn');
+      toggleGroupBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const nextEnabled = toggleGroupBtn.textContent.trim() === 'Включить всё';
+        toggleGroupBtn.disabled = true;
+        toggleGroupBtn.textContent = nextEnabled ? 'Включение…' : 'Отключение…';
+        try {
+          for (const page of pages) {
+            const res = await fetch(`/api/knowledge/sources/${encodeURIComponent(page.source_file)}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enabled: nextEnabled }),
+            });
+            await res.json();
+          }
+          await loadKnowledgeSources();
+        } catch (err) {
+          alert(`Не удалось изменить состояние группы: ${err.message}`);
+          await loadKnowledgeSources();
+        }
       });
 
       const deleteSiteBtn = summary.querySelector('.delete-site-btn');
@@ -3060,6 +3117,7 @@
   el('kbRefreshBtn').addEventListener('click', loadKnowledgeStatus);
   el('kbSearchModeHybrid').addEventListener('change', (e) => { if (e.target.checked) setSearchMode('hybrid'); });
   el('kbSearchModeKeyword').addEventListener('change', (e) => { if (e.target.checked) setSearchMode('keyword'); });
+  el('kbSearchModeDisabled').addEventListener('change', (e) => { if (e.target.checked) setSearchMode('disabled'); });
   el('kbSourcesRefreshBtn').addEventListener('click', loadKnowledgeSources);
   el('kbSearchInput').addEventListener('input', applySearchAndSort);
   el('kbSortSelect').addEventListener('change', applySearchAndSort);
