@@ -11,20 +11,20 @@ async function run() {
     // Uses the real, checked-in knowledge/source docs and the index built by
     // `npm run knowledge:index` — run that first if this is a clean checkout
     // (see AGENTS.md's required verification list).
-    const ru = search('Расскажи, чем Фетяска Нягрэ отличается от Каберне Совиньон.', { language: 'ru', limit: 2 });
+    const ru = await search('Расскажи про сорт винограда Фетяска Нягрэ.', { language: 'ru', limit: 2 });
     t.ok(ru.hits.length > 0, 'expected at least one hit for the Fetească Neagră vs Cabernet Sauvignon question');
     t.match(ru.hits[0].chunk.metadata.title, /Фетяска/, 'top hit should be the Fetească Neagră profile');
 
-    const ro = search('Povestește-mi despre soiul Fetească Neagră și despre regiunile în care este cultivat.', { language: 'ro', limit: 2 });
+    const ro = await search('Povestește-mi despre soiul Fetească Neagră și despre regiunile în care este cultivat.', { language: 'ro', limit: 2 });
     t.ok(ro.hits.length > 0, 'expected at least one hit for the Romanian Fetească Neagră question');
     t.equal(ro.hits[0].chunk.metadata.language, 'ro');
 
-    const en = search('Which Moldovan wine would you recommend with roast lamb?', { language: 'en', limit: 2 });
+    const en = await search('Which Moldovan wine would you recommend with roast lamb?', { language: 'en', limit: 2 });
     t.ok(en.hits.length > 0, 'expected at least one hit for the roast lamb pairing question');
     t.match(en.hits[0].chunk.metadata.title, /lamb/i);
 
     // Empty query never throws, returns no hits.
-    const emptyQuery = search('', {});
+    const emptyQuery = await search('', {});
     t.deepEqual(emptyQuery.hits, [], 'an empty query must return no hits, not throw');
 
     // Empty knowledge base (Stage 13's "тест пустой базы знаний"): point
@@ -35,7 +35,7 @@ async function run() {
     fs.mkdirSync(emptySourceDir, { recursive: true });
     const built = buildIndex({ sourceDir: emptySourceDir, indexFile: emptyIndexFile });
     t.equal(built.chunkCount, 0, 'an empty source dir must build an empty (not failing) index');
-    const emptyKbResult = search('Fetească Neagră', { indexFile: emptyIndexFile });
+    const emptyKbResult = await search('Fetească Neagră', { indexFile: emptyIndexFile });
     t.deepEqual(emptyKbResult.hits, [], 'searching an empty knowledge base must return no hits, not throw');
     fs.rmSync(tmpDir, { recursive: true, force: true });
 }

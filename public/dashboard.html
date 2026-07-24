@@ -875,6 +875,15 @@
       <div class="row"><span class="k">Documents</span><span class="v" id="kbDocs">—</span></div>
       <div class="row"><span class="k">Built at</span><span class="v" id="kbBuiltAt">—</span></div>
       <div class="row"><span class="k">Errors</span><span class="v" id="kbErrors">—</span></div>
+      <div class="row">
+        <span class="k">Search mode</span>
+        <span class="v">
+          <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Semantic search needs GEMINI_API_KEY + Postgres with pgvector, and chunks must be embedded first (npm run knowledge:embed-backfill)">
+            <input type="checkbox" id="kbSemanticToggle">
+            <span id="kbSemanticToggleLabel">Keyword only</span>
+          </label>
+        </span>
+      </div>
       <div style="margin-top:12px;">
         <button class="secondary" id="kbReindexBtn">Run indexing (npm run knowledge:index)</button>
         <button class="secondary" id="kbRefreshBtn">Refresh</button>
@@ -2479,6 +2488,34 @@
     const data = await res.json();
     el('kbDocs').textContent = data.document_count;
     el('kbBuiltAt').textContent = data.built_at || 'never — run indexing';
+
+    const toggle = el('kbSemanticToggle');
+    const label = el('kbSemanticToggleLabel');
+    toggle.checked = data.search_mode === 'hybrid';
+    toggle.disabled = !data.semantic_available;
+    label.textContent = !data.semantic_available
+      ? 'Keyword only (semantic not configured)'
+      : (toggle.checked ? 'Hybrid (keyword + semantic)' : 'Keyword only');
+  }
+
+  async function toggleSemanticSearch(enabled) {
+    const label = el('kbSemanticToggleLabel');
+    const previousText = label.textContent;
+    label.textContent = 'Switching…';
+    try {
+      const res = await fetch('/api/knowledge/search-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: enabled ? 'hybrid' : 'keyword' }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'search_mode_failed');
+      label.textContent = data.mode === 'hybrid' ? 'Hybrid (keyword + semantic)' : 'Keyword only';
+    } catch (err) {
+      el('kbSemanticToggle').checked = !enabled;
+      label.textContent = previousText;
+      log('search_mode_toggle_error', { message: err.message });
+    }
   }
 
   // ---- KOS website source registry (Step 2E) ----
@@ -2944,6 +2981,7 @@
   }
 
   el('kbRefreshBtn').addEventListener('click', loadKnowledgeStatus);
+  el('kbSemanticToggle').addEventListener('change', (e) => toggleSemanticSearch(e.target.checked));
   el('kbSourcesRefreshBtn').addEventListener('click', loadKnowledgeSources);
   el('kbSearchInput').addEventListener('input', applySearchAndSort);
   el('kbSortSelect').addEventListener('change', applySearchAndSort);

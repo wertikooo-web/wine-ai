@@ -1,4 +1,4 @@
-﻿---
+---
 title: Ghid Vin-Divin Moldova (ro+en) 7  Print
 language: ru
 doc_type: uploaded_pdf
