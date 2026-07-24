@@ -111,9 +111,18 @@ const VISUAL_BINDINGS = Object.freeze({
 // tool result, not text-sniffing).
 function chooseWineId(text = '') {
     const normalized = String(text).toLocaleLowerCase('ru');
-    if (/(feteasc|dealul)/u.test(normalized)) return 'demo-wine-001';
+    // Rosé and white checked FIRST, red last: demo-wine-001 and
+    // demo-wine-002 share both a winery ("Crama Dealul de Aur") and a grape
+    // (Fetească Neagră is in the rosé's blend too), so the red pattern
+    // (feteasc|dealul) also matches rosé's own grounded prompt text
+    // ("...от Crama Dealul de Aur... Фетяска Нягрэ..." — see
+    // DEMO_WINE_PROMPTS in dashboard.html). Checking red last means a rosé/
+    // white match always wins first; red is the fallback once neither of
+    // the more specific patterns hit. Confirmed no reverse collision: red's
+    // own prompt never mentions codru/rosé/viorica/ștefan vodă.
     if (/(codru|rosé|розе)/u.test(normalized)) return 'demo-wine-002';
     if (/(viorica|ștefan\s*vod[aă]|stefan\s*voda)/u.test(normalized)) return 'demo-wine-003';
+    if (/(feteasc|dealul)/u.test(normalized)) return 'demo-wine-001';
     return null;
 }
 
