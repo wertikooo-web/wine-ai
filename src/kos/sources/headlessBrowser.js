@@ -51,7 +51,14 @@ let browserPromise = null;
 async function getBrowser() {
     if (!browserPromise) {
         browserPromise = (async () => {
-            const chromium = require('@sparticuz/chromium');
+            // @sparticuz/chromium is ESM-only ("type": "module") — CJS
+            // require() wraps its default export under `.default` instead
+            // of returning the Chromium class directly, which is why a
+            // naive `require(...).executablePath()` fails with
+            // "chromium.executablePath is not a function" (confirmed live
+            // in production logs).
+            const chromiumModule = require('@sparticuz/chromium');
+            const chromium = chromiumModule.default || chromiumModule;
             const puppeteer = require('puppeteer-core');
             const executablePath = await chromium.executablePath();
             return puppeteer.launch({
