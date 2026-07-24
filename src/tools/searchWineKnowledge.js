@@ -9,7 +9,10 @@ const declaration = {
     parameters: {
         type: 'OBJECT',
         properties: {
-            query: { type: 'STRING', description: 'The factual question or topic to search for, in the user\'s own words.' },
+            query: {
+                type: 'STRING',
+                description: 'The factual question or topic to search for. This is matched by literal keyword AND meaning — it is NOT purely semantic, so exact wording matters. Keep any proper noun, product/package name, brand, or capitalized term EXACTLY as the user wrote it — same script, same spelling, same capitalization. Do NOT translate, transliterate, or paraphrase these terms (e.g. if the user wrote "KOSHER" in Latin letters, the query must contain "KOSHER" in Latin letters too, not a Cyrillic translation like "кошерные" — those will not match the same source text). You may add surrounding context words in the user\'s language, but never alter the exact term itself.',
+            },
             language: { type: 'STRING', description: 'Optional ISO language code (ru, ro, en) to prefer for results.' },
         },
         required: ['query'],
@@ -19,7 +22,7 @@ const declaration = {
 async function impl(args) {
     const query = requireNonEmptyString(args.query, 'query');
     const language = optionalString(args.language, 8) || null;
-    const { hits, mode } = await search(query, { language, limit: 4 });
+    const { hits, mode } = await search(query, { language, limit: 6 });
 
     // Diagnostic logging (P2 from docs/KNOWLEDGE_RUNTIME_AUDIT.md) — the
     // only way to tell "the model didn't call this tool" apart from "it
