@@ -2728,6 +2728,32 @@
     return 'curated';
   }
 
+  // Crawled documents ingested before the extraction fix (see
+  // fetchPage.js/crawlIngestionService.js — they used to flatten every
+  // paragraph/heading into one space-joined line) are stored that way
+  // permanently; re-crawling every affected site just to fix formatting
+  // isn't worth it. This is a display-only reflow: if the fetched text has
+  // no paragraph breaks at all, insert one after every ~220-char run of
+  // complete sentences so it's readable here. Never touches the stored
+  // file or what the model actually retrieves — purely cosmetic for this
+  // preview box.
+  function reflowForDisplay(text) {
+    if (/\n\s*\n/.test(text)) return text; // already has real paragraph breaks
+    const sentences = text.match(/[^.!?]+[.!?]+(\s+|$)/g);
+    if (!sentences || sentences.length < 2) return text;
+    const paragraphs = [];
+    let current = '';
+    for (const s of sentences) {
+      current += s;
+      if (current.length > 220) {
+        paragraphs.push(current.trim());
+        current = '';
+      }
+    }
+    if (current.trim()) paragraphs.push(current.trim());
+    return paragraphs.join('\n\n');
+  }
+
   // Clicking a source row fetches its full indexed text on demand (not
   // preloaded — the list can have 200+ entries, no reason to ship every
   // book's full text up front) and toggles it open inline, so "what
@@ -2746,7 +2772,7 @@
       const res = await fetch(`/api/knowledge/sources/${encodeURIComponent(src.source_file)}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'load_failed');
-      contentBox.textContent = data.text;
+      contentBox.textContent = reflowForDisplay(data.text);
       contentBox.dataset.loaded = 'true';
       contentBox.style.display = 'block';
       toggleBtn.textContent = 'Скрыть текст';
