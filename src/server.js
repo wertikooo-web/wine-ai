@@ -317,13 +317,24 @@ async function handleRequest(req, res) {
         // AI-generated photo (matching the red bottle's studio-shot look)
         // replaced them — a hand-drawn SVG placeholder was used briefly in
         // between, now superseded by these.
-        '/visual-assets/bottle-codru-rose.png': {
-            filePath: path.join(visualModulesDir, 'bottle-codru-rose.png'),
+        //
+        // Filename carries the version (…-v2.png), not a ?v= query string:
+        // this content went through several revisions in one day while the
+        // crop position was being corrected, and a ?v= cache-bust wasn't
+        // reliable — Railway's edge/CDN layer (or an intermediate proxy)
+        // appears to cache by path only and can ignore query strings, so a
+        // client could keep seeing stale bottle art after a fix shipped.
+        // Bump the filename's suffix (v2 -> v3 -> …), not just the query
+        // string, next time these specific files change.
+        '/visual-assets/bottle-codru-rose-v2.png': {
+            filePath: path.join(visualModulesDir, 'bottle-codru-rose-v2.png'),
             contentType: 'image/png',
+            cacheControl: 'public, max-age=120',
         },
-        '/visual-assets/bottle-stefan-viorica.png': {
-            filePath: path.join(visualModulesDir, 'bottle-stefan-viorica.png'),
+        '/visual-assets/bottle-stefan-viorica-v2.png': {
+            filePath: path.join(visualModulesDir, 'bottle-stefan-viorica-v2.png'),
             contentType: 'image/png',
+            cacheControl: 'public, max-age=120',
         },
         '/visual-assets/avatar-woman-1.png': {
             filePath: path.join(publicDir, 'woman avatar 1.png'),
@@ -392,7 +403,7 @@ async function handleRequest(req, res) {
         fs.createReadStream(visualStatic.filePath)
             .on('error', () => sendJson(res, 404, { ok: false, error: 'visual_asset_not_found' }))
             .once('open', () => {
-                res.writeHead(200, { 'content-type': visualStatic.contentType, 'cache-control': 'public, max-age=3600' });
+                res.writeHead(200, { 'content-type': visualStatic.contentType, 'cache-control': visualStatic.cacheControl || 'public, max-age=3600' });
             })
             .pipe(res);
         return undefined;
