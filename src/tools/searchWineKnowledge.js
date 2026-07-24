@@ -19,7 +19,20 @@ const declaration = {
 async function impl(args) {
     const query = requireNonEmptyString(args.query, 'query');
     const language = optionalString(args.language, 8) || null;
-    const { hits } = await search(query, { language, limit: 4 });
+    const { hits, mode } = await search(query, { language, limit: 4 });
+
+    // Diagnostic logging (P2 from docs/KNOWLEDGE_RUNTIME_AUDIT.md) — the
+    // only way to tell "the model didn't call this tool" apart from "it
+    // called it and got nothing useful" apart from "it got a good hit and
+    // still answered wrong" is to see the actual query text and what came
+    // back, not guess from the final transcript.
+    console.log('[search_wine_knowledge]', JSON.stringify({
+        query,
+        language,
+        mode,
+        hit_count: hits.length,
+        top_hits: hits.slice(0, 4).map((h) => ({ title: h.chunk.metadata.title, source_file: h.chunk.metadata.source_file, score: h.score })),
+    }));
 
     if (hits.length === 0) {
         return { found: false, results: [] };

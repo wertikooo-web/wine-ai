@@ -1034,6 +1034,10 @@ attachRealtimeServer(server, {
 server.listen(PORT, () => {
     console.log(`[WineAI] listening port=${PORT} provider=${defaultProvider.id}`);
 
+    searchMode.loadPersistedMode()
+        .then((mode) => console.log(`[WineAI] knowledge search mode restored: ${mode}`))
+        .catch((err) => console.error('[WineAI] failed to restore knowledge search mode:', err.message));
+
     // Set default update interval to 24 hours (once a day) as requested
     if (!process.env.KNOWLEDGE_UPDATE_MIN_INTERVAL_HOURS) {
         process.env.KNOWLEDGE_UPDATE_MIN_INTERVAL_HOURS = '24';
