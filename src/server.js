@@ -23,8 +23,9 @@ const { runUpdateCycle } = require('./knowledge/updateCycle');
 const {
     SUPPORTED_LANGUAGES, getRawPersonaPrompt,
     currentPersonaSommelierGender, currentPersonaName, currentPersonaDescription,
-    currentWelcomeMessage,
+    currentWelcomeMessage, getEffectivePersonaPrompt,
 } = require('./persona/wineExpertPersona');
+const { listProfiles, MOODS, resolveProfile } = require('./persona/profileRegistry');
 const personaStore = require('./persona/personaStore');
 const { getScreenContext, buildContextualPersona } = require('./persona/screenContexts');
 const { getPurchaseOptions } = require('./data/purchaseOptions');
@@ -513,7 +514,36 @@ async function handleRequest(req, res) {
         }
     }
 
+    if (req.method === 'GET' && pathname === '/api/persona/profiles') {
+        return sendJson(res, 200, {
+            ok: true,
+            profiles: listProfiles(),
+            moods: MOODS
+        });
+    }
+
     if (req.method === 'GET' && pathname === '/api/persona') {
+        const override = personaStore.getCached();
+        const baseProfileId = override.baseProfileId;
+        const mood = override.mood;
+        const overrides = override.overrides || {};
+        const resolved = resolveProfile(baseProfileId, overrides, mood);
+
+        let customizationMode = 'preset';
+        if (baseProfileId === null) {
+            customizationMode = 'custom';
+        } else {
+            const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
+                if (key === 'style') {
+                    return Object.keys(overrides.style || {}).length > 0;
+                }
+                return overrides[key] !== undefined && overrides[key] !== null;
+            });
+            if (hasMeaningfulOverrides) {
+                customizationMode = 'custom';
+            }
+        }
+
         return sendJson(res, 200, {
             ok: true,
             name: currentPersonaName(),
@@ -522,15 +552,16 @@ async function handleRequest(req, res) {
             welcome_message: currentWelcomeMessage(),
             system_prompt: getRawPersonaPrompt(),
             sommelierGender: currentPersonaSommelierGender(),
+
+            baseProfileId,
+            customizationMode,
+            mood,
+            resolved,
+            effectivePromptPreview: getEffectivePersonaPrompt(),
+            overrides
         });
     }
 
-    // Persists name/description/welcome_message/system_prompt/sommelierGender (Postgres-
-    // backed when DATABASE_URL is set, file-backed for local dev — see
-    // src/persona/personaStore.js). Every realtime session started AFTER a
-    // successful save picks up the change immediately.
-    // Languages are deliberately not editable here — SUPPORTED_LANGUAGES
-    // drives real language-detection/UI behavior elsewhere, not just display.
     if (req.method === 'POST' && pathname === '/api/persona') {
         let body;
         try {
@@ -539,25 +570,28 @@ async function handleRequest(req, res) {
             return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
 
-        // Validate sommelierGender value (undefined: no change, male/female: valid, null/empty/other: HTTP 400)
-        if (body.sommelierGender !== undefined) {
-            if (body.sommelierGender !== 'male' && body.sommelierGender !== 'female') {
-                return sendJson(res, 400, {
-                    ok: false,
-                    error: 'invalid_sommelier_gender',
-                    message: 'sommelierGender must be either male or female',
-                });
-            }
-        }
-
         try {
-            const saved = await personaStore.save({
-                name: body.name,
-                description: body.description,
-                welcome_message: body.welcome_message,
-                system_prompt: body.system_prompt,
-                sommelierGender: body.sommelierGender,
-            });
+            const saved = await personaStore.save(body);
+            const baseProfileId = saved.baseProfileId;
+            const mood = saved.mood;
+            const overrides = saved.overrides || {};
+            const resolved = resolveProfile(baseProfileId, overrides, mood);
+
+            let customizationMode = 'preset';
+            if (baseProfileId === null) {
+                customizationMode = 'custom';
+            } else {
+                const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
+                    if (key === 'style') {
+                        return Object.keys(overrides.style || {}).length > 0;
+                    }
+                    return overrides[key] !== undefined && overrides[key] !== null;
+                });
+                if (hasMeaningfulOverrides) {
+                    customizationMode = 'custom';
+                }
+            }
+
             return sendJson(res, 200, {
                 ok: true,
                 name: currentPersonaName(),
@@ -566,10 +600,19 @@ async function handleRequest(req, res) {
                 welcome_message: currentWelcomeMessage(),
                 system_prompt: getRawPersonaPrompt(),
                 sommelierGender: currentPersonaSommelierGender(),
-                saved,
+
+                baseProfileId,
+                customizationMode,
+                mood,
+                resolved,
+                effectivePromptPreview: getEffectivePersonaPrompt(),
+                overrides,
+                saved
             });
         } catch (error) {
-            return sendJson(res, 500, { ok: false, error: 'persona_save_failed', message: error.message });
+            const statusCode = error.statusCode || 500;
+            const code = error.statusCode ? error.message : 'persona_save_failed';
+            return sendJson(res, statusCode, { ok: false, error: code, message: error.message });
         }
     }
 
