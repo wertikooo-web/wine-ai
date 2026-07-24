@@ -23,6 +23,26 @@ async function run() {
     t.ok(en.hits.length > 0, 'expected at least one hit for the roast lamb pairing question');
     t.match(en.hits[0].chunk.metadata.title, /lamb/i);
 
+    // Narine Abgaryan event retrieval test (ru)
+    const narine = await search('Когда встреча с Наринэ Абгарян?', { language: 'ru', limit: 2 });
+    t.ok(narine.hits.length > 0, 'expected at least one hit for the Narine Abgaryan event');
+    t.match(narine.hits[0].chunk.metadata.title, /Наринэ/, 'top hit should be the Narine Abgaryan event profile');
+
+    // Danila Kozlovsky event retrieval test (ru) - person or event
+    const kozlovsky = await search('Музыкальный спектакль CHECK-UP с Данилой Козловским', { language: 'ru', limit: 2 });
+    t.ok(kozlovsky.hits.length > 0, 'expected at least one hit for the Danila Kozlovsky event');
+    t.match(kozlovsky.hits[0].chunk.metadata.title, /Kozlovsky/, 'top hit should be the Danila Kozlovsky event profile');
+
+    // ONVV organization retrieval test (en) - organization or place
+    const onvv = await search('National Office of Vine and Wine', { language: 'en', limit: 2 });
+    t.ok(onvv.hits.length > 0, 'expected at least one hit for ONVV');
+    t.match(onvv.hits[0].chunk.metadata.title, /ONVV/, 'top hit should be the ONVV profile');
+
+    // Spiegelau glassware retrieval test (ru) - unexpected item or topic
+    const spiegelau = await search('хрустальные бокалы Spiegelau', { language: 'ru', limit: 2 });
+    t.ok(spiegelau.hits.length > 0, 'expected at least one hit for Spiegelau');
+    t.match(spiegelau.hits[0].chunk.metadata.title, /Spiegelau/, 'top hit should be the Spiegelau profile');
+
     // Empty query never throws, returns no hits.
     const emptyQuery = await search('', {});
     t.deepEqual(emptyQuery.hits, [], 'an empty query must return no hits, not throw');
