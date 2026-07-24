@@ -875,6 +875,12 @@
           <button type="submit" id="kosSourceAddBtn">Добавить сайт и собрать данные</button>
           <button type="button" class="secondary" id="kosSourcesRefreshBtn">Обновить</button>
         </div>
+        <div class="kos-source-field" style="grid-column: 1 / -1;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:normal;" title="Для сайтов на React/Next.js/Vue и т.п., где реальный контент строится JavaScript'ом в браузере — обычный запрос видит только пустую заготовку страницы. Рендеринг через headless-браузер медленнее, но видит настоящий контент.">
+            <input type="checkbox" id="kosSourceRenderJs">
+            Рендерить JavaScript (для сайтов на React/Next.js — медленнее, но видит реальный контент)
+          </label>
+        </div>
       </form>
       <div id="kosSourceActionStatus" style="font-size:12px; margin-top:10px;"></div>
       <div id="kosSourceList" class="kos-source-list"></div>
@@ -2691,6 +2697,7 @@
           url,
           name: el('kosSourceName').value.trim() || null,
           wineryId: el('kosSourceWineryId').value.trim() || null,
+          policy: el('kosSourceRenderJs').checked ? { renderJs: true } : undefined,
         }),
       });
       const data = await readApiResponse(res);

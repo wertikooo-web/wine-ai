@@ -16,6 +16,7 @@ const { safeFetchResource } = require('./safeHttpClient');
 const { parseRobotsTxt } = require('./robotsPolicy');
 const { extractHtmlLinks } = require('./htmlLinkExtractor');
 const { normalizeUrlSyntactic } = require('./ssrfProtection');
+const { renderPage } = require('./headlessBrowser');
 
 const DEFAULT_POLICY = {
     scope: 'same-origin',
@@ -29,6 +30,14 @@ const DEFAULT_POLICY = {
     maxBytes: 10485760,
     respectRobotsTxt: true,
     discoverSitemap: true,
+    // Opt-in only (see headlessBrowser.js): plain HTTP fetch can't see
+    // content a site builds client-side (confirmed against cricova.md —
+    // its raw HTML is a near-empty React/Next.js shell with a
+    // BAILOUT_TO_CLIENT_SIDE_RENDERING marker and 5 links, none of them
+    // real navigation). Off by default because headless rendering is far
+    // slower/heavier than a plain GET and most sources in this corpus
+    // (WordPress) don't need it.
+    renderJs: false,
 };
 
 const EXCLUDED_PATH_PREFIXES = [
@@ -76,11 +85,12 @@ async function crawlWebsite({
 
     const effectivePolicy = { ...DEFAULT_POLICY, ...policy };
     const fetchFn = dependencies.safeFetchResource || safeFetchResource;
+    const renderFn = dependencies.renderPage || renderPage;
     const sleepFn = dependencies.sleeper || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
     const startedAt = new Date().toISOString();
     const sourceId = source.id || 'src_unknown';
-    const seedUrl = normalizeUrlSyntactic(source.seed_url);
+    const seedUrl = normalizeUrlSyntactic(source.seed_url).canonicalUrl;
     const origin = source.normalized_origin;
 
     const resources = [];
@@ -147,7 +157,7 @@ async function crawlWebsite({
                             isSameOrigin(extractedUrl, origin, effectivePolicy.includeSubdomains) &&
                             !visitedUrls.has(extractedUrl)
                         ) {
-                            const normalized = normalizeUrlSyntactic(extractedUrl);
+                            const normalized = normalizeUrlSyntactic(extractedUrl).canonicalUrl;
                             discoveredUrlsSet.add(normalized);
                             queue.push({
                                 url: normalized,
@@ -205,14 +215,21 @@ async function crawlWebsite({
         attemptedCount++;
 
         try {
-            const fetchResult = await fetchFn({
-                url: currentUrl,
-                timeoutMs: effectivePolicy.timeoutMs,
-                maxBytes: effectivePolicy.maxBytes,
-                maxRedirects: effectivePolicy.maxRedirects,
-                allowedPorts: [80, 443],
-                dependencies,
-            });
+            const fetchResult = effectivePolicy.renderJs
+                ? await renderFn({
+                    url: currentUrl,
+                    timeoutMs: effectivePolicy.timeoutMs,
+                    maxBytes: effectivePolicy.maxBytes,
+                    dependencies,
+                })
+                : await fetchFn({
+                    url: currentUrl,
+                    timeoutMs: effectivePolicy.timeoutMs,
+                    maxBytes: effectivePolicy.maxBytes,
+                    maxRedirects: effectivePolicy.maxRedirects,
+                    allowedPorts: [80, 443],
+                    dependencies,
+                });
 
             fetchedCount++;
 

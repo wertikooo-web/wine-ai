@@ -603,11 +603,15 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
     }
 
-    // Only maxPages/maxDepth are exposed to callers — never let a client
-    // override delayMs/robots/SSRF-relevant settings from the request body.
-    // Ceiling (500 pages, depth 4) is a sanity bound, not a security
-    // boundary — SSRF/private-IP/robots protections live in
-    // ssrfProtection.js/robotsPolicy.js independently of this.
+    // Only maxPages/maxDepth/renderJs are exposed to callers — never let a
+    // client override delayMs/robots/SSRF-relevant settings from the
+    // request body. Ceiling (500 pages, depth 4) is a sanity bound, not a
+    // security boundary — SSRF/private-IP/robots protections live in
+    // ssrfProtection.js/robotsPolicy.js independently of this. renderJs
+    // opts into headless-browser rendering (src/kos/sources/
+    // headlessBrowser.js) for sites whose real content only appears after
+    // client-side JavaScript runs — off by default since it's far
+    // slower/heavier than a plain HTTP GET.
     function clampCrawlPolicy(rawPolicy) {
         if (!rawPolicy || typeof rawPolicy !== 'object') return undefined;
         const policy = {};
@@ -616,6 +620,9 @@ async function handleRequest(req, res) {
         }
         if (Number.isFinite(rawPolicy.maxDepth)) {
             policy.maxDepth = Math.max(0, Math.min(4, Math.floor(rawPolicy.maxDepth)));
+        }
+        if (typeof rawPolicy.renderJs === 'boolean') {
+            policy.renderJs = rawPolicy.renderJs;
         }
         return Object.keys(policy).length > 0 ? policy : undefined;
     }
