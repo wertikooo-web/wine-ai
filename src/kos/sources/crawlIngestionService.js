@@ -16,10 +16,17 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const cheerio = require('cheerio');
 const db = require('../../knowledge/db');
 const sourceRegistry = require('./sourceRegistry');
 const websiteCrawlerProvider = require('./websiteCrawlerProvider');
 const rawResourceStorage = require('./rawResourceStorage');
+const { DEFAULT_SOURCE_DIR } = require('../../knowledge/loader');
+const { buildIndex } = require('../../knowledge/index');
+const { cleanText, isSubstantial } = require('../../knowledge/processor/clean');
+const { commitKnowledgeFiles } = require('../../knowledge/gitPersist');
 
 function generateId(prefix = 'id') {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
@@ -68,6 +75,17 @@ async function ingestSource({
     }
 
     const storedResources = [];
+    // Bridge to the legacy knowledge/source/*.md + index.json pipeline —
+    // the ONLY thing search_wine_knowledge actually reads (see
+    // docs/KNOWLEDGE_RUNTIME_AUDIT.md, defect D1). Without this, a crawl
+    // added via the Dashboard's "Add website" can show crawl_status:
+    // completed with real pages_fetched > 0 while contributing nothing to
+    // real answers, because kos_source_documents/versions are never read
+    // by retrieval. Extracted here (before the Postgres/object-storage
+    // writes below, which can fail independently — e.g. no S3 configured)
+    // so a working KOS raw-storage step is not a prerequisite for this to
+    // work, and a broken one doesn't block it either.
+    const bridgedPages = [];
     let crawlResult = { status: 'failed', counters: { discovered: 0, fetched: 0, failed: 0, skipped: 0 }, resources: [], failures: [] };
 
     try {
@@ -110,6 +128,34 @@ async function ingestSource({
             const canonicalUrl = resItem.canonicalUrl || requestedUrl;
             const fetchRes = resItem.fetchResult;
             const rawBuffer = fetchRes.rawBody;
+
+            try {
+                const contentType = fetchRes.detectedContentType || fetchRes.declaredContentType || '';
+                let extractedTitle = canonicalUrl;
+                let extractedText = '';
+                if (/html/i.test(contentType)) {
+                    const $ = cheerio.load(rawBuffer.toString('utf8'));
+                    $('script, style, noscript, nav, footer, header, form, iframe').remove();
+                    extractedTitle = $('title').first().text().trim() || $('h1').first().text().trim() || canonicalUrl;
+                    const candidates = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
+                    for (const selector of candidates) {
+                        const el = $(selector).first();
+                        if (el.length && el.text().trim().length > 200) {
+                            extractedText = el.text().replace(/\s+/g, ' ').trim();
+                            break;
+                        }
+                    }
+                    if (!extractedText) extractedText = $('body').text().replace(/\s+/g, ' ').trim();
+                } else if (/text\/plain/i.test(contentType)) {
+                    extractedText = rawBuffer.toString('utf8');
+                }
+                const cleaned = cleanText(extractedText);
+                if (isSubstantial(cleaned)) {
+                    bridgedPages.push({ url: canonicalUrl, title: extractedTitle, text: cleaned });
+                }
+            } catch (extractErr) {
+                console.error('[KOS bridge] text extraction failed for', canonicalUrl, '(crawl itself continues):', extractErr.message);
+            }
 
             let documentId = null;
             let versionId = null;
@@ -204,6 +250,50 @@ async function ingestSource({
                 status: itemStatus,
                 detectedContentType: fetchRes.detectedContentType,
             });
+        }
+
+        // 5b. Bridge extracted pages into the legacy knowledge index so
+        // this crawl actually becomes retrievable (see comment at
+        // bridgedPages declaration above). Best-effort: never lets a
+        // write/index failure affect the crawl run's own success/failure
+        // status.
+        if (bridgedPages.length > 0) {
+            try {
+                fs.mkdirSync(DEFAULT_SOURCE_DIR, { recursive: true });
+                const writtenPaths = [];
+                for (const page of bridgedPages) {
+                    const idSuffix = crypto.createHash('sha256').update(page.url).digest('hex').slice(0, 10);
+                    const safeTitle = (page.title || '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-+|-+$/g, '')
+                        .slice(0, 50);
+                    const fileName = `discovered-kos-${safeTitle ? safeTitle + '-' : ''}${idSuffix}.md`;
+                    const filePath = path.join(DEFAULT_SOURCE_DIR, fileName);
+                    const frontmatterDoc = [
+                        '---',
+                        `title: ${page.title.replace(/\r?\n/g, ' ')}`,
+                        'language: ru',
+                        'doc_type: general',
+                        `source: ${page.url}`,
+                        'confidence: unverified',
+                        `updated_at: ${new Date().toISOString()}`,
+                        '---',
+                        '',
+                        page.text,
+                    ].join('\n');
+                    fs.writeFileSync(filePath, frontmatterDoc, 'utf8');
+                    writtenPaths.push(filePath);
+                }
+                buildIndex();
+                commitKnowledgeFiles(
+                    path.resolve(__dirname, '..', '..', '..'),
+                    writtenPaths,
+                    `Add crawled KOS source pages: ${source.name || source.id} (${writtenPaths.length} page(s))`
+                );
+            } catch (bridgeErr) {
+                console.error('[KOS bridge] failed to write crawled pages into legacy knowledge index (crawl run itself still succeeded):', bridgeErr.message);
+            }
         }
 
         // 6. Process Failures
