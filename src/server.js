@@ -716,6 +716,36 @@ async function handleRequest(req, res) {
         });
     }
 
+    if (req.method === 'DELETE' && sourceContentMatch) {
+        const [, fileName] = sourceContentMatch;
+        const sourceDir = knowledgeLoader.DEFAULT_SOURCE_DIR;
+        const filePath = path.join(sourceDir, fileName);
+
+        if (!fs.existsSync(filePath)) {
+            return sendJson(res, 404, { ok: false, error: 'file_not_found' });
+        }
+
+        try {
+            fs.unlinkSync(filePath);
+            buildIndex();
+            
+            // Commit and push deletion (best effort)
+            try {
+                commitKnowledgeFiles(
+                    path.resolve(__dirname, '..'),
+                    [filePath],
+                    `Delete knowledge file: ${fileName}`
+                );
+            } catch (gitErr) {
+                console.error('[knowledge delete] git commit failed:', gitErr.message);
+            }
+
+            return sendJson(res, 200, { ok: true });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'delete_failed', message: error.message });
+        }
+    }
+
     // Drag-and-drop upload for the Knowledge base tab. Body is JSON
     // ({filename, content}) rather than multipart — every plain-text source
     // document in this project is already text end to end, so the browser
