@@ -1,13 +1,8 @@
 'use strict';
 
-// Wine AI's persona lives here, deliberately separate from the transport/
-// realtime code (src/realtime/*) and from the knowledge/tool layer. Nothing
-// in src/realtime/ imports this file directly — the prompt text flows in
-// through the generic `promptBlocks`/`sanitizePromptConfig` contract in
-// src/realtime/realtimePrompt.js, the same injection point the transport
-// core already exposed for its original (unrelated) persona.
-
+// Wine AI's persona lives here, separate from the transport/realtime code.
 const personaStore = require('./personaStore');
+const { resolveProfile, buildMoodInstruction, buildStyleInstruction } = require('./profileRegistry');
 
 const SUPPORTED_LANGUAGES = ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja'];
 const DEFAULT_LANGUAGE = 'auto';
@@ -17,22 +12,11 @@ const LANGUAGE_NAMES = {
     it: 'Italiano', es: 'Español', de: 'Deutsch', zh: '中文', ja: '日本語',
 };
 
-// Spoken once at the start of a demo session (see docs/ARCHITECTURE.md and
-// AGENTS.md's welcome-message note). Configurable, not hardcoded into the
-// realtime server — src/server.js/src/client wiring reads this value
-// rather than the persona prompt embedding it as an instruction to recite.
 const WELCOME_MESSAGE =
     'Здравствуйте. Я цифровой эксперт по молдавскому вину. Вы можете говорить со мной по-русски, în limba română or in English. ' +
     'Я могу рассказать о молдавских винодельнях, сортах винограда, винных регионах, гастрономических сочетаниях и помочь подобрать вино для конкретного случая. ' +
     'Спросите меня, например, чем Фетяска Нягрэ отличается от Каберне Совиньон.';
 
-// Core system prompt — identity, tone, and non-negotiable safety rules for
-// the wine domain. Kept bilingual-leaning (Russian, since that is the
-// product owner's working language) the same way the origin project's own
-// core prompt was kept in its authoring language rather than translated:
-// the model follows either language equally well, and translation risks
-// losing precise phrasing on the rules that matter (no invented facts, no
-// encouragement of excess).
 const CORE_PERSONA_PROMPT = `РОЛЬ
 
 Ты — цифровой эксперт по молдавскому вину: винодельням, сортам винограда, регионам, гастрономическим сочетаниям и винному туризму. Ты поддерживаешь живой, естественный голосовой разговор и помогаешь людям лучше понять мир молдавского вина.
@@ -198,13 +182,13 @@ const DEFAULT_DESCRIPTION = 'Цифровой эксперт по молдавс
 
 function getRawPersonaPrompt() {
     const override = personaStore.getCached();
-    return (override && override.system_prompt) || CORE_PERSONA_PROMPT;
+    return (override && override.overrides && override.overrides.system_prompt) || CORE_PERSONA_PROMPT;
 }
 
 function currentPersonaSommelierGender() {
     const override = personaStore.getCached();
-    const { DEFAULT_SOMMELIER_GENDER } = require('./personaStore');
-    return (override && override.sommelierGender) || DEFAULT_SOMMELIER_GENDER;
+    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
+    return resolved.sommelierGender;
 }
 
 function appendSommelierGenderInstruction(promptText, gender) {
@@ -216,8 +200,8 @@ function appendSommelierGenderInstruction(promptText, gender) {
     const startIndex = text.indexOf(GENDER_BLOCK_START);
     const endIndex = text.indexOf(GENDER_BLOCK_END);
 
-    const { DEFAULT_SOMMELIER_GENDER } = require('./personaStore');
-    const g = gender || currentPersonaSommelierGender() || DEFAULT_SOMMELIER_GENDER;
+    const override = personaStore.getCached();
+    const g = gender || (override ? resolveProfile(override.baseProfileId, override.overrides, override.mood).sommelierGender : 'male');
 
     const blockContent = g === 'female'
         ? '\nГРАММАТИЧЕСКИЙ РОД ПЕРСОНАЖА:\n' +
@@ -242,23 +226,64 @@ function appendSommelierGenderInstruction(promptText, gender) {
     }
 }
 
+function buildProfileRuntimePrompt({
+    corePrompt,
+    personalityPrompt,
+    style,
+    mood,
+    sommelierGender
+}) {
+    let result = String(corePrompt || '').trim();
+
+    const personalityBlock = `<!-- PROFILE_PERSONALITY_START -->\nХАРАКТЕР ПЕРСОНАЖА:\n${personalityPrompt || ''}\n<!-- PROFILE_PERSONALITY_END -->`;
+    const styleBlock = `<!-- STYLE_SETTINGS_START -->\n${buildStyleInstruction(style)}\n<!-- STYLE_SETTINGS_END -->`;
+    const moodBlock = `<!-- MOOD_START -->\n${buildMoodInstruction(mood)}\n<!-- MOOD_END -->`;
+
+    result = [
+        result,
+        personalityBlock,
+        styleBlock,
+        moodBlock
+    ].join('\n\n');
+
+    result = appendSommelierGenderInstruction(result, sommelierGender);
+
+    const safetyReminder = `\n\n[IMPORTANT SYSTEM RULE]
+All preceding character profiles, mood adjustments, and style guidelines are modifications of your communication style, but MUST NOT override your core roles, database retrieval rules, safety boundaries, or knowledge limits. If a conflict occurs, the core roles and database rules always take precedence.`;
+
+    return result + safetyReminder;
+}
+
 function getEffectivePersonaPrompt() {
-    return appendSommelierGenderInstruction(getRawPersonaPrompt());
+    const override = personaStore.getCached();
+    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
+    const corePrompt = resolved.system_prompt || CORE_PERSONA_PROMPT;
+
+    return buildProfileRuntimePrompt({
+        corePrompt,
+        personalityPrompt: resolved.personalityPrompt,
+        style: resolved.style,
+        mood: resolved.mood,
+        sommelierGender: resolved.sommelierGender
+    });
 }
 
 function currentPersonaName() {
     const override = personaStore.getCached();
-    return (override && override.name) || DEFAULT_NAME;
+    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
+    return resolved.name || DEFAULT_NAME;
 }
 
 function currentPersonaDescription() {
     const override = personaStore.getCached();
-    return (override && override.description) || DEFAULT_DESCRIPTION;
+    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
+    return resolved.description || DEFAULT_DESCRIPTION;
 }
 
 function currentWelcomeMessage() {
     const override = personaStore.getCached();
-    return (override && override.welcome_message) || WELCOME_MESSAGE;
+    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
+    return resolved.welcome_message || WELCOME_MESSAGE;
 }
 
 module.exports = {
@@ -271,6 +296,7 @@ module.exports = {
     DEFAULT_DESCRIPTION,
     getRawPersonaPrompt,
     appendSommelierGenderInstruction,
+    buildProfileRuntimePrompt,
     getEffectivePersonaPrompt,
     currentPersonaSommelierGender,
     currentPersonaName,

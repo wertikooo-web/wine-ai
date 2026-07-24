@@ -14,6 +14,7 @@ const ENDPOINTS = [
     ['/dashboard', 200],
     ['/api/voices', 200],
     ['/api/persona', 200],
+    ['/api/persona/profiles', 200],
     ['/api/knowledge/status', 200],
     ['/api/knowledge/sources', 200],
     ['/api/avatar/status', 200],

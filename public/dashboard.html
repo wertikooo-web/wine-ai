@@ -544,9 +544,73 @@
 
   #log { max-height: 220px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px; background: #201a15; color: #d8cdb8; padding: 10px; border-radius: 8px; }
   #log div { white-space: pre-wrap; word-break: break-all; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #eee; }
-  .badge.ok { background: #dcf7e3; color: var(--ok); }
-  .badge.err { background: #fde2de; color: var(--err); }
+  /* Preset Selectors */
+  .profile-selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .profile-select-btn {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; text-align: left; cursor: pointer; transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .profile-select-btn:hover { border-color: var(--wine); background: #faf5f6; }
+  .profile-select-btn.active { border-color: var(--wine); background: #f5e6ea; box-shadow: 0 0 0 2px #b83b5e15; }
+  .profile-select-btn img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+  .profile-select-btn div { display: flex; flex-direction: column; }
+  .profile-select-btn strong { font-size: 14px; color: var(--fg); }
+  .profile-select-btn span { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Active Character Card & Badge */
+  .active-profile-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+    background: #fdfcfc; display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px;
+  }
+  .active-profile-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .active-profile-meta { display: flex; flex-direction: column; gap: 4px; }
+  .active-profile-meta h3 { margin: 0; font-size: 16px; color: var(--wine); }
+  .active-profile-meta p { margin: 0; font-size: 13px; color: var(--muted); }
+
+  .mode-badge {
+    padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .mode-badge.preset { background: #e3efff; color: #225ea8; }
+  .mode-badge.custom { background: #fff1cf; color: #855b00; }
+
+  .voice-style-preview {
+    background: #faf6f7; border-left: 3px solid var(--wine); padding: 8px 12px;
+    font-size: 12.5px; font-style: italic; color: #4a3b3e; border-radius: 0 6px 6px 0;
+  }
+
+  /* Mood Selector Pills */
+  .mood-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .mood-pill {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+    padding: 6px 14px; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+  }
+  .mood-pill:hover { border-color: var(--wine); }
+  .mood-pill.active { background: var(--wine); color: white; border-color: var(--wine); }
+
+  /* Collapsible Advanced Settings & Previews */
+  .advanced-settings-toggle {
+    margin-top: 14px; border: 1px dashed var(--border); border-radius: 8px; padding: 12px;
+  }
+  .advanced-settings-toggle summary {
+    font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none;
+  }
+  .advanced-settings-toggle summary:hover { color: var(--wine); }
+
+  .style-settings-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; margin-bottom: 14px;
+  }
+  .style-field { display: flex; flex-direction: column; gap: 4px; }
+  .style-field label { font-size: 12px; color: var(--muted); }
+  .style-field select {
+    padding: 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg);
+  }
+
+  .preview-textarea {
+    width: 100%; height: 180px; font-family: ui-monospace, monospace; font-size: 11.5px;
+    background: #fafaf9; border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+    color: #4b4b45; resize: vertical; margin-top: 6px;
+  }
 </style>
 </head>
 <body>
@@ -1021,33 +1085,148 @@
     </div>
 
     <div class="card">
-      <h2>Persona</h2>
+      <h2>Персонаж и Настроение</h2>
       <p style="font-size: 12px; color: var(--muted); margin: 0 0 14px;">
-        Изменения сохраняются на сервере и применяются ко всем новым разговорам сразу после сохранения.
+        Выберите сомелье и его текущее настроение. Изменения сохраняются на сервере и применятся при следующем подключении.
       </p>
-      <label class="persona-field-label" for="pName">Name</label>
-      <input type="text" id="pName" class="persona-input" maxlength="80">
 
-      <label class="persona-field-label" for="pDescription">Description</label>
-      <textarea id="pDescription" class="persona-textarea persona-textarea-short" maxlength="400"></textarea>
-
-      <label class="persona-field-label" for="pWelcome">Welcome message</label>
-      <textarea id="pWelcome" class="persona-textarea persona-textarea-short" maxlength="600"></textarea>
-
-      <label class="persona-field-label" for="pSommelierGender">Грамматический род сомелье</label>
-      <select id="pSommelierGender" class="persona-input" style="height: auto; padding: 8px; width: 100%; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); margin-bottom: 10px;">
-        <option value="male">Мужской (я рад помочь, я посоветовал)</option>
-        <option value="female">Женский (я рада помочь, я посоветовала)</option>
-      </select>
-
-      <label class="persona-field-label" for="pPrompt">System prompt</label>
-      <textarea id="pPrompt" class="persona-textarea persona-textarea-tall" maxlength="24000"></textarea>
-
-      <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
-        <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
-        <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
-        <span id="personaSaveStatus" style="font-size:12px; color:var(--muted);"></span>
+      <!-- Preset Selectors -->
+      <div class="profile-selectors" id="profileSelectorContainer">
+        <button class="profile-select-btn" type="button" data-profile="classic" id="btnProfileClassic">
+          <img src="/visual-assets/avatar-man-1.png" alt="Александр">
+          <div>
+            <strong>Александр</strong>
+            <span>Классический сомелье</span>
+          </div>
+        </button>
+        <button class="profile-select-btn" type="button" data-profile="warm_guide" id="btnProfileWarm">
+          <img src="/visual-assets/avatar-woman-1.png" alt="Мария">
+          <div>
+            <strong>Мария</strong>
+            <span>Тёплый винный гид</span>
+          </div>
+        </button>
       </div>
+
+      <!-- Active Profile Details -->
+      <div class="active-profile-card">
+        <div class="active-profile-header">
+          <div class="active-profile-meta">
+            <h3 id="activeProfileName">Александр</h3>
+            <p id="activeProfileDesc">Спокойный, уверенный и интеллигентный эксперт.</p>
+          </div>
+          <span class="mode-badge" id="activeProfileBadge">Preset Mode</span>
+        </div>
+        <div id="activeProfileStylePreview" class="voice-style-preview">
+          «Превосходный выбор! Фетяска Нягрэ — это гордость молдавского виноделия. В аромате вы почувствуете ноты дикой вишни и чернослива с легким оттенком специй... Хотите узнать больше о терруар этого винограда?»
+        </div>
+      </div>
+
+      <!-- Mood Selector -->
+      <h3>Настроение</h3>
+      <div class="mood-selector" id="moodSelectorContainer">
+        <button class="mood-pill" type="button" data-mood="calm">Спокойное</button>
+        <button class="mood-pill" type="button" data-mood="warm">Тёплое</button>
+        <button class="mood-pill" type="button" data-mood="lively">Живое</button>
+        <button class="mood-pill" type="button" data-mood="expert">Экспертное</button>
+      </div>
+
+      <!-- Collapsible Advanced Settings -->
+      <details class="advanced-settings-toggle">
+        <summary>«Расширенные настройки персонажа»</summary>
+        <div style="margin-top: 14px;">
+          <p style="font-size: 11px; color: var(--muted); margin: 0 0 12px; line-height: 1.4;">
+            Редактирование полей ниже переведет сомелье в <strong>Custom Mode</strong>. Вы сможете сбросить настройки обратно к оригиналу с помощью кнопки "Reset to defaults".
+          </p>
+
+          <label class="persona-field-label" for="pName">Name</label>
+          <input type="text" id="pName" class="persona-input" maxlength="80">
+
+          <label class="persona-field-label" for="pDescription">Description</label>
+          <textarea id="pDescription" class="persona-textarea persona-textarea-short" maxlength="400"></textarea>
+
+          <label class="persona-field-label" for="pWelcome">Welcome message</label>
+          <textarea id="pWelcome" class="persona-textarea persona-textarea-short" maxlength="600"></textarea>
+
+          <label class="persona-field-label" for="pSommelierGender">Грамматический род сомелье</label>
+          <select id="pSommelierGender" class="persona-input" style="height: auto; padding: 8px; width: 100%; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); margin-bottom: 10px;">
+            <option value="male">Мужской (я рад помочь, я посоветовал)</option>
+            <option value="female">Женский (я рада помочь, я посоветовала)</option>
+          </select>
+
+          <label class="persona-field-label" for="pPersonalityPrompt">Personality prompt</label>
+          <textarea id="pPersonalityPrompt" class="persona-textarea persona-textarea-short" style="height: 100px;" maxlength="24000"></textarea>
+
+          <label class="persona-field-label" for="pPrompt">Core prompt overrides</label>
+          <textarea id="pPrompt" class="persona-textarea persona-textarea-short" style="height: 100px;" maxlength="24000"></textarea>
+
+          <!-- Style settings grid -->
+          <h3 style="font-size: 13px; margin: 14px 0 8px; color: var(--wine);">Communication style</h3>
+          <div class="style-settings-grid">
+            <div class="style-field">
+              <label for="pStyleLength">Response Length</label>
+              <select id="pStyleLength">
+                <option value="short">Short (2-4 sentences)</option>
+                <option value="balanced">Balanced (normal flow)</option>
+                <option value="detailed">Detailed (verbose facts)</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleHumor">Humor Level</label>
+              <select id="pStyleHumor">
+                <option value="none">None (serious)</option>
+                <option value="light">Light (subtle humor)</option>
+                <option value="expressive">Expressive (very playful)</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleTone">Tone</label>
+              <select id="pStyleTone">
+                <option value="formal">Formal & Polite</option>
+                <option value="warm">Warm & Cozy</option>
+                <option value="lively">Lively & Active</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleExpertise">Expertise Level</label>
+              <select id="pStyleExpertise">
+                <option value="beginnerFriendly">Beginner Friendly</option>
+                <option value="balanced">Balanced</option>
+                <option value="expert">Expert (advanced terms)</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleStorytelling">Storytelling</label>
+              <select id="pStyleStorytelling">
+                <option value="off">Off (direct facts)</option>
+                <option value="occasional">Occasional</option>
+                <option value="active">Active (frequent stories)</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleToast">Toast Style</label>
+              <select id="pStyleToast">
+                <option value="disabled">Disabled</option>
+                <option value="onRequest">On Request Only</option>
+                <option value="occasional">Occasional</option>
+              </select>
+            </div>
+            <div class="style-field" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 8px; margin-top: 6px;">
+              <input type="checkbox" id="pStyleProactive" style="width: auto; margin: 0;">
+              <label for="pStyleProactive" style="cursor: pointer; user-select: none;">Offer proactive suggestions/follow-ups</label>
+            </div>
+          </div>
+
+          <label class="persona-field-label">Compiled system prompt preview (Read-only)</label>
+          <textarea id="pEffectivePromptPreview" class="preview-textarea" readonly></textarea>
+
+          <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+            <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
+            <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
+            <span id="personaSaveStatus" style="font-size:12px; color:var(--muted);"></span>
+          </div>
+        </div>
+      </details>
     </div>
   </section>
 
@@ -2458,11 +2637,64 @@
   async function loadPersona() {
     const res = await fetch('/api/persona');
     const data = await res.json();
-    el('pName').value = data.name || '';
-    el('pDescription').value = data.description || '';
-    el('pWelcome').value = data.welcome_message || '';
-    el('pPrompt').value = data.system_prompt || '';
-    el('pSommelierGender').value = data.sommelierGender || 'male';
+
+    // Update active profile card values
+    const baseProfileId = data.baseProfileId;
+    const mood = data.mood;
+    const resolved = data.resolved || {};
+
+    // Preset cards selection highlight
+    document.querySelectorAll('[data-profile]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.profile === baseProfileId);
+    });
+
+    // Mood pills selection highlight
+    document.querySelectorAll('[data-mood]').forEach(pill => {
+      pill.classList.toggle('active', pill.dataset.mood === mood);
+    });
+
+    // Update main card text fields
+    setText('activeProfileName', resolved.name || 'Wine AI');
+    setText('activeProfileDesc', resolved.description || '');
+
+    // Update Customization Mode badge
+    const badgeEl = el('activeProfileBadge');
+    if (badgeEl) {
+      badgeEl.textContent = data.customizationMode === 'custom' ? 'Custom Mode' : 'Preset Mode';
+      badgeEl.className = 'mode-badge ' + (data.customizationMode === 'custom' ? 'custom' : 'preset');
+    }
+
+    // Set voice preview quote based on profile
+    const previewEl = el('activeProfileStylePreview');
+    if (previewEl) {
+      if (baseProfileId === 'classic') {
+        previewEl.textContent = '«Превосходный выбор! Фетяска Нягрэ — это гордость молдавского виноделия. В аромате вы почувствуете ноты дикой вишни и чернослива с легким оттенком специй... Хотите узнать больше о терруар этого винограда?»';
+      } else if (baseProfileId === 'warm_guide') {
+        previewEl.textContent = '«О, Фетяска Нягрэ — это совершенно особенная история! Представьте себе аромат спелой вишни, сушеных ягод и легкое, теплое дуновение южного солнца. Оно звучит очень дружелюбно и согревающе... Попробуем его с мягким сыром?»';
+      } else {
+        previewEl.textContent = '«[Настраиваемый профиль. Пример ответа генерируется на основе ваших настроек.]»';
+      }
+    }
+
+    // Populate advanced fields
+    el('pName').value = resolved.name || '';
+    el('pDescription').value = resolved.description || '';
+    el('pWelcome').value = resolved.welcome_message || '';
+    el('pSommelierGender').value = resolved.sommelierGender || 'male';
+    el('pPersonalityPrompt').value = resolved.personalityPrompt || '';
+    el('pPrompt').value = resolved.system_prompt || '';
+
+    // Style elements
+    el('pStyleLength').value = resolved.style?.responseLength || 'balanced';
+    el('pStyleHumor').value = resolved.style?.humorLevel || 'light';
+    el('pStyleTone').value = resolved.style?.tone || 'formal';
+    el('pStyleExpertise').value = resolved.style?.expertiseLevel || 'balanced';
+    el('pStyleStorytelling').value = resolved.style?.storytelling || 'occasional';
+    el('pStyleToast').value = resolved.style?.toastStyle || 'onRequest';
+    el('pStyleProactive').checked = resolved.style?.proactiveSuggestions !== false;
+
+    // Compiled system prompt preview
+    el('pEffectivePromptPreview').value = data.effectivePromptPreview || '';
   }
 
   async function savePersona() {
@@ -2472,15 +2704,33 @@
     saveBtn.textContent = 'Saving…';
     statusEl.textContent = 'Saving…';
     try {
+      const nameVal = el('pName').value.trim();
+      const descVal = el('pDescription').value.trim();
+      const welcomeVal = el('pWelcome').value.trim();
+      const promptVal = el('pPrompt').value.trim();
+      const personalityVal = el('pPersonalityPrompt').value.trim();
+
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: el('pName').value,
-          description: el('pDescription').value,
-          welcome_message: el('pWelcome').value,
-          system_prompt: el('pPrompt').value,
-          sommelierGender: el('pSommelierGender').value,
+          overrides: {
+            name: nameVal || null,
+            description: descVal || null,
+            welcome_message: welcomeVal || null,
+            system_prompt: promptVal || null,
+            sommelierGender: el('pSommelierGender').value,
+            personalityPrompt: personalityVal || null,
+            style: {
+              responseLength: el('pStyleLength').value,
+              humorLevel: el('pStyleHumor').value,
+              tone: el('pStyleTone').value,
+              expertiseLevel: el('pStyleExpertise').value,
+              storytelling: el('pStyleStorytelling').value,
+              toastStyle: el('pStyleToast').value,
+              proactiveSuggestions: el('pStyleProactive').checked
+            }
+          }
         }),
       });
       const data = await res.json();
@@ -2488,6 +2738,7 @@
       saveBtn.textContent = 'Saved';
       statusEl.textContent = 'Saved — applies to new conversations.';
       log('persona_saved', {});
+      await loadPersona();
       setTimeout(() => {
         saveBtn.textContent = 'Save changes';
       }, 3000);
@@ -2500,9 +2751,6 @@
     }
   }
 
-  // Sending an empty string for a field clears that override server-side
-  // (see personaStore.save()'s "empty string reverts to default" rule),
-  // then loadPersona() re-reads the resulting (now-default) values.
   async function resetPersona() {
     const statusEl = el('personaSaveStatus');
     statusEl.textContent = 'Resetting…';
@@ -2510,7 +2758,7 @@
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '', description: '', welcome_message: '', system_prompt: '', sommelierGender: 'male' }),
+        body: JSON.stringify({ reset: true }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'reset_failed');
@@ -2520,6 +2768,49 @@
       statusEl.textContent = 'Reset failed: ' + err.message;
     }
   }
+
+  // Setup click listeners for profile presets and mood pills
+  document.querySelectorAll('[data-profile]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const profileId = btn.dataset.profile;
+      const statusEl = el('personaSaveStatus');
+      statusEl.textContent = 'Switching profile…';
+      try {
+        const res = await fetch('/api/persona', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseProfileId: profileId }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'profile_switch_failed');
+        await loadPersona();
+        statusEl.textContent = 'Profile switched.';
+      } catch (err) {
+        statusEl.textContent = 'Switch failed: ' + err.message;
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-mood]').forEach(pill => {
+    pill.addEventListener('click', async () => {
+      const moodId = pill.dataset.mood;
+      const statusEl = el('personaSaveStatus');
+      statusEl.textContent = 'Updating mood…';
+      try {
+        const res = await fetch('/api/persona', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mood: moodId }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'mood_switch_failed');
+        await loadPersona();
+        statusEl.textContent = 'Mood updated.';
+      } catch (err) {
+        statusEl.textContent = 'Mood update failed: ' + err.message;
+      }
+    });
+  });
 
   async function loadKnowledgeStatus() {
     const res = await fetch('/api/knowledge/status');

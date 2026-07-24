@@ -1,12 +1,8 @@
 'use strict';
 
-// Persistent persona overrides (name/description/welcome message/system
-// prompt/sommelierGender) editable from the Settings tab. Postgres-backed when DATABASE_URL
-// is set (Railway — survives redeploys, unlike local disk in that
-// environment), file-backed fallback for local dev — same dual-mode
-// pattern as src/knowledge/discovered/store.js. Reuses the existing pg pool
-// helper at src/knowledge/db.js (a generic connection helper despite its
-// location; not knowledge-specific in implementation).
+// Persistent persona profiles and overrides (name/description/welcome message/system
+// prompt/personalityPrompt/mood/style/sommelierGender) editable from the settings dashboard.
+// Postgres-backed when DATABASE_URL is set, file-backed fallback for local dev.
 const fs = require('fs');
 const path = require('path');
 const db = require('../knowledge/db');
@@ -14,31 +10,21 @@ const db = require('../knowledge/db');
 const FILE_PATH = path.resolve(__dirname, '..', '..', 'data', 'persona-overrides.json');
 const ALLOWED_GENDERS = ['male', 'female'];
 const DEFAULT_SOMMELIER_GENDER = 'male';
-const FIELDS = ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender'];
-const MAX_CHARS = { name: 80, description: 400, welcome_message: 600, system_prompt: 24000, sommelierGender: 10 };
 
-// In-memory cache, synchronously readable — the realtime prompt-assembly
-// code (src/realtime/realtimePrompt.js) calls getEffectivePersonaPrompt()
-// synchronously during session setup, so overrides must be readable
-// without an await there. load() populates this once at boot; save()
-// updates it immediately in the same tick as the write.
-let cache = {};
-
-function sanitize(partial) {
-    const next = {};
-    for (const field of FIELDS) {
-        if (field === 'sommelierGender') {
-            if (partial.sommelierGender === 'male' || partial.sommelierGender === 'female') {
-                next.sommelierGender = partial.sommelierGender;
-            }
-            continue;
-        }
-        if (typeof partial[field] !== 'string') continue;
-        const trimmed = partial[field].trim().slice(0, MAX_CHARS[field]);
-        if (trimmed) next[field] = trimmed;
-    }
-    return next;
-}
+// In-memory cache, synchronously readable.
+// As resolved profile values are constructed synchronously during session setup,
+// overrides must be readable without an await here.
+let cache = {
+    baseProfileId: 'classic',
+    mood: 'calm',
+    overrides: {},
+    name: '',
+    description: '',
+    welcome_message: '',
+    system_prompt: '',
+    sommelierGender: DEFAULT_SOMMELIER_GENDER,
+    personalityPrompt: ''
+};
 
 async function ensureTable(pool) {
     await pool.query(`
@@ -52,6 +38,10 @@ async function ensureTable(pool) {
         );
     `);
     await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS sommelier_gender TEXT;');
+    await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS base_profile_id TEXT;');
+    await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS mood TEXT;');
+    await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS style_overrides TEXT;');
+    await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS personality_prompt TEXT;');
 }
 
 async function load() {
@@ -59,81 +49,304 @@ async function load() {
         const pool = db.getPool();
         await ensureTable(pool);
         const { rows } = await pool.query('SELECT * FROM persona_overrides WHERE id = 1');
-        cache = rows[0] ? sanitize({
-            name: rows[0].name || '',
-            description: rows[0].description || '',
-            welcome_message: rows[0].welcome_message || '',
-            system_prompt: rows[0].system_prompt || '',
-            sommelierGender: rows[0].sommelier_gender || DEFAULT_SOMMELIER_GENDER,
-        }) : {};
+        const row = rows[0];
+        if (row) {
+            let baseProfileId = row.base_profile_id || null;
+            let mood = row.mood || 'calm';
+            let style = {};
+            try {
+                style = row.style_overrides ? JSON.parse(row.style_overrides) : {};
+            } catch {
+                style = {};
+            }
+
+            // Legacy Migration logic:
+            // If baseProfileId is missing, check if legacy overrides exist.
+            // If so, load as customizationMode = custom, baseProfileId = null.
+            // If completely empty, default baseProfileId to classic preset.
+            const hasLegacyOverrides = Boolean(row.name || row.description || row.welcome_message || row.system_prompt || row.sommelier_gender);
+            if (baseProfileId === null && !hasLegacyOverrides) {
+                baseProfileId = 'classic';
+            }
+
+            const overrides = {};
+            if (row.name) overrides.name = row.name;
+            if (row.description) overrides.description = row.description;
+            if (row.welcome_message) overrides.welcome_message = row.welcome_message;
+            if (row.system_prompt) overrides.system_prompt = row.system_prompt;
+            if (row.sommelier_gender) overrides.sommelierGender = row.sommelier_gender;
+            if (row.personality_prompt) overrides.personalityPrompt = row.personality_prompt;
+            if (Object.keys(style).length > 0) overrides.style = style;
+
+            cache = {
+                baseProfileId,
+                mood,
+                overrides,
+                name: overrides.name || '',
+                description: overrides.description || '',
+                welcome_message: overrides.welcome_message || '',
+                system_prompt: overrides.system_prompt || '',
+                sommelierGender: overrides.sommelierGender || DEFAULT_SOMMELIER_GENDER,
+                personalityPrompt: overrides.personalityPrompt || ''
+            };
+        } else {
+            cache = {
+                baseProfileId: 'classic',
+                mood: 'calm',
+                overrides: {},
+                name: '',
+                description: '',
+                welcome_message: '',
+                system_prompt: '',
+                sommelierGender: DEFAULT_SOMMELIER_GENDER,
+                personalityPrompt: ''
+            };
+        }
         return cache;
     }
+
     try {
         if (fs.existsSync(FILE_PATH)) {
             const raw = JSON.parse(fs.readFileSync(FILE_PATH, 'utf8')) || {};
-            cache = sanitize(raw);
+            let baseProfileId = raw.baseProfileId !== undefined ? raw.baseProfileId : null;
+            let mood = raw.mood || 'calm';
+            const overrides = raw.overrides || {};
+
+            const hasLegacyOverrides = Boolean(raw.name || raw.description || raw.welcome_message || raw.system_prompt || raw.sommelierGender);
+            if (baseProfileId === null && hasLegacyOverrides) {
+                overrides.name = raw.name;
+                overrides.description = raw.description;
+                overrides.welcome_message = raw.welcome_message;
+                overrides.system_prompt = raw.system_prompt;
+                overrides.sommelierGender = raw.sommelierGender;
+            } else if (baseProfileId === null && !hasLegacyOverrides && Object.keys(overrides).length === 0) {
+                baseProfileId = 'classic';
+            }
+
+            cache = {
+                baseProfileId,
+                mood,
+                overrides,
+                name: overrides.name || '',
+                description: overrides.description || '',
+                welcome_message: overrides.welcome_message || '',
+                system_prompt: overrides.system_prompt || '',
+                sommelierGender: overrides.sommelierGender || DEFAULT_SOMMELIER_GENDER,
+                personalityPrompt: overrides.personalityPrompt || ''
+            };
+        } else {
+            cache = {
+                baseProfileId: 'classic',
+                mood: 'calm',
+                overrides: {},
+                name: '',
+                description: '',
+                welcome_message: '',
+                system_prompt: '',
+                sommelierGender: DEFAULT_SOMMELIER_GENDER,
+                personalityPrompt: ''
+            };
         }
     } catch {
-        cache = {};
+        cache = {
+            baseProfileId: 'classic',
+            mood: 'calm',
+            overrides: {},
+            name: '',
+            description: '',
+            welcome_message: '',
+            system_prompt: '',
+            sommelierGender: DEFAULT_SOMMELIER_GENDER,
+            personalityPrompt: ''
+        };
     }
     return cache;
 }
 
-// `partial[field] === ''` (explicit empty string) clears that field back to
-// the built-in default; omitting a field leaves its current override (or
-// lack of one) untouched.
 async function save(partial) {
-    if (partial.sommelierGender !== undefined) {
-        if (!ALLOWED_GENDERS.includes(partial.sommelierGender)) {
-            const err = new Error('invalid_sommelier_gender');
+    let baseProfileId = cache.baseProfileId;
+    let mood = cache.mood;
+    let overrides = { ...cache.overrides };
+
+    if (partial.reset) {
+        if (baseProfileId === null) {
+            const err = new Error('Cannot reset a custom profile. Please select a built-in preset profile first.');
             err.statusCode = 400;
             throw err;
         }
-    }
-
-    const merged = { ...cache };
-    for (const field of FIELDS) {
-        if (partial[field] === undefined) continue;
-
-        if (field === 'sommelierGender') {
-            merged.sommelierGender = partial.sommelierGender;
-            continue;
+        overrides = {};
+    } else if (partial.baseProfileId !== undefined) {
+        const val = partial.baseProfileId;
+        if (val !== null && val !== 'classic' && val !== 'warm_guide') {
+            const err = new Error('invalid_base_profile_id');
+            err.statusCode = 400;
+            throw err;
         }
-
-        const trimmed = typeof partial[field] === 'string' ? partial[field].trim() : '';
-        if (trimmed === '') delete merged[field];
-        else merged[field] = trimmed.slice(0, MAX_CHARS[field]);
+        baseProfileId = val;
+        overrides = {}; // Purge overrides when switching presets
     }
-    cache = merged;
+
+    if (partial.mood !== undefined) {
+        const allowedMoods = ['calm', 'warm', 'lively', 'expert'];
+        if (!allowedMoods.includes(partial.mood)) {
+            const err = new Error('invalid_mood');
+            err.statusCode = 400;
+            throw err;
+        }
+        mood = partial.mood;
+    }
+
+    if (!partial.reset && partial.baseProfileId === undefined) {
+        if (partial.overrides !== undefined && partial.overrides !== null) {
+            const keys = Object.keys(partial.overrides);
+            const allowedKeys = ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt', 'style'];
+
+            for (const key of keys) {
+                if (!allowedKeys.includes(key)) {
+                    const err = new Error(`Unknown field: ${key}`);
+                    err.statusCode = 400;
+                    throw err;
+                }
+            }
+
+            for (const key of ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt']) {
+                if (partial.overrides[key] !== undefined) {
+                    const val = partial.overrides[key];
+                    if (val === null) {
+                        delete overrides[key];
+                    } else if (typeof val === 'string') {
+                        if (key === 'sommelierGender') {
+                            if (!ALLOWED_GENDERS.includes(val)) {
+                                const err = new Error('invalid_sommelier_gender');
+                                err.statusCode = 400;
+                                throw err;
+                            }
+                        }
+                        const limit = { name: 80, description: 400, welcome_message: 600, system_prompt: 24000, personalityPrompt: 24000 }[key];
+                        overrides[key] = val.trim().slice(0, limit);
+                    } else {
+                        const err = new Error(`Invalid type for field ${key}`);
+                        err.statusCode = 400;
+                        throw err;
+                    }
+                }
+            }
+
+            if (partial.overrides.style !== undefined && partial.overrides.style !== null) {
+                if (typeof partial.overrides.style !== 'object') {
+                    const err = new Error('style must be an object');
+                    err.statusCode = 400;
+                    throw err;
+                }
+
+                const styleOverrides = { ...overrides.style };
+                const allowedStyleKeys = ['responseLength', 'humorLevel', 'tone', 'expertiseLevel', 'storytelling', 'proactiveSuggestions', 'toastStyle'];
+
+                for (const [key, val] of Object.entries(partial.overrides.style)) {
+                    if (!allowedStyleKeys.includes(key)) {
+                        const err = new Error(`Unknown style field: ${key}`);
+                        err.statusCode = 400;
+                        throw err;
+                    }
+                    if (val === null) {
+                        delete styleOverrides[key];
+                    } else if (key === 'proactiveSuggestions') {
+                        if (typeof val !== 'boolean') {
+                            const err = new Error('proactiveSuggestions must be a boolean');
+                            err.statusCode = 400;
+                            throw err;
+                        }
+                        styleOverrides[key] = val;
+                    } else {
+                        if (typeof val !== 'string') {
+                            const err = new Error(`${key} must be a string`);
+                            err.statusCode = 400;
+                            throw err;
+                        }
+                        const validValues = {
+                            responseLength: ['short', 'balanced', 'detailed'],
+                            humorLevel: ['none', 'light', 'expressive'],
+                            tone: ['formal', 'warm', 'lively'],
+                            expertiseLevel: ['beginnerFriendly', 'balanced', 'expert'],
+                            storytelling: ['off', 'occasional', 'active'],
+                            toastStyle: ['disabled', 'onRequest', 'occasional']
+                        }[key];
+
+                        if (validValues && !validValues.includes(val)) {
+                            const err = new Error(`Invalid value for style key ${key}: ${val}`);
+                            err.statusCode = 400;
+                            throw err;
+                        }
+                        styleOverrides[key] = val;
+                    }
+                }
+
+                overrides.style = styleOverrides;
+                if (Object.keys(overrides.style).length === 0) {
+                    delete overrides.style;
+                }
+            }
+        }
+    }
+
+    cache = {
+        baseProfileId,
+        mood,
+        overrides,
+        name: overrides.name || '',
+        description: overrides.description || '',
+        welcome_message: overrides.welcome_message || '',
+        system_prompt: overrides.system_prompt || '',
+        sommelierGender: overrides.sommelierGender || DEFAULT_SOMMELIER_GENDER,
+        personalityPrompt: overrides.personalityPrompt || ''
+    };
 
     if (db.isEnabled()) {
         const pool = db.getPool();
         await ensureTable(pool);
+        const styleStr = overrides.style ? JSON.stringify(overrides.style) : null;
         await pool.query(
-            `INSERT INTO persona_overrides (id, name, description, welcome_message, system_prompt, sommelier_gender, updated_at)
-             VALUES (1, $1, $2, $3, $4, $5, $6)
+            `INSERT INTO persona_overrides (id, name, description, welcome_message, system_prompt, sommelier_gender, base_profile_id, mood, style_overrides, personality_prompt, updated_at)
+             VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name, description = EXCLUDED.description,
                 welcome_message = EXCLUDED.welcome_message, system_prompt = EXCLUDED.system_prompt,
-                sommelier_gender = EXCLUDED.sommelier_gender, updated_at = EXCLUDED.updated_at`,
+                sommelier_gender = EXCLUDED.sommelier_gender, base_profile_id = EXCLUDED.base_profile_id,
+                mood = EXCLUDED.mood, style_overrides = EXCLUDED.style_overrides,
+                personality_prompt = EXCLUDED.personality_prompt, updated_at = EXCLUDED.updated_at`,
             [
-                merged.name || null,
-                merged.description || null,
-                merged.welcome_message || null,
-                merged.system_prompt || null,
-                merged.sommelierGender || DEFAULT_SOMMELIER_GENDER,
+                overrides.name || null,
+                overrides.description || null,
+                overrides.welcome_message || null,
+                overrides.system_prompt || null,
+                overrides.sommelierGender || null,
+                baseProfileId,
+                mood,
+                styleStr,
+                overrides.personalityPrompt || null,
                 new Date().toISOString()
-            ],
+            ]
         );
     } else {
         fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-        fs.writeFileSync(FILE_PATH, JSON.stringify(merged, null, 2), 'utf8');
+        fs.writeFileSync(FILE_PATH, JSON.stringify({
+            baseProfileId,
+            mood,
+            overrides
+        }, null, 2), 'utf8');
     }
-    return merged;
+
+    return cache;
 }
 
 function getCached() {
     return cache;
 }
 
-module.exports = { load, save, getCached, FIELDS, MAX_CHARS, DEFAULT_SOMMELIER_GENDER, ALLOWED_GENDERS };
+module.exports = {
+    load,
+    save,
+    getCached,
+    DEFAULT_SOMMELIER_GENDER,
+    ALLOWED_GENDERS
+};
