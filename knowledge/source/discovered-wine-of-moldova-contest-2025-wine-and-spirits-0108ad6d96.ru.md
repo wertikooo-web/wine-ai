@@ -1,0 +1,298 @@
+---
+title: Все медали Wine of Moldova Contest`2025 — Wine and Spirits
+language: ru
+doc_type: news
+source: Wine and Spirits (wine-and-spirits.md)
+confidence: high
+updated_at: 2026-07-24T20:39:36.167Z
+---
+
+Все медали Wine of Moldova Contest`2025
+
+На зимнем «Вернисаже вин» состоялось награждение победителей национального конкурса Wine of Moldova Contest`2025, который состоялся 4-5 октября. В нём участвовали 346 образцов вин и дивинов от 64 производителей. Из них 48 компаний пополнили свои копилки достижений новыми наградами. Победителям вручили 120 медалей, из которых девять Больших золотых медалей, 110 золотых и лишь одна серебряная.
+
+Сначала награждали золотыми медалями компании, у которых была только одна награда такого достоинства (их было 17). Потом тех, у кого по два «золота» (у 11 производителей), по три «золота» (у восьми виноделен), по четыре (у четырёх) и даже по пять (у четырёх), а у чемпиона — шесть.
+
+Wine of Moldova Contest показывает потенциал отрасли. Как отметил директор Национального бюро винограда и вина Штефан Яманди, этот конкурс важен для нас и для страны, потому что мы, будучи виноградно-винодельческой страной, амбициозно заявляем о том, что вино Молдовы завоёвывает мир. Wine of Moldova Contest проводится на международном уровне (по Регламенту Международной организации винограда и вина), но акцент сделан на винах из автохтонных сортов винограда. В числе 25 дегустаторов впервые у нас были два обладателя титула Master of Wine, что очень ценится в винном мире. Они согласились принять участие в жюри конкурса благодаря известности бренда Wine of Moldova и качеству нашей продукции.
+
+В этом году мы немного нарушили Регламент OIV, т.к. он разрешает наградить не более 30% проб, участвующих в конкурсе. У нас поучилось 35%, но мы подняли планку для получения медалей. Согласно требованиям OIV, для присуждения золотой медали образцу продукции необходимо набрать 85 – 88,99 балла. На Wine of Moldova Contest это соответствует серебряной медали, а золотой – 89 – 92,99 балла. Иначе все пробы попадали бы в зону золотых медалей. В этом году к участию в конкурсе допустили и вина из международных сортов, но более 80% были из местных сортов. Больше всего вин — из сорта винограда Фетяска-нягрэ», — отметила председатель жюри конкурса Елизавета Бряхнэ.
+
+В этом году мы немного нарушили Регламент OIV, т.к. он разрешает наградить не более 30% проб, участвующих в конкурсе. У нас поучилось 35%, но мы подняли планку для получения медалей. Согласно требованиям OIV, для присуждения золотой медали образцу продукции необходимо набрать 85 – 88,99 балла. На Wine of Moldova Contest это соответствует серебряной медали, а золотой – 89 – 92,99 балла. Иначе все пробы попадали бы в зону золотых медалей. В этом году к участию в конкурсе допустили и вина из международных сортов, но более 80% были из местных сортов. Больше всего вин — из сорта винограда Фетяска-нягрэ», — отметила председатель жюри конкурса Елизавета Бряхнэ.
+
+Поэтому требования на Wine of Moldova Contest даже выше, чем рекомендует Международная организация винограда и вина.
+
+БОЛЬШИЕ ЗОЛОТЫЕ МЕДАЛИ
+
+Cabernet Sauvignon & Fetească Neagră, 2021 (Domeniile Davidescu) – 93,67 п.
+
+Plai Saрeravi — Bastardo, 2015 (Vinuri de Comrat) – 93,4 п.
+
+Ornis, 2019 (Divus Winery) — 93,33 п.
+
+Metafora, 2022 (Gogu Winery) – 93,2 п.
+
+Fiori Fetească Neagră, 2019 (Radacini Wines) – 93,2 п.
+
+Elite Colection Fetească Neagră, 2015 (Cricova) – 93,2 п.
+
+Maestro Emblematique Secret Blend, 2022 (Apriori Wine) – 93 п.
+
+Cuvee Rouge, 2020 (Crama Mircești) – 93 п.
+
+Mariage Rouge, 2021 (Vinăria Javgur) – 93 п.
+
+ЗОЛОТЫЕ МЕДАЛИ
+
+Divin Dacia, 25 ani (Aroma)
+
+Divin Luceafăr, 10 ani (Călărași Divin)
+
+Feteasca Neagră (Crama Ulinici)
+
+Trei Măndre (Divus Winery)
+
+Divin Aurvin D`or (DK-Intertrade)
+
+Cabernet Sauvignon (Domeniile Pană)
+
+Viorica, 2024 (Enoteria Platon)
+
+Viorica, 2025 IGP Codru (Doina Vin)
+
+Saperavi, 2024 (Familna vinarna Rizov)
+
+Viorica, 2024 (Kabivin)
+
+Feteasca Neagră, 2022 (Kazayak-vin)
+
+Tiraspol, 15 ani (KVINT)
+
+Bacio di Bolle Grande Cuvee brut (Maurt)
+
+Sectere brut, 2024 (Podgoria Vin)
+
+Merlot, 2023 (Taraclia Winery)
+
+Scena Red Blend, 2023 (Vinaria Javgur)
+
+Rara Neagră (Vinuri de Comrat)
+
+O Scrisoare Pierdută (ATU Winery)
+
+Rara Neagră (ATU Winery)
+
+Aurelius Feteasca Neagră brut alb (Aurelius Winery)
+
+Feteasca Neagră (Aurelius Winery)
+
+Viorica (Corten-Vin)
+
+Cabernet Franc (Corten-Vin)
+
+Grand Cuvee, 2022 vin rosu (Domeniu la Prut)
+
+Methode Traditionnelle spumant brut, 2024 (Domeniu la Prut)
+
+Metafora Orange, 2023 (Gogu Winery)
+
+Saperavi, 2024 (Gogu Winery)
+
+Barriquello Syrah (Impresario)
+
+Sansara Cabernet Sauvignon (Impresario)
+
+Roșie Împărăteasă, 2022 (Minis Terrios)
+
+Albă Împărăteasă, 2024 (Minis Terrios)
+
+Viorica IGP Ștefan Vodă (Suvorov Winery)
+
+Feteasca Regală IGP Ștefan Vodă (Suvorov Winery)
+
+Poiana Feteasca Regală, 2022 (Vinaria Poiana)
+
+Poiana Legenda, 2024 (Vinaria Poiana)
+
+Ialoveni Tare Rezerva, 1995 (Vinuri Ialoveni)
+
+Ialoveni Desert, 1990 (Vinuri Ialoveni)
+
+Saperavi (Vinhart)
+
+Șoimii, 2023 (Vinhart)
+
+Viorica de Mileștii Mici (Mileștii Mici)
+
+Feteasca Regală (Mileștii Mici)
+
+Cuvee de Fleurs brut natur (Mileștii Mici)
+
+Raritet Viorica, 2024 (Carlevana Winery)
+
+Raritet Rubinus, 2022 (Carlevana Winery)
+
+Raritet Rara Neagră, 2024 (Carlevana Winery)
+
+Inspiro Feteasca Regală brut (Chateau Vartely)
+
+Brut rose (Chateau Vartely)
+
+Individo Feteasca Neagră — Rara Neagră (Chateau Vartely)
+
+Bardul din Mircești Saperavi, 2021 (Crama Mircești)
+
+Bardul din Mircești Feteasca Neagră, 2022 (Crama Mircești)
+
+Elegance Feteasca Neagră (Crama Mircești)
+
+Timbrus Saperavi (Domeniile Cuza)
+
+Motiv Muscat dulce (Domeniile Cuza)
+
+Motiv Viorica – Muscat Ottonel (Domeniile Cuza)
+
+Epicrama Feteasca Albă Brut (Epicrama)
+
+Epicrama Feteasca Neagră Reserve Edition Barrique (Epicrama)
+
+Epicrama Feteasca Neagra Amphora Collection (Epicrama)
+
+Feteasca Neagră (Novak Winery)
+
+Feteasca Neagră, 2019 (Novak Winery)
+
+Anya Novak Viorica – Floricica (Novak Winery)
+
+Epizod Saperavi, 2022 (Sălcuța)
+
+Cabernet Sauvignon – Merlo – Saperavi, 2023 (Sălcuța)
+
+Apertus Feteasca Regala & Riesling de Rhein, 2023 (Sălcuța)
+
+Divin Bardar Silver, 7 ani (Vinaria Bardar)
+
+Divin Bardar Platinum, 20 ani (Vinaria Bardar)
+
+Divin Bardar Platinum, 25 ani (Vinaria Bardar)
+
+Carpe Diem brut natur (Casa Vinicola Luca)
+
+Casa Vinicola Luca brut (Casa Vinicola Luca)
+
+Barbaro (Fautor)
+
+Illustro Cabernet Sauvignon – Merlot (Fautor)
+
+Aurore Syrah — Rara Neagră, 2023 (Fautor)
+
+Aurore Rara Neagră (Fautor)
+
+Fiori Viorica (Radacini Wines)
+
+Fiori Rara Neagră (Radacini Wines)
+
+Ampre Rara Neagră (Radacini Wines)
+
+Merlot & Saperavi (Radacini Wines)
+
+Viorica (Vera Winery)
+
+Cabernet Sauvignon (Vera Winery)
+
+Pinot Noir (Vera Winery)
+
+Fetească Neagră (Vera Winery)
+
+Feteasca Regală, 2024 (Vinum)
+
+No oak Feteasca Neagră, 2023 (Vinum)
+
+2 SURORI, Feteasca Neagră – Rara Neagră, 2022 (Vinum)
+
+SALUT! Pinot noir-Rara Neagră, 2022 (Vinum)
+
+The Governor Feteasca Neagră, 2020 (Castel Mimi)
+
+Feteasca Neagră, 2023 (Castel Mimi)
+
+Viorica de Bulboaca Limited Edition, 2024 demidulce (Castel Mimi)
+
+Negru de Bulboaca Grand Reserve, 2018 (Castel Mimi)
+
+The Governor`s Blend, 2020 (Castel Mimi)
+
+Maestro Virtuoso Fetească Regală (Apriori Wine)
+
+Maestro Virtuoso Viorica (Apriori Wine)
+
+Maestro Emblematique Patru în Roșu (Apriori Wine)
+
+Empirico Rară Neagră – Malbec (Apriori Wine)
+
+Maestro Citron Magaratcha brut (Apriori Wine)
+
+Spumantul Brut (Vinaria din Vale)
+
+Vintage Feteasca Neagră (Vinaria din Vale)
+
+7 Coline Feteasca Neagră — Cabernet Sauvignon (Vinaria din Vale)
+
+7 Coline Feteasca Regală — Traminer (Vinaria din Vale)
+
+Motive Feteasca Neagră (Vinaria din Vale)
+
+The Bridge Cabernet Sauvignon, 2022 (Vinaria Ungheni)
+
+Divin Ungheni XO, 7 ani (Vinaria Ungheni)
+
+The Bridge Pinot Noir, 2022 (Vinaria Ungheni)
+
+The Bridge brut, 2024 (Vinaria Ungheni)
+
+The Bridge Feteasca Neagră, 2024 (Vinaria Ungheni)
+
+Cricova spumant clasic brut alb (Cricova)
+
+Crisecco brut (Cricova)
+
+Orașul Subteran Rară Neagră, 2024 (Cricova)
+
+Orașul Subteran Viorica, 2024 (Cricova)
+
+Crisecco Gold, 2024 brut (Cricova)
+
+Orașul Subteran Fetească Neagră, 2024 (Cricova)
+
+СЕРЕБРЯНЫЕ МЕДАЛИ
+
+Rara Neagră (Casa Vinicola Luca)
+
+Статьи по теме:
+
+Wine of Moldova Contest` 2025: первые итоги
+
+Медали молдавских вин и дивинов за 2025 г.
+
+«Лучшие вина» и «Кавалеры» зимнего «Вернисажа вин`2025»
+
+You may also like
+
+Decanter World Wine Awards` 2026: у Молдовы 95...
+
+Владимир Давидеску: «Grand Gold — это не случайность...
+
+CMB` 2026 Red and White Wines Session: у...
+
+Весенний «Вернисаж вин»-2025: награды и сенсации
+
+Mundus Vini Spring Tasting` 2026: у Молдовы 119...
+
+Лучшие вина Fetească Neagră, Feteasca Regală, Rara Neagră...
+
+«Лучшие вина» и «Кавалеры» зимнего «Вернисажа вин`2025»
+
+Медали молдавских вин и дивинов за 2025 г.
+
+Effervescents du Monde`2025: игристые из Молдовы — в...
+
+Asia Wine Trophy` 2025: у Молдовы — 35...
