@@ -31,17 +31,25 @@ const SCORING_STOPWORDS = new Set([
     'despre', 'care', 'este', 'și', 'un', 'o', 'la', 'de', 'în', 'cu', 'ce', 'sau',
     'the', 'and', 'is', 'are', 'of', 'to', 'in', 'on', 'for', 'with', 'that', 'this',
     'о', 'об', 'что', 'это', 'как', 'для', 'на', 'из', 'или', 'вы', 'же',
+    // Additional general-language function words — measured against the
+    // real corpus (src/knowledge/search.js's IDF stats): these appear in
+    // 25-42% of all chunks purely as grammar, not content, and were
+    // missing from the original list above.
+    'по', 'не', 'от', 'за', 'но', 'со', 'этот', 'до', 'его', 'чем', 'при', 'более', 'также',
+    'you', 'also', 'like', 'may', 'by',
     // Corpus-specific, not general-language, stopwords: every document in
-    // this knowledge base is about Moldovan wine, so "вино"/"молдова" and
-    // their inflections carry almost no discriminative signal here even
-    // though IDF alone doesn't rate them as rare enough to ignore (they're
-    // in maybe 5-10% of chunks, not 90%+, so plain IDF gives them a
-    // deceptively "moderate" weight) — found via the Kosher-package case:
-    // an article titled "...Молдова представила вина..." was outranking
-    // the actually-relevant chunk purely because of these two words
-    // appearing in ITS title, stacking with the title-match boost below.
-    'вино', 'вина', 'вин', 'вином', 'вине', 'винам', 'винами', 'винах', 'винный', 'винной', 'винного',
+    // this knowledge base is about Moldovan wine, so "вино"/"молдова"/
+    // "wine"/"winery" and their inflections carry almost no discriminative
+    // signal here even though IDF alone doesn't rate them as rare enough
+    // to ignore (they're in maybe 5-40% of chunks, not 90%+, so plain IDF
+    // gives them a deceptively "moderate" weight) — found via the
+    // Kosher-package case: an article titled "...Молдова представила
+    // вина..." was outranking the actually-relevant chunk purely because
+    // of these two words appearing in ITS title, stacking with the
+    // title-match boost below.
+    'вино', 'вина', 'вин', 'вином', 'вине', 'винам', 'винами', 'винах', 'винный', 'винной', 'винного', 'винограда',
     'молдова', 'молдовы', 'молдове', 'молдову', 'молдовой', 'молдавский', 'молдавское', 'молдавская', 'молдавские', 'молдавии', 'молдовский',
+    'wine', 'winery',
 ]);
 
 // IDF (inverse document frequency) weighting — a word that appears in
