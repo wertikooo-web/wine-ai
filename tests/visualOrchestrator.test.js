@@ -66,16 +66,26 @@ async function run() {
     t.ok(!interrupted.events.some((event) => event.type === 'visual.aromas.show'));
     t.ok(interrupted.events.some((event) => event.type === 'visual.timeline.cancel'));
 
-    const unavailable = harness();
-    unavailable.orchestrator.beginGeneration({
-        generationId: 'gen-no-commerce',
-        turnId: 'turn-no-commerce',
+    // demo-wine-003 used to be the fixture for "no valid order URL", but
+    // that also meant the white demo card never showed a price/order
+    // button at all, which read as a bug rather than intentional (see the
+    // commit that gave it a demo_available product). It now has valid
+    // commerce like the other two, so this checks CTA presence instead of
+    // absence. The COMMERCE-hiding branch itself
+    // (`commerce && commerce.orderUrl && commerce.availability ===
+    // 'demo_available'` in visualOrchestrator.js's runPhase) is unchanged
+    // and still real code, just no longer exercised by this specific demo
+    // fixture.
+    const white = harness();
+    white.orchestrator.beginGeneration({
+        generationId: 'gen-white-commerce',
+        turnId: 'turn-white-commerce',
         inputText: 'Хочу белое Viorica',
     });
-    unavailable.orchestrator.onAudioStart('gen-no-commerce');
-    unavailable.orchestrator.onAudioEnd('gen-no-commerce');
-    t.equal(unavailable.orchestrator.getState().wineId, 'demo-wine-003');
-    t.ok(!unavailable.events.some((event) => event.type === 'visual.commerce.show'), 'CTA must stay hidden without a valid order URL');
+    white.orchestrator.onAudioStart('gen-white-commerce');
+    white.orchestrator.onAudioEnd('gen-white-commerce');
+    t.equal(white.orchestrator.getState().wineId, 'demo-wine-003');
+    t.ok(white.events.some((event) => event.type === 'visual.commerce.show'), 'white demo wine must show its order CTA');
 
     return { assertionCount: 25 };
 }

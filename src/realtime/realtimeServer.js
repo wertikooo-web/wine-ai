@@ -73,7 +73,19 @@ const LANGUAGE_PATTERNS = [
     { language: 'ru', pattern: /[\u0400-\u04FF]/u, weight: 3 },
     { language: 'ro', pattern: /[\u0103\u00E2\u00EE\u0219\u021B\u0102\u00C2\u00CE\u0218\u021A]/u, weight: 4 },
     { language: 'en', pattern: /\b(the|and|you|hello|please|wine|grape|winery|recommend|what|why|how)\b/i, weight: 2 },
-    { language: 'ro', pattern: /\b(spune|vreau|buna|salut|struguri|crama|romana|vorbeste)\b/i, weight: 3 },
+    // "crama" (winery) deliberately removed from this list — it's a
+    // wine-domain proper noun (same class of false-positive as the
+    // "vin"/"vino" cognate issue below), already listed in
+    // LANGUAGE_NOISE_WORDS for languageSignificantWords()'s confidence
+    // gate, but that list doesn't feed into this pattern-matching pass.
+    // Combined with the ă/â/î/ș/ț diacritic pattern above, a Russian
+    // sentence naming a demo winery ("...от Crama Dealul de Aur...") could
+    // score ro=7 (diacritic 4 + "crama" word 3) vs ru=3 — comfortably past
+    // the >=2 confidence margin — and silently switch the whole session to
+    // Romanian. Confirmed live: clicking the red-wine demo button (whose
+    // grounded prompt names both "Crama" and "Fetească") reliably
+    // triggered this; the diacritic pattern alone (score 4) does not.
+    { language: 'ro', pattern: /\b(spune|vreau|buna|salut|struguri|romana|vorbeste)\b/i, weight: 3 },
     { language: 'fr', pattern: /[\u00E9\u00E8\u00EA\u00E0\u00E7\u00F4\u00FB\u00F9]/iu, weight: 4 },
     // "vin"/"vino" are wine-domain cognates shared across fr/ro/it/es \u2014
     // matching on them made every other Romance language ambiguous with
