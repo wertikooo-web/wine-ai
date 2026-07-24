@@ -3,7 +3,7 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const { commitKnowledgeFiles } = require('./knowledge/gitPersist');
+const { commitKnowledgeFiles, deleteKnowledgeFile } = require('./knowledge/gitPersist');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./realtime/mockRealtimeProvider');
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./realtime/geminiLiveProvider');
@@ -790,17 +790,11 @@ async function handleRequest(req, res) {
         try {
             fs.unlinkSync(filePath);
             buildIndex();
-            
-            // Commit and push deletion (best effort)
-            try {
-                commitKnowledgeFiles(
-                    path.resolve(__dirname, '..'),
-                    [filePath],
-                    `Delete knowledge file: ${fileName}`
-                );
-            } catch (gitErr) {
-                console.error('[knowledge delete] git commit failed:', gitErr.message);
-            }
+
+            // Best effort — deleteKnowledgeFile logs its own failures and
+            // never throws; a GitHub-side failure here must not undo the
+            // local delete/reindex that already succeeded.
+            deleteKnowledgeFile(path.resolve(__dirname, '..'), filePath, `Delete knowledge file: ${fileName}`);
 
             return sendJson(res, 200, { ok: true });
         } catch (error) {
