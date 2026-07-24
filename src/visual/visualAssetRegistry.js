@@ -17,21 +17,23 @@ const ASSET_SETS = Object.freeze({
     // illustrating. Replaced with purpose-generated photos matching the red
     // bottle's studio-shot style (a hand-drawn SVG placeholder briefly
     // stood in here in between).
-    // ?v=5 cache-busts: the static route in server.js sets
-    // cache-control: public, max-age=3600 on these files, and this exact
-    // URL served three different images within the same hour while this
-    // asset was being iterated on — a browser (or intermediate cache) that
-    // fetched it earlier in that window would keep the stale response for
-    // up to an hour without a change in URL. Bump this query value any time
-    // these specific files are replaced again.
+    // A ?v= query-string cache-bust proved unreliable for these two files —
+    // this content changed several times in one session while the crop
+    // position was being corrected, and clients kept seeing stale bottle
+    // art after fixes shipped (likely Railway's edge/CDN layer caching by
+    // path only and ignoring the query string). Switched to a versioned
+    // filename instead (…-v2.png — matches server.js's visualStaticFiles
+    // table, which also now serves these two with a short 120s
+    // cache-control instead of the default 3600s). Bump the filename's
+    // version suffix, not a query string, next time these files change.
     'asset-codru-rose': Object.freeze({
         type: 'static-image',
-        bottleUrl: '/visual-assets/bottle-codru-rose.png?v=5',
+        bottleUrl: '/visual-assets/bottle-codru-rose-v2.png',
         fallbackUrl: '/visual-assets/bottle-fallback.svg',
     }),
     'asset-stefan-viorica': Object.freeze({
         type: 'static-image',
-        bottleUrl: '/visual-assets/bottle-stefan-viorica.png?v=5',
+        bottleUrl: '/visual-assets/bottle-stefan-viorica-v2.png',
         fallbackUrl: '/visual-assets/bottle-fallback.svg',
     }),
 });

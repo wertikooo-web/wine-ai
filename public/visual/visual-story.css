@@ -46,7 +46,14 @@
 .vs-idle small { color: rgba(255,248,236,.64); line-height: 1.35; }
 .vs-wine { min-height: 174px; position: relative; animation: vsFade .55s ease both; }
 .vs-bottle-wrap {
-  position: absolute; left: -169px; top: 128px; width: 158px; height: 565px; overflow: hidden;
+  /* Widened from 158px to 174px — .vs-presentation's padding-left:175px is
+     the hard ceiling before this starts overlapping the text column, so
+     this uses essentially all the available slack. A wider crop window
+     shows more of whatever bottle photo is loaded (object-position stays
+     "left center" — see .vs-bottle below), making future bottle photos
+     more forgiving of imperfect horizontal placement instead of needing
+     pixel-exact alignment against red's photo every time. */
+  position: absolute; left: -169px; top: 128px; width: 174px; height: 565px; overflow: hidden;
   border-radius: 24px; background: #080506; box-shadow: 0 24px 42px rgba(0,0,0,.52);
   filter: drop-shadow(0 18px 16px rgba(0,0,0,.28));
 }
