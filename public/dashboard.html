@@ -511,9 +511,12 @@
     cursor: pointer; list-style: none; padding: 10px 12px; font-size: 13px; font-weight: 600;
     display: flex; align-items: center; gap: 8px;
   }
-  .pm-group summary::-webkit-details-marker { display: none; }
-  .pm-group summary::before { content: '▸'; color: var(--muted); font-size: 11px; }
-  .pm-group[open] summary::before { content: '▾'; }
+  .pm-group summary::-webkit-details-marker,
+  details.site-group-details summary::-webkit-details-marker { display: none; }
+  .pm-group summary::before,
+  details.site-group-details summary::before { content: '▸'; color: var(--muted); font-size: 20px; font-weight: bold; line-height: 1; margin-right: 6px; display: inline-block; vertical-align: middle; }
+  .pm-group[open] summary::before,
+  details.site-group-details[open] summary::before { content: '▾'; }
   .pm-doc-list { padding: 0 12px 12px; }
   .pm-show-more { width: 100%; margin-top: 4px; }
 
@@ -889,6 +892,24 @@
         Every file currently indexed from <code>knowledge/source/</code> — hand-authored docs, uploaded files, and anything promoted from the crawler below. This is what the model can actually retrieve via search_wine_knowledge.
       </p>
       <button class="secondary" id="kbSourcesRefreshBtn">Refresh</button>
+
+      <!-- Search & Sort Toolbar -->
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; padding:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:8px;">
+        <div style="flex:1; min-width:200px; display:flex; align-items:center; gap:6px;">
+          <span style="font-size:12px; color:var(--muted); font-weight:600;">Поиск:</span>
+          <input type="text" id="kbSearchInput" placeholder="Введите имя файла, название страницы или URL..." style="font-size:12px; padding:6px 12px; margin:0; height:auto; flex-grow:1;">
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:12px; color:var(--muted); font-weight:600;">Сортировка:</span>
+          <select id="kbSortSelect" style="font-size:12px; padding:4px 10px; margin:0; width:auto; height:auto;">
+            <option value="name">По источнику/файлу (А-Я)</option>
+            <option value="name_desc">По источнику/файлу (Я-А)</option>
+            <option value="chunks_desc">По размеру (Сначала крупные)</option>
+            <option value="chunks_asc">По размеру (Сначала мелкие)</option>
+            <option value="lang">По языку</option>
+          </select>
+        </div>
+      </div>
 
       <details class="pm-group" open>
         <summary>Загруженные файлы (PDF и т.д.) <span class="badge" id="kbSourceCountUploaded">0</span></summary>
@@ -2696,20 +2717,31 @@
     }
   }
 
+  let allKnowledgeSources = [];
+  let wineryDomainsGlobal = new Set();
+  let wineryNameMapGlobal = new Map();
+
   function renderSourceRow(src) {
     const row = document.createElement('div');
     row.style.cssText = 'border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; font-size:13px; background:var(--card-bg);';
+    
+    const displaySource = src.source || src.source_file;
+    const isCrawled = src.source_file.startsWith('discovered-');
+    const sourceLabel = isCrawled ? 'URL источника' : 'Имя файла';
+
     row.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <strong style="word-break:break-all;">${src.title}</strong>
+        <div style="min-width:0; flex-grow:1;">
+          <div style="font-weight:bold; font-size:13px; color:var(--ink); word-break:break-all;">${displaySource}</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:3px; word-break:break-all;">Название страницы / заголовка: ${src.title}</div>
+        </div>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
           <span class="badge">${src.chunk_count} chunk${src.chunk_count === 1 ? '' : 's'}</span>
           <button class="secondary delete-btn" style="font-size:11px; padding:2px 8px; color:var(--err); border-color:var(--err); background:none;">Удалить</button>
         </div>
       </div>
-      <div style="color:var(--muted); margin:4px 0; word-break:break-all;">${src.doc_type} · ${src.language} · confidence: ${src.confidence} · ${src.source_file}</div>
-      ${src.source ? `<div style="color:var(--muted); font-size:12px; font-style:italic; margin-bottom:6px; word-break:break-all;">${src.source}</div>` : ''}
-      <button class="secondary" data-toggle-content style="font-size:12px; padding:4px 10px;">Показать текст</button>
+      <div style="color:var(--muted); margin:4px 0; font-size:12px; word-break:break-all;">${src.doc_type} · ${src.language} · confidence: ${src.confidence} · ${src.source_file}</div>
+      <button class="secondary" data-toggle-content style="font-size:12px; padding:4px 10px; margin-top:2px;">Показать текст</button>
       <pre data-content-box style="display:none; white-space:pre-wrap; font-family:inherit; font-size:12.5px; margin:8px 0 0; padding:10px; background:rgba(0,0,0,0.03); border-radius:8px; max-height:400px; overflow-y:auto;"></pre>
     `;
     const toggleBtn = row.querySelector('[data-toggle-content]');
@@ -2752,6 +2784,7 @@
       totalPagesCount += pages.length;
       
       const siteDetails = document.createElement('details');
+      siteDetails.className = 'site-group-details';
       siteDetails.style.cssText = 'margin-bottom:10px; border:1px solid var(--border); border-radius:8px; padding:6px 10px; background:var(--card-bg);';
       
       const summary = document.createElement('summary');
@@ -2802,6 +2835,82 @@
     countBadge.textContent = totalPagesCount;
   }
 
+  function applySearchAndSort() {
+    let sources = [...allKnowledgeSources];
+    
+    // Apply search filter
+    const query = (el('kbSearchInput')?.value || '').toLowerCase().trim();
+    if (query) {
+      sources = sources.filter(src => {
+        const fileMatch = String(src.source_file || '').toLowerCase().includes(query);
+        const titleMatch = String(src.title || '').toLowerCase().includes(query);
+        const urlMatch = String(src.source || '').toLowerCase().includes(query);
+        return fileMatch || titleMatch || urlMatch;
+      });
+    }
+    
+    // Apply sorting
+    const sortMode = el('kbSortSelect')?.value || 'name';
+    if (sortMode === 'name') {
+      sources.sort((a, b) => (a.source || a.source_file || '').localeCompare(b.source || b.source_file || ''));
+    } else if (sortMode === 'name_desc') {
+      sources.sort((a, b) => (b.source || b.source_file || '').localeCompare(a.source || a.source_file || ''));
+    } else if (sortMode === 'chunks_desc') {
+      sources.sort((a, b) => b.chunk_count - a.chunk_count);
+    } else if (sortMode === 'chunks_asc') {
+      sources.sort((a, b) => a.chunk_count - b.chunk_count);
+    } else if (sortMode === 'lang') {
+      sources.sort((a, b) => (a.language || '').localeCompare(b.language || ''));
+    }
+    
+    // Categorize
+    const groups = {
+      uploaded: [],
+      curated: [],
+      wineryWebsites: {},
+      otherWebsites: {}
+    };
+    
+    sources.forEach(src => {
+      const type = classifySource(src);
+      if (type === 'uploaded') {
+        groups.uploaded.push(src);
+      } else if (type === 'curated') {
+        groups.curated.push(src);
+      } else if (type === 'crawled') {
+        let domain = 'other';
+        try {
+          if (src.source && src.source.startsWith('http')) {
+            domain = new URL(src.source).hostname.replace(/^www\./i, '').toLowerCase();
+          }
+        } catch (e) {}
+        
+        if (wineryDomainsGlobal.has(domain)) {
+          if (!groups.wineryWebsites[domain]) {
+            groups.wineryWebsites[domain] = {
+              name: wineryNameMapGlobal.get(domain),
+              pages: []
+            };
+          }
+          groups.wineryWebsites[domain].pages.push(src);
+        } else {
+          if (!groups.otherWebsites[domain]) {
+            groups.otherWebsites[domain] = {
+              name: domain,
+              pages: []
+            };
+          }
+          groups.otherWebsites[domain].pages.push(src);
+        }
+      }
+    });
+    
+    renderSourceGroup('Uploaded', groups.uploaded);
+    renderSourceGroup('Curated', groups.curated);
+    renderHierarchicalGroup('WineryWebsites', groups.wineryWebsites);
+    renderHierarchicalGroup('OtherWebsites', groups.otherWebsites);
+  }
+
   async function loadKnowledgeSources() {
     try {
       const [knowledgeRes, kosRes] = await Promise.all([
@@ -2814,64 +2923,21 @@
       const knowledgeSources = knowledgeData.sources || [];
       const registeredWinerySources = kosData.sources || [];
       
-      const wineryDomains = new Set();
-      const wineryNameMap = new Map();
+      wineryDomainsGlobal.clear();
+      wineryNameMapGlobal.clear();
       
       registeredWinerySources.forEach(src => {
         try {
           const origin = new URL(src.seed_url).hostname.replace(/^www\./i, '').toLowerCase();
-          wineryDomains.add(origin);
-          wineryNameMap.set(origin, src.name || origin);
+          wineryDomainsGlobal.add(origin);
+          wineryNameMapGlobal.set(origin, src.name || origin);
         } catch (e) {}
       });
       
       el('kbSourceCount').textContent = knowledgeSources.length;
+      allKnowledgeSources = knowledgeSources;
       
-      const groups = {
-        uploaded: [],
-        curated: [],
-        wineryWebsites: {},
-        otherWebsites: {}
-      };
-      
-      knowledgeSources.forEach(src => {
-        const type = classifySource(src);
-        if (type === 'uploaded') {
-          groups.uploaded.push(src);
-        } else if (type === 'curated') {
-          groups.curated.push(src);
-        } else if (type === 'crawled') {
-          let domain = 'other';
-          try {
-            if (src.source && src.source.startsWith('http')) {
-              domain = new URL(src.source).hostname.replace(/^www\./i, '').toLowerCase();
-            }
-          } catch (e) {}
-          
-          if (wineryDomains.has(domain)) {
-            if (!groups.wineryWebsites[domain]) {
-              groups.wineryWebsites[domain] = {
-                name: wineryNameMap.get(domain),
-                pages: []
-              };
-            }
-            groups.wineryWebsites[domain].pages.push(src);
-          } else {
-            if (!groups.otherWebsites[domain]) {
-              groups.otherWebsites[domain] = {
-                name: domain,
-                pages: []
-              };
-            }
-            groups.otherWebsites[domain].pages.push(src);
-          }
-        }
-      });
-      
-      renderSourceGroup('Uploaded', groups.uploaded);
-      renderSourceGroup('Curated', groups.curated);
-      renderHierarchicalGroup('WineryWebsites', groups.wineryWebsites);
-      renderHierarchicalGroup('OtherWebsites', groups.otherWebsites);
+      applySearchAndSort();
     } catch (err) {
       el('kbSourceListCurated').innerHTML = `<p style="color:var(--err); font-size:13px;">Failed to load: ${err.message}</p>`;
     }
@@ -2879,6 +2945,8 @@
 
   el('kbRefreshBtn').addEventListener('click', loadKnowledgeStatus);
   el('kbSourcesRefreshBtn').addEventListener('click', loadKnowledgeSources);
+  el('kbSearchInput').addEventListener('input', applySearchAndSort);
+  el('kbSortSelect').addEventListener('change', applySearchAndSort);
   el('kbReindexBtn').addEventListener('click', async () => {
     el('kbReindexBtn').disabled = true;
     try {
