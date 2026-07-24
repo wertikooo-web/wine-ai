@@ -1,0 +1,37 @@
+# Headless-browser crawling (src/kos/sources/headlessBrowser.js, opt-in
+# policy.renderJs) uses @sparticuz/chromium's prebuilt Linux Chromium
+# binary. Confirmed live in production logs: without these system shared
+# libraries present, launching it fails with
+# "libnspr4.so: cannot open shared object file" (and would fail again on
+# the next missing lib after that one, one at a time, without the full
+# set) — Railway's default Nixpacks Node image doesn't include them.
+# This is the standard dependency closure Chromium needs to run headless
+# on Debian/NixOS-family systems.
+[phases.setup]
+nixPkgs = [
+  "chromium",
+  "nspr",
+  "nss",
+  "dbus",
+  "atk",
+  "at-spi2-atk",
+  "at-spi2-core",
+  "cups",
+  "expat",
+  "libdrm",
+  "mesa",
+  "alsa-lib",
+  "cairo",
+  "pango",
+  "gtk3",
+  "gdk-pixbuf",
+  "glib",
+  "xorg.libX11",
+  "xorg.libXcomposite",
+  "xorg.libXdamage",
+  "xorg.libXext",
+  "xorg.libXfixes",
+  "xorg.libXrandr",
+  "xorg.libxcb",
+  "xorg.libxshmfence",
+]
