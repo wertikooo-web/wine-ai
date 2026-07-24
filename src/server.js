@@ -341,6 +341,51 @@ async function handleRequest(req, res) {
             filePath: path.join(visualModulesDir, 'pairing-aged-cheese.png'),
             contentType: 'image/png',
         },
+        // Aroma/pairing icons cropped from the rosé and white demo reference
+        // cards the user supplied — real photos instead of the CSS-gradient
+        // placeholders those [data-asset-id]s used before. See
+        // visual-story.css and visualCatalog.js's aromaDescriptorIds/
+        // pairingIds for demo-wine-002/003.
+        '/visual-assets/icon-aroma-strawberry.png': {
+            filePath: path.join(visualModulesDir, 'icon-aroma-strawberry.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-aroma-raspberry.png': {
+            filePath: path.join(visualModulesDir, 'icon-aroma-raspberry.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-aroma-rose.png': {
+            filePath: path.join(visualModulesDir, 'icon-aroma-rose.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-aroma-linden.png': {
+            filePath: path.join(visualModulesDir, 'icon-aroma-linden.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-aroma-peach.png': {
+            filePath: path.join(visualModulesDir, 'icon-aroma-peach.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-aroma-grape.png': {
+            filePath: path.join(visualModulesDir, 'icon-aroma-grape.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-pairing-salmon-tuna.png': {
+            filePath: path.join(visualModulesDir, 'icon-pairing-salmon-tuna.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-pairing-cheese-salad-1.png': {
+            filePath: path.join(visualModulesDir, 'icon-pairing-cheese-salad-1.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-pairing-seafood-fish.png': {
+            filePath: path.join(visualModulesDir, 'icon-pairing-seafood-fish.png'),
+            contentType: 'image/png',
+        },
+        '/visual-assets/icon-pairing-cheese-salad-2.png': {
+            filePath: path.join(visualModulesDir, 'icon-pairing-cheese-salad-2.png'),
+            contentType: 'image/png',
+        },
     };
     const visualStatic = visualStaticFiles[pathname];
     if (req.method === 'GET' && visualStatic) {

@@ -18,9 +18,13 @@ const VISUAL_COPY = Object.freeze({
   ja: { idleKicker: 'ライブ・ビジュアルストーリー', idleTitle: 'ソムリエにペアリングを相談', idleExample: '例：「鴨料理には何が合う？」', aromas: '香り', pairing: 'ペアリング', order: '注文する', priceNote: 'WineMD 提携先価格', ready: '準備完了', listening: '聞いています', thinking: '考えています', speaking: '話しています', presenting_wine: 'ワインを紹介中', pointing: 'おすすめ', confirming_order: '注文' },
 });
 
+// raspberry/linden/peach/grape only have en+ru entries (added for the
+// rosé/white demo cards) — other languages fall back to en via copy()'s
+// `table[this.language]?.[id] || table.en[id]` lookup, same as any id
+// missing from a given language table.
 const AROMA_LABELS = Object.freeze({
-  en: { blackberry: 'Blackberry', plum: 'Plum', oak: 'Oak', strawberry: 'Strawberry', rose: 'Rose', citrus: 'Citrus', acacia: 'Acacia', pear: 'Pear' },
-  ru: { blackberry: 'Ежевика', plum: 'Слива', oak: 'Дуб', strawberry: 'Клубника', rose: 'Роза', citrus: 'Цитрус', acacia: 'Акация', pear: 'Груша' },
+  en: { blackberry: 'Blackberry', plum: 'Plum', oak: 'Oak', strawberry: 'Strawberry', rose: 'Rose', citrus: 'Citrus', acacia: 'Acacia', pear: 'Pear', raspberry: 'Raspberry', linden: 'Linden blossom', peach: 'White peach', grape: 'Grape' },
+  ru: { blackberry: 'Ежевика', plum: 'Слива', oak: 'Дуб', strawberry: 'Клубника', rose: 'Роза', citrus: 'Цитрус', acacia: 'Акация', pear: 'Груша', raspberry: 'Малина', linden: 'Цветы липы', peach: 'Белый персик', grape: 'Виноград' },
   ro: { blackberry: 'Mure', plum: 'Prună', oak: 'Stejar', strawberry: 'Căpșună', rose: 'Trandafir', citrus: 'Citrice', acacia: 'Salcâm', pear: 'Pară' },
   fr: { blackberry: 'Mûre', plum: 'Prune', oak: 'Chêne', strawberry: 'Fraise', rose: 'Rose', citrus: 'Agrumes', acacia: 'Acacia', pear: 'Poire' },
   it: { blackberry: 'Mora', plum: 'Prugna', oak: 'Rovere', strawberry: 'Fragola', rose: 'Rosa', citrus: 'Agrumi', acacia: 'Acacia', pear: 'Pera' },
@@ -31,8 +35,8 @@ const AROMA_LABELS = Object.freeze({
 });
 
 const PAIRING_LABELS = Object.freeze({
-  en: { duck: 'Duck with berry sauce', cheese: 'Aged cheeses', salmon: 'Salmon and seafood', salad: 'Light salads' },
-  ru: { duck: 'Утка с ягодным соусом', cheese: 'Выдержанные сыры', salmon: 'Лосось и морепродукты', salad: 'Лёгкие салаты' },
+  en: { duck: 'Duck with berry sauce', cheese: 'Aged cheeses', salmon: 'Salmon and seafood', salad: 'Light salads', salmon_tuna: 'Salmon and tuna', cheese_salad_1: 'Light cheeses and salads', seafood_fish: 'Seafood and fish', cheese_salad_2: 'Light salads and soft cheeses' },
+  ru: { duck: 'Утка с ягодным соусом', cheese: 'Выдержанные сыры', salmon: 'Лосось и морепродукты', salad: 'Лёгкие салаты', salmon_tuna: 'Лосось и тунец', cheese_salad_1: 'Лёгкие сыры и салаты', seafood_fish: 'Морепродукты и рыба', cheese_salad_2: 'Лёгкие салаты и мягкие сыры' },
   ro: { duck: 'Rață cu sos de fructe', cheese: 'Brânzeturi maturate', salmon: 'Somon și fructe de mare', salad: 'Salate ușoare' },
   fr: { duck: 'Canard, sauce aux baies', cheese: 'Fromages affinés', salmon: 'Saumon et fruits de mer', salad: 'Salades légères' },
   it: { duck: 'Anatra con salsa ai frutti', cheese: 'Formaggi stagionati', salmon: 'Salmone e frutti di mare', salad: 'Insalate leggere' },
