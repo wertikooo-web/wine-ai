@@ -17,7 +17,7 @@ const declaration = {
 async function impl(args) {
     const region = optionalString(args.region, 100);
     const query = region ? `винный маршрут ${region}` : 'винный маршрут туризм';
-    const { hits } = search(query, { limit: 3 });
+    const { hits } = await search(query, { limit: 3 });
 
     if (hits.length === 0) {
         return { found: false, region: region || null, results: [] };

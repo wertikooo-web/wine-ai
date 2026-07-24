@@ -18,7 +18,7 @@ const declaration = {
 };
 
 async function findGrapeProfile(grapeName, language) {
-    const { hits } = search(grapeName, { language: language || null, limit: 2 });
+    const { hits } = await search(grapeName, { language: language || null, limit: 2 });
     return hits.map(({ chunk }) => ({
         text: chunk.text,
         source: chunk.metadata.source,

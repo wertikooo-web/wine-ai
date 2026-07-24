@@ -14,6 +14,8 @@ const { synthesizeProviderVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./vo
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex } = require('./knowledge/index');
+const searchMode = require('./knowledge/searchMode');
+const knowledgeEmbeddings = require('./knowledge/embeddings');
 const knowledgeLoader = require('./knowledge/loader');
 const discoveredStore = require('./knowledge/discovered/store');
 const { promote } = require('./knowledge/discovered/promote');
@@ -669,7 +671,36 @@ async function handleRequest(req, res) {
             built_at: index.built_at,
             document_count: index.document_count || 0,
             chunk_count: index.chunk_count || 0,
+            search_mode: searchMode.getMode(),
+            semantic_available: db.isEnabled() && knowledgeEmbeddings.isEnabled(),
         });
+    }
+
+    // Runtime toggle for hybrid (keyword+semantic) search — see
+    // src/knowledge/searchMode.js. In-memory only, by design: this is a
+    // live A/B comparison knob for the Dashboard, not durable config.
+    if (req.method === 'GET' && pathname === '/api/knowledge/search-mode') {
+        return sendJson(res, 200, {
+            ok: true,
+            mode: searchMode.getMode(),
+            available_modes: searchMode.VALID_MODES,
+            semantic_available: db.isEnabled() && knowledgeEmbeddings.isEnabled(),
+        });
+    }
+
+    if (req.method === 'POST' && pathname === '/api/knowledge/search-mode') {
+        let body;
+        try {
+            body = await readJsonBody(req, 1024);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        try {
+            const mode = searchMode.setMode(String(body.mode || ''));
+            return sendJson(res, 200, { ok: true, mode });
+        } catch (error) {
+            return sendJson(res, 400, { ok: false, error: error.code || 'invalid_search_mode', available_modes: searchMode.VALID_MODES });
+        }
     }
 
     if (req.method === 'GET' && pathname === '/api/knowledge/sources') {
@@ -977,4 +1008,29 @@ attachRealtimeServer(server, {
 
 server.listen(PORT, () => {
     console.log(`[WineAI] listening port=${PORT} provider=${defaultProvider.id}`);
+
+    // Set default update interval to 24 hours (once a day) as requested
+    if (!process.env.KNOWLEDGE_UPDATE_MIN_INTERVAL_HOURS) {
+        process.env.KNOWLEDGE_UPDATE_MIN_INTERVAL_HOURS = '24';
+    }
+
+    // Run a non-forced update check 1 minute after server starts
+    setTimeout(async () => {
+        try {
+            console.log('[WineAI] Checking if background update cycle is needed on startup...');
+            await runUpdateCycle({ force: false, log: console.log, warn: console.warn });
+        } catch (err) {
+            console.error('[WineAI] Startup background update check failed:', err.message);
+        }
+    }, 60 * 1000);
+
+    // Periodically check every 4 hours if a daily run is due
+    setInterval(async () => {
+        try {
+            console.log('[WineAI] Running periodic background update check...');
+            await runUpdateCycle({ force: false, log: console.log, warn: console.warn });
+        } catch (err) {
+            console.error('[WineAI] Periodic background update check failed:', err.message);
+        }
+    }, 4 * 60 * 60 * 1000);
 });

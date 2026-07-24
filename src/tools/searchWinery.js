@@ -45,7 +45,7 @@ async function impl(args) {
 
     // Fall back to full-text search in case the winery is mentioned in a
     // document that isn't itself tagged doc_type=winery_profile.
-    const { hits } = search(`${name} ${region}`.trim(), { limit: 3 });
+    const { hits } = await search(`${name} ${region}`.trim(), { limit: 3 });
     if (hits.length === 0) {
         return { found: false, results: [] };
     }

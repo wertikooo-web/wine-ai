@@ -12,6 +12,7 @@
     "knowledge:index": "node scripts/knowledge-index.js",
     "knowledge:check": "node scripts/knowledge-check.js",
     "knowledge:update": "node scripts/knowledge-update.js",
+    "knowledge:embed-backfill": "node scripts/knowledge-embed-backfill.js",
     "test": "node scripts/run-tests.js",
     "test:smoke": "node scripts/run-smoke.js",
     "smoke:http": "node scripts/http-smoke.js",

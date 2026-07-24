@@ -22,7 +22,7 @@ async function impl(args, toolContext = {}) {
     const occasion = optionalString(args.occasion, 100);
     const budget = optionalString(args.budget, 60);
 
-    const { hits } = search(dish, { limit: 3 });
+    const { hits } = await search(dish, { limit: 3 });
 
     if (toolContext.sessionMemory) {
         toolContext.sessionMemory.recordPairingRequest({ dish, occasion, budget });

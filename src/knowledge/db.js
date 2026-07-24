@@ -66,6 +66,46 @@ async function init() {
                     errors JSONB
                 );
             `);
+
+            // Semantic search (P0) — chunk_id matches the id knowledge/index.js
+            // assigns each chunk when it builds knowledge/index/index.json, so a
+            // row here is only ever meaningful alongside a live index entry with
+            // the same id (index.json itself is not stored in Postgres — it's
+            // rebuilt from knowledge/source/*.md on every buildIndex() call).
+            // Nullable `embedding` lets a chunk exist in this table (created at
+            // backfill time) before/without a successful embedding call —
+            // semantic search treats a NULL embedding as "not yet embedded",
+            // never as an error.
+            try {
+                await p.query('CREATE EXTENSION IF NOT EXISTS vector;');
+                await p.query(`
+                    CREATE TABLE IF NOT EXISTS knowledge_chunk_embeddings (
+                        chunk_id TEXT PRIMARY KEY,
+                        source_file TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        embedding vector(768),
+                        content_hash TEXT NOT NULL,
+                        created_at TIMESTAMPTZ DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ DEFAULT NOW()
+                    );
+                `);
+                await p.query('CREATE INDEX IF NOT EXISTS idx_knowledge_chunk_embeddings_source_file ON knowledge_chunk_embeddings(source_file);');
+                // ivfflat needs at least a handful of rows to build meaningful
+                // lists; harmless to create early on an empty/small table, and
+                // avoids a manual migration step once the corpus grows.
+                await p.query(`
+                    CREATE INDEX IF NOT EXISTS idx_knowledge_chunk_embeddings_vector
+                    ON knowledge_chunk_embeddings
+                    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+                `);
+            } catch (err) {
+                // pgvector extension unavailable on this Postgres instance (some
+                // managed providers restrict CREATE EXTENSION) — semantic search
+                // stays off, keyword search is unaffected. Never block the rest
+                // of knowledge/db.js's (working) schema init over this.
+                console.error('[knowledge db] pgvector setup failed — semantic search will stay disabled:', err.message);
+            }
+
             return p;
         })();
     }

@@ -19,7 +19,7 @@ const declaration = {
 async function impl(args) {
     const query = requireNonEmptyString(args.query, 'query');
     const language = optionalString(args.language, 8) || null;
-    const { hits } = search(query, { language, limit: 4 });
+    const { hits } = await search(query, { language, limit: 4 });
 
     if (hits.length === 0) {
         return { found: false, results: [] };
