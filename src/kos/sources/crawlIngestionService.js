@@ -137,11 +137,22 @@ async function ingestSource({
                     const $ = cheerio.load(rawBuffer.toString('utf8'));
                     $('script, style, noscript, nav, footer, header, form, iframe').remove();
                     extractedTitle = $('title').first().text().trim() || $('h1').first().text().trim() || canonicalUrl;
+                    // Join block-level elements with blank lines rather than
+                    // flattening the whole container's .text() to one line —
+                    // the latter collapses every paragraph/heading break into
+                    // a single space, producing an unreadable wall of text in
+                    // the Dashboard's "Показать текст" preview.
+                    const blockSelector = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th';
                     const candidates = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
                     for (const selector of candidates) {
                         const el = $(selector).first();
                         if (el.length && el.text().trim().length > 200) {
-                            extractedText = el.text().replace(/\s+/g, ' ').trim();
+                            const parts = [];
+                            el.find(blockSelector).each((_, node) => {
+                                const t = $(node).text().replace(/[ \t]+/g, ' ').trim();
+                                if (t) parts.push(t);
+                            });
+                            extractedText = parts.join('\n\n') || el.text().replace(/\s+/g, ' ').trim();
                             break;
                         }
                     }

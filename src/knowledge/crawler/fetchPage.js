@@ -27,16 +27,36 @@ async function politeDelay() {
 
 // Strips nav/footer/script/style before extracting text — a crawled page's
 // main content, not its chrome, is what should end up in the knowledge base.
+// Walks block-level elements individually and joins them with blank lines,
+// rather than flattening the whole container's .text() to one line — the
+// latter collapses every paragraph/heading break into a single space,
+// producing an unreadable wall of text in the Dashboard's "Показать текст"
+// preview (and in whatever the model itself reads back as a chunk).
+const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th';
+function extractBlockText($, container) {
+    const parts = [];
+    container.find(BLOCK_SELECTOR).each((_, node) => {
+        const t = $(node).text().replace(/[ \t]+/g, ' ').trim();
+        if (t) parts.push(t);
+    });
+    return parts.join('\n\n');
+}
+
 function extractMainText($) {
     $('script, style, noscript, nav, footer, header, form, iframe').remove();
     const candidates = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
     for (const selector of candidates) {
         const el = $(selector).first();
         if (el.length && el.text().trim().length > 200) {
-            return el.text().replace(/\s+/g, ' ').trim();
+            const blockText = extractBlockText($, el);
+            // Fall back to the old flattened-text behavior only if the
+            // container has no block elements at all (rare) — better than
+            // returning an empty string.
+            return blockText || el.text().replace(/\s+/g, ' ').trim();
         }
     }
-    return $('body').text().replace(/\s+/g, ' ').trim();
+    const body = $('body');
+    return extractBlockText($, body) || body.text().replace(/\s+/g, ' ').trim();
 }
 
 async function fetchPage(url) {

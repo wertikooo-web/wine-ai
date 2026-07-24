@@ -603,6 +603,23 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
     }
 
+    // Only maxPages/maxDepth are exposed to callers — never let a client
+    // override delayMs/robots/SSRF-relevant settings from the request body.
+    // Ceiling (500 pages, depth 4) is a sanity bound, not a security
+    // boundary — SSRF/private-IP/robots protections live in
+    // ssrfProtection.js/robotsPolicy.js independently of this.
+    function clampCrawlPolicy(rawPolicy) {
+        if (!rawPolicy || typeof rawPolicy !== 'object') return undefined;
+        const policy = {};
+        if (Number.isFinite(rawPolicy.maxPages)) {
+            policy.maxPages = Math.max(1, Math.min(500, Math.floor(rawPolicy.maxPages)));
+        }
+        if (Number.isFinite(rawPolicy.maxDepth)) {
+            policy.maxDepth = Math.max(0, Math.min(4, Math.floor(rawPolicy.maxDepth)));
+        }
+        return Object.keys(policy).length > 0 ? policy : undefined;
+    }
+
     // Step 2E: the smallest complete Dashboard -> Source Registry -> crawler
     // flow. Crawls run in this request on purpose: the existing ingestion
     // service owns the crawl-run state, and the Dashboard shows a local
@@ -638,6 +655,7 @@ async function handleRequest(req, res) {
                     url: body.url,
                     name: body.name,
                     wineryId: body.wineryId || null,
+                    policy: clampCrawlPolicy(body.policy),
                 });
                 return sendJson(res, 201, { ok: true, ...result });
             }
@@ -647,7 +665,20 @@ async function handleRequest(req, res) {
             }
 
             if (req.method === 'POST' && kosSourceCrawlMatch) {
-                const result = await sourceIngestionService.triggerCrawlForSource({ sourceId: kosSourceCrawlMatch[1] });
+                // Body is optional — the Dashboard's plain "re-crawl" button
+                // sends none, and the default policy (websiteCrawlerProvider's
+                // maxPages:20 etc.) still applies. Only present to let a
+                // caller override maxPages/maxDepth for a specific re-crawl
+                // (e.g. "this site has 373 pages, not 20").
+                let policy;
+                try {
+                    const body = await readJsonBody(req);
+                    policy = clampCrawlPolicy(body.policy);
+                } catch (bodyErr) {
+                    if (bodyErr.code !== 'invalid_json' && bodyErr.code !== 'body_too_large') throw bodyErr;
+                    policy = undefined; // no/empty body — fall back to defaults
+                }
+                const result = await sourceIngestionService.triggerCrawlForSource({ sourceId: kosSourceCrawlMatch[1], policy });
                 return sendJson(res, 200, { ok: true, ...result });
             }
 
