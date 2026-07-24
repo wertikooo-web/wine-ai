@@ -2469,6 +2469,7 @@
     const statusEl = el('personaSaveStatus');
     const saveBtn = el('personaSaveBtn');
     saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
     statusEl.textContent = 'Saving…';
     try {
       const res = await fetch('/api/persona', {
@@ -2484,9 +2485,14 @@
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'save_failed');
+      saveBtn.textContent = 'Saved';
       statusEl.textContent = 'Saved — applies to new conversations.';
       log('persona_saved', {});
+      setTimeout(() => {
+        saveBtn.textContent = 'Save changes';
+      }, 3000);
     } catch (err) {
+      saveBtn.textContent = 'Save changes';
       statusEl.textContent = 'Save failed: ' + err.message;
       log('persona_save_error', { message: err.message });
     } finally {
