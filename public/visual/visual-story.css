@@ -52,8 +52,14 @@
      shows more of whatever bottle photo is loaded (object-position stays
      "left center" — see .vs-bottle below), making future bottle photos
      more forgiving of imperfect horizontal placement instead of needing
-     pixel-exact alignment against red's photo every time. */
-  position: absolute; left: -169px; top: 128px; width: 174px; height: 565px; overflow: hidden;
+     pixel-exact alignment against red's photo every time.
+     `left` must shift left by exactly the same 16px the width grew by, or
+     the wrap's right edge creeps past the text column's start and clips
+     into the aroma/pairing text (found live: stray letter fragments
+     showing through next to the bottle). Right edge = left + width must
+     stay <= 0 relative to .vs-wine's own left edge (which already sits at
+     .vs-presentation's padding-left:175px). */
+  position: absolute; left: -185px; top: 128px; width: 174px; height: 565px; overflow: hidden;
   border-radius: 24px; background: #080506; box-shadow: 0 24px 42px rgba(0,0,0,.52);
   filter: drop-shadow(0 18px 16px rgba(0,0,0,.28));
 }
