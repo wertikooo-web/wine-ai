@@ -512,11 +512,21 @@
     display: flex; align-items: center; gap: 8px;
   }
   .pm-group summary::-webkit-details-marker,
-  details.site-group-details summary::-webkit-details-marker { display: none; }
+  details.site-group-details summary::-webkit-details-marker,
+  .pm-card-summary::-webkit-details-marker { display: none; }
+  /* All collapse/expand markers, including the outer card-level ones (which
+     previously had NO visible marker at all — they collapsed but gave no
+     visual hint that they could), sized up 2x and colored bordeaux/wine
+     instead of muted gray so they're actually visible. */
   .pm-group summary::before,
-  details.site-group-details summary::before { content: '▸'; color: var(--muted); font-size: 20px; font-weight: bold; line-height: 1; margin-right: 6px; display: inline-block; vertical-align: middle; }
+  details.site-group-details summary::before,
+  .pm-card-summary::before {
+    content: '▸'; color: var(--wine); font-size: 40px; font-weight: bold; line-height: 1;
+    margin-right: 8px; display: inline-block; vertical-align: middle;
+  }
   .pm-group[open] summary::before,
-  details.site-group-details[open] summary::before { content: '▾'; }
+  details.site-group-details[open] summary::before,
+  details[open] > .pm-card-summary::before { content: '▾'; }
   .pm-doc-list { padding: 0 12px 12px; }
   .pm-show-more { width: 100%; margin-top: 4px; }
 
@@ -2834,23 +2844,43 @@
       siteDetails.className = 'site-group-details';
       siteDetails.style.cssText = 'margin-bottom:10px; border:1px solid var(--border); border-radius:8px; padding:6px 10px; background:var(--card-bg);';
       
+      // When `site.name` is just the raw non-URL source string (e.g. the
+      // legacy crawler's "Wine and Spirits (wine-and-spirits.md)" publisher
+      // label used as its own grouping key), it's identical to `domain` —
+      // showing both produced a duplicated "X (X)" header.
+      const nameDiffersFromDomain = site.name && site.name !== domain;
       const summary = document.createElement('summary');
       summary.style.cssText = 'cursor:pointer; font-weight:bold; font-size:14px; display:flex; justify-content:space-between; align-items:center;';
       summary.innerHTML = `
         <div style="display:flex; align-items:center; gap:8px;">
           <span>${site.name || domain}</span>
-          <span style="font-size:11px; color:var(--muted); font-weight:normal;">(${domain})</span>
+          ${nameDiffersFromDomain ? `<span style="font-size:11px; color:var(--muted); font-weight:normal;">(${domain})</span>` : ''}
         </div>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
           <span class="badge" style="font-weight:normal; font-size:11px;">${pages.length} стр.</span>
+          <button class="secondary expand-all-btn" style="font-size:11px; padding:2px 8px; font-weight:normal;">Показать все тексты</button>
           <button class="secondary delete-site-btn" style="font-size:11px; padding:2px 8px; color:var(--err); border-color:var(--err); background:none; font-weight:normal;">Удалить всё</button>
         </div>
       `;
-      
+
       const pagesList = document.createElement('div');
       pagesList.style.cssText = 'margin-top:10px; padding-left:10px; border-left: 2px solid var(--border);';
       pages.forEach(src => pagesList.appendChild(renderSourceRow(src)));
-      
+
+      const expandAllBtn = summary.querySelector('.expand-all-btn');
+      expandAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const collapsing = expandAllBtn.dataset.expanded === '1';
+        pagesList.querySelectorAll('[data-toggle-content]').forEach((btn) => {
+          const contentBox = btn.nextElementSibling;
+          const isOpen = contentBox.style.display !== 'none';
+          if (collapsing === isOpen) btn.click();
+        });
+        expandAllBtn.dataset.expanded = collapsing ? '0' : '1';
+        expandAllBtn.textContent = collapsing ? 'Показать все тексты' : 'Скрыть все тексты';
+      });
+
       const deleteSiteBtn = summary.querySelector('.delete-site-btn');
       deleteSiteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -2925,13 +2955,24 @@
       } else if (type === 'curated') {
         groups.curated.push(src);
       } else if (type === 'crawled') {
+        // Real crawled URLs group by hostname (several pages of the same
+        // site share one key). Non-URL `source` strings (e.g. the legacy
+        // crawler's "Wine and Spirits (wine-and-spirits.md)" publisher
+        // label) previously all fell into one generic 'other' bucket,
+        // burying every non-URL source's pages together under a
+        // meaningless header instead of grouping them by their own
+        // publisher name — group by the raw source string itself instead.
         let domain = 'other';
+        let displayName = null;
         try {
           if (src.source && src.source.startsWith('http')) {
             domain = new URL(src.source).hostname.replace(/^www\./i, '').toLowerCase();
+          } else if (src.source) {
+            domain = src.source.trim();
+            displayName = domain;
           }
         } catch (e) {}
-        
+
         if (wineryDomainsGlobal.has(domain)) {
           if (!groups.wineryWebsites[domain]) {
             groups.wineryWebsites[domain] = {
@@ -2943,7 +2984,7 @@
         } else {
           if (!groups.otherWebsites[domain]) {
             groups.otherWebsites[domain] = {
-              name: domain,
+              name: displayName || domain,
               pages: []
             };
           }
