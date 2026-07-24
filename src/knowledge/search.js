@@ -31,18 +31,73 @@ const SCORING_STOPWORDS = new Set([
     'despre', 'care', 'este', 'și', 'un', 'o', 'la', 'de', 'în', 'cu', 'ce', 'sau',
     'the', 'and', 'is', 'are', 'of', 'to', 'in', 'on', 'for', 'with', 'that', 'this',
     'о', 'об', 'что', 'это', 'как', 'для', 'на', 'из', 'или', 'вы', 'же',
+    // Corpus-specific, not general-language, stopwords: every document in
+    // this knowledge base is about Moldovan wine, so "вино"/"молдова" and
+    // their inflections carry almost no discriminative signal here even
+    // though IDF alone doesn't rate them as rare enough to ignore (they're
+    // in maybe 5-10% of chunks, not 90%+, so plain IDF gives them a
+    // deceptively "moderate" weight) — found via the Kosher-package case:
+    // an article titled "...Молдова представила вина..." was outranking
+    // the actually-relevant chunk purely because of these two words
+    // appearing in ITS title, stacking with the title-match boost below.
+    'вино', 'вина', 'вин', 'вином', 'вине', 'винам', 'винами', 'винах', 'винный', 'винной', 'винного',
+    'молдова', 'молдовы', 'молдове', 'молдову', 'молдовой', 'молдавский', 'молдавское', 'молдавская', 'молдавские', 'молдавии', 'молдовский',
 ]);
 
-function scoreChunk(queryTokens, chunk) {
+// IDF (inverse document frequency) weighting — a word that appears in
+// nearly every chunk ("вино", "молдова" in this corpus) is worthless for
+// distinguishing which chunk actually answers the query, while a word that
+// appears in only a handful of chunks ("kosher", an estate/brand name, a
+// specific certification) is exactly the signal that should dominate
+// ranking. Flat +1-per-matching-token scoring (the original v1 design)
+// weighted both identically, which is precisely why a broad query like
+// "кошерные вина Молдова" couldn't surface a specific Kosher-tasting-
+// package chunk out of ~900 candidates: the generic "вино"/"молдова"
+// overlap drowned out the one word that actually mattered. Standard
+// smoothed IDF: idf(t) = ln((N+1)/(df(t)+1)) + 1 — always positive
+// (minimum weight 1, same as the old flat scheme, for a term that's in
+// literally every chunk), grows for rarer terms, never divides by zero.
+//
+// Cached per index build (keyed on index.built_at) rather than computed
+// per query — the corpus only changes when buildIndex() runs, so
+// recomputing document frequencies on every single search would be pure
+// waste at this corpus size (~1k chunks) but still unnecessary waste.
+let idfCache = { builtAt: null, idf: null };
+
+function buildIdfIndex(index) {
+    if (idfCache.builtAt === index.built_at && idfCache.idf) {
+        return idfCache.idf;
+    }
+    const docFrequency = new Map();
+    for (const chunk of index.chunks) {
+        const uniqueTokens = new Set(tokenize(chunk.text));
+        for (const token of uniqueTokens) {
+            docFrequency.set(token, (docFrequency.get(token) || 0) + 1);
+        }
+    }
+    const totalChunks = index.chunks.length || 1;
+    const idf = new Map();
+    for (const [token, df] of docFrequency) {
+        idf.set(token, Math.log((totalChunks + 1) / (df + 1)) + 1);
+    }
+    idfCache = { builtAt: index.built_at, idf };
+    return idf;
+}
+
+// Terms with no recorded document frequency (shouldn't normally happen —
+// every token in the corpus was counted while building the IDF index) get
+// this same "appears everywhere" floor rather than an arbitrary guess.
+const DEFAULT_IDF_WEIGHT = 1;
+
+function scoreChunk(queryTokens, chunk, idf) {
     const significantTokens = queryTokens.filter((t) => !SCORING_STOPWORDS.has(t));
     const bodyTokens = new Set(tokenize(chunk.text));
-    let overlap = 0;
+    let score = 0;
     for (const token of significantTokens) {
-        if (bodyTokens.has(token)) overlap += 1;
+        if (bodyTokens.has(token)) score += idf.get(token) || DEFAULT_IDF_WEIGHT;
     }
-    if (overlap === 0) return 0;
+    if (score === 0) return 0;
 
-    let score = overlap;
     const metaText = [chunk.metadata.title, chunk.metadata.winery, chunk.metadata.region, chunk.metadata.grape]
         .filter(Boolean)
         .join(' ')
@@ -50,9 +105,11 @@ function scoreChunk(queryTokens, chunk) {
     // Weighted higher than body overlap — a query term appearing in the
     // document's own title/winery/region/grape metadata is a much stronger
     // "this document is actually about that" signal than merely containing
-    // the word somewhere in a long body of text.
+    // the word somewhere in a long body of text. Also IDF-scaled: a rare
+    // term matching the title should count for more than a common one
+    // matching the title, same reasoning as the body score above.
     for (const token of significantTokens) {
-        if (metaText.includes(token)) score += 4;
+        if (metaText.includes(token)) score += (idf.get(token) || DEFAULT_IDF_WEIGHT) * 4;
     }
     return score;
 }
@@ -70,8 +127,9 @@ function keywordSearch(query, { limit, language, indexFile } = {}) {
         candidates = candidates.filter((chunk) => !chunk.metadata.language || chunk.metadata.language === language);
     }
 
+    const idf = buildIdfIndex(index);
     const scored = candidates
-        .map((chunk) => ({ chunk, score: scoreChunk(queryTokens, chunk) }))
+        .map((chunk) => ({ chunk, score: scoreChunk(queryTokens, chunk, idf) }))
         .filter((hit) => hit.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
