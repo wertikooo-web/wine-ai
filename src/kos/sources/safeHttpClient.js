@@ -61,7 +61,8 @@ async function safeFetchResource({
 
     while (true) {
         // 1. Syntactic Normalization
-        const normalizedUrl = normalizeUrlSyntactic(currentUrl);
+        const normalizedUrlObj = normalizeUrlSyntactic(currentUrl);
+        const normalizedUrl = normalizedUrlObj.canonicalUrl;
 
         // 2. SSRF Check & Host DNS resolution
         let ssrfValidation;
@@ -177,19 +178,29 @@ function fetchSingleHop({
 
         // Custom lookup function for socket pinning
         const customLookup = (lookupHost, options, callback) => {
+            const actualCallback = typeof options === 'function' ? options : callback;
+            const actualOptions = typeof options === 'object' ? options : {};
+
+            const resolveDns = (ip) => {
+                const family = ip.includes(':') ? 6 : 4;
+                if (actualOptions.all) {
+                    return actualCallback(null, [{ address: ip, family }]);
+                }
+                return actualCallback(null, ip, family);
+            };
+
             if (dependencies.dnsResolver) {
                 return dependencies.dnsResolver(lookupHost, (err, ip) => {
-                    if (err) return callback(err);
-                    return callback(null, ip, ip.includes(':') ? 6 : 4);
+                    if (err) return actualCallback(err);
+                    return resolveDns(ip);
                 });
             }
 
             if (targetIp) {
-                const family = targetIp.includes(':') ? 6 : 4;
-                return callback(null, targetIp, family);
+                return resolveDns(targetIp);
             }
 
-            return callback(new Error(`KOS_SSRF_NO_PUBLIC_ADDRESS: No verified IP for ${lookupHost}`));
+            return actualCallback(new Error(`KOS_SSRF_NO_PUBLIC_ADDRESS: No verified IP for ${lookupHost}`));
         };
 
         const reqOptions = {
@@ -202,6 +213,7 @@ function fetchSingleHop({
                 Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf;q=0.8,*/*;q=0.7',
                 'Accept-Encoding': 'gzip, deflate, br',
                 Host: hostname,
+                Cookie: 'age_verified=true; age_verified=1; age_gate=1; age_verification=1; age_verification=true; viewed_gate=1; confirm_age=1; is_adult=1; over18=1; over18=yes; legal_age=1; confirmed=1; is_legal=1; verify=1; adult=1; age=18; age=21',
             },
             lookup: customLookup,
             servername: hostname, // TLS SNI
