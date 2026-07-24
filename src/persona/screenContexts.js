@@ -7,7 +7,7 @@
 // present in realtimePrompt.js/realtimeServer.js, gated by
 // DASHBOARD_ALLOW_CUSTOM_PROMPT) — the realtime transport, mic pipeline,
 // and provider code are completely untouched.
-const { defaultPersonaPrompt } = require('./wineExpertPersona');
+const { getEffectivePersonaPrompt } = require('./wineExpertPersona');
 
 const WINERY = {
     id: 'crama-dealul-de-aur',
@@ -51,7 +51,7 @@ function getScreenContext(type, id) {
 // this is what makes it "not a single hardcoded reply" per the task's
 // explicit requirement.
 function buildContextualPersona(ctx) {
-    const base = defaultPersonaPrompt();
+    const base = getEffectivePersonaPrompt();
     const subjectLine = ctx.type === 'winery'
         ? `Пользователь сейчас открыл экран винодельни "${ctx.name}" в приложении. Это демонстрационная вымышленная винодельня — используй сведения о ней из базы знаний.`
         : `Пользователь сейчас открыл экран вина "${ctx.name}" (винодельня Crama Dealul de Aur). Это демонстрационное вымышленное вино — используй сведения о нём из базы знаний.`;

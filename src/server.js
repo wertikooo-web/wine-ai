@@ -21,8 +21,9 @@ const discoveredStore = require('./knowledge/discovered/store');
 const { promote } = require('./knowledge/discovered/promote');
 const { runUpdateCycle } = require('./knowledge/updateCycle');
 const {
-    SUPPORTED_LANGUAGES, defaultPersonaPrompt,
-    currentPersonaName, currentPersonaDescription, currentWelcomeMessage,
+    SUPPORTED_LANGUAGES, getRawPersonaPrompt,
+    currentPersonaSommelierGender, currentPersonaName, currentPersonaDescription,
+    currentWelcomeMessage,
 } = require('./persona/wineExpertPersona');
 const personaStore = require('./persona/personaStore');
 const { getScreenContext, buildContextualPersona } = require('./persona/screenContexts');
@@ -32,6 +33,7 @@ const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
+const { createAdminAuth } = require('./auth/adminAuth');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
@@ -518,15 +520,15 @@ async function handleRequest(req, res) {
             description: currentPersonaDescription(),
             languages: SUPPORTED_LANGUAGES,
             welcome_message: currentWelcomeMessage(),
-            system_prompt: defaultPersonaPrompt(),
+            system_prompt: getRawPersonaPrompt(),
+            sommelierGender: currentPersonaSommelierGender(),
         });
     }
 
-    // Persists name/description/welcome_message/system_prompt (Postgres-
+    // Persists name/description/welcome_message/system_prompt/sommelierGender (Postgres-
     // backed when DATABASE_URL is set, file-backed for local dev — see
     // src/persona/personaStore.js). Every realtime session started AFTER a
-    // successful save picks up the change immediately, since
-    // defaultPersonaPrompt() reads the same in-memory cache this updates.
+    // successful save picks up the change immediately.
     // Languages are deliberately not editable here — SUPPORTED_LANGUAGES
     // drives real language-detection/UI behavior elsewhere, not just display.
     if (req.method === 'POST' && pathname === '/api/persona') {
@@ -536,12 +538,25 @@ async function handleRequest(req, res) {
         } catch (error) {
             return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
+
+        // Validate sommelierGender value (undefined: no change, male/female: valid, null/empty/other: HTTP 400)
+        if (body.sommelierGender !== undefined) {
+            if (body.sommelierGender !== 'male' && body.sommelierGender !== 'female') {
+                return sendJson(res, 400, {
+                    ok: false,
+                    error: 'invalid_sommelier_gender',
+                    message: 'sommelierGender must be either male or female',
+                });
+            }
+        }
+
         try {
             const saved = await personaStore.save({
                 name: body.name,
                 description: body.description,
                 welcome_message: body.welcome_message,
                 system_prompt: body.system_prompt,
+                sommelierGender: body.sommelierGender,
             });
             return sendJson(res, 200, {
                 ok: true,
@@ -549,7 +564,8 @@ async function handleRequest(req, res) {
                 description: currentPersonaDescription(),
                 languages: SUPPORTED_LANGUAGES,
                 welcome_message: currentWelcomeMessage(),
-                system_prompt: defaultPersonaPrompt(),
+                system_prompt: getRawPersonaPrompt(),
+                sommelierGender: currentPersonaSommelierGender(),
                 saved,
             });
         } catch (error) {

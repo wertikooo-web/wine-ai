@@ -1,7 +1,7 @@
 'use strict';
 
 // Persistent persona overrides (name/description/welcome message/system
-// prompt) editable from the Settings tab. Postgres-backed when DATABASE_URL
+// prompt/sommelierGender) editable from the Settings tab. Postgres-backed when DATABASE_URL
 // is set (Railway — survives redeploys, unlike local disk in that
 // environment), file-backed fallback for local dev — same dual-mode
 // pattern as src/knowledge/discovered/store.js. Reuses the existing pg pool
@@ -12,11 +12,13 @@ const path = require('path');
 const db = require('../knowledge/db');
 
 const FILE_PATH = path.resolve(__dirname, '..', '..', 'data', 'persona-overrides.json');
-const FIELDS = ['name', 'description', 'welcome_message', 'system_prompt'];
-const MAX_CHARS = { name: 80, description: 400, welcome_message: 600, system_prompt: 24000 };
+const ALLOWED_GENDERS = ['male', 'female'];
+const DEFAULT_SOMMELIER_GENDER = 'male';
+const FIELDS = ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender'];
+const MAX_CHARS = { name: 80, description: 400, welcome_message: 600, system_prompt: 24000, sommelierGender: 10 };
 
 // In-memory cache, synchronously readable — the realtime prompt-assembly
-// code (src/realtime/realtimePrompt.js) calls defaultPersonaPrompt()
+// code (src/realtime/realtimePrompt.js) calls getEffectivePersonaPrompt()
 // synchronously during session setup, so overrides must be readable
 // without an await there. load() populates this once at boot; save()
 // updates it immediately in the same tick as the write.
@@ -25,6 +27,12 @@ let cache = {};
 function sanitize(partial) {
     const next = {};
     for (const field of FIELDS) {
+        if (field === 'sommelierGender') {
+            if (partial.sommelierGender === 'male' || partial.sommelierGender === 'female') {
+                next.sommelierGender = partial.sommelierGender;
+            }
+            continue;
+        }
         if (typeof partial[field] !== 'string') continue;
         const trimmed = partial[field].trim().slice(0, MAX_CHARS[field]);
         if (trimmed) next[field] = trimmed;
@@ -43,6 +51,7 @@ async function ensureTable(pool) {
             updated_at TIMESTAMPTZ
         );
     `);
+    await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS sommelier_gender TEXT;');
 }
 
 async function load() {
@@ -55,12 +64,14 @@ async function load() {
             description: rows[0].description || '',
             welcome_message: rows[0].welcome_message || '',
             system_prompt: rows[0].system_prompt || '',
+            sommelierGender: rows[0].sommelier_gender || DEFAULT_SOMMELIER_GENDER,
         }) : {};
         return cache;
     }
     try {
         if (fs.existsSync(FILE_PATH)) {
-            cache = sanitize(JSON.parse(fs.readFileSync(FILE_PATH, 'utf8')) || {});
+            const raw = JSON.parse(fs.readFileSync(FILE_PATH, 'utf8')) || {};
+            cache = sanitize(raw);
         }
     } catch {
         cache = {};
@@ -72,10 +83,24 @@ async function load() {
 // the built-in default; omitting a field leaves its current override (or
 // lack of one) untouched.
 async function save(partial) {
+    if (partial.sommelierGender !== undefined) {
+        if (!ALLOWED_GENDERS.includes(partial.sommelierGender)) {
+            const err = new Error('invalid_sommelier_gender');
+            err.statusCode = 400;
+            throw err;
+        }
+    }
+
     const merged = { ...cache };
     for (const field of FIELDS) {
-        if (typeof partial[field] !== 'string') continue;
-        const trimmed = partial[field].trim();
+        if (partial[field] === undefined) continue;
+
+        if (field === 'sommelierGender') {
+            merged.sommelierGender = partial.sommelierGender;
+            continue;
+        }
+
+        const trimmed = typeof partial[field] === 'string' ? partial[field].trim() : '';
         if (trimmed === '') delete merged[field];
         else merged[field] = trimmed.slice(0, MAX_CHARS[field]);
     }
@@ -85,13 +110,20 @@ async function save(partial) {
         const pool = db.getPool();
         await ensureTable(pool);
         await pool.query(
-            `INSERT INTO persona_overrides (id, name, description, welcome_message, system_prompt, updated_at)
-             VALUES (1, $1, $2, $3, $4, $5)
+            `INSERT INTO persona_overrides (id, name, description, welcome_message, system_prompt, sommelier_gender, updated_at)
+             VALUES (1, $1, $2, $3, $4, $5, $6)
              ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name, description = EXCLUDED.description,
                 welcome_message = EXCLUDED.welcome_message, system_prompt = EXCLUDED.system_prompt,
-                updated_at = EXCLUDED.updated_at`,
-            [merged.name || null, merged.description || null, merged.welcome_message || null, merged.system_prompt || null, new Date().toISOString()],
+                sommelier_gender = EXCLUDED.sommelier_gender, updated_at = EXCLUDED.updated_at`,
+            [
+                merged.name || null,
+                merged.description || null,
+                merged.welcome_message || null,
+                merged.system_prompt || null,
+                merged.sommelierGender || DEFAULT_SOMMELIER_GENDER,
+                new Date().toISOString()
+            ],
         );
     } else {
         fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
@@ -104,4 +136,4 @@ function getCached() {
     return cache;
 }
 
-module.exports = { load, save, getCached, FIELDS, MAX_CHARS };
+module.exports = { load, save, getCached, FIELDS, MAX_CHARS, DEFAULT_SOMMELIER_GENDER, ALLOWED_GENDERS };
