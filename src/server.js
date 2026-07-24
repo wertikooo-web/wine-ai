@@ -747,6 +747,7 @@ async function handleRequest(req, res) {
                     language: chunk.metadata.language,
                     confidence: chunk.metadata.confidence,
                     source: chunk.metadata.source,
+                    enabled: chunk.metadata.enabled !== false,
                     chunk_count: 0,
                 });
             }
@@ -799,6 +800,51 @@ async function handleRequest(req, res) {
             return sendJson(res, 200, { ok: true });
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'delete_failed', message: error.message });
+        }
+    }
+
+    // Per-source enable/disable (Dashboard "Sources" list) — a softer
+    // alternative to DELETE: the file, its chunks, and its embeddings all
+    // stay in place, but search.js excludes it from retrieval until
+    // re-enabled. Lets a specific source (or a whole site's worth of
+    // pages, one PATCH per page from the Dashboard's "group" button) be
+    // isolated for testing without losing the data or having to re-crawl
+    // it later.
+    if (req.method === 'PATCH' && sourceContentMatch) {
+        const [, fileName] = sourceContentMatch;
+        const sourceDir = knowledgeLoader.DEFAULT_SOURCE_DIR;
+        const filePath = path.join(sourceDir, fileName);
+
+        if (!fs.existsSync(filePath)) {
+            return sendJson(res, 404, { ok: false, error: 'file_not_found' });
+        }
+
+        let body;
+        try {
+            body = await readJsonBody(req, 1024);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        if (typeof body.enabled !== 'boolean') {
+            return sendJson(res, 400, { ok: false, error: 'enabled_boolean_required' });
+        }
+
+        try {
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const frontmatterMatch = /^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)([\s\S]*)$/.exec(raw);
+            if (!frontmatterMatch) {
+                return sendJson(res, 500, { ok: false, error: 'frontmatter_unparseable' });
+            }
+            const [, open, frontmatterBody, close, rest] = frontmatterMatch;
+            const lines = frontmatterBody.split(/\r?\n/).filter((line) => !/^enabled:/.test(line.trim()));
+            lines.push(`enabled: ${body.enabled}`);
+            const updated = open + lines.join('\n') + close + rest;
+            fs.writeFileSync(filePath, updated, 'utf8');
+            buildIndex();
+            commitKnowledgeFiles(path.resolve(__dirname, '..'), [filePath], `${body.enabled ? 'Enable' : 'Disable'} knowledge file: ${fileName}`);
+            return sendJson(res, 200, { ok: true, enabled: body.enabled });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'patch_failed', message: error.message });
         }
     }
 
