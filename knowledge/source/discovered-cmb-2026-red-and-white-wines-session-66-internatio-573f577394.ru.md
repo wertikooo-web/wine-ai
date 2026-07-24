@@ -1,0 +1,184 @@
+---
+title: CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation — Wine and Spirits
+language: ru
+doc_type: news
+source: Wine and Spirits (wine-and-spirits.md)
+confidence: high
+updated_at: 2026-07-24T20:39:41.968Z
+---
+
+CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation
+
+Concours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelation` 2026. Одним из них стало вино из Молдовы, второе – из Венгрии.
+
+В пресс-релизе организаторов конкурса говорится, что наши 52,4% — это самый высокий результат среди всех стран, представивших более 100 вин.
+
+Конкурс CMB был основан в 1994 г. и считается одним из самых значимых.
+
+International White Wine Revelation` 2026
+
+Vin Pelicular Ialoveni Armonios Reserva White, 1994 (Vinuri Ialoveni)
+
+Большие золотые медали
+
+Vin Pelicular Ialoveni Armonios Reserva White, 1994 (Vinuri Ialoveni)
+
+Vintage Chardonnay, 2022 (Vinaria din Vale)
+
+Vintage Saperavi, 2022 (Vinaria din Vale)
+
+Rose Rara Neagra & Merlot, 2025 (Domeniile Davidescu)
+
+The Governor Saperavi Forte, 2022 (Castel Mimi)
+
+Piatra Rosie, 2020 (Chateau Cojusna)
+
+Nocturne Rara Neagra, 2023 (Vinaria Purcari)
+
+Золотые медали
+
+Freedom Blend, 2021 (Vinaria Purcari)
+
+Negru de Purcari, 2020 (Vinaria Purcari)
+
+Academia Purcari, 2020(Vinaria Purcari)
+
+Merlot de Tomai, 2022 (Tomai-Vinex)
+
+Vino Grafia Saperavi, 2023 (Aurelius Winery)
+
+Negru de Kazayak, 2024 (Kazayak-Vin)
+
+7 Coline Sauvignon & Pinot Grigio (Vinaria din Vale)
+
+Domeniile Davidescu Feteasca Neagra & Malbec, 2021 (Domeniile Davidescu)
+
+Domeniile Davidescu Chardonnay, 2025 (Domeniile Davidescu)
+
+Taraboste Chardonnay Barrique, 2024 (Chateau Vartely)
+
+Wine Garden Saperavi, 2021 (Vinuri de Comrat)
+
+Bessarabian Province Saperavi, 2017 (Vinuri de Comrat)
+
+Saperavi, 2024 (Castel Mimi)
+
+Rosu de Bulboaca Limited Edition, 2021 (Castel Mimi)
+
+The Governor’s Blend, 2020 (Castel Mimi)
+
+Aurore Syrah-Rara Neagra, 2023 (Fautor)
+
+Orange Traminer, 2023 (Fautor)
+
+Barbaro, 2020 (Fautor)
+
+Radacini Reserve Saperavi, 2020 (Radacini Wines)
+
+Radacini Sauvignon Blanc, 2025 (Radacini Wines)
+
+Feteasca Neagra Elite Collection, 2015 (Cricova)
+
+Radacini Vintage Chardonnay, 2022 (Radacini Wines)
+
+Raritet Malbec, 2024 (Carlevana Winery)
+
+1827 Rara Neagra & Saperavi, 2024 (Vinaria Purcari)
+
+Nocturne Viorica, 2025 (Vinaria Purcari)
+
+1827 Malbec Limited Edition, 2023 (Vinaria Purcari)
+
+Negru de Purcari Amphorae Edition, 2021 (Vinaria Purcari)
+
+Parcela Pinot Grigio, 2025 (Vinaria Purcari)
+
+Parcela Sauvignon Blanc, 2025 (Vinaria Purcari)
+
+Parcela Viorica, 2025 (Vinaria Purcari)
+
+Parcela Feteasca Neagra, 2024 (Vinaria Purcari)
+
+Legamant, 2019 (Divus Winery)
+
+Серебряные медали
+
+Aurore Feteasca Neagră — Tempranillo, 2020 (Fautor)
+
+Aurore Rara Neagra, 2020 (Fautor)
+
+Negru de Purcari, 2018 (Vinaria Purcari)
+
+Aurelius Viorica, 2025 (Aurelius Winery)
+
+Epizod By Rara Neagra, 2023 (Salcuta)
+
+Goliard Viorica, 2025 (Doina Vin)
+
+Winemaker’s Way Viorica, 2025 (Salcuta)
+
+Winemaker’s Way Feteasca Alba, 2025 (Salcuta)
+
+Storks Malbec, 2022 (Suvorov Winery)
+
+Taraboste Cabernet Sauvignon Merlot, 2019 (Chateau Vartely)
+
+Domeniile Davidescu Rara Neagra & Saperavi, 2023 (Domeniile Davidescu)
+
+Amphora Chardonnay IGP Valul Lui Traian, 2023 (Imperial Vin Group)
+
+Sol Negru Rara Neagra, 2023 (Asconi)
+
+Sol Negru Pinot Noir, 2022 (Asconi)
+
+Aurore Feteasca Neagra-Saperavi, 2022 (Fautor)
+
+«Salut!» Vinum Estate, 2022 (Vinum)
+
+Novak Anya Viorica & Floricica, 2024 (Novak Winery)
+
+Fiori Feteasca Neagra, 2019 (Radacini Wines)
+
+Maestro Domeniile Isacova Secret Blend 2025 (Apriori Wine)
+
+Cricova 1952 White Blend. 2025 (Cricova)
+
+Cricova Elogiu Sapte Soiuri, 2022 (Cricova)
+
+Angel of Peace, 2023 (Basavin Winery)
+
+1827 Sauvignon Blanc, 2025 (Vinaria Purcari)
+
+1827 Viorica & Muscat Ottonel, 2025 (Vinaria Purcari)
+
+Sapiens Sauvignon Blanc Fume, 2025 (Vinaria Purcari)
+
+1827 Saperavi Limited Edition, 2024 (Vinaria Purcari)
+
+Parcela Malbec, 2024 (Vinaria Purcari)
+
+Субсидии для столового виноградарства в Молдове
+
+Владимир Давидеску: «Grand Gold — это не случайность и не удача»
+
+You may also like
+
+Decanter World Wine Awards` 2026: у Молдовы 95...
+
+Владимир Давидеску: «Grand Gold — это не случайность...
+
+Весенний «Вернисаж вин»-2025: награды и сенсации
+
+Mundus Vini Spring Tasting` 2026: у Молдовы 119...
+
+Лучшие вина Fetească Neagră, Feteasca Regală, Rara Neagră...
+
+«Лучшие вина» и «Кавалеры» зимнего «Вернисажа вин`2025»
+
+Все медали Wine of Moldova Contest`2025
+
+Медали молдавских вин и дивинов за 2025 г.
+
+Effervescents du Monde`2025: игристые из Молдовы — в...
+
+Asia Wine Trophy` 2025: у Молдовы — 35...
