@@ -65,9 +65,10 @@ function keywordSearch(query, { limit, language, indexFile } = {}) {
     }
 
     const index = loadIndex(indexFile);
-    const candidates = language
-        ? index.chunks.filter((chunk) => !chunk.metadata.language || chunk.metadata.language === language)
-        : index.chunks;
+    let candidates = index.chunks.filter((chunk) => chunk.metadata.enabled !== false);
+    if (language) {
+        candidates = candidates.filter((chunk) => !chunk.metadata.language || chunk.metadata.language === language);
+    }
 
     const scored = candidates
         .map((chunk) => ({ chunk, score: scoreChunk(queryTokens, chunk) }))
@@ -126,6 +127,15 @@ function reciprocalRankFusion(rankedLists, k = 60) {
 // fell back (see module comment above).
 async function search(query, { limit = 4, language = null, indexFile } = {}) {
     const startedAt = Date.now();
+
+    // Master kill switch (Dashboard "Search mode" = Disabled) — used to
+    // verify the assistant genuinely has no knowledge-base access at all
+    // (as opposed to just answering badly), independent of per-source
+    // enable/disable. Never even touches the index.
+    if (searchMode.getMode() === 'disabled') {
+        return { hits: [], tookMs: Date.now() - startedAt, mode: 'disabled' };
+    }
+
     const keyword = keywordSearch(query, { limit, language, indexFile });
 
     const wantsHybrid = searchMode.getMode() === 'hybrid';
@@ -139,7 +149,13 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
             return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword' };
         }
 
-        const chunkById = new Map(keyword.index.chunks.map((c) => [c.id, c]));
+        // enabled:false chunks are still present in keyword.index.chunks
+        // (so the Dashboard can list/re-enable them) but must never be
+        // resolvable as a search hit — semantic candidates come straight
+        // from Postgres, which doesn't know about the enabled flag at all.
+        const chunkById = new Map(
+            keyword.index.chunks.filter((c) => c.metadata.enabled !== false).map((c) => [c.id, c])
+        );
         const keywordIds = keyword.hits.map((h) => h.chunk.id);
         const fusedIds = reciprocalRankFusion([keywordIds, semanticIds]).slice(0, limit);
 

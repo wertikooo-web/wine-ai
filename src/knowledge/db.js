@@ -67,6 +67,18 @@ async function init() {
                 );
             `);
 
+            // Small generic key/value store for runtime settings toggled
+            // from the Dashboard (currently just searchMode.js's knowledge
+            // search mode) that need to survive `railway up` replacing the
+            // whole container — see src/knowledge/searchMode.js.
+            await p.query(`
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+
             // Semantic search (P0) — chunk_id matches the id knowledge/index.js
             // assigns each chunk when it builds knowledge/index/index.json, so a
             // row here is only ever meaningful alongside a live index entry with

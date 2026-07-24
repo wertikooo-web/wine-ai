@@ -14,7 +14,7 @@ const SUPPORTED_EXTENSIONS = new Set(['.md', '.txt', '.json', '.csv']);
 const REQUIRED_METADATA_FIELDS = ['title', 'language', 'doc_type'];
 const KNOWN_METADATA_FIELDS = [
     'title', 'winery', 'region', 'grape', 'language', 'doc_type',
-    'date', 'source', 'confidence', 'updated_at',
+    'date', 'source', 'confidence', 'updated_at', 'enabled',
 ];
 
 function stableId(sourceFile, index) {
@@ -119,6 +119,13 @@ function chunkDocument(doc) {
             updated_at: doc.metadata.updated_at || null,
             source_file: doc.sourceFile,
             chunk_index: index,
+            // Per-source enable/disable toggle (Dashboard "Sources" list) —
+            // absent/anything other than the literal string 'false' means
+            // enabled, so existing files without this field keep working
+            // unchanged. search.js filters candidates on this; the chunk
+            // still exists in index.json either way so the Dashboard can
+            // list and re-enable a disabled source.
+            enabled: doc.metadata.enabled !== 'false',
         },
     }));
 }
