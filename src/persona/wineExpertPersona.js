@@ -196,14 +196,54 @@ const CORE_PERSONA_PROMPT = `РОЛЬ
 const DEFAULT_NAME = 'Wine AI';
 const DEFAULT_DESCRIPTION = 'Цифровой эксперт по молдавскому вину, винодельням, сортам винограда, регионам, гастрономическим сочетаниям и винному туризму.';
 
-// Each of these reads the synchronously-cached persistent override (see
-// ./personaStore.js — Postgres/file-backed, edited from the dashboard's
-// Settings tab) and falls back to the built-in default whenever no override
-// is set for that field. Kept synchronous deliberately: realtimePrompt.js
-// calls defaultPersonaPrompt() during session setup without an await.
-function defaultPersonaPrompt() {
+function getRawPersonaPrompt() {
     const override = personaStore.getCached();
     return (override && override.system_prompt) || CORE_PERSONA_PROMPT;
+}
+
+function currentPersonaSommelierGender() {
+    const override = personaStore.getCached();
+    const { DEFAULT_SOMMELIER_GENDER } = require('./personaStore');
+    return (override && override.sommelierGender) || DEFAULT_SOMMELIER_GENDER;
+}
+
+function appendSommelierGenderInstruction(promptText, gender) {
+    let text = String(promptText || '');
+
+    const GENDER_BLOCK_START = '<!-- GENDER_BLOCK_START -->';
+    const GENDER_BLOCK_END = '<!-- GENDER_BLOCK_END -->';
+
+    const startIndex = text.indexOf(GENDER_BLOCK_START);
+    const endIndex = text.indexOf(GENDER_BLOCK_END);
+
+    const { DEFAULT_SOMMELIER_GENDER } = require('./personaStore');
+    const g = gender || currentPersonaSommelierGender() || DEFAULT_SOMMELIER_GENDER;
+
+    const blockContent = g === 'female'
+        ? '\nГРАММАТИЧЕСКИЙ РОД ПЕРСОНАЖА:\n' +
+          'Ты говоришь о себе от имени женщины (в женском роде).\n' +
+          'В русском языке используй окончания женского рода для глаголов прошедшего времени и прилагательных (например: «я рада помочь», «я посоветовала», «я рассказала», «я как сомелье подготовила»).\n' +
+          'În limba română, folosește acordul de gen feminin (de exemplu: „sunt bucuroasă să te ajut”, „sunt pregătită”, „sunt încântată să recomand”).\n' +
+          'Используй эти формы только тогда, когда это грамматически необходимо по контексту предложения, не пытайся вставлять их искусственно в каждую фразу.'
+        : '\nГРАММАТИЧЕСКИЙ РОД ПЕРСОНАЖА:\n' +
+          'Ты говоришь о себе от имени мужчины (в мужском роде).\n' +
+          'В русском языке используй окончания мужского рода для глаголов прошедшего времени и прилагательных (например: «я рад помочь», «я посоветовал», «я рассказал», «я как сомелье подготовил»).\n' +
+          'În limba română, folosește acordul de gen masculin (de exemplu: „sunt bucuros să te ajut”, „sunt pregătit”, „sunt încântat să recomand”).\n' +
+          'Используй эти формы только тогда, когда это грамматически необходимо по контексту предложения, не пытайся вставлять их искусственно в каждую фразу.';
+
+    const newBlock = `\n\n${GENDER_BLOCK_START}${blockContent}\n${GENDER_BLOCK_END}`;
+
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+        const before = text.slice(0, startIndex);
+        const after = text.slice(endIndex + GENDER_BLOCK_END.length);
+        return before.trimEnd() + newBlock + after;
+    } else {
+        return text.trimEnd() + newBlock;
+    }
+}
+
+function getEffectivePersonaPrompt() {
+    return appendSommelierGenderInstruction(getRawPersonaPrompt());
 }
 
 function currentPersonaName() {
@@ -229,7 +269,10 @@ module.exports = {
     CORE_PERSONA_PROMPT,
     DEFAULT_NAME,
     DEFAULT_DESCRIPTION,
-    defaultPersonaPrompt,
+    getRawPersonaPrompt,
+    appendSommelierGenderInstruction,
+    getEffectivePersonaPrompt,
+    currentPersonaSommelierGender,
     currentPersonaName,
     currentPersonaDescription,
     currentWelcomeMessage,

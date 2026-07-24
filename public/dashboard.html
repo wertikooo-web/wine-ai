@@ -1034,6 +1034,12 @@
       <label class="persona-field-label" for="pWelcome">Welcome message</label>
       <textarea id="pWelcome" class="persona-textarea persona-textarea-short" maxlength="600"></textarea>
 
+      <label class="persona-field-label" for="pSommelierGender">Грамматический род сомелье</label>
+      <select id="pSommelierGender" class="persona-input" style="height: auto; padding: 8px; width: 100%; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--fg); margin-bottom: 10px;">
+        <option value="male">Мужской (я рад помочь, я посоветовал)</option>
+        <option value="female">Женский (я рада помочь, я посоветовала)</option>
+      </select>
+
       <label class="persona-field-label" for="pPrompt">System prompt</label>
       <textarea id="pPrompt" class="persona-textarea persona-textarea-tall" maxlength="24000"></textarea>
 
@@ -2449,7 +2455,6 @@
   });
   pttBtn.addEventListener('pointerleave', () => { if (isHolding) endTurn(); });
 
-  // ---- Panels: knowledge / persona / avatar status ----
   async function loadPersona() {
     const res = await fetch('/api/persona');
     const data = await res.json();
@@ -2457,6 +2462,7 @@
     el('pDescription').value = data.description || '';
     el('pWelcome').value = data.welcome_message || '';
     el('pPrompt').value = data.system_prompt || '';
+    el('pSommelierGender').value = data.sommelierGender || 'male';
   }
 
   async function savePersona() {
@@ -2473,6 +2479,7 @@
           description: el('pDescription').value,
           welcome_message: el('pWelcome').value,
           system_prompt: el('pPrompt').value,
+          sommelierGender: el('pSommelierGender').value,
         }),
       });
       const data = await res.json();
@@ -2497,7 +2504,7 @@
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '', description: '', welcome_message: '', system_prompt: '' }),
+        body: JSON.stringify({ name: '', description: '', welcome_message: '', system_prompt: '', sommelierGender: 'male' }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'reset_failed');

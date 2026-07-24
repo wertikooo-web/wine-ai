@@ -4,7 +4,7 @@
 // lives in src/persona/wineExpertPersona.js and is only ever pulled in here
 // as a default — this module has no domain knowledge of wine.
 const crypto = require('crypto');
-const { defaultPersonaPrompt } = require('../persona/wineExpertPersona');
+const { getRawPersonaPrompt, appendSommelierGenderInstruction, getEffectivePersonaPrompt } = require('../persona/wineExpertPersona');
 
 // Generous ceiling per block, mirroring the reasoning that produced this
 // same kind of constant in the origin project: must comfortably fit a
@@ -76,7 +76,9 @@ function buildRealtimeSystemInstruction({
     persona,
     currentContext,
 } = {}) {
-    const personaBlock = requireWithinLimit(persona || defaultPersonaPrompt(), 'persona');
+    const basePersona = persona || getRawPersonaPrompt();
+    const decoratedPersona = appendSommelierGenderInstruction(basePersona);
+    const personaBlock = requireWithinLimit(decoratedPersona, 'persona');
     const current = requireWithinLimit(
         typeof currentContext === 'string' ? currentContext : buildCurrentContext(currentContext),
         'current_context',
@@ -106,7 +108,7 @@ function buildRealtimeSystemInstruction({
 
 function defaultPromptBlocks() {
     return {
-        persona: defaultPersonaPrompt(),
+        persona: getEffectivePersonaPrompt(),
     };
 }
 
@@ -122,7 +124,7 @@ function sanitizePromptConfig(config = {}, { allowCustomPrompt = DASHBOARD_ALLOW
     return {
         source,
         blocks: {
-            persona: requireWithinLimit(config.persona || defaultPersonaPrompt(), 'persona'),
+            persona: requireWithinLimit(appendSommelierGenderInstruction(config.persona || getRawPersonaPrompt()), 'persona'),
         },
     };
 }
