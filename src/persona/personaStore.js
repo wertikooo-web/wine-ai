@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../knowledge/db');
 
-const FILE_PATH = path.resolve(__dirname, '..', '..', 'data', 'persona-overrides.json');
+const FILE_PATH = process.env.PERSONA_OVERRIDES_FILE || path.resolve(__dirname, '..', '..', 'data', 'persona-overrides.json');
 const ALLOWED_GENDERS = ['male', 'female'];
 const DEFAULT_SOMMELIER_GENDER = 'male';
 
@@ -42,6 +42,7 @@ async function ensureTable(pool) {
     await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS mood TEXT;');
     await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS style_overrides TEXT;');
     await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS personality_prompt TEXT;');
+    await pool.query('ALTER TABLE persona_overrides ADD COLUMN IF NOT EXISTS runtime_overrides TEXT;');
 }
 
 async function load() {
@@ -60,12 +61,27 @@ async function load() {
                 style = {};
             }
 
+            let runtimeByProvider = {};
+            if (row.runtime_overrides) {
+                try {
+                    runtimeByProvider = JSON.parse(row.runtime_overrides);
+                    if (typeof runtimeByProvider !== 'object' || runtimeByProvider === null) {
+                        runtimeByProvider = {};
+                    }
+                } catch (error) {
+                    console.warn(`[WineAI] Failed to parse runtime_overrides JSON for row id=1: ${error.message}`);
+                    runtimeByProvider = {};
+                }
+            }
+
             // Legacy Migration logic:
             // If baseProfileId is missing, check if legacy overrides exist.
             // If so, load as customizationMode = custom, baseProfileId = null.
             // If completely empty, default baseProfileId to classic preset.
             const hasLegacyOverrides = Boolean(row.name || row.description || row.welcome_message || row.system_prompt || row.sommelier_gender);
-            if (baseProfileId === null && !hasLegacyOverrides) {
+            const hasNestedOverrides = Object.keys(style).length > 0 || Object.keys(runtimeByProvider).length > 0;
+            const hasAnyOverrides = hasLegacyOverrides || hasNestedOverrides;
+            if (baseProfileId === null && !hasAnyOverrides) {
                 baseProfileId = 'classic';
             }
 
@@ -77,6 +93,7 @@ async function load() {
             if (row.sommelier_gender) overrides.sommelierGender = row.sommelier_gender;
             if (row.personality_prompt) overrides.personalityPrompt = row.personality_prompt;
             if (Object.keys(style).length > 0) overrides.style = style;
+            if (Object.keys(runtimeByProvider).length > 0) overrides.runtimeByProvider = runtimeByProvider;
 
             cache = {
                 baseProfileId,
@@ -111,6 +128,12 @@ async function load() {
             let baseProfileId = raw.baseProfileId !== undefined ? raw.baseProfileId : null;
             let mood = raw.mood || 'calm';
             const overrides = raw.overrides || {};
+            if (overrides.runtimeByProvider) {
+                if (typeof overrides.runtimeByProvider !== 'object' || overrides.runtimeByProvider === null) {
+                    console.warn('[WineAI] Failed to parse runtime_overrides JSON from file: not an object');
+                    delete overrides.runtimeByProvider;
+                }
+            }
 
             const hasLegacyOverrides = Boolean(raw.name || raw.description || raw.welcome_message || raw.system_prompt || raw.sommelierGender);
             if (baseProfileId === null && hasLegacyOverrides) {
@@ -164,6 +187,19 @@ async function load() {
 }
 
 async function save(partial) {
+    const legacyFields = ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt'];
+    const hasLegacyRoot = legacyFields.some(f => partial && partial[f] !== undefined);
+    if (hasLegacyRoot) {
+        partial = { ...partial };
+        partial.overrides = partial.overrides ? { ...partial.overrides } : {};
+        for (const field of legacyFields) {
+            if (partial[field] !== undefined) {
+                partial.overrides[field] = partial[field];
+                delete partial[field];
+            }
+        }
+    }
+
     let baseProfileId = cache.baseProfileId;
     let mood = cache.mood;
     let overrides = { ...cache.overrides };
@@ -199,7 +235,7 @@ async function save(partial) {
     if (!partial.reset && partial.baseProfileId === undefined) {
         if (partial.overrides !== undefined && partial.overrides !== null) {
             const keys = Object.keys(partial.overrides);
-            const allowedKeys = ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt', 'style'];
+            const allowedKeys = ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt', 'style', 'runtimeByProvider'];
 
             for (const key of keys) {
                 if (!allowedKeys.includes(key)) {
@@ -212,16 +248,21 @@ async function save(partial) {
             for (const key of ['name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt']) {
                 if (partial.overrides[key] !== undefined) {
                     const val = partial.overrides[key];
+                    if (key === 'sommelierGender') {
+                        if (val === null || val === '') {
+                            const err = new Error('invalid_sommelier_gender');
+                            err.statusCode = 400;
+                            throw err;
+                        }
+                        if (typeof val !== 'string' || !ALLOWED_GENDERS.includes(val)) {
+                            const err = new Error('invalid_sommelier_gender');
+                            err.statusCode = 400;
+                            throw err;
+                        }
+                    }
                     if (val === null) {
                         delete overrides[key];
                     } else if (typeof val === 'string') {
-                        if (key === 'sommelierGender') {
-                            if (!ALLOWED_GENDERS.includes(val)) {
-                                const err = new Error('invalid_sommelier_gender');
-                                err.statusCode = 400;
-                                throw err;
-                            }
-                        }
                         const limit = { name: 80, description: 400, welcome_message: 600, system_prompt: 24000, personalityPrompt: 24000 }[key];
                         overrides[key] = val.trim().slice(0, limit);
                     } else {
@@ -286,6 +327,97 @@ async function save(partial) {
                     delete overrides.style;
                 }
             }
+
+            if (partial.overrides.runtimeByProvider !== undefined && partial.overrides.runtimeByProvider !== null) {
+                if (typeof partial.overrides.runtimeByProvider !== 'object') {
+                    const err = new Error('runtimeByProvider must be an object');
+                    err.statusCode = 400;
+                    throw err;
+                }
+
+                const runtimeOverrides = { ...overrides.runtimeByProvider };
+                const allowedProviders = ['gemini', 'grok', 'mock'];
+
+                for (const [providerId, providerBlock] of Object.entries(partial.overrides.runtimeByProvider)) {
+                    if (!allowedProviders.includes(providerId)) {
+                        const err = new Error('unknown_provider');
+                        err.statusCode = 400;
+                        err.code = 'unknown_provider';
+                        throw err;
+                    }
+                    if (providerId === 'mock') {
+                        const err = new Error('unsupported_provider_capability');
+                        err.statusCode = 400;
+                        err.code = 'unsupported_provider_capability';
+                        throw err;
+                    }
+                    if (providerBlock !== null && typeof providerBlock !== 'object') {
+                        const err = new Error(`${providerId} block must be an object`);
+                        err.statusCode = 400;
+                        throw err;
+                    }
+
+                    if (providerBlock === null) {
+                        delete runtimeOverrides[providerId];
+                        continue;
+                    }
+
+                    const providerOverrides = { ...(runtimeOverrides[providerId] || {}) };
+
+                    for (const [key, val] of Object.entries(providerBlock)) {
+                        if (key === 'modelId') {
+                            const err = new Error('unsupported_runtime_field');
+                            err.statusCode = 400;
+                            err.code = 'unsupported_runtime_field';
+                            throw err;
+                        }
+                        if (key !== 'voiceId') {
+                            const err = new Error(`Unknown runtime field: ${key}`);
+                            err.statusCode = 400;
+                            throw err;
+                        }
+
+                        if (val === null) {
+                            delete providerOverrides[key];
+                        } else {
+                            if (typeof val !== 'string') {
+                                const err = new Error(`${key} must be a string`);
+                                err.statusCode = 400;
+                                throw err;
+                            }
+                            if (providerId === 'gemini') {
+                                const { GEMINI_VOICE_NAMES } = require('../geminiVoices');
+                                if (!GEMINI_VOICE_NAMES.includes(val)) {
+                                    const err = new Error('invalid_voice_id');
+                                    err.statusCode = 400;
+                                    err.code = 'invalid_voice_id';
+                                    throw err;
+                                }
+                            } else if (providerId === 'grok') {
+                                const { GROK_VOICES } = require('../grokVoices');
+                                const knownGrok = GROK_VOICES.map(v => v.id);
+                                if (!knownGrok.includes(val)) {
+                                    const err = new Error('invalid_voice_id');
+                                    err.statusCode = 400;
+                                    err.code = 'invalid_voice_id';
+                                    throw err;
+                                }
+                            }
+                            providerOverrides[key] = val;
+                        }
+                    }
+
+                    runtimeOverrides[providerId] = providerOverrides;
+                    if (Object.keys(runtimeOverrides[providerId]).length === 0) {
+                        delete runtimeOverrides[providerId];
+                    }
+                }
+
+                overrides.runtimeByProvider = runtimeOverrides;
+                if (Object.keys(overrides.runtimeByProvider).length === 0) {
+                    delete overrides.runtimeByProvider;
+                }
+            }
         }
     }
 
@@ -305,15 +437,17 @@ async function save(partial) {
         const pool = db.getPool();
         await ensureTable(pool);
         const styleStr = overrides.style ? JSON.stringify(overrides.style) : null;
+        const runtimeStr = overrides.runtimeByProvider ? JSON.stringify(overrides.runtimeByProvider) : null;
         await pool.query(
-            `INSERT INTO persona_overrides (id, name, description, welcome_message, system_prompt, sommelier_gender, base_profile_id, mood, style_overrides, personality_prompt, updated_at)
-             VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `INSERT INTO persona_overrides (id, name, description, welcome_message, system_prompt, sommelier_gender, base_profile_id, mood, style_overrides, personality_prompt, runtime_overrides, updated_at)
+             VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
              ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name, description = EXCLUDED.description,
                 welcome_message = EXCLUDED.welcome_message, system_prompt = EXCLUDED.system_prompt,
                 sommelier_gender = EXCLUDED.sommelier_gender, base_profile_id = EXCLUDED.base_profile_id,
                 mood = EXCLUDED.mood, style_overrides = EXCLUDED.style_overrides,
-                personality_prompt = EXCLUDED.personality_prompt, updated_at = EXCLUDED.updated_at`,
+                personality_prompt = EXCLUDED.personality_prompt, runtime_overrides = EXCLUDED.runtime_overrides,
+                updated_at = EXCLUDED.updated_at`,
             [
                 overrides.name || null,
                 overrides.description || null,
@@ -324,6 +458,7 @@ async function save(partial) {
                 mood,
                 styleStr,
                 overrides.personalityPrompt || null,
+                runtimeStr,
                 new Date().toISOString()
             ]
         );

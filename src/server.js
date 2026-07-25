@@ -515,11 +515,17 @@ async function handleRequest(req, res) {
     }
 
     if (req.method === 'GET' && pathname === '/api/persona/profiles') {
-        return sendJson(res, 200, {
-            ok: true,
-            profiles: listProfiles(),
-            moods: MOODS
-        });
+        try {
+            const providers = await providerRegistry.getPublicCapabilities();
+            return sendJson(res, 200, {
+                ok: true,
+                profiles: listProfiles(),
+                moods: MOODS,
+                providers
+            });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'failed_to_get_capabilities', message: error.message });
+        }
     }
 
     if (req.method === 'GET' && pathname === '/api/persona') {
@@ -536,6 +542,9 @@ async function handleRequest(req, res) {
             const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
                 if (key === 'style') {
                     return Object.keys(overrides.style || {}).length > 0;
+                }
+                if (key === 'runtimeByProvider') {
+                    return Object.keys(overrides.runtimeByProvider || {}).length > 0;
                 }
                 return overrides[key] !== undefined && overrides[key] !== null;
             });
@@ -570,6 +579,18 @@ async function handleRequest(req, res) {
             return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
 
+        // POST root-field validation with legacy flat fields compatibility
+        const allowedRootKeys = [
+            'baseProfileId', 'mood', 'overrides', 'reset',
+            'customizationMode', 'effectivePromptPreview',
+            'name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt'
+        ];
+        for (const key of Object.keys(body)) {
+            if (!allowedRootKeys.includes(key)) {
+                return sendJson(res, 400, { ok: false, error: 'unknown_root_field', message: `Unknown root key: ${key}` });
+            }
+        }
+
         try {
             const saved = await personaStore.save(body);
             const baseProfileId = saved.baseProfileId;
@@ -584,6 +605,9 @@ async function handleRequest(req, res) {
                 const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
                     if (key === 'style') {
                         return Object.keys(overrides.style || {}).length > 0;
+                    }
+                    if (key === 'runtimeByProvider') {
+                        return Object.keys(overrides.runtimeByProvider || {}).length > 0;
                     }
                     return overrides[key] !== undefined && overrides[key] !== null;
                 });
@@ -1144,7 +1168,8 @@ attachRealtimeServer(server, {
 });
 
 server.listen(PORT, () => {
-    console.log(`[WineAI] listening port=${PORT} provider=${defaultProvider.id}`);
+    const actualPort = server.address().port;
+    console.log(`[WineAI] listening port=${actualPort} provider=${defaultProvider.id}`);
 
     searchMode.loadPersistedMode()
         .then((mode) => console.log(`[WineAI] knowledge search mode restored: ${mode}`))

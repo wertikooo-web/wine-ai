@@ -6,12 +6,13 @@ const assert = require('assert');
 const { spawn } = require('child_process');
 const t = require('./helpers/assertions');
 
+const FILE_PATH = path.resolve(__dirname, '..', 'data', 'persona-overrides-test-tmp.json');
+process.env.PERSONA_OVERRIDES_FILE = FILE_PATH;
+
 // Import store, registry, and prompt functions
 const personaStore = require('../src/persona/personaStore');
 const { resolveProfile, listProfiles, getProfileById } = require('../src/persona/profileRegistry');
 const { getEffectivePersonaPrompt, CORE_PERSONA_PROMPT } = require('../src/persona/wineExpertPersona');
-
-const FILE_PATH = path.resolve(__dirname, '..', 'data', 'persona-overrides.json');
 const PORT = 9876;
 const BASE = `http://localhost:${PORT}`;
 
@@ -179,20 +180,52 @@ async function run() {
         t.ok(effectivePrompt.includes('[IMPORTANT SYSTEM RULE]'), 'must contain core enforcement reminder');
         assertionCount += 6;
 
-        // ==========================================
-        // PART 2: HTTP API INTEGRATION TESTS
-        // ==========================================
-        
         // Clean out data file for integration tests boot
         if (fs.existsSync(FILE_PATH)) fs.unlinkSync(FILE_PATH);
 
+        let stdoutData = '';
+        let stderrData = '';
+        let resolvedPort = null;
+
         const child = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'server.js')], {
-            env: { ...process.env, PORT: String(PORT), DATABASE_URL: '', REALTIME_PROVIDER: 'mock' },
-            stdio: 'ignore',
+            env: {
+                ...process.env,
+                PORT: '0',
+                DATABASE_URL: '',
+                REALTIME_PROVIDER: 'mock',
+                PERSONA_OVERRIDES_FILE: FILE_PATH
+            },
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+
+        child.stdout.on('data', (chunk) => {
+            const str = chunk.toString();
+            stdoutData += str;
+            const match = /listening port=(\d+)/i.exec(str);
+            if (match) {
+                resolvedPort = match[1];
+            }
+        });
+
+        child.stderr.on('data', (chunk) => {
+            stderrData += chunk.toString();
         });
 
         try {
-            await waitServer();
+            const deadline = Date.now() + 6000;
+            while (Date.now() < deadline && !resolvedPort) {
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            if (!resolvedPort) {
+                console.error('--- Server failed to start! Stdout: ---');
+                console.error(stdoutData);
+                console.error('--- Server Stderr: ---');
+                console.error(stderrData);
+                throw new Error('Server failed to assign dynamic port');
+            }
+
+            const BASE = `http://localhost:${resolvedPort}`;
 
             // 1. GET /api/persona/profiles -> 200
             const profilesRes = await fetch(`${BASE}/api/persona/profiles`);
@@ -326,8 +359,259 @@ async function run() {
             t.ok(getData.effectivePromptPreview.includes('<!-- PROFILE_PERSONALITY_START -->'), 'effectivePromptPreview contains tags');
             assertionCount += 3;
 
+            // ==========================================
+            // Phase 2A1: Backend Voice Configuration Tests
+            // ==========================================
+
+            // 12. GET /api/persona/profiles returns provider capabilities
+            const capabilitiesRes = await fetch(`${BASE}/api/persona/profiles`);
+            t.equal(capabilitiesRes.status, 200, 'Capabilities status is 200');
+            const capData = await capabilitiesRes.json();
+            t.ok(capData.providers && Array.isArray(capData.providers), 'Capabilities returned providers list');
+
+            const geminiCap = capData.providers.find(p => p.id === 'gemini');
+            t.ok(geminiCap, 'Gemini provider capability exists');
+            t.equal(geminiCap.supportsPerSessionModel, false, 'supportsPerSessionModel is false');
+            t.equal(geminiCap.supportsPerSessionVoice, true, 'supportsPerSessionVoice is true');
+            t.equal(geminiCap.models[0].displayName, geminiCap.models[0].id, 'displayName matches model id');
+            t.ok(geminiCap.models[0].voices.length > 0, 'Gemini has a list of voices');
+
+            // Check that no secret env/API keys are exposed in the JSON response
+            const responseStr = JSON.stringify(capData);
+            t.ok(!responseStr.includes('AIzaSy') && !responseStr.includes(process.env.GEMINI_API_KEY || 'dummy_never_match'), 'No secrets exposed in capabilities response');
+            assertionCount += 7;
+
+            // 13. Pure Resolver Priorities and Provenance Sources
+            const { resolveProfileRuntime } = require('../src/persona/runtimeResolver');
+
+            // Priority 1: Explicit server override
+            const res1 = resolveProfileRuntime({
+                providerId: 'gemini',
+                profileRuntimeDefaults: { gemini: { voiceId: 'Charon' } },
+                runtimeOverrides: { gemini: { voiceId: 'Zephyr' } },
+                legacyClientVoiceId: 'Kore',
+                allowLegacyVoice: true,
+                providerDefaultVoiceId: 'Fenrir'
+            });
+            t.equal(res1.resolvedVoiceId, 'Zephyr', 'Priority 1: resolves to server override');
+            t.equal(res1.source, 'server_override', 'Provenance is server_override');
+
+            // Priority 2: Legacy client override (allowed)
+            const res2 = resolveProfileRuntime({
+                providerId: 'gemini',
+                profileRuntimeDefaults: { gemini: { voiceId: 'Charon' } },
+                runtimeOverrides: {},
+                legacyClientVoiceId: 'Kore',
+                allowLegacyVoice: true,
+                providerDefaultVoiceId: 'Fenrir'
+            });
+            t.equal(res2.resolvedVoiceId, 'Kore', 'Priority 2: resolves to legacy client voice');
+            t.equal(res2.source, 'legacy_client', 'Provenance is legacy_client');
+
+            // Priority 2b: Legacy client override ignored if allowLegacyVoice is false
+            const res2b = resolveProfileRuntime({
+                providerId: 'gemini',
+                profileRuntimeDefaults: { gemini: { voiceId: 'Charon' } },
+                runtimeOverrides: {},
+                legacyClientVoiceId: 'Kore',
+                allowLegacyVoice: false,
+                providerDefaultVoiceId: 'Fenrir'
+            });
+            t.equal(res2b.resolvedVoiceId, 'Charon', 'Priority 2b: ignores legacy client voice if disabled');
+            t.equal(res2b.source, 'profile_default', 'Provenance falls back to profile_default');
+
+            // Priority 3: Built-in profile default
+            const res3 = resolveProfileRuntime({
+                providerId: 'gemini',
+                profileRuntimeDefaults: { gemini: { voiceId: 'Charon' } },
+                runtimeOverrides: {},
+                legacyClientVoiceId: null,
+                allowLegacyVoice: true,
+                providerDefaultVoiceId: 'Fenrir'
+            });
+            t.equal(res3.resolvedVoiceId, 'Charon', 'Priority 3: resolves to profile default');
+            t.equal(res3.source, 'profile_default', 'Provenance is profile_default');
+
+            // Priority 4: Provider default fallback
+            const res4 = resolveProfileRuntime({
+                providerId: 'gemini',
+                profileRuntimeDefaults: {},
+                runtimeOverrides: {},
+                legacyClientVoiceId: null,
+                allowLegacyVoice: true,
+                providerDefaultVoiceId: 'Fenrir'
+            });
+            t.equal(res4.resolvedVoiceId, 'Fenrir', 'Priority 4: resolves to provider default');
+            t.equal(res4.source, 'provider_default', 'Provenance is provider_default');
+            assertionCount += 10;
+
+            // 14. POST overrides validation: rejects modelId override
+            const badModelRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            gemini: { modelId: 'gemini-2.0-flash' }
+                        }
+                    }
+                }),
+            });
+            t.equal(badModelRes.status, 400, 'POST modelId override returns 400');
+            const badModelData = await badModelRes.status === 400 ? await badModelRes.json() : {};
+            t.equal(badModelData.error, 'unsupported_runtime_field', 'unsupported_runtime_field error code');
+
+            // 15. POST overrides validation: rejects unknown provider key
+            const badProvRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            openai: { voiceId: 'alloy' }
+                        }
+                    }
+                }),
+            });
+            t.equal(badProvRes.status, 400, 'POST unknown provider override returns 400');
+            const badProvData = await badProvRes.status === 400 ? await badProvRes.json() : {};
+            t.equal(badProvData.error, 'unknown_provider', 'unknown_provider error code');
+
+            // 16. POST overrides validation: rejects mock provider override
+            const badMockRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            mock: { voiceId: 'mock' }
+                        }
+                    }
+                }),
+            });
+            t.equal(badMockRes.status, 400, 'POST mock provider override returns 400');
+            const badMockData = await badMockRes.status === 400 ? await badMockRes.json() : {};
+            t.equal(badMockData.error, 'unsupported_provider_capability', 'unsupported_provider_capability error code');
+
+            // 17. POST overrides validation: rejects invalid voice ID
+            const badVoiceRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            gemini: { voiceId: 'invalid-voice' }
+                        }
+                    }
+                }),
+            });
+            t.equal(badVoiceRes.status, 400, 'POST invalid voice override returns 400');
+            const badVoiceData = await badVoiceRes.status === 400 ? await badVoiceRes.json() : {};
+            t.equal(badVoiceData.error, 'invalid_voice_id', 'invalid_voice_id error code');
+
+            // 18. POST root-field validation: rejects unknown root keys
+            const badRootRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    foo: 'bar',
+                    overrides: {}
+                }),
+            });
+            t.equal(badRootRes.status, 400, 'POST unknown root keys returns 400');
+            const badRootData = await badRootRes.status === 400 ? await badRootRes.json() : {};
+            t.equal(badRootData.error, 'unknown_root_field', 'unknown_root_field error code');
+            assertionCount += 12;
+
+            // 19. POST overrides persistence roundtrip
+            // Switch preset first so baseProfileId is classic (preset mode)
+            await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ baseProfileId: 'classic' }),
+            });
+
+            const goodVoiceRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            gemini: { voiceId: 'Zephyr' }
+                        }
+                    }
+                }),
+            });
+            t.equal(goodVoiceRes.status, 200, 'Valid voiceId override POST returns 200');
+            const goodVoiceData = await goodVoiceRes.json();
+            t.equal(goodVoiceData.customizationMode, 'custom', 'customizationMode becomes custom when voice override is set');
+            t.equal(goodVoiceData.overrides.runtimeByProvider.gemini.voiceId, 'Zephyr', 'Voice override is persisted');
+
+            // 19b. POST voiceId:null override deletion assertion
+            const deleteVoiceRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            gemini: { voiceId: null }
+                        }
+                    }
+                }),
+            });
+            t.equal(deleteVoiceRes.status, 200, 'POST voiceId:null returns 200');
+            const deleteVoiceData = await deleteVoiceRes.json();
+            t.equal(deleteVoiceData.customizationMode, 'preset', 'customizationMode returns to preset');
+            t.ok(!deleteVoiceData.overrides.runtimeByProvider, 'voiceId override is deleted');
+
+            // Set the override again to test preset switch and reset
+            await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    overrides: {
+                        runtimeByProvider: {
+                            gemini: { voiceId: 'Zephyr' }
+                        }
+                    }
+                }),
+            });
+
+            // Switch presets clears overrides
+            const presetSwitchRes = await fetch(`${BASE}/api/persona`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ baseProfileId: 'classic' }),
+            });
+            const presetSwitchData = await presetSwitchRes.json();
+            t.equal(presetSwitchData.customizationMode, 'preset', 'customizationMode is preset after profile switch');
+            t.ok(!presetSwitchData.overrides.runtimeByProvider, 'profile switch purges runtime overrides');
+            assertionCount += 10;
+
+            // 20. Damaged JSON loading verification
+            // Write invalid JSON format directly to FILE_PATH and trigger load
+            fs.writeFileSync(FILE_PATH, '{"baseProfileId": "classic", "mood": "calm", "overrides": { "runtimeByProvider": "invalid_string_not_object" }}', 'utf8');
+            const loadedCache = await personaStore.load();
+            t.ok(loadedCache, 'Load does not crash on damaged overrides config');
+            t.ok(typeof loadedCache.overrides === 'object', 'overrides defaults to object');
+            t.ok(!loadedCache.overrides.runtimeByProvider || Object.keys(loadedCache.overrides.runtimeByProvider).length === 0, 'corrupted runtimeByProvider falls back to safe empty object');
+
+            // Verify DB string is preserved (not overwritten by the fallback)
+            const rawContent = fs.readFileSync(FILE_PATH, 'utf8');
+            t.ok(rawContent.includes('invalid_string_not_object'), 'Raw JSON file content remains intact and is not overwritten automatically');
+            assertionCount += 4;
+
+        } catch (err) {
+            console.error('--- Integration Test Failed! Server Stdout: ---');
+            console.error(stdoutData);
+            console.error('--- Server Stderr: ---');
+            console.error(stderrData);
+            throw err;
         } finally {
             child.kill();
+            await new Promise((resolveExit) => {
+                child.on('exit', () => resolveExit());
+            });
         }
 
         console.log(`[PASS] tests/personaProfiles.test.js: ${assertionCount} assertions passed.`);
