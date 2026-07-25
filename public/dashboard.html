@@ -286,6 +286,7 @@
     transition: transform 0.1s ease, box-shadow 0.15s ease;
   }
   button.ptt .ptt-icon { font-size: 30px; line-height: 1; }
+  button.ptt .ptt-caption { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; max-width: 74px; line-height: 1.15; }
   button.ptt:active:not(:disabled) { transform: scale(0.96); }
   button.ptt:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
   /* State-driven look — color/icon/animation carry the meaning, not text
@@ -327,6 +328,17 @@
   .app-primary-btn:hover:not(:disabled) { background: var(--wine-dark); }
   .app-primary-btn:active:not(:disabled) { transform: scale(0.98); }
   .app-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .voice-mode-switcher { width: 100%; margin-top: 14px; text-align: left; }
+  .voice-mode-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
+  .voice-mode-options { display: flex; gap: 6px; border: 1px solid var(--border); border-radius: 12px; padding: 3px; background: #fdfbf7; }
+  .voice-mode-btn {
+    flex: 1; padding: 8px 6px; border-radius: 10px; border: none; cursor: pointer;
+    background: transparent; color: var(--ink); font-size: 12px; font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .voice-mode-btn.active { background: var(--wine); color: white; }
+  .voice-mode-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .voice-mode-hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
   .app-input-row { display: flex; gap: 8px; margin-top: 18px; width: 100%; }
   .app-language-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; width: 100%; text-align: left; }
   .app-language-row label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
@@ -612,6 +624,49 @@
     background: #fafaf9; border: 1px solid var(--border); border-radius: 6px; padding: 8px;
     color: #4b4b45; resize: vertical; margin-top: 6px;
   }
+
+  /* Custom confirm dialog overlay styles */
+  .custom-confirm-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10000;
+  }
+  .custom-confirm-box {
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+  .custom-confirm-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--wine);
+  }
+  .custom-confirm-message {
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .custom-confirm-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .custom-confirm-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
@@ -671,8 +726,18 @@
 
               <button class="app-primary-btn" id="connectBtn">Connect</button>
 
+              <div class="voice-mode-switcher" id="voiceModeSwitcher">
+                <div class="voice-mode-label" id="voiceModeLabel">Voice mode</div>
+                <div class="voice-mode-options">
+                  <button type="button" class="voice-mode-btn" id="voiceModeHoldBtn" data-mode="hold_to_talk">Hold to Talk</button>
+                  <button type="button" class="voice-mode-btn" id="voiceModeTapBtn" data-mode="tap_to_start">Free Conversation</button>
+                </div>
+                <div class="voice-mode-hint" id="voiceModeHint"></div>
+              </div>
+
               <button class="ptt" id="pttBtn" disabled>
                 <span class="ptt-icon" id="pttIcon">🎤</span>
+                <span class="ptt-caption" id="pttCaption"></span>
               </button>
 
               <div class="app-input-row">
@@ -1185,6 +1250,37 @@
             <option value="female">Женский (я рада помочь, я посоветовала)</option>
           </select>
 
+          <!-- Collapsible Persona Identity Details -->
+          <details class="identity-settings-toggle" style="margin-top: 14px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: rgba(0, 0, 0, 0.02);">
+            <summary style="font-weight: 600; cursor: pointer; color: var(--wine); user-select: none;">Личность персонажа / Persona Identity</summary>
+            <div style="margin-top: 10px;">
+              <p style="font-size: 11px; color: var(--muted); margin: 0 0 12px; line-height: 1.4;">
+                Эти сведения используются персонажем, когда он рассказывает о себе и поддерживает свободный разговор.
+              </p>
+
+              <label class="persona-field-label" for="pIdentityBackground">История имени и создания / Origin Story</label>
+              <textarea id="pIdentityBackground" class="persona-textarea persona-textarea-short" style="height: 60px;" placeholder="Как появилось имя, история создания..."></textarea>
+
+              <label class="persona-field-label" for="pIdentityCreatorDescription">Создатель / Creator Description</label>
+              <textarea id="pIdentityCreatorDescription" class="persona-textarea persona-textarea-short" style="height: 60px;" placeholder="Кто создал персонажа и зачем..."></textarea>
+
+              <label class="persona-field-label" for="pIdentityRoleDescription">Роль / Role Description</label>
+              <textarea id="pIdentityRoleDescription" class="persona-textarea persona-textarea-short" style="height: 60px;" placeholder="Какую роль выполняет сомелье..."></textarea>
+
+              <label class="persona-field-label" for="pIdentitySelfAdvantages">Чем полезен (преимущества) / Self Advantages</label>
+              <textarea id="pIdentitySelfAdvantages" class="persona-textarea persona-textarea-short" style="height: 60px;" placeholder="Преимущества перед живым сомелье..."></textarea>
+
+              <label class="persona-field-label" for="pIdentitySelfLimitations">Ограничения / Self Limitations</label>
+              <textarea id="pIdentitySelfLimitations" class="persona-textarea persona-textarea-short" style="height: 60px;" placeholder="В чем живой человек превосходит ИИ..."></textarea>
+
+              <label class="persona-field-label" for="pIdentityWineAffinity">Связь с молдавским вином / Wine Affinity</label>
+              <textarea id="pIdentityWineAffinity" class="persona-textarea persona-textarea-short" style="height: 60px;" placeholder="Почему персонаж специализируется на винах Молдовы..."></textarea>
+
+              <label class="persona-field-label" for="pIdentityInterests">Интересы / Interests (comma-separated)</label>
+              <input type="text" id="pIdentityInterests" class="persona-input" placeholder="например: wine, gastronomy, travel, culture, traditions, technology">
+            </div>
+          </details>
+
           <label class="persona-field-label" for="pPersonalityPrompt">Personality prompt</label>
           <textarea id="pPersonalityPrompt" class="persona-textarea persona-textarea-short" style="height: 100px;" maxlength="24000"></textarea>
 
@@ -1195,11 +1291,27 @@
           <h3 style="font-size: 13px; margin: 14px 0 8px; color: var(--wine);">Communication style</h3>
           <div class="style-settings-grid">
             <div class="style-field">
-              <label for="pStyleLength">Response Length</label>
+              <label for="pStyleLength">Разговорчивость / Response Length</label>
               <select id="pStyleLength">
-                <option value="short">Short (2-4 sentences)</option>
-                <option value="balanced">Balanced (normal flow)</option>
-                <option value="detailed">Detailed (verbose facts)</option>
+                <option value="brief">Brief (1-2 sentences)</option>
+                <option value="balanced">Balanced (2-4 sentences)</option>
+                <option value="detailed">Detailed (4-7 sentences)</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleVariety">Разнообразие ответов / Response Variety</label>
+              <select id="pStyleVariety">
+                <option value="stable">Stable (Стабильно)</option>
+                <option value="natural">Natural (Естественно)</option>
+                <option value="expressive">Expressive (Выразительно)</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <label for="pStyleConversationMode">Свобода разговора / Conversation Mode</label>
+              <select id="pStyleConversationMode">
+                <option value="strict">Strict Expert (Строгий эксперт)</option>
+                <option value="friendly">Friendly Companion (Дружелюбный собеседник)</option>
+                <option value="free">Free Talk (Свободный разговор)</option>
               </select>
             </div>
             <div class="style-field">
@@ -1246,14 +1358,53 @@
               <input type="checkbox" id="pStyleProactive" style="width: auto; margin: 0;">
               <label for="pStyleProactive" style="cursor: pointer; user-select: none;">Offer proactive suggestions/follow-ups</label>
             </div>
+
+            <!-- Dialogue checkboxes group -->
+            <div class="style-field" style="grid-column: span 2; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+              <strong style="font-size:12px; color:var(--wine);">Опции диалога / Dialogue Options</strong>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="pStyleAskFollowUpQuestions" style="width: auto; margin: 0;">
+                <label for="pStyleAskFollowUpQuestions" style="cursor: pointer; user-select: none; font-size:12px;">Задавать встречные вопросы / Ask follow-up questions</label>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="pStyleUseHumor" style="width: auto; margin: 0;">
+                <label for="pStyleUseHumor" style="cursor: pointer; user-select: none; font-size:12px;">Использовать лёгкий юмор / Use humor</label>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="pStyleTalkAboutSelf" style="width: auto; margin: 0;">
+                <label for="pStyleTalkAboutSelf" style="cursor: pointer; user-select: none; font-size:12px;">Рассказывать о себе / Talk about self</label>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="pStyleSupportSmallTalk" style="width: auto; margin: 0;">
+                <label for="pStyleSupportSmallTalk" style="cursor: pointer; user-select: none; font-size:12px;">Поддерживать small talk / Support small talk</label>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="pStyleSoftlyReturnToWine" style="width: auto; margin: 0;">
+                <label for="pStyleSoftlyReturnToWine" style="cursor: pointer; user-select: none; font-size:12px;">Мягко возвращаться к теме вина / Softly return to wine</label>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" id="pStyleUseFictionalBiography" style="width: auto; margin: 0;">
+                  <label for="pStyleUseFictionalBiography" style="cursor: pointer; user-select: none; font-size:12px;">Использовать художественную биографию / Use fictional biography</label>
+                </div>
+                <span style="font-size:11px; color:var(--muted); margin-left:22px;">Персонаж может использовать вымышленные детали, не выдавая себя за реального человека.</span>
+              </div>
+            </div>
           </div>
 
           <label class="persona-field-label">Compiled system prompt preview (Read-only)</label>
           <textarea id="pEffectivePromptPreview" class="preview-textarea" readonly></textarea>
 
-          <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+          <div style="display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;">
             <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
             <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
+            <button class="secondary" id="personaActivateBtn" style="margin:0; background: var(--wine); color: white; border: none;">Activate Sommelier</button>
             <span id="personaSaveStatus" style="font-size:12px; color:var(--muted);"></span>
           </div>
         </div>
@@ -1283,6 +1434,18 @@
   let micStream = null;
   let processor = null;
   let isHolding = false;
+  // ---- Voice mode: Hold to Talk (existing PTT) vs. Tap to Start (free
+  // conversation) — see setVoiceMode()/startConversationOnTap() below.
+  // Persisted server-side via personaStore (voiceMode field), same
+  // mechanism as mood/baseProfileId — no separate storage.
+  let voiceMode = 'hold_to_talk';
+  let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
+  let tapSilenceStartedAt = null; // when the current utterance's amplitude first dropped below threshold
+  let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
+  let tapToStartIdleTimeoutMs = 5000; // overwritten from /api/persona's config on load
+  let pendingTapStart = false;    // Tap to Start pressed before the ws connection finished opening
+  const TAP_SILENCE_RMS_THRESHOLD = 0.02;
+  const TAP_SILENCE_DURATION_MS = 900;
   let currentTurnId = null;
   let inputEndedAt = 0;
   let firstAudioAt = 0;
@@ -1387,6 +1550,12 @@
       askWine: 'Ask Wine AI about this wine',
       detailsMore: 'More', detailsLess: 'Hide',
       whereToBuyLabel: 'Where to buy', whereToBuyGo: 'Go to store',
+      voiceModeLabel: 'Conversation mode',
+      voiceModeHold: 'Hold to Talk', voiceModeTap: 'Free Conversation',
+      voiceModeHoldHint: 'Hold to Talk: the mic only works while the button is pressed.',
+      voiceModeTapHint: 'Free Conversation: one tap starts a conversation with no need to press again.',
+      pttCaptionHold: 'Hold and speak',
+      pttCaptionTapIdle: 'Start conversation', pttCaptionTapActive: 'End conversation',
     },
     ru: {
       sub: 'Цифровой эксперт по молдавскому вину',
@@ -1421,6 +1590,12 @@
       askWine: 'Спросить Wine AI об этом вине',
       detailsMore: 'Подробнее', detailsLess: 'Скрыть',
       whereToBuyLabel: 'Где купить', whereToBuyGo: 'Перейти в магазин',
+      voiceModeLabel: 'Режим разговора',
+      voiceModeHold: 'Удерживать и говорить', voiceModeTap: 'Свободный разговор',
+      voiceModeHoldHint: 'Удерживать и говорить: микрофон работает только пока кнопка нажата.',
+      voiceModeTapHint: 'Свободный разговор: одно нажатие запускает разговор без повторных нажатий.',
+      pttCaptionHold: 'Удерживайте и говорите',
+      pttCaptionTapIdle: 'Начать разговор', pttCaptionTapActive: 'Завершить разговор',
     },
     ro: {
       sub: 'Expert digital în vinul moldovenesc',
@@ -2009,6 +2184,11 @@
         pendingContextTurnStart = false;
         startTurn();
       }
+      // Tap to Start pressed before this connection finished opening.
+      if (pendingTapStart) {
+        pendingTapStart = false;
+        resumeTapListening();
+      }
     });
 
     ws.addEventListener('close', () => {
@@ -2203,11 +2383,21 @@
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
       const pcm16 = new Int16Array(input.length);
+      let sumSquares = 0;
       for (let i = 0; i < input.length; i++) {
         const s = Math.max(-1, Math.min(1, input[i]));
         pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        sumSquares += s * s;
       }
       ws.send(pcm16.buffer);
+      // Tap to Start reuses this exact same PTT audio pipeline — the only
+      // difference is who calls endTurn()-equivalent. Instead of a new VAD
+      // subsystem, a simple RMS-below-threshold-for-N-ms check on the audio
+      // already being read here decides when the user's utterance ended.
+      // See evaluateTapSilence()/finishTapUtterance() below.
+      if (voiceMode === 'tap_to_start') {
+        evaluateTapSilence(Math.sqrt(sumSquares / input.length));
+      }
     };
     source.connect(processor);
     processor.connect(audioContext.destination);
@@ -2249,6 +2439,162 @@
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'input_audio.end' }));
     }
+  }
+
+  // ---- Tap to Start (free conversation) ----
+  // Reuses the exact same input_audio.start/input_audio.end wire protocol
+  // and audio pipeline as Hold to Talk — the only difference is WHO decides
+  // when an utterance ends (the user releasing a button, vs. a short
+  // silence detected here) and that listening auto-resumes after each
+  // assistant reply instead of requiring another button press.
+
+  function setPttCaption() {
+    const caption = el('pttCaption');
+    if (!caption) return;
+    if (voiceMode === 'hold_to_talk') {
+      caption.textContent = getUiString('pttCaptionHold');
+    } else {
+      caption.textContent = getUiString(tapToStartActive ? 'pttCaptionTapActive' : 'pttCaptionTapIdle');
+    }
+  }
+
+  function applyVoiceModeUI() {
+    const holdBtn = el('voiceModeHoldBtn');
+    const tapBtn = el('voiceModeTapBtn');
+    if (holdBtn) holdBtn.classList.toggle('active', voiceMode === 'hold_to_talk');
+    if (tapBtn) tapBtn.classList.toggle('active', voiceMode === 'tap_to_start');
+    const hint = el('voiceModeHint');
+    if (hint) hint.textContent = getUiString(voiceMode === 'tap_to_start' ? 'voiceModeTapHint' : 'voiceModeHoldHint');
+    setPttCaption();
+  }
+
+  // Switching mode: if a session/turn from the OLD mode is active, tear it
+  // down completely first (per the task's explicit "don't try to continue
+  // the same active session after switching modes" requirement) rather
+  // than trying to carry any state into the new mode.
+  async function setVoiceMode(mode, { persist = true } = {}) {
+    if (mode !== 'hold_to_talk' && mode !== 'tap_to_start') return;
+    if (mode === voiceMode) return;
+
+    if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
+      await stopConversationOnTap();
+    } else if (voiceMode === 'hold_to_talk' && isHolding) {
+      endTurn();
+    }
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      disconnect();
+    }
+
+    voiceMode = mode;
+    applyVoiceModeUI();
+
+    if (persist) {
+      try {
+        await fetch('/api/persona', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voiceMode: mode }),
+        });
+      } catch (err) {
+        log('voice_mode_save_error', { message: err.message });
+      }
+    }
+  }
+
+  async function startConversationOnTap() {
+    if (tapToStartActive) return;
+    tapToStartActive = true;
+    setPttCaption();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      resumeTapListening();
+      return;
+    }
+    if (ws && ws.readyState === WebSocket.CONNECTING) {
+      pendingTapStart = true;
+      return;
+    }
+    // Not connected at all — open a fresh general (non-contextual) session,
+    // same as the plain Talk-tab Connect button; connect()'s 'open' handler
+    // consumes pendingTapStart once session.start has been sent, mirroring
+    // the existing pendingContextTurnStart pattern.
+    activeScreenContext = null;
+    renderContextChips();
+    pendingTapStart = true;
+    connect();
+  }
+
+  async function stopConversationOnTap() {
+    cancelTapIdleTimer();
+    tapSilenceStartedAt = null;
+    pendingTapStart = false;
+    tapToStartActive = false;
+    if (isHolding) {
+      isHolding = false;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'input_audio.end' }));
+      }
+    }
+    disconnect();
+    setPttCaption();
+  }
+
+  // Re-arms listening for the NEXT utterance without requiring another tap —
+  // called once after the initial tap connects, and again after every
+  // assistant reply finishes (see maybeFinishSpeaking()).
+  function resumeTapListening() {
+    if (!ws || ws.readyState !== WebSocket.OPEN || !tapToStartActive) return;
+    cancelTapIdleTimer();
+    tapSilenceStartedAt = null;
+    isHolding = true;
+    setText('micState', 'recording');
+    DeviceVisual.setState('listening');
+    ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'tap_to_start' }));
+  }
+
+  // Same effect as endTurn(), but named separately since it's triggered by
+  // silence detection rather than a button release, and deliberately does
+  // NOT touch the "conversation active" UI state (still showing "End
+  // conversation") — only stopConversationOnTap() does that.
+  function finishTapUtterance() {
+    if (!isHolding) return;
+    isHolding = false;
+    setText('micState', 'ready');
+    DeviceVisual.setState('thinking');
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'input_audio.end' }));
+    }
+  }
+
+  // Lightweight energy-threshold silence detector — not a new VAD system,
+  // just a below-threshold-for-N-ms check on the RMS amplitude the mic
+  // pipeline already computes every frame (see processor.onaudioprocess).
+  function evaluateTapSilence(rms) {
+    if (rms > TAP_SILENCE_RMS_THRESHOLD) {
+      if (tapIdleTimer) cancelTapIdleTimer();
+      tapSilenceStartedAt = null;
+      return;
+    }
+    if (tapSilenceStartedAt === null) {
+      tapSilenceStartedAt = performance.now();
+    } else if (performance.now() - tapSilenceStartedAt >= TAP_SILENCE_DURATION_MS) {
+      tapSilenceStartedAt = null;
+      finishTapUtterance();
+    }
+  }
+
+  // 5s auto-close timer — armed only once the assistant has fully finished
+  // speaking (see maybeFinishSpeaking()), cancelled the instant the user
+  // starts speaking again (see evaluateTapSilence()'s rms > threshold path).
+  function startTapIdleTimer() {
+    cancelTapIdleTimer();
+    tapIdleTimer = setTimeout(onTapIdleTimeout, tapToStartIdleTimeoutMs);
+  }
+  function cancelTapIdleTimer() {
+    if (tapIdleTimer) { clearTimeout(tapIdleTimer); tapIdleTimer = null; }
+  }
+  function onTapIdleTimeout() {
+    tapIdleTimer = null;
+    stopConversationOnTap();
   }
 
   function sendTextTurn() {
@@ -2514,6 +2860,14 @@
     if (!serverAudioEnded || activeSources.length > 0) return;
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
+    // Tap to Start: the assistant has FULLY finished (playback drained, not
+    // just audio.end received) — re-arm listening for the next utterance
+    // and start the 5s idle-close timer now, exactly per the requirement
+    // that it must only run once the response is truly over.
+    if (voiceMode === 'tap_to_start' && tapToStartActive) {
+      resumeTapListening();
+      startTapIdleTimer();
+    }
   }
 
   function schedulePlayback(buffer) {
@@ -2605,44 +2959,147 @@
   // the old reply and starts capturing the new one. It used to just
   // interrupt-and-stop on that first press, requiring a second press to
   // actually talk — fixed so a single press does both.
+  //
+  // Hold to Talk keeps this exact press/release behavior unchanged. Tap to
+  // Start reuses the SAME button as a single-tap toggle instead (see
+  // startConversationOnTap()/stopConversationOnTap()) — each wiring style
+  // is gated on the current voiceMode so only one is ever active.
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', () => {
+    if (voiceMode !== 'hold_to_talk') return;
     startTurn();
   });
   pttBtn.addEventListener('pointerup', () => {
+    if (voiceMode !== 'hold_to_talk') return;
     endTurn();
   });
-  pttBtn.addEventListener('pointerleave', () => { if (isHolding) endTurn(); });
+  pttBtn.addEventListener('pointerleave', () => { if (voiceMode === 'hold_to_talk' && isHolding) endTurn(); });
+  pttBtn.addEventListener('click', () => {
+    if (voiceMode !== 'tap_to_start') return;
+    if (tapToStartActive) stopConversationOnTap();
+    else startConversationOnTap();
+  });
 
-  async function loadPersona() {
-    const res = await fetch('/api/persona');
+  const voiceModeHoldBtn = el('voiceModeHoldBtn');
+  const voiceModeTapBtn = el('voiceModeTapBtn');
+  if (voiceModeHoldBtn) voiceModeHoldBtn.addEventListener('click', () => setVoiceMode('hold_to_talk'));
+  if (voiceModeTapBtn) voiceModeTapBtn.addEventListener('click', () => setVoiceMode('tap_to_start'));
+  applyVoiceModeUI();
+
+  let activeProfileId = 'classic';
+  let editorProfileId = 'classic';
+  let loadedOverrides = {};
+  let lastLoadedData = null;
+
+  function showDirtySwitchDialog(onSaveAndSwitch, onSwitchWithoutSaving, onCancel) {
+    const existing = document.querySelector('.custom-confirm-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-confirm-overlay';
+
+    overlay.innerHTML = `
+      <div class="custom-confirm-box">
+        <div class="custom-confirm-title">Несохранённые изменения / Unsaved Changes</div>
+        <div class="custom-confirm-message">
+          У вас есть несохранённые изменения для текущего персонажа. Как вы хотите поступить?
+        </div>
+        <div class="custom-confirm-buttons">
+          <button class="custom-confirm-btn primary" id="btnConfirmSaveSwitch" style="background:var(--wine); color:white; border:none;">Сохранить и перейти</button>
+          <button class="custom-confirm-btn secondary" id="btnConfirmSwitchOnly" style="background:var(--bg-light); border:1px solid var(--border); color:var(--fg);">Перейти без сохранения</button>
+          <button class="custom-confirm-btn secondary" id="btnConfirmCancel" style="background:var(--bg-light); border:1px solid var(--border); color:var(--fg);">Отмена</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#btnConfirmSaveSwitch').addEventListener('click', () => {
+      overlay.remove();
+      onSaveAndSwitch();
+    });
+
+    overlay.querySelector('#btnConfirmSwitchOnly').addEventListener('click', () => {
+      overlay.remove();
+      onSwitchWithoutSaving();
+    });
+
+    overlay.querySelector('#btnConfirmCancel').addEventListener('click', () => {
+      overlay.remove();
+      onCancel();
+    });
+  }
+
+  function updateProfileButtons(activeId, editorId) {
+    document.querySelectorAll('[data-profile]').forEach(btn => {
+      const pId = btn.dataset.profile;
+
+      const existingBadge = btn.querySelector('.profile-badge-active');
+      if (existingBadge) existingBadge.remove();
+
+      if (pId === activeId) {
+        const badge = document.createElement('span');
+        badge.className = 'profile-badge-active';
+        badge.style = 'font-size: 10px; background: var(--wine); color: white; padding: 2px 6px; border-radius: 10px; margin-top: 4px; display: inline-block; width: fit-content;';
+        badge.textContent = 'Активен / Active';
+        btn.querySelector('div').appendChild(badge);
+      }
+
+      if (pId === editorId) {
+        btn.style.border = '2px solid var(--wine)';
+        btn.style.background = 'rgba(114, 21, 41, 0.04)';
+      } else {
+        btn.style.border = '1px solid var(--border)';
+        btn.style.background = 'var(--bg-light)';
+      }
+    });
+
+    // Update active label in card
+    const activeLabel = el('activeProfileName');
+    const activeDesc = el('activeProfileDesc');
+    const activeBadge = el('activeProfileBadge');
+
+    const editorName = editorId === 'classic' ? 'Александр' : 'Мария';
+    const editorType = editorId === 'classic' ? 'Классический сомелье' : 'Тёплый винный гид';
+
+    activeLabel.textContent = editorName;
+    activeDesc.textContent = editorType;
+    activeBadge.textContent = (editorId === activeId) ? 'Active Sommelier' : 'Editing Draft';
+    activeBadge.style.background = (editorId === activeId) ? 'var(--wine)' : 'var(--muted)';
+  }
+
+  function getDefaultStyleValue(key) {
+    if (['askFollowUpQuestions', 'useHumor', 'talkAboutSelf', 'supportSmallTalk', 'softlyReturnToWine'].includes(key)) return true;
+    if (key === 'useFictionalBiography') return false;
+    if (key === 'responseLength') return 'balanced';
+    if (key === 'responseVariety') return 'natural';
+    if (key === 'proactiveSuggestions') return true;
+    if (key === 'tone') return 'formal';
+    if (key === 'humorLevel') return 'light';
+    if (key === 'expertiseLevel') return 'balanced';
+    if (key === 'storytelling') return 'occasional';
+    if (key === 'toastStyle') return 'onRequest';
+    return '';
+  }
+
+  async function loadPersona(profileId) {
+    const pId = profileId || editorProfileId;
+    const res = await fetch(`/api/persona?profileId=${pId}`);
     const data = await res.json();
 
-    // Update active profile card values
+    lastLoadedData = data;
+    activeProfileId = data.activeProfileId;
+    editorProfileId = data.baseProfileId;
+    loadedOverrides = data.overrides || {};
+
     const baseProfileId = data.baseProfileId;
     const mood = data.mood;
     const resolved = data.resolved || {};
-
-    // Preset cards selection highlight
-    document.querySelectorAll('[data-profile]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.profile === baseProfileId);
-    });
 
     // Mood pills selection highlight
     document.querySelectorAll('[data-mood]').forEach(pill => {
       pill.classList.toggle('active', pill.dataset.mood === mood);
     });
-
-    // Update main card text fields
-    setText('activeProfileName', resolved.name || 'Wine AI');
-    setText('activeProfileDesc', resolved.description || '');
-
-    // Update Customization Mode badge
-    const badgeEl = el('activeProfileBadge');
-    if (badgeEl) {
-      badgeEl.textContent = data.customizationMode === 'custom' ? 'Custom Mode' : 'Preset Mode';
-      badgeEl.className = 'mode-badge ' + (data.customizationMode === 'custom' ? 'custom' : 'preset');
-    }
 
     // Set voice preview quote based on profile
     const previewEl = el('activeProfileStylePreview');
@@ -2657,29 +3114,146 @@
     }
 
     // Populate advanced fields
-    el('pName').value = resolved.name || '';
-    el('pDescription').value = resolved.description || '';
-    el('pWelcome').value = resolved.welcome_message || '';
-    el('pSommelierGender').value = resolved.sommelierGender || 'male';
-    el('pPersonalityPrompt').value = resolved.personalityPrompt || '';
-    el('pPrompt').value = resolved.system_prompt || '';
+    el('pName').value = loadedOverrides.name || '';
+    el('pDescription').value = loadedOverrides.description || '';
+    el('pWelcome').value = loadedOverrides.welcome_message || '';
+    el('pSommelierGender').value = loadedOverrides.sommelierGender || 'male';
+    el('pPersonalityPrompt').value = loadedOverrides.personalityPrompt || '';
+    el('pPrompt').value = loadedOverrides.system_prompt || '';
 
     // Style elements
-    el('pStyleLength').value = resolved.style?.responseLength || 'balanced';
-    el('pStyleHumor').value = resolved.style?.humorLevel || 'light';
-    el('pStyleTone').value = resolved.style?.tone || 'formal';
-    el('pStyleExpertise').value = resolved.style?.expertiseLevel || 'balanced';
-    el('pStyleStorytelling').value = resolved.style?.storytelling || 'occasional';
-    el('pStyleToast').value = resolved.style?.toastStyle || 'onRequest';
-    el('pStyleProactive').checked = resolved.style?.proactiveSuggestions !== false;
+    const style = loadedOverrides.style || {};
+    el('pStyleLength').value = style.responseLength || 'balanced';
+    el('pStyleVariety').value = style.responseVariety || 'natural';
+    el('pStyleConversationMode').value = style.conversationMode || 'friendly';
+    el('pStyleHumor').value = style.humorLevel || 'light';
+    el('pStyleTone').value = style.tone || 'formal';
+    el('pStyleExpertise').value = style.expertiseLevel || 'balanced';
+    el('pStyleStorytelling').value = style.storytelling || 'occasional';
+    el('pStyleToast').value = style.toastStyle || 'onRequest';
+    el('pStyleProactive').checked = style.proactiveSuggestions !== false;
+    el('pStyleAskFollowUpQuestions').checked = style.askFollowUpQuestions !== false;
+    el('pStyleUseHumor').checked = style.useHumor !== false;
+    el('pStyleTalkAboutSelf').checked = style.talkAboutSelf !== false;
+    el('pStyleSupportSmallTalk').checked = style.supportSmallTalk !== false;
+    el('pStyleSoftlyReturnToWine').checked = style.softlyReturnToWine !== false;
+    el('pStyleUseFictionalBiography').checked = style.useFictionalBiography === true;
+
+    // Identity fields
+    const identity = loadedOverrides.identity || {};
+    el('pIdentityBackground').value = identity.background || '';
+    el('pIdentityCreatorDescription').value = identity.creatorDescription || '';
+    el('pIdentityRoleDescription').value = identity.roleDescription || '';
+    el('pIdentitySelfAdvantages').value = identity.selfAdvantages || '';
+    el('pIdentitySelfLimitations').value = identity.selfLimitations || '';
+    el('pIdentityWineAffinity').value = identity.wineAffinity || '';
+    el('pIdentityInterests').value = Array.isArray(identity.interests) ? identity.interests.join(', ') : '';
 
     // Compiled system prompt preview
     el('pEffectivePromptPreview').value = data.effectivePromptPreview || '';
+
+    updateProfileButtons(activeProfileId, editorProfileId);
 
     // Render new voice selectors
     await renderVoiceSelectors(data);
 
     return data;
+  }
+
+  function getDraftOverrides() {
+    const style = {
+      responseLength: el('pStyleLength').value,
+      responseVariety: el('pStyleVariety').value,
+      conversationMode: el('pStyleConversationMode').value,
+      humorLevel: el('pStyleHumor').value,
+      tone: el('pStyleTone').value,
+      expertiseLevel: el('pStyleExpertise').value,
+      storytelling: el('pStyleStorytelling').value,
+      toastStyle: el('pStyleToast').value,
+      proactiveSuggestions: el('pStyleProactive').checked,
+      askFollowUpQuestions: el('pStyleAskFollowUpQuestions').checked,
+      useHumor: el('pStyleUseHumor').checked,
+      talkAboutSelf: el('pStyleTalkAboutSelf').checked,
+      supportSmallTalk: el('pStyleSupportSmallTalk').checked,
+      softlyReturnToWine: el('pStyleSoftlyReturnToWine').checked,
+      useFictionalBiography: el('pStyleUseFictionalBiography').checked
+    };
+
+    const interestsVal = el('pIdentityInterests').value.trim();
+    const interestsArray = interestsVal ? interestsVal.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    const identity = {
+      background: el('pIdentityBackground').value.trim() || null,
+      creatorDescription: el('pIdentityCreatorDescription').value.trim() || null,
+      roleDescription: el('pIdentityRoleDescription').value.trim() || null,
+      selfAdvantages: el('pIdentitySelfAdvantages').value.trim() || null,
+      selfLimitations: el('pIdentitySelfLimitations').value.trim() || null,
+      wineAffinity: el('pIdentityWineAffinity').value.trim() || null,
+      interests: interestsArray
+    };
+
+    return {
+      name: el('pName').value.trim() || null,
+      description: el('pDescription').value.trim() || null,
+      welcomeMessage: el('pWelcome').value.trim() || null,
+      sommelierGender: el('pSommelierGender').value,
+      personalityPrompt: el('pPersonalityPrompt').value.trim() || null,
+      systemPrompt: el('pPrompt').value.trim() || null,
+      style,
+      identity
+    };
+  }
+
+  function hasUnsavedChanges() {
+    const draft = getDraftOverrides();
+    const norm = (v) => String(v || '').trim();
+
+    if (norm(draft.name) !== norm(loadedOverrides.name)) return true;
+    if (norm(draft.description) !== norm(loadedOverrides.description)) return true;
+    if (norm(draft.welcomeMessage) !== norm(loadedOverrides.welcome_message)) return true;
+    if (norm(draft.sommelierGender) !== norm(loadedOverrides.sommelierGender || 'male')) return true;
+    if (norm(draft.personalityPrompt) !== norm(loadedOverrides.personalityPrompt)) return true;
+    if (norm(draft.systemPrompt) !== norm(loadedOverrides.system_prompt)) return true;
+
+    // Check style
+    const style = loadedOverrides.style || {};
+    for (const key of Object.keys(draft.style)) {
+      const loadedVal = style[key] !== undefined ? style[key] : getDefaultStyleValue(key);
+      if (draft.style[key] !== loadedVal) return true;
+    }
+
+    // Check identity
+    const identity = loadedOverrides.identity || {};
+    for (const key of Object.keys(draft.identity)) {
+      if (key === 'interests') {
+        const interests = Array.isArray(identity.interests) ? identity.interests : [];
+        if (JSON.stringify(draft.identity.interests) !== JSON.stringify(interests)) return true;
+      } else {
+        if (norm(draft.identity[key]) !== norm(identity[key])) return true;
+      }
+    }
+
+    return false;
+  }
+
+  async function updatePromptPreview() {
+    const draft = getDraftOverrides();
+    try {
+      const res = await fetch('/api/persona/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: editorProfileId,
+          overrides: draft
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        el('pEffectivePromptPreview').value = data.effectivePromptPreview || '';
+      }
+    } catch (err) {
+      console.warn('[WineAI] Failed to fetch prompt preview:', err);
+    }
   }
 
   async function savePersona() {
@@ -2689,41 +3263,23 @@
     saveBtn.textContent = 'Saving…';
     statusEl.textContent = 'Saving…';
     try {
-      const nameVal = el('pName').value.trim();
-      const descVal = el('pDescription').value.trim();
-      const welcomeVal = el('pWelcome').value.trim();
-      const promptVal = el('pPrompt').value.trim();
-      const personalityVal = el('pPersonalityPrompt').value.trim();
-
+      const draft = getDraftOverrides();
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          overrides: {
-            name: nameVal || null,
-            description: descVal || null,
-            welcome_message: welcomeVal || null,
-            system_prompt: promptVal || null,
-            sommelierGender: el('pSommelierGender').value,
-            personalityPrompt: personalityVal || null,
-            style: {
-              responseLength: el('pStyleLength').value,
-              humorLevel: el('pStyleHumor').value,
-              tone: el('pStyleTone').value,
-              expertiseLevel: el('pStyleExpertise').value,
-              storytelling: el('pStyleStorytelling').value,
-              toastStyle: el('pStyleToast').value,
-              proactiveSuggestions: el('pStyleProactive').checked
-            }
-          }
+          profileId: editorProfileId,
+          overrides: draft
         }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'save_failed');
+
+      loadedOverrides = data.overrides || {};
       saveBtn.textContent = 'Saved';
       statusEl.textContent = 'Saved — applies to new conversations.';
       log('persona_saved', {});
-      await loadPersona();
+      await loadPersona(editorProfileId);
       setTimeout(() => {
         saveBtn.textContent = 'Save changes';
       }, 3000);
@@ -2737,41 +3293,92 @@
   }
 
   async function resetPersona() {
+    if (!confirm('Вы уверены, что хотите сбросить настройки этого персонажа к исходным? Все ваши изменения будут стерты.')) {
+      return;
+    }
     const statusEl = el('personaSaveStatus');
     statusEl.textContent = 'Resetting…';
     try {
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reset: true }),
+        body: JSON.stringify({
+          profileId: editorProfileId,
+          reset: true
+        }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'reset_failed');
-      await loadPersona();
+      await loadPersona(editorProfileId);
       statusEl.textContent = 'Reset to defaults.';
     } catch (err) {
       statusEl.textContent = 'Reset failed: ' + err.message;
     }
   }
 
+  async function activatePersona() {
+    const statusEl = el('personaSaveStatus');
+    statusEl.textContent = 'Activating…';
+    try {
+      if (hasUnsavedChanges()) {
+        const confirmAct = confirm('У вас есть несохраненные изменения. Активировать сомелье с текущими сохраненными на сервере настройками?');
+        if (!confirmAct) return;
+      }
+
+      const res = await fetch('/api/persona/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: editorProfileId
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'activation_failed');
+
+      activeProfileId = data.activeProfileId;
+      statusEl.textContent = 'Sommelier activated successfully.';
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+
+      updateProfileButtons(activeProfileId, editorProfileId);
+    } catch (err) {
+      statusEl.textContent = 'Activation failed: ' + err.message;
+    }
+  }
+
   // Setup click listeners for profile presets and mood pills
   document.querySelectorAll('[data-profile]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const profileId = btn.dataset.profile;
-      const statusEl = el('personaSaveStatus');
-      statusEl.textContent = 'Switching profile…';
-      try {
-        const res = await fetch('/api/persona', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ baseProfileId: profileId }),
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || 'profile_switch_failed');
-        await loadPersona();
-        statusEl.textContent = 'Profile switched.';
-      } catch (err) {
-        statusEl.textContent = 'Switch failed: ' + err.message;
+      const newProfileId = btn.dataset.profile;
+      if (newProfileId === editorProfileId) return;
+
+      const performSwitch = async () => {
+        const statusEl = el('personaSaveStatus');
+        statusEl.textContent = 'Loading profile…';
+        try {
+          await loadPersona(newProfileId);
+          statusEl.textContent = 'Profile loaded.';
+          setTimeout(() => { statusEl.textContent = ''; }, 2000);
+        } catch (err) {
+          statusEl.textContent = 'Load failed: ' + err.message;
+        }
+      };
+
+      if (hasUnsavedChanges()) {
+        showDirtySwitchDialog(
+          // 1. Save and Switch
+          async () => {
+            await savePersona();
+            await performSwitch();
+          },
+          // 2. Switch without saving
+          async () => {
+            await performSwitch();
+          },
+          // 3. Cancel
+          () => {}
+        );
+      } else {
+        await performSwitch();
       }
     });
   });
@@ -2785,11 +3392,14 @@
         const res = await fetch('/api/persona', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mood: moodId }),
+          body: JSON.stringify({
+            profileId: editorProfileId,
+            overrides: { mood: moodId }
+          }),
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'mood_switch_failed');
-        await loadPersona();
+        await loadPersona(editorProfileId);
         statusEl.textContent = 'Mood updated.';
       } catch (err) {
         statusEl.textContent = 'Mood update failed: ' + err.message;
@@ -3182,23 +3792,23 @@
     const countBadge = el('kbSourceCount' + groupKey);
     listBox.innerHTML = '';
     let totalPagesCount = 0;
-    
+
     const domains = Object.keys(websitesMap).sort();
     if (domains.length === 0) {
       countBadge.textContent = 0;
       listBox.innerHTML = '<p style="color:var(--muted); font-size:13px; margin:8px 0 0;">Nothing here yet.</p>';
       return;
     }
-    
+
     domains.forEach(domain => {
       const site = websitesMap[domain];
       const pages = site.pages.sort((a, b) => a.title.localeCompare(b.title));
       totalPagesCount += pages.length;
-      
+
       const siteDetails = document.createElement('details');
       siteDetails.className = 'site-group-details';
       siteDetails.style.cssText = 'margin-bottom:10px; border:1px solid var(--border); border-radius:8px; padding:6px 10px; background:var(--card-bg);';
-      
+
       // When `site.name` is just the raw non-URL source string (e.g. the
       // legacy crawler's "Wine and Spirits (wine-and-spirits.md)" publisher
       // label used as its own grouping key), it's identical to `domain` —
@@ -3265,10 +3875,10 @@
         e.stopPropagation();
         e.preventDefault();
         if (!confirm(`Вы действительно хотите удалить все страницы с сайта "${site.name || domain}"?`)) return;
-        
+
         deleteSiteBtn.disabled = true;
         deleteSiteBtn.textContent = 'Удаление…';
-        
+
         try {
           for (const page of pages) {
             const res = await fetch(`/api/knowledge/sources/${encodeURIComponent(page.source_file)}`, {
@@ -3282,18 +3892,18 @@
           await loadKnowledgeSources();
         }
       });
-      
+
       siteDetails.appendChild(summary);
       siteDetails.appendChild(pagesList);
       listBox.appendChild(siteDetails);
     });
-    
+
     countBadge.textContent = totalPagesCount;
   }
 
   function applySearchAndSort() {
     let sources = [...allKnowledgeSources];
-    
+
     // Apply search filter
     const query = (el('kbSearchInput')?.value || '').toLowerCase().trim();
     if (query) {
@@ -3304,7 +3914,7 @@
         return fileMatch || titleMatch || urlMatch;
       });
     }
-    
+
     // Apply sorting
     const sortMode = el('kbSortSelect')?.value || 'name';
     if (sortMode === 'name') {
@@ -3318,7 +3928,7 @@
     } else if (sortMode === 'lang') {
       sources.sort((a, b) => (a.language || '').localeCompare(b.language || ''));
     }
-    
+
     // Categorize
     const groups = {
       uploaded: [],
@@ -3326,7 +3936,7 @@
       wineryWebsites: {},
       otherWebsites: {}
     };
-    
+
     sources.forEach(src => {
       const type = classifySource(src);
       if (type === 'uploaded') {
@@ -3371,7 +3981,7 @@
         }
       }
     });
-    
+
     renderSourceGroup('Uploaded', groups.uploaded);
     renderSourceGroup('Curated', groups.curated);
     renderHierarchicalGroup('WineryWebsites', groups.wineryWebsites);
@@ -3386,13 +3996,13 @@
       ]);
       const knowledgeData = await knowledgeRes.json();
       const kosData = await kosRes.json();
-      
+
       const knowledgeSources = knowledgeData.sources || [];
       const registeredWinerySources = kosData.sources || [];
-      
+
       wineryDomainsGlobal.clear();
       wineryNameMapGlobal.clear();
-      
+
       registeredWinerySources.forEach(src => {
         try {
           const origin = new URL(src.seed_url).hostname.replace(/^www\./i, '').toLowerCase();
@@ -3400,10 +4010,10 @@
           wineryNameMapGlobal.set(origin, src.name || origin);
         } catch (e) {}
       });
-      
+
       el('kbSourceCount').textContent = knowledgeSources.length;
       allKnowledgeSources = knowledgeSources;
-      
+
       applySearchAndSort();
     } catch (err) {
       el('kbSourceListCurated').innerHTML = `<p style="color:var(--err); font-size:13px;">Failed to load: ${err.message}</p>`;
@@ -3818,6 +4428,7 @@
           }
           try {
             const body = {
+              profileId: editorProfileId,
               overrides: {
                 runtimeByProvider: {
                   [providerId]: {
@@ -3839,7 +4450,7 @@
             }
             log('voice_override_saved', { provider: providerId, voice: val || 'default' });
 
-            await loadPersona();
+            await loadPersona(editorProfileId);
 
             setTimeout(() => {
               if (statusContainer && statusContainer.textContent.includes('Голос сохранен')) {
@@ -3858,7 +4469,6 @@
       }
     });
 
-    // Remove legacy voice section upon successful new UI population
     const legacy = el('legacyVoiceSection');
     if (legacy) {
       legacy.remove();
@@ -3919,6 +4529,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          profileId: editorProfileId,
           overrides: {
             runtimeByProvider: migrationOverrides
           }
@@ -3933,7 +4544,7 @@
       localStorage.setItem('wine_ai_voice_settings_migrated_v2', 'true');
       log('legacy_voice_migration_success', migrationOverrides);
 
-      await loadPersona();
+      await loadPersona(editorProfileId);
     } catch (err) {
       console.warn('[WineAI] Legacy voice settings migration failed:', err);
       const statusContainer = el('voiceConfigStatus');
@@ -3951,14 +4562,41 @@
   }
   applyUiLanguage(uiLang);
 
+  ['pName', 'pDescription', 'pWelcome', 'pPrompt', 'pPersonalityPrompt',
+   'pIdentityBackground', 'pIdentityCreatorDescription', 'pIdentityRoleDescription',
+   'pIdentitySelfAdvantages', 'pIdentitySelfLimitations', 'pIdentityWineAffinity', 'pIdentityInterests'].forEach(id => {
+    const element = el(id);
+    if (element) {
+      element.addEventListener('input', updatePromptPreview);
+    }
+  });
+  ['pSommelierGender', 'pStyleLength', 'pStyleVariety', 'pStyleConversationMode', 'pStyleHumor', 'pStyleTone', 'pStyleExpertise', 'pStyleStorytelling', 'pStyleToast', 'pStyleProactive',
+   'pStyleAskFollowUpQuestions', 'pStyleUseHumor', 'pStyleTalkAboutSelf', 'pStyleSupportSmallTalk', 'pStyleSoftlyReturnToWine', 'pStyleUseFictionalBiography'].forEach(id => {
+    const element = el(id);
+    if (element) {
+      element.addEventListener('change', updatePromptPreview);
+    }
+  });
+
   el('personaSaveBtn').addEventListener('click', savePersona);
   el('personaResetBtn').addEventListener('click', resetPersona);
+  el('personaActivateBtn').addEventListener('click', activatePersona);
 
   (async function() {
     await initProvidersConfig();
     const data = await loadPersona();
     await handleLegacyMigration(data);
     await loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
+    // Voice mode (Hold to Talk / Tap to Start) is persisted the same way
+    // as mood/baseProfileId — no separate storage. tapToStartIdleTimeoutMs
+    // is a read-only server config value, not user-editable here.
+    if (data && (data.voiceMode === 'hold_to_talk' || data.voiceMode === 'tap_to_start')) {
+      voiceMode = data.voiceMode;
+    }
+    if (data && typeof data.tapToStartIdleTimeoutMs === 'number' && data.tapToStartIdleTimeoutMs > 0) {
+      tapToStartIdleTimeoutMs = data.tapToStartIdleTimeoutMs;
+    }
+    applyVoiceModeUI();
   })().catch((err) => log('persona_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));

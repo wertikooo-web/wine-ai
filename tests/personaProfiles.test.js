@@ -61,12 +61,29 @@ async function run() {
         // Test 2: Clean boot default settings
         if (fs.existsSync(FILE_PATH)) fs.unlinkSync(FILE_PATH);
         await personaStore.load();
-        
+
         let state = personaStore.getCached();
         t.equal(state.baseProfileId, 'classic', 'clean boot must default baseProfileId to classic');
         t.equal(state.mood, 'calm', 'clean boot must default mood to calm');
         t.deepEqual(state.overrides, {}, 'clean boot overrides must be empty');
-        assertionCount += 3;
+        // Targeted default and overrides mood checks
+        const classicResolved = personaStore.getProfile('classic');
+        t.equal(classicResolved.mood, 'calm', 'classic profile default mood must be calm');
+
+        const warmResolved = personaStore.getProfile('warm_guide');
+        t.equal(warmResolved.mood, 'warm', 'warm_guide profile default mood must be warm');
+
+        // profile-specific override works independently
+        await personaStore.updateProfile('classic', { mood: 'expert' });
+        const classicOverridden = personaStore.getProfile('classic');
+        t.equal(classicOverridden.mood, 'expert', 'classic profile custom mood override must be expert');
+
+        const warmStillWarm = personaStore.getProfile('warm_guide');
+        t.equal(warmStillWarm.mood, 'warm', 'warm_guide profile remains warm after classic mood update');
+
+        // Reset classic overrides to restore clean state
+        await personaStore.resetProfile('classic');
+        assertionCount += 4;
 
         // Test 3: Legacy migration
         if (fs.existsSync(FILE_PATH)) fs.unlinkSync(FILE_PATH);
@@ -76,7 +93,7 @@ async function run() {
             }
         }), 'utf8');
         await personaStore.load();
-        
+
         state = personaStore.getCached();
         t.equal(state.baseProfileId, null, 'legacy config must load with baseProfileId as null');
         t.equal(state.overrides.name, 'Legacy Custom', 'legacy overrides must be preserved');
@@ -172,6 +189,9 @@ async function run() {
         // Test 9: Effective prompt preview composition
         await personaStore.save({ baseProfileId: 'classic', mood: 'warm' });
         const effectivePrompt = getEffectivePersonaPrompt();
+        console.log('--- TEST 9 COMPILATION PREVIEW ---');
+        console.log(effectivePrompt);
+        console.log('----------------------------------');
         t.ok(effectivePrompt.includes('<!-- PROFILE_PERSONALITY_START -->'), 'must contain personality start tag');
         t.ok(effectivePrompt.includes('Ты говоришь спокойным, размеренным'), 'must contain classic personality text');
         t.ok(effectivePrompt.includes('<!-- STYLE_SETTINGS_START -->'), 'must contain style settings start tag');
@@ -295,7 +315,7 @@ async function run() {
                 body: JSON.stringify({ overrides: { customizationMode: 'custom' } }),
             });
             t.equal(postModeOverrideRes.status, 400, 'POST overrides containing customizationMode must be 400');
-            
+
             // At root level -> ignored (200)
             const postModeRootRes = await fetch(`${BASE}/api/persona`, {
                 method: 'POST',

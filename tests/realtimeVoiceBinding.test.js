@@ -70,6 +70,8 @@ async function run() {
     if (fs.existsSync(FILE_PATH)) fs.unlinkSync(FILE_PATH);
 
     const origAllowLegacy = process.env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE;
+    const origDbUrl = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = '';
 
     try {
         console.log('Running Realtime Voice Session Binding Tests (Phase 2A2)...');
@@ -340,6 +342,7 @@ async function run() {
 
         console.log(`[PASS] tests/realtimeVoiceBinding.test.js: All ${assertionCount} assertions passed successfully.`);
     } finally {
+        process.env.DATABASE_URL = origDbUrl;
         if (fs.existsSync(FILE_PATH)) fs.unlinkSync(FILE_PATH);
         if (origAllowLegacy !== undefined) {
             process.env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE = origAllowLegacy;
