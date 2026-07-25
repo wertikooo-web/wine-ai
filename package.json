@@ -20,7 +20,11 @@
     "smoke:language": "node scripts/language-smoke.js",
     "smoke:knowledge": "node scripts/knowledge-smoke.js",
     "lint": "node --check src/server.js",
-    "typecheck": "echo \"no build-time typecheck configured (JS + JSDoc project); see AGENTS.md\""
+    "typecheck": "echo \"no build-time typecheck configured (JS + JSDoc project); see AGENTS.md\"",
+    "avatar:validate": "npm run avatar:validate:manifest && npm run avatar:validate:events && npm run avatar:validate:assets",
+    "avatar:validate:manifest": "node .claude/skills/winemd-rive/scripts/validate-rive-manifest.mjs",
+    "avatar:validate:events": "node .claude/skills/winemd-rive/scripts/validate-visual-events.mjs",
+    "avatar:validate:assets": "node .claude/skills/winemd-rive/scripts/validate-character-assets.mjs"
   },
   "engines": {
     "node": ">=20"
