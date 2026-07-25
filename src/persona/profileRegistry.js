@@ -17,6 +17,10 @@ const BUILTIN_PROFILES = {
             storytelling: 'occasional',
             proactiveSuggestions: true,
             toastStyle: 'onRequest'
+        },
+        runtimeByProvider: {
+            gemini: { voiceId: 'Charon' },
+            grok: { voiceId: 'rigel' }
         }
     },
     warm_guide: {
@@ -35,6 +39,10 @@ const BUILTIN_PROFILES = {
             storytelling: 'occasional',
             proactiveSuggestions: true,
             toastStyle: 'onRequest'
+        },
+        runtimeByProvider: {
+            gemini: { voiceId: 'Kore' },
+            grok: { voiceId: 'eve' }
         }
     }
 };
@@ -137,6 +145,10 @@ function resolveProfile(baseProfileId, overrides = {}, mood = 'calm') {
             ...(base ? base.style : {}),
             ...(overrides.style || {})
         },
+        runtimeByProvider: {
+            ...(base ? base.runtimeByProvider : {}),
+            ...(overrides.runtimeByProvider || {})
+        },
         mood: mood
     };
 
@@ -147,6 +159,21 @@ function resolveProfile(baseProfileId, overrides = {}, mood = 'calm') {
             delete resolved.style[key];
             if (base && base.style && base.style[key] !== undefined) {
                 resolved.style[key] = base.style[key];
+            }
+        }
+    }
+
+    const allowedProviders = ['gemini', 'grok'];
+    for (const providerId of allowedProviders) {
+        if (overrides.runtimeByProvider && overrides.runtimeByProvider[providerId]) {
+            const provOverride = overrides.runtimeByProvider[providerId];
+            if (provOverride.voiceId === null) {
+                if (resolved.runtimeByProvider[providerId]) {
+                    delete resolved.runtimeByProvider[providerId].voiceId;
+                    if (base && base.runtimeByProvider && base.runtimeByProvider[providerId] && base.runtimeByProvider[providerId].voiceId) {
+                        resolved.runtimeByProvider[providerId].voiceId = base.runtimeByProvider[providerId].voiceId;
+                    }
+                }
             }
         }
     }

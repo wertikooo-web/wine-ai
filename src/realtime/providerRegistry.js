@@ -4,7 +4,7 @@ const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./mockRealtimeProvider
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./geminiLiveProvider');
 const { GrokVoiceProvider, DEFAULT_GROK_MODEL } = require('./grokVoiceProvider');
 const { GEMINI_VOICES, DEFAULT_VOICE_NAME } = require('../geminiVoices');
-const { GROK_VOICES, DEFAULT_GROK_VOICE_ID } = require('../grokVoices');
+const { GROK_VOICES, DEFAULT_GROK_VOICE_ID, listGrokVoices } = require('../grokVoices');
 
 function normalizeProviderName(value, fallback = 'mock') {
     const provider = String(value || '').trim().toLowerCase();
@@ -116,11 +116,72 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
         }
     }
 
+    async function getPublicCapabilities() {
+        const geminiDef = definitions.gemini;
+        const grokDef = definitions.grok;
+
+        let grokVoicesList = [];
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
+            grokVoicesList = await listGrokVoices({
+                apiKey: grokKey,
+                fetchImpl: (url, options) => globalThis.fetch(url, { ...options, signal: controller.signal })
+            });
+            clearTimeout(timeoutId);
+        } catch (err) {
+            console.warn('[WineAI] Failed to dynamically load grok voices in capabilities API:', err.message);
+            grokVoicesList = [...GROK_VOICES];
+        }
+
+        return [
+            {
+                id: 'gemini',
+                displayName: 'Gemini Live',
+                configured: geminiDef.configured,
+                unavailableReason: geminiDef.configured ? null : 'api_key_missing',
+                supportsPerSessionModel: false,
+                supportsPerSessionVoice: true,
+                models: [
+                    {
+                        id: geminiDef.model,
+                        displayName: geminiDef.model,
+                        voices: geminiDef.voices.map(v => ({
+                            id: v.id,
+                            displayName: v.name,
+                            characteristic: v.characteristic
+                        }))
+                    }
+                ]
+            },
+            {
+                id: 'grok',
+                displayName: 'Grok Voice',
+                configured: grokDef.configured,
+                unavailableReason: grokDef.configured ? null : 'api_key_missing',
+                supportsPerSessionModel: false,
+                supportsPerSessionVoice: true,
+                models: [
+                    {
+                        id: grokDef.model,
+                        displayName: grokDef.model,
+                        voices: grokVoicesList.map(v => ({
+                            id: v.id,
+                            displayName: v.name,
+                            characteristic: v.characteristic
+                        }))
+                    }
+                ]
+            }
+        ];
+    }
+
     return {
         defaultProvider,
         list,
         resolve,
         resolveDefault,
+        getPublicCapabilities,
         get: (providerId) => publicDefinition(definitions[normalizeProviderName(providerId, defaultProvider)]),
     };
 }
