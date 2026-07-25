@@ -501,6 +501,7 @@
   }
   @media (max-width: 620px) {
     .provider-options { grid-template-columns: 1fr; }
+    .voice-providers-grid { grid-template-columns: 1fr !important; }
   }
 
   /* ---- Knowledge Monitor: collapsible card + collapsible status groups ---- */
@@ -1069,19 +1070,49 @@
       <p id="providerChoiceHint" style="font-size:12px; color:var(--muted); margin:0 0 14px;">
         Выберите языковую модель до начала разговора.
       </p>
-      <div class="voice-columns">
-        <div>
-          <h3 class="voice-group-title">Женские (по звучанию)</h3>
-          <div id="voiceListFemale" class="voice-list"></div>
+      <div id="legacyVoiceSection">
+        <div class="voice-columns">
+          <div>
+            <h3 class="voice-group-title">Женские (по звучанию)</h3>
+            <div id="voiceListFemale" class="voice-list"></div>
+          </div>
+          <div>
+            <h3 class="voice-group-title">Мужские (по звучанию)</h3>
+            <div id="voiceListMale" class="voice-list"></div>
+          </div>
         </div>
-        <div>
-          <h3 class="voice-group-title">Мужские (по звучанию)</h3>
-          <div id="voiceListMale" class="voice-list"></div>
-        </div>
+        <p style="font-size: 12px; color: var(--muted); margin: 10px 0 0;">
+          Выбор применяется сразу, если вы уже подключены (Live avatar / Talk), иначе — при следующем Connect.
+        </p>
       </div>
-      <p style="font-size: 12px; color: var(--muted); margin: 10px 0 0;">
-        Выбор применяется сразу, если вы уже подключены (Live avatar / Talk), иначе — при следующем Connect.
-      </p>
+
+      <!-- Dashboard Voice Configuration Section -->
+      <div class="profile-voice-config" id="profileVoiceConfigSection" style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
+        <div class="voice-providers-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+
+          <!-- Gemini Live -->
+          <div class="voice-provider-col" id="colVoiceGemini">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label style="font-size:12.5px; font-weight:600; color: var(--ink);">Gemini Live</label>
+              <span id="vGeminiStatus" style="font-size:11px; white-space: nowrap;"></span>
+            </div>
+            <select id="vGeminiSelect" class="persona-input" style="width:100%; height:34px; padding:4px 8px; font-size:13px; border: 1px solid var(--border); border-radius: 6px; background: white; color: var(--ink);"></select>
+            <div id="vGeminiInfo" style="font-size:11px; color:var(--muted); margin-top:4px; min-height:14px;"></div>
+          </div>
+
+          <!-- Grok Voice -->
+          <div class="voice-provider-col" id="colVoiceGrok">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label style="font-size:12.5px; font-weight:600; color: var(--ink);">Grok Voice</label>
+              <span id="vGrokStatus" style="font-size:11px; white-space: nowrap;"></span>
+            </div>
+            <select id="vGrokSelect" class="persona-input" style="width:100%; height:34px; padding:4px 8px; font-size:13px; border: 1px solid var(--border); border-radius: 6px; background: white; color: var(--ink);"></select>
+            <div id="vGrokInfo" style="font-size:11px; color:var(--muted); margin-top:4px; min-height:14px;"></div>
+          </div>
+
+        </div>
+        <div id="voiceConfigStatus" style="font-size:12px; margin-top:10px; min-height:14px; font-weight:500;"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -1793,7 +1824,6 @@
     const language = el('langSelect').value;
     const payload = { type: 'session.start', sampleRate: inputSampleRate, include_prompt_debug: true };
     if (language && language !== 'auto') payload.language = language;
-    if (selectedVoiceName) payload.voiceName = selectedVoiceName;
     if (activeScreenContext) payload.config = { persona: activeScreenContext.persona };
     ws.send(JSON.stringify(payload));
   }
@@ -2451,57 +2481,7 @@
     }
 
     renderProviderOptions(data.providers || []);
-    const voices = data.voices || [];
-    const defaultVoice = data.default_voice || '';
-    selectedVoiceName = selectedVoiceName
-      || localStorage.getItem(`wineAiVoiceName:${selectedRealtimeProvider}`)
-      || (selectedRealtimeProvider === 'gemini' ? localStorage.getItem('wineAiVoiceName') : '')
-      || defaultVoice;
-    const voiceIds = voices.map((voice) => voice.id || voice.name);
-    if (!voiceIds.includes(selectedVoiceName)) selectedVoiceName = defaultVoice || voiceIds[0] || '';
-    if (selectedVoiceName) localStorage.setItem(`wineAiVoiceName:${selectedRealtimeProvider}`, selectedVoiceName);
-
-    const femaleBox = el('voiceListFemale');
-    const maleBox = el('voiceListMale');
-    if (!femaleBox || !maleBox) return;
-    femaleBox.innerHTML = '';
-    maleBox.innerHTML = '';
-    const columns = femaleBox.closest('.voice-columns');
-    if (columns) columns.classList.toggle('single', selectedRealtimeProvider === 'grok');
-    femaleBox.parentElement.hidden = selectedRealtimeProvider === 'grok';
-    const voiceHelp = maleBox.closest('.card')?.querySelector('p:last-child');
-    if (voiceHelp) voiceHelp.textContent = 'Выбор модели и голоса применяется при следующем подключении.';
-    maleBox.previousElementSibling.textContent = selectedRealtimeProvider === 'grok'
-      ? 'Grok voices'
-      : 'Мужские (по звучанию)';
-
-    voices.forEach((voice) => {
-      const voiceId = voice.id || voice.name;
-      const voiceName = voice.name || voiceId;
-      const gender = selectedRealtimeProvider === 'grok' ? 'male' : (VOICE_GENDER_GUESS[voiceName] || 'male');
-      const row = document.createElement('div');
-      row.className = 'voice-row';
-
-      const selectBtn = document.createElement('button');
-      selectBtn.className = 'voice-select-btn' + (voiceId === selectedVoiceName ? ' selected' : '');
-      selectBtn.dataset.voice = voiceId;
-      const voiceLabel = document.createTextNode(voiceName);
-      const characteristic = document.createElement('span');
-      characteristic.className = 'voice-characteristic';
-      characteristic.textContent = voice.characteristic || '';
-      selectBtn.append(voiceLabel, characteristic);
-      selectBtn.addEventListener('click', () => selectVoice(voiceId));
-
-      const previewBtn = document.createElement('button');
-      previewBtn.className = 'voice-preview-btn';
-      previewBtn.textContent = '▶';
-      previewBtn.title = 'Прослушать';
-      previewBtn.addEventListener('click', () => previewVoice(voiceId, previewBtn));
-
-      row.appendChild(selectBtn);
-      row.appendChild(previewBtn);
-      (gender === 'female' ? femaleBox : maleBox).appendChild(row);
-    });
+    // Legacy voice rendering loop removed. Provider options rendered above.
   }
 
   function playRawPcm16(bytes, sampleRate) {
@@ -2695,6 +2675,11 @@
 
     // Compiled system prompt preview
     el('pEffectivePromptPreview').value = data.effectivePromptPreview || '';
+
+    // Render new voice selectors
+    await renderVoiceSelectors(data);
+
+    return data;
   }
 
   async function savePersona() {
@@ -3697,6 +3682,268 @@
     const wineDetails = el('wineDetailsBlock');
     if (wineToggle && wineDetails) wineToggle.textContent = getUiString(wineDetails.hidden ? 'detailsMore' : 'detailsLess');
   }
+
+  let globalProvidersConfig = null;
+
+  async function initProvidersConfig() {
+    try {
+      const res = await fetch('/api/persona/profiles');
+      const data = await res.json();
+      if (data.ok) {
+        globalProvidersConfig = data.providers || [];
+      } else {
+        console.error('[WineAI] Failed to load persona profiles:', data.error);
+        const status = el('voiceConfigStatus');
+        if (status) status.innerHTML = `<span style="color:var(--err)">Ошибка загрузки голосов: ${data.error}</span>`;
+      }
+    } catch (err) {
+      console.error('[WineAI] Error fetching profiles:', err);
+      const status = el('voiceConfigStatus');
+      if (status) status.innerHTML = `<span style="color:var(--err)">Сеть недоступна: ${err.message}</span>`;
+    }
+  }
+
+  const PROFILE_DEFAULTS = {
+    classic: {
+      gemini: 'Charon',
+      grok: 'rigel'
+    },
+    warm_guide: {
+      gemini: 'Kore',
+      grok: 'eve'
+    }
+  };
+
+  async function renderVoiceSelectors(data) {
+    if (!globalProvidersConfig) {
+      const status = el('voiceConfigStatus');
+      if (status) status.innerHTML = '<span style="color:var(--muted)">Загрузка конфигурации голосов…</span>';
+      return;
+    }
+    const configStatus = el('voiceConfigStatus');
+    if (configStatus) configStatus.textContent = '';
+
+    const baseProfileId = data.baseProfileId || 'classic';
+    const overrides = data.overrides || {};
+    const runtimeOverrides = overrides.runtimeByProvider || {};
+
+    const providers = ['gemini', 'grok'];
+
+    providers.forEach((providerId) => {
+      const providerConfig = globalProvidersConfig.find((p) => p.id === providerId);
+      const selectEl = el(`v${providerId.charAt(0).toUpperCase() + providerId.slice(1)}Select`);
+      const statusEl = el(`v${providerId.charAt(0).toUpperCase() + providerId.slice(1)}Status`);
+      const infoEl = el(`v${providerId.charAt(0).toUpperCase() + providerId.slice(1)}Info`);
+
+      if (!selectEl || !statusEl || !infoEl) return;
+
+      selectEl.innerHTML = '';
+      infoEl.textContent = '';
+      statusEl.textContent = '';
+
+      if (!providerConfig) {
+        statusEl.textContent = 'API недоступен';
+        statusEl.style.color = 'var(--muted)';
+        selectEl.disabled = true;
+        return;
+      }
+
+      if (providerConfig.configured) {
+        statusEl.textContent = 'доступен';
+        statusEl.style.color = 'var(--ok)';
+        selectEl.disabled = false;
+      } else {
+        statusEl.textContent = 'API key отсутствует';
+        statusEl.style.color = 'var(--muted)';
+        selectEl.disabled = true;
+      }
+
+      const voices = providerConfig.models?.flatMap((m) => m.voices || []) || [];
+
+      const defaultVoiceId = PROFILE_DEFAULTS[baseProfileId]?.[providerId] || '';
+      const defaultVoice = voices.find((v) => v.id === defaultVoiceId);
+      const defaultLabel = defaultVoice
+        ? `Голос профиля: ${defaultVoice.displayName || defaultVoice.id}`
+        : `Голос профиля: ${defaultVoiceId}`;
+
+      const optDefault = document.createElement('option');
+      optDefault.value = '';
+      optDefault.textContent = defaultLabel;
+      selectEl.appendChild(optDefault);
+
+      const savedVoiceId = runtimeOverrides[providerId]?.voiceId;
+
+      let hasInvalidOverride = false;
+      if (savedVoiceId !== undefined && savedVoiceId !== null) {
+        const found = voices.some((v) => v.id === savedVoiceId);
+        if (!found) {
+          hasInvalidOverride = true;
+        }
+      }
+
+      voices.forEach((voice) => {
+        const opt = document.createElement('option');
+        opt.value = voice.id;
+        const characteristic = voice.characteristic ? ` (${voice.characteristic})` : '';
+        opt.textContent = `${voice.displayName || voice.id}${characteristic}`;
+        selectEl.appendChild(opt);
+      });
+
+      if (hasInvalidOverride) {
+        const optInvalid = document.createElement('option');
+        optInvalid.value = savedVoiceId;
+        optInvalid.textContent = `${savedVoiceId} (Недоступен)`;
+        optInvalid.selected = true;
+        selectEl.appendChild(optInvalid);
+
+        infoEl.innerHTML = `<span style="color:var(--err)">⚠️ Голос "${savedVoiceId}" не найден в каталоге. Выберите другой голос или верните профильный по умолчанию.</span>`;
+      } else {
+        selectEl.value = savedVoiceId || '';
+
+        const activeVoiceId = savedVoiceId || defaultVoiceId;
+        const activeVoice = voices.find((v) => v.id === activeVoiceId);
+        if (activeVoice && activeVoice.characteristic) {
+          infoEl.textContent = `Характеристика: ${activeVoice.characteristic}`;
+        } else if (activeVoice) {
+          infoEl.textContent = `Голос: ${activeVoice.displayName || activeVoice.id}`;
+        }
+      }
+
+      if (!selectEl.dataset.listenerAdded) {
+        selectEl.addEventListener('change', async () => {
+          const val = selectEl.value;
+          const statusContainer = el('voiceConfigStatus');
+          if (statusContainer) {
+            statusContainer.innerHTML = '<span style="color:var(--muted)">⏳ Сохранение голоса…</span>';
+          }
+          try {
+            const body = {
+              overrides: {
+                runtimeByProvider: {
+                  [providerId]: {
+                    voiceId: val || null
+                  }
+                }
+              }
+            };
+            const res = await fetch('/api/persona', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body)
+            });
+            const resData = await res.json();
+            if (!resData.ok) throw new Error(resData.error || 'failed_to_save');
+
+            if (statusContainer) {
+              statusContainer.innerHTML = '<span style="color:var(--ok)">✅ Голос сохранен. Изменения вступят в силу в новом разговоре.</span>';
+            }
+            log('voice_override_saved', { provider: providerId, voice: val || 'default' });
+
+            await loadPersona();
+
+            setTimeout(() => {
+              if (statusContainer && statusContainer.textContent.includes('Голос сохранен')) {
+                statusContainer.textContent = '';
+              }
+            }, 5000);
+          } catch (err) {
+            console.error('[WineAI] Error saving voice override:', err);
+            if (statusContainer) {
+              statusContainer.innerHTML = `<span style="color:var(--err)">❌ Ошибка сохранения: ${err.message}</span>`;
+            }
+            selectEl.value = savedVoiceId || '';
+          }
+        });
+        selectEl.dataset.listenerAdded = 'true';
+      }
+    });
+
+    // Remove legacy voice section upon successful new UI population
+    const legacy = el('legacyVoiceSection');
+    if (legacy) {
+      legacy.remove();
+      const providerChoiceHint = el('providerChoiceHint');
+      if (providerChoiceHint) providerChoiceHint.textContent = 'Выберите провайдера до начала разговора.';
+    }
+  }
+
+  async function handleLegacyMigration(data) {
+    if (!globalProvidersConfig) return;
+
+    if (localStorage.getItem('wine_ai_voice_settings_migrated_v2') === 'true') {
+      return;
+    }
+
+    const overrides = data.overrides || {};
+    const runtimeOverrides = overrides.runtimeByProvider || {};
+
+    const geminiProvider = globalProvidersConfig.find((p) => p.id === 'gemini');
+    const grokProvider = globalProvidersConfig.find((p) => p.id === 'grok');
+
+    const validGeminiVoices = geminiProvider?.models?.flatMap((m) => m.voices || []).map((v) => v.id) || [];
+    const validGrokVoices = grokProvider?.models?.flatMap((m) => m.voices || []).map((v) => v.id) || [];
+
+    const legacyGeminiVoice = localStorage.getItem('wineAiVoiceName:gemini') || localStorage.getItem('wineAiVoiceName');
+    const legacyGrokVoice = localStorage.getItem('wineAiVoiceName:grok');
+
+    const migrationOverrides = {};
+    let needsMigration = false;
+
+    const geminiServerVoice = runtimeOverrides.gemini?.voiceId;
+    const grokServerVoice = runtimeOverrides.grok?.voiceId;
+
+    if (geminiServerVoice === undefined || geminiServerVoice === null) {
+      if (legacyGeminiVoice && validGeminiVoices.includes(legacyGeminiVoice)) {
+        migrationOverrides.gemini = { voiceId: legacyGeminiVoice };
+        needsMigration = true;
+      }
+    }
+
+    if (grokServerVoice === undefined || grokServerVoice === null) {
+      if (legacyGrokVoice && validGrokVoices.includes(legacyGrokVoice)) {
+        migrationOverrides.grok = { voiceId: legacyGrokVoice };
+        needsMigration = true;
+      }
+    }
+
+    if (!needsMigration) {
+      localStorage.removeItem('wineAiVoiceName:gemini');
+      localStorage.removeItem('wineAiVoiceName:grok');
+      localStorage.removeItem('wineAiVoiceName');
+      localStorage.setItem('wine_ai_voice_settings_migrated_v2', 'true');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          overrides: {
+            runtimeByProvider: migrationOverrides
+          }
+        })
+      });
+      const resData = await res.json();
+      if (!resData.ok) throw new Error(resData.error || 'migration_failed');
+
+      localStorage.removeItem('wineAiVoiceName:gemini');
+      localStorage.removeItem('wineAiVoiceName:grok');
+      localStorage.removeItem('wineAiVoiceName');
+      localStorage.setItem('wine_ai_voice_settings_migrated_v2', 'true');
+      log('legacy_voice_migration_success', migrationOverrides);
+
+      await loadPersona();
+    } catch (err) {
+      console.warn('[WineAI] Legacy voice settings migration failed:', err);
+      const statusContainer = el('voiceConfigStatus');
+      if (statusContainer) {
+        statusContainer.innerHTML = `<span style="color:var(--err)">⚠️ Не удалось перенести старые настройки голоса: ${err.message}</span>`;
+      }
+      log('legacy_voice_migration_error', { message: err.message });
+    }
+  }
+
   const uiLangSelect = el('uiLangSelect');
   if (uiLangSelect) {
     uiLangSelect.value = uiLang;
@@ -3706,8 +3953,13 @@
 
   el('personaSaveBtn').addEventListener('click', savePersona);
   el('personaResetBtn').addEventListener('click', resetPersona);
-  loadPersona().catch((err) => log('persona_load_error', { message: err.message }));
-  loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
+
+  (async function() {
+    await initProvidersConfig();
+    const data = await loadPersona();
+    await handleLegacyMigration(data);
+    await loadVoices().catch((err) => log('voices_load_error', { message: err.message }));
+  })().catch((err) => log('persona_load_error', { message: err.message }));
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
   loadKosSources().catch((err) => log('kos_sources_load_error', { message: err.message }));
