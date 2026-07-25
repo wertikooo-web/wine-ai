@@ -34,6 +34,12 @@ async function main() {
         const fileStartedAt = Date.now();
         try {
             delete require.cache[fullPath];
+            // Clear all application modules cache under src/ to prevent global state leaks
+            for (const key of Object.keys(require.cache)) {
+                if (key.includes(path.sep + 'src' + path.sep)) {
+                    delete require.cache[key];
+                }
+            }
             const mod = require(fullPath);
             let wasSkipped = false;
             let assertionCount = 0;
