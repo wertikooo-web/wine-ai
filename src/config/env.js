@@ -15,6 +15,14 @@ const DEFAULT_LANGUAGE = process.env.DEFAULT_LANGUAGE || 'auto';
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 const SAVE_AUDIO = /^(1|true|yes|on)$/i.test(String(process.env.SAVE_AUDIO || ''));
 
+// Admin auth — at least one of ADMIN_PASSWORD or ADMIN_TOKEN must be set
+// in production. Both are optional in local dev (auth is disabled when
+// neither is set).
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 24 * 60 * 60 * 1000);
+const COOKIE_SECRET = process.env.COOKIE_SECRET || '';
+
 module.exports = {
     PORT,
     REALTIME_PROVIDER,
@@ -24,4 +32,13 @@ module.exports = {
     DEFAULT_LANGUAGE,
     LOG_LEVEL,
     SAVE_AUDIO,
+    get REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE() {
+        return process.env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE !== undefined
+            ? /^(1|true|yes|on)$/i.test(String(process.env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE))
+            : true;
+    },
+    ADMIN_PASSWORD,
+    ADMIN_TOKEN,
+    SESSION_TTL_MS,
+    COOKIE_SECRET,
 };

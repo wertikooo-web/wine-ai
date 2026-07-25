@@ -32,6 +32,13 @@ const {
     defaultPromptBlocks,
     sanitizePromptConfig,
 } = require('./realtimePrompt');
+const env = require('../config/env');
+const personaStore = require('../persona/personaStore');
+const { resolveProfile } = require('../persona/profileRegistry');
+const { resolveProfileRuntime } = require('../persona/runtimeResolver');
+const { buildProfileRuntimePrompt, CORE_PERSONA_PROMPT } = require('../persona/wineExpertPersona');
+const { GEMINI_VOICES } = require('../geminiVoices');
+const { GROK_VOICES } = require('../grokVoices');
 
 function id(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
@@ -314,6 +321,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let inputSampleRate = GEMINI_INPUT_SAMPLE_RATE;
     let inputSampleRateSource = 'assumed_default_no_sample_rate';
     let inputResampler = createInputResampler(inputSampleRate);
+    let sessionRuntimeSnapshot = null;
     let providerSession = providerFactory(buildProviderSessionOptions('initial'));
 
     function log(stage, extra = {}) {
@@ -347,8 +355,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     }
 
     function buildPromptBundle() {
+        const personaText = sessionRuntimeSnapshot ? sessionRuntimeSnapshot.effectivePrompt : promptBlocks.persona;
         return buildRealtimeSystemInstruction({
-            ...promptBlocks,
+            persona: personaText,
             currentContext: {
                 mode: currentMode,
                 sessionLanguage: sessionLanguage || 'auto',
@@ -362,11 +371,20 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         });
     }
 
+    function buildProviderVoiceOptions(providerId, voiceId) {
+        return { voiceName: voiceId };
+    }
+
     function buildProviderSessionOptions(rotationReason) {
         const prompt = buildPromptBundle();
+        const voiceId = sessionRuntimeSnapshot ? sessionRuntimeSnapshot.resolvedVoiceId : sessionVoiceName;
+        const voiceSource = sessionRuntimeSnapshot ? sessionRuntimeSnapshot.voiceSource : sessionVoiceConfigSource;
+        const providerId = providerMetadata.provider;
+        const voiceOpts = buildProviderVoiceOptions(providerId, voiceId);
+
         return {
-            voiceName: sessionVoiceName || undefined,
-            voiceConfigSource: sessionVoiceConfigSource,
+            ...voiceOpts,
+            voiceConfigSource: voiceSource,
             systemInstructionText: prompt.text,
             systemInstructionMeta: prompt.meta,
             promptSource,
@@ -1375,13 +1393,74 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                     promptSource = sanitized.source;
                     cachedLocalDateTime = formatLocalDateTime(DEFAULT_TIMEZONE, new Date());
 
-                    if (payload.voiceName) {
-                        const requestedVoice = normalizeProviderVoiceName(payload.voiceName);
-                        if (requestedVoice && requestedVoice !== sessionVoiceName) {
-                            sessionVoiceName = requestedVoice;
-                            sessionVoiceConfigSource = 'session_start';
-                            log('session_voice_applied', { voiceName: sessionVoiceName });
+                    if (!sessionRuntimeSnapshot) {
+                        const cachedPersona = personaStore.getCached();
+                        const resolvedProfile = resolveProfile(cachedPersona.baseProfileId, cachedPersona.overrides, cachedPersona.mood);
+                        const effectivePrompt = buildProfileRuntimePrompt({
+                            corePrompt: resolvedProfile.system_prompt || CORE_PERSONA_PROMPT,
+                            personalityPrompt: resolvedProfile.personalityPrompt,
+                            style: resolvedProfile.style,
+                            mood: resolvedProfile.mood,
+                            sommelierGender: resolvedProfile.sommelierGender
+                        });
+
+                        const providerId = providerMetadata.provider;
+                        const providerDefaultVoiceId = providerMetadata.defaultVoiceName || undefined;
+
+                        let resolved = resolveProfileRuntime({
+                            providerId,
+                            profileRuntimeDefaults: resolvedProfile.runtimeByProvider || {},
+                            runtimeOverrides: cachedPersona.overrides.runtimeByProvider || {},
+                            legacyClientVoiceId: payload.voiceName || null,
+                            allowLegacyVoice: env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE,
+                            providerDefaultVoiceId
+                        });
+
+                        let finalVoiceId = resolved.resolvedVoiceId;
+                        let finalSource = resolved.source;
+
+                        const validVoices = providerId === 'gemini' ? GEMINI_VOICES : (providerId === 'grok' ? GROK_VOICES : []);
+                        const isValid = validVoices.some(v => v.id === finalVoiceId || v.name === finalVoiceId);
+
+                        if (finalVoiceId && providerId !== 'mock' && !isValid) {
+                            if (finalSource === 'legacy_client') {
+                                log('legacy_voice_rejected', { provider: providerId, voice: finalVoiceId });
+                                console.log(`[Realtime] legacy_voice_rejected provider=${providerId} voice=${finalVoiceId}`);
+                                const fallbackResolved = resolveProfileRuntime({
+                                    providerId,
+                                    profileRuntimeDefaults: resolvedProfile.runtimeByProvider || {},
+                                    runtimeOverrides: cachedPersona.overrides.runtimeByProvider || {},
+                                    legacyClientVoiceId: null,
+                                    allowLegacyVoice: false,
+                                    providerDefaultVoiceId
+                                });
+                                finalVoiceId = fallbackResolved.resolvedVoiceId;
+                                finalSource = fallbackResolved.source;
+                            }
                         }
+
+                        sessionRuntimeSnapshot = {
+                            providerId,
+                            baseProfileId: cachedPersona.baseProfileId,
+                            resolvedVoiceId: finalVoiceId,
+                            voiceSource: finalSource,
+                            sommelierGender: resolvedProfile.sommelierGender,
+                            mood: resolvedProfile.mood,
+                            effectivePrompt
+                        };
+
+                        console.log(`[Realtime] voice_resolved provider=${providerId} source=${finalSource} voice=${finalVoiceId} profile=${cachedPersona.baseProfileId || 'custom'}`);
+                        log('voice_resolved', {
+                            provider: providerId,
+                            source: finalSource,
+                            voice: finalVoiceId,
+                            profile: cachedPersona.baseProfileId || 'custom'
+                        });
+                    }
+
+                    if (sessionRuntimeSnapshot) {
+                        sessionVoiceName = sessionRuntimeSnapshot.resolvedVoiceId;
+                        sessionVoiceConfigSource = sessionRuntimeSnapshot.voiceSource;
                     }
 
                     rotateProviderSession('session_start_config');
