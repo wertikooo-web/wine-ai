@@ -150,6 +150,78 @@ async function run() {
         t.ok(true, 'applying a command through the debug (non-Rive) input adapter does not throw');
     }
 
+    // --- 9. One AvatarCommand -> exactly one applySnapshot call (atomic snapshot, not four separate setNumber calls) ---
+    {
+        const calls = { applySnapshot: 0, fireTrigger: 0 };
+        let lastSnapshot = null;
+        const spyAdapter = {
+            applySnapshot(next) { calls.applySnapshot += 1; lastSnapshot = next; },
+            fireTrigger(name) { calls.fireTrigger += 1; },
+            dispose() {},
+        };
+        const rt = new runtime.AvatarCommandRuntime(spyAdapter);
+        rt.apply({ generationId: 'generation_hhhhhhhhhhhhhhhh', mode: 'speaking', gesture: 'present_wine', emotion: 'warm', mouth: 1, blink: false });
+        t.equal(calls.applySnapshot, 1, 'exactly one applySnapshot call per AvatarCommand');
+        t.equal(calls.fireTrigger, 0, 'no fireTrigger call when blink is false');
+        t.ok(lastSnapshot, 'applySnapshot received a snapshot object');
+        t.equal(lastSnapshot.mode, 'speaking', 'snapshot carries mode');
+        t.equal(lastSnapshot.gesture, 'present_wine', 'snapshot carries gesture');
+        t.equal(lastSnapshot.emotion, 'warm', 'snapshot carries emotion');
+        t.equal(lastSnapshot.mouth, 1, 'snapshot carries mouth');
+    }
+
+    // --- 10. blink triggers a SEPARATE fireTrigger call, not folded into the snapshot ---
+    {
+        const calls = { applySnapshot: 0, fireTrigger: [] };
+        const spyAdapter = {
+            applySnapshot() { calls.applySnapshot += 1; },
+            fireTrigger(name) { calls.fireTrigger.push(name); },
+            dispose() {},
+        };
+        const rt = new runtime.AvatarCommandRuntime(spyAdapter);
+        rt.apply({ generationId: 'generation_iiiiiiiiiiiiiiii', mode: 'idle', gesture: 'none', emotion: 'neutral', mouth: 0, blink: true });
+        t.equal(calls.applySnapshot, 1, 'applySnapshot still called exactly once when blink is true');
+        t.equal(calls.fireTrigger.length, 1, 'fireTrigger called exactly once for blink');
+        t.equal(calls.fireTrigger[0], 'blink', 'fireTrigger called with "blink"');
+    }
+
+    // --- 11. dispose() is idempotent on the debug/mock adapter ---
+    {
+        const inputAdapter = runtime.createDebugInputAdapter();
+        inputAdapter.dispose();
+        let threw = false;
+        try {
+            inputAdapter.dispose();
+        } catch {
+            threw = true;
+        }
+        t.equal(threw, false, 'calling dispose() a second time does not throw');
+    }
+
+    // --- 12. applySnapshot/fireTrigger after dispose() fail fast on the debug/mock adapter ---
+    {
+        const inputAdapter = runtime.createDebugInputAdapter();
+        inputAdapter.dispose();
+
+        let applyThrew = false;
+        try {
+            inputAdapter.applySnapshot({ mode: 'idle', gesture: 'none', emotion: 'neutral', mouth: 0 });
+        } catch {
+            applyThrew = true;
+        }
+        t.equal(applyThrew, true, 'applySnapshot() after dispose() throws (fail-fast, chosen over a silent no-op)');
+
+        let fireThrew = false;
+        try {
+            inputAdapter.fireTrigger('blink');
+        } catch {
+            fireThrew = true;
+        }
+        t.equal(fireThrew, true, 'fireTrigger() after dispose() throws (fail-fast, chosen over a silent no-op)');
+
+        t.ok(inputAdapter.getState(), 'getState() remains readable after dispose() (harmless final read)');
+    }
+
     function schemaCommand(generationId, mode) {
         return { generationId, mode, gesture: 'none', emotion: 'neutral', mouth: 0, blink: false };
     }
