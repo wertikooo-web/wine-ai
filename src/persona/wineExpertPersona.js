@@ -231,20 +231,37 @@ function buildProfileRuntimePrompt({
     personalityPrompt,
     style,
     mood,
-    sommelierGender
+    sommelierGender,
+    name,
+    description,
+    welcomeMessage
 }) {
     let result = String(corePrompt || '').trim();
+
+    const identityParts = [];
+    if (name) {
+        identityParts.push(`ИМЯ ПЕРСОНАЖА:\nТы — ${name}. Всегда представляйся именно этим именем, если пользователь спрашивает, как тебя зовут.`);
+    }
+    if (description) {
+        identityParts.push(`ОПИСАНИЕ ПЕРСОНАЖА:\n${description}`);
+    }
+    if (welcomeMessage) {
+        identityParts.push(`ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ:\nКогда пользователь приветствует тебя в начале разговора, обязательно ответь ему этим приветственным сообщением: "${welcomeMessage}"`);
+    }
+
+    const identityBlock = identityParts.length > 0
+        ? `<!-- PROFILE_IDENTITY_START -->\n${identityParts.join('\n\n')}\n<!-- PROFILE_IDENTITY_END -->`
+        : '';
 
     const personalityBlock = `<!-- PROFILE_PERSONALITY_START -->\nХАРАКТЕР ПЕРСОНАЖА:\n${personalityPrompt || ''}\n<!-- PROFILE_PERSONALITY_END -->`;
     const styleBlock = `<!-- STYLE_SETTINGS_START -->\n${buildStyleInstruction(style)}\n<!-- STYLE_SETTINGS_END -->`;
     const moodBlock = `<!-- MOOD_START -->\n${buildMoodInstruction(mood)}\n<!-- MOOD_END -->`;
 
-    result = [
-        result,
-        personalityBlock,
-        styleBlock,
-        moodBlock
-    ].join('\n\n');
+    const blocks = [result];
+    if (identityBlock) blocks.push(identityBlock);
+    blocks.push(personalityBlock, styleBlock, moodBlock);
+
+    result = blocks.join('\n\n');
 
     result = appendSommelierGenderInstruction(result, sommelierGender);
 
@@ -264,7 +281,10 @@ function getEffectivePersonaPrompt() {
         personalityPrompt: resolved.personalityPrompt,
         style: resolved.style,
         mood: resolved.mood,
-        sommelierGender: resolved.sommelierGender
+        sommelierGender: resolved.sommelierGender,
+        name: resolved.name,
+        description: resolved.description,
+        welcomeMessage: resolved.welcome_message
     });
 }
 

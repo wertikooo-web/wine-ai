@@ -1401,7 +1401,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                             personalityPrompt: resolvedProfile.personalityPrompt,
                             style: resolvedProfile.style,
                             mood: resolvedProfile.mood,
-                            sommelierGender: resolvedProfile.sommelierGender
+                            sommelierGender: resolvedProfile.sommelierGender,
+                            name: resolvedProfile.name,
+                            description: resolvedProfile.description,
+                            welcomeMessage: resolvedProfile.welcome_message
                         });
 
                         const providerId = providerMetadata.provider;
