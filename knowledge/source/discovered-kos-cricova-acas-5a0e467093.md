@@ -4,7 +4,7 @@ language: ru
 doc_type: general
 source: https://cricova.md/ro
 confidence: unverified
-updated_at: 2026-07-24T19:30:53.032Z
+updated_at: 2026-07-25T08:00:44.056Z
 ---
 
 ISTORIA
@@ -23,7 +23,5 @@ REZERVĂ ACUM
 Descoperă istoria Oraşului Subteran şi gustul desăvârşit al vinului Cricova
 
 colecţia de vinuri cricova
-
-Loading map...
 
 URMĂREŞTE-NE AICI
