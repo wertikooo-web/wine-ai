@@ -53,9 +53,12 @@ if (manifest.artboard) {
 }
 
 // --- State machine inputs ---
+// Canonical naming: snake_case everywhere for wire-level value keys and
+// animation names (fixed 2026-07-25 — see references/troubleshooting.md #1
+// for the camelCase/snake_case history this replaced).
 const EXPECTED_INPUTS = {
     mode: { type: 'number', values: { idle: 0, listening: 1, thinking: 2, speaking: 3 } },
-    gesture: { type: 'number', values: { none: 0, welcome: 1, presentWine: 2, presentAroma: 3, presentFood: 4, goodbye: 5 } },
+    gesture: { type: 'number', values: { none: 0, welcome: 1, present_wine: 2, present_aroma: 3, present_food: 4, point: 5, goodbye: 6 } },
     mouth: { type: 'number', values: { neutral: 0, A: 1, E: 2, O: 3, MBP: 4 } },
     blink: { type: 'trigger' },
     emotion: { type: 'number', values: { neutral: 0, warm: 1, delighted: 2, serious: 3 } },
@@ -95,7 +98,7 @@ for (const bone of EXPECTED_BONES) {
 }
 
 // --- Required animations ---
-const EXPECTED_ANIMATIONS = ['idle', 'listening', 'thinking', 'speaking', 'welcome', 'present_wine', 'present_aroma', 'present_food', 'goodbye', 'blink', 'smile'];
+const EXPECTED_ANIMATIONS = ['idle', 'listening', 'thinking', 'speaking', 'welcome', 'present_wine', 'present_aroma', 'present_food', 'point', 'goodbye', 'blink'];
 const PHASE_1_ANIMATIONS = ['idle', 'speaking', 'present_wine', 'blink'];
 const animations = Array.isArray(manifest.requiredAnimations) ? manifest.requiredAnimations : [];
 
@@ -106,22 +109,30 @@ for (const anim of PHASE_1_ANIMATIONS) {
     if (!animations.includes(anim)) fail(`requiredAnimations is missing Phase-1-critical animation "${anim}"`);
 }
 
-// --- Known cross-file gap: "smile" has no input/trigger anywhere ---
+// --- "smile" must NOT reappear as a required animation unless a real
+// input/trigger backs it (regression check — see references/troubleshooting.md #2:
+// it was removed 2026-07-25 for existing only to silence this validator) ---
 if (animations.includes('smile')) {
-    const hasSmileInput = inputs.some((i) => i.name === 'smile' || (i.values && 'smile' in i.values));
+    const hasSmileInput = inputs.some((i) => i.name === 'smile');
     if (!hasSmileInput) {
-        warn('"smile" is a required animation but no state-machine input can ever trigger it (see references/troubleshooting.md #2) — this is a known, not-yet-resolved spec gap, not a new bug');
+        fail('"smile" is a required animation but no state-machine input/trigger can invoke it (see references/troubleshooting.md #2 — do not re-add smile without a real trigger AND a real orchestrator event driving it)');
     }
 }
 
-// --- Gesture value casing vs animation name casing (known gap, warn only) ---
+// --- Gesture value casing must be snake_case throughout (regression check
+// for a previously-fixed gap — see references/troubleshooting.md #1) ---
 const gestureInput = inputsByName.get('gesture');
 if (gestureInput?.values) {
     const camelCaseGestures = Object.keys(gestureInput.values).filter((k) => /[a-z][A-Z]/.test(k));
-    const snakeCaseAnimNames = animations.filter((a) => a.includes('_'));
-    if (camelCaseGestures.length > 0 && snakeCaseAnimNames.length > 0) {
-        warn(`gesture input values use camelCase (${camelCaseGestures.join(', ')}) while requiredAnimations uses snake_case (${snakeCaseAnimNames.join(', ')}) — known naming mismatch, see references/troubleshooting.md #1`);
+    if (camelCaseGestures.length > 0) {
+        fail(`gesture input values must be snake_case; found camelCase: ${camelCaseGestures.join(', ')} (regression — this was fixed 2026-07-25, see references/troubleshooting.md #1)`);
     }
+}
+
+// --- "pointing" must not be silently re-mapped to present_food (regression
+// check — see references/troubleshooting.md #7) ---
+if (gestureInput?.values && !('point' in gestureInput.values)) {
+    warn('gesture input has no generic "point" value — if "pointing" is mapped to "present_food" again, confirm the orchestrator now emits real food/pairing semantics (see references/troubleshooting.md #7)');
 }
 
 // --- Report ---

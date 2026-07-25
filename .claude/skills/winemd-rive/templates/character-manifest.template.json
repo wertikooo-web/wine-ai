@@ -11,16 +11,17 @@
     "name": "SommelierSM",
     "inputs": [
       { "name": "mode", "type": "number", "values": { "idle": 0, "listening": 1, "thinking": 2, "speaking": 3 } },
-      { "name": "gesture", "type": "number", "values": { "none": 0, "welcome": 1, "presentWine": 2, "presentAroma": 3, "presentFood": 4, "goodbye": 5 } },
+      { "name": "gesture", "type": "number", "values": { "none": 0, "welcome": 1, "present_wine": 2, "present_aroma": 3, "present_food": 4, "point": 5, "goodbye": 6 } },
       { "name": "mouth", "type": "number", "values": { "neutral": 0, "A": 1, "E": 2, "O": 3, "MBP": 4 } },
       { "name": "blink", "type": "trigger" },
       { "name": "emotion", "type": "number", "values": { "neutral": 0, "warm": 1, "delighted": 2, "serious": 3 } }
     ]
   },
   "bones": ["root", "chest", "neck", "head", "shoulder_l", "elbow_l", "hand_l", "shoulder_r", "elbow_r", "hand_r"],
-  "requiredAnimations": ["idle", "listening", "thinking", "speaking", "welcome", "present_wine", "present_aroma", "present_food", "goodbye", "blink", "smile"],
-  "_knownGaps": [
-    "smile has no input/trigger anywhere — see references/troubleshooting.md #2 before assuming this is resolved",
-    "gesture.values casing (camelCase) vs requiredAnimations casing (snake_case) has no documented mapping — see references/troubleshooting.md #1"
+  "requiredAnimations": ["idle", "listening", "thinking", "speaking", "welcome", "present_wine", "present_aroma", "present_food", "point", "goodbye", "blink"],
+  "_resolvedGaps": [
+    "2026-07-25: gesture.values are snake_case throughout (present_wine/present_aroma/present_food), matching requiredAnimations' casing.",
+    "2026-07-25 (post-review): added a generic \"point\" gesture instead of mapping the real orchestrator's generic \"pointing\" state to the business-specific \"present_food\".",
+    "2026-07-25 (post-review): removed \"smile\" entirely — it existed only to silence a manifest warning, with no real event ever driving it."
   ]
 }

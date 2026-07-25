@@ -1,0 +1,49 @@
+# PSD Layer Tree
+- guides
+- hair_front
+  - fringe_left
+  - fringe_right
+  - loose_strand_left
+  - loose_strand_right
+- face
+  - brow_left
+  - brow_right
+  - eyelid_left
+  - eyelid_right
+  - eye_white_left
+  - eye_white_right
+  - iris_left
+  - iris_right
+  - pupil_left
+  - pupil_right
+  - nose
+  - mouth
+    - mouth_neutral
+    - mouth_A
+    - mouth_E
+    - mouth_O
+    - mouth_MBP
+    - teeth
+    - tongue
+  - face_base
+- hair_back
+- head
+- neck
+- torso
+  - grape_pin
+  - bow_tie
+  - vest_front
+  - shirt_front
+- arm_left
+  - upper_arm_left
+  - forearm_left
+  - hand_left
+- arm_right
+  - upper_arm_right
+  - forearm_right
+  - hand_right
+- props
+  - bottle
+  - wine_glass
+  - counter_front
+  - counter_top

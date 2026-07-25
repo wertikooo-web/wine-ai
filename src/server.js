@@ -304,6 +304,50 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
+    // WineMD Rive skill contract modules (public/visual/*.mjs) + the
+    // standalone mock-runtime debug harness (public/visual/debug/) — see
+    // .claude/skills/winemd-rive/references/runtime-integration.md.
+    // Additive only: no existing route above is touched. Debug harness is
+    // NOT linked from dashboard.html or any production UI, and — same
+    // convention as the existing /avatar-lab, /avatar-dev gate a few lines
+    // up (envFlag('AVATAR_DEV_PANEL', ...)) — is unavailable in production
+    // unless explicitly opted into. It opens a raw, unbranded WebSocket
+    // straight to /realtime with none of the dashboard's UX/rate controls,
+    // so it must not be a silently-public entry point into the live
+    // conversational backend.
+    const riveSkillJsModules = {
+        '/visual-modules/avatarCommandSchema.mjs': path.join(visualModulesDir, 'avatarCommandSchema.mjs'),
+        '/visual-modules/avatarSemanticAdapter.mjs': path.join(visualModulesDir, 'avatarSemanticAdapter.mjs'),
+        '/visual-modules/riveAvatarAdapter.mjs': path.join(visualModulesDir, 'riveAvatarAdapter.mjs'),
+        '/visual-modules/debug/avatar-debug.mjs': path.join(visualModulesDir, 'debug', 'avatar-debug.mjs'),
+    };
+    const isRiveDebugRoute = Boolean(riveSkillJsModules[pathname]) || pathname === '/visual-modules/debug/avatar-debug.html';
+    if (req.method === 'GET' && isRiveDebugRoute) {
+        const avatarDebugEnabled = envFlag('ENABLE_AVATAR_DEBUG', false);
+        if (process.env.NODE_ENV === 'production' && !avatarDebugEnabled) {
+            return sendJson(res, 404, { ok: false, error: 'not_found' });
+        }
+    }
+    if (req.method === 'GET' && riveSkillJsModules[pathname]) {
+        fs.createReadStream(riveSkillJsModules[pathname])
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'visual_module_not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+    if (req.method === 'GET' && pathname === '/visual-modules/debug/avatar-debug.html') {
+        const filePath = path.join(visualModulesDir, 'debug', 'avatar-debug.html');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'visual_module_not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
     const visualStaticFiles = {
         '/visual-assets/visual-story.css': {
             filePath: path.join(visualModulesDir, 'visual-story.css'),

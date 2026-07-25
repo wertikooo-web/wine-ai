@@ -1,0 +1,34 @@
+# File inventory
+
+- `00_reference/master_character_cutout_approx.png`
+- `00_reference/master_character_source.png`
+- `01_art_pipeline/ART_REQUIREMENTS_RU.md`
+- `01_art_pipeline/EXPORT_RULES.md`
+- `01_art_pipeline/layer_map.png`
+- `02_psd_spec/HIDDEN_GEOMETRY.md`
+- `02_psd_spec/MOUTH_AND_EYES.md`
+- `02_psd_spec/PSD_LAYER_TREE.md`
+- `03_rive/CONSTRAINTS.md`
+- `03_rive/STATE_MACHINE.md`
+- `03_rive/bone_scheme.png`
+- `03_rive/rive_manifest.json`
+- `04_animation_library/ANIMATIONS.md`
+- `04_animation_library/TIMING.md`
+- `05_runtime/README.md`
+- `05_runtime/src/SommelierController.ts`
+- `05_runtime/src/types.ts`
+- `06_winemd/INTEGRATION_PLAN.md`
+- `06_winemd/VISUAL_EVENTS.md`
+- `07_prompts/CLAUDE_PREPARE_PSD.md`
+- `07_prompts/CLAUDE_RIVE_RIG.md`
+- `07_prompts/CODEX_INTEGRATE_WINEMD.md`
+- `08_assets/bottle.svg`
+- `08_assets/counter.svg`
+- `08_assets/wine_glass.svg`
+- `09_examples/nextjs/README.md`
+- `CHANGELOG.md`
+- `LICENSE`
+- `README.md`
+- `diagrams/pipeline.mmd`
+- `docs/START_HERE_RU.md`
+- `scripts/validate_manifest.py`
