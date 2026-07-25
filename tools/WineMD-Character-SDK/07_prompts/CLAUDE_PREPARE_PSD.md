@@ -1,0 +1,2 @@
+# Prompt: prepare layered PSD
+Act as a senior 2D technical artist. Use the master character and repository specifications. Prepare a genuinely layered animation-ready PSD. Follow `02_psd_spec/PSD_LAYER_TREE.md`; redraw hidden geometry; preserve identity; keep hands, arms, eyes, pupils, brows and mouth shapes separate; validate seams by rotating each limb 15°; export a layer inventory and contact sheet. Do not claim completion unless the PSD opens correctly and contains editable layers.

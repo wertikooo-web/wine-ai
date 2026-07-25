@@ -2,20 +2,19 @@
 
 Every known inconsistency found by directly comparing `tools/WineMD-Character-SDK/` docs against each other and against the real `src/visual/*` code, as of 2026-07-25. Re-verify against current files before relying on this if it's been a while — the SDK docs or real code may have changed.
 
-## 1. Gesture casing clash inside `rive_manifest.json` itself
+## 1. Gesture casing clash inside `rive_manifest.json` itself — RESOLVED 2026-07-25
 
 `stateMachine.inputs[].gesture.values` uses camelCase (`presentWine`, `presentAroma`, `presentFood`), but the same file's top-level `requiredAnimations` array uses snake_case (`present_wine`, `present_aroma`, `present_food`) for what should be the same concept. No mapping table exists anywhere.
 
-**Resolution when building the rig**: pick one convention for the actual Rive animation names inside the `.riv` file (snake_case matches `EXPORT_RULES.md`'s general naming convention, so probably keep animation clip names snake_case), and make sure whatever code triggers animations by name (if any — a State Machine may handle this internally via its own transition graph, in which case the animation *names* inside Rive don't need to match the *input value* names at all, only the transition logic needs to reference the right clips). Verify how Rive's own transition graph actually resolves this before assuming JS-side code needs an explicit name-mapping table.
+**Resolved**: `gesture` input values in `rive_manifest.json`, `STATE_MACHINE.md`, and the SDK's `types.ts`/`SommelierController.ts` are now snake_case throughout (`present_wine`, `present_aroma`, `present_food`), matching `requiredAnimations`' casing. The project's own canonical schema (`public/visual/avatarCommandSchema.mjs`) uses the same snake_case `GESTURES` list. No mapping table is needed anymore since both sides use one convention.
 
-## 2. `smile` is a required animation with no way to trigger it
+## 2. `smile` is a required animation with no way to trigger it — RESOLVED 2026-07-25, then REVERTED 2026-07-25 (post-review)
 
-`rive_manifest.json`'s `requiredAnimations` includes `smile`, but `STATE_MACHINE.md`'s input list (`mode`, `gesture`, `mouth`, `blink`, `emotion`) has nothing that could invoke it, and neither `types.ts`'s `SommelierEvent` nor `SommelierController.ts`'s `apply()` has any field or branch for it.
+`rive_manifest.json`'s `requiredAnimations` included `smile`, but `STATE_MACHINE.md`'s input list (`mode`, `gesture`, `mouth`, `blink`, `emotion`) had nothing that could invoke it, and neither `types.ts`'s `SommelierEvent` nor `SommelierController.ts`'s `apply()` had any field or branch for it.
 
-**Resolution options** (pick one, don't invent a third silently):
-- (a) Add a `smile` trigger input to the state machine + a `smile?: boolean` field to `SommelierEvent` + a branch in `SommelierController.apply()`, analogous to `blink`.
-- (b) Treat `smile` as folded into the `goodbye` animation clip (per `ANIMATIONS.md`: "Goodbye — warm smile, small nod, return to neutral") and remove it from `requiredAnimations` as a standalone clip.
-- Don't build an animation nothing can ever play; that's wasted rig work.
+**First attempt (option a, since reverted)**: added a `smile` trigger input to `rive_manifest.json`/`STATE_MACHINE.md`, a `smile?: boolean` field to `SommelierEvent` (`types.ts`), and a matching branch in `SommelierController.apply()`. This was flagged in post-implementation review as contract drift: an input added only to silence the manifest validator's warning, never actually wired into the project's canonical `AvatarCommand` (`public/visual/avatarCommandSchema.mjs`/`avatarSemanticAdapter.mjs`) because no real orchestrator event signals a smile moment.
+
+**Resolved via option (b)**: `smile` removed entirely — from `requiredAnimations`, `STATE_MACHINE.md`, `types.ts`'s `SommelierEvent`, and `SommelierController.apply()`. Re-add only once a real orchestrator event exists to drive it, and wire it end-to-end (schema + adapter + runtime) in the same change — not as an input that exists solely to pass validation.
 
 ## 3. `VISUAL_EVENTS.md`'s worked example is incomplete
 
@@ -32,6 +31,12 @@ This is the biggest one — full detail and a starting proposed mapping table li
 ## 6. The SDK self-labels as unfinished — take that seriously
 
 `README.md` states outright: "A genuine layered PSD and binary `.riv` cannot be reconstructed perfectly from one flattened PNG. Hidden geometry must be drawn and the rig must be assembled in an editor." `rive_manifest.json`'s own `"status"` field says `"production specification / starter implementation"`. Nothing in this SDK has been rigged, reviewed in Rive, or run against real code. Don't let the specification's thoroughness (it IS thorough and mostly internally consistent apart from the gaps above) create false confidence that any of it is built yet.
+
+## 7. `pointing -> present_food` tied a generic gesture to business semantics — RESOLVED 2026-07-25 (post-review)
+
+The original mapping (`public/visual/avatarSemanticAdapter.mjs`'s `STATE_MAP`) sent the real orchestrator's `pointing` state to the SDK's `present_food` gesture, reasoning only from the fact that `runPhase('PAIRING')` is currently its one caller. `pointing` itself carries no food/pairing meaning — that reasoning bakes in current-caller behavior as if it were the state's intrinsic semantics, which breaks the moment `pointing` is used from anywhere else.
+
+**Resolved**: added a generic `point` gesture (`rive_manifest.json`, `STATE_MACHINE.md`, `types.ts`, `SommelierController.ts`, `public/visual/avatarCommandSchema.mjs`/`riveAvatarAdapter.mjs`). `pointing -> point` now. `present_food` remains reserved, unused by any current mapping, for when the orchestrator emits an explicit pairing/food-presentation event (see `state-machine-contract.md`'s "Proposed orchestrator change" section for `present_aroma` — the same pattern would apply here).
 
 ## Quick diagnostic questions when something seems off
 

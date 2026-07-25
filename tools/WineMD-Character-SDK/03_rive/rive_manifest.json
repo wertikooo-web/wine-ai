@@ -1,0 +1,90 @@
+{
+  "sdk": "WineMD Character SDK",
+  "version": "0.1.0",
+  "status": "production specification / starter implementation",
+  "artboard": {
+    "name": "Sommelier",
+    "recommendedSize": [
+      1536,
+      1024
+    ]
+  },
+  "stateMachine": {
+    "name": "SommelierSM",
+    "inputs": [
+      {
+        "name": "mode",
+        "type": "number",
+        "values": {
+          "idle": 0,
+          "listening": 1,
+          "thinking": 2,
+          "speaking": 3
+        }
+      },
+      {
+        "name": "gesture",
+        "type": "number",
+        "values": {
+          "none": 0,
+          "welcome": 1,
+          "present_wine": 2,
+          "present_aroma": 3,
+          "present_food": 4,
+          "point": 5,
+          "goodbye": 6
+        }
+      },
+      {
+        "name": "mouth",
+        "type": "number",
+        "values": {
+          "neutral": 0,
+          "A": 1,
+          "E": 2,
+          "O": 3,
+          "MBP": 4
+        }
+      },
+      {
+        "name": "blink",
+        "type": "trigger"
+      },
+      {
+        "name": "emotion",
+        "type": "number",
+        "values": {
+          "neutral": 0,
+          "warm": 1,
+          "delighted": 2,
+          "serious": 3
+        }
+      }
+    ]
+  },
+  "bones": [
+    "root",
+    "chest",
+    "neck",
+    "head",
+    "shoulder_l",
+    "elbow_l",
+    "hand_l",
+    "shoulder_r",
+    "elbow_r",
+    "hand_r"
+  ],
+  "requiredAnimations": [
+    "idle",
+    "listening",
+    "thinking",
+    "speaking",
+    "welcome",
+    "present_wine",
+    "present_aroma",
+    "present_food",
+    "point",
+    "goodbye",
+    "blink"
+  ]
+}

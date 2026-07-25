@@ -1,0 +1,2 @@
+# Prompt: integrate into WineMD
+Inspect the current WineMD repository before changing code. Integrate the official Rive web runtime and SDK controller without rewriting the realtime core. Add responsive `SommelierAvatar`; keep provider logic outside; consume semantic visual events; enforce generationId; handle interruption and stale events; preserve mobile/tabletop/kiosk layouts; add tests; document changes. Avoid unnecessary new frameworks.
