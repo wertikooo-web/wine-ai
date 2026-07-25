@@ -1,0 +1,26 @@
+{
+  "_comment": "Template only. Copy, fill in real values verified against tools/WineMD-Character-SDK/03_rive/rive_manifest.json and references/rive-rig-contract.md before use. Do not commit this template as if it were the real manifest.",
+  "sdk": "WineMD Character SDK",
+  "version": "0.0.0",
+  "status": "draft — not yet verified in Rive editor",
+  "artboard": {
+    "name": "Sommelier",
+    "recommendedSize": [1536, 1024]
+  },
+  "stateMachine": {
+    "name": "SommelierSM",
+    "inputs": [
+      { "name": "mode", "type": "number", "values": { "idle": 0, "listening": 1, "thinking": 2, "speaking": 3 } },
+      { "name": "gesture", "type": "number", "values": { "none": 0, "welcome": 1, "presentWine": 2, "presentAroma": 3, "presentFood": 4, "goodbye": 5 } },
+      { "name": "mouth", "type": "number", "values": { "neutral": 0, "A": 1, "E": 2, "O": 3, "MBP": 4 } },
+      { "name": "blink", "type": "trigger" },
+      { "name": "emotion", "type": "number", "values": { "neutral": 0, "warm": 1, "delighted": 2, "serious": 3 } }
+    ]
+  },
+  "bones": ["root", "chest", "neck", "head", "shoulder_l", "elbow_l", "hand_l", "shoulder_r", "elbow_r", "hand_r"],
+  "requiredAnimations": ["idle", "listening", "thinking", "speaking", "welcome", "present_wine", "present_aroma", "present_food", "goodbye", "blink", "smile"],
+  "_knownGaps": [
+    "smile has no input/trigger anywhere — see references/troubleshooting.md #2 before assuming this is resolved",
+    "gesture.values casing (camelCase) vs requiredAnimations casing (snake_case) has no documented mapping — see references/troubleshooting.md #1"
+  ]
+}

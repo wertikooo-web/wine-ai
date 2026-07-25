@@ -60,6 +60,8 @@ Maintain clear boundaries between:
 
 Provider-specific behavior belongs behind explicit adapters. Do not spread provider assumptions through unrelated code.
 
+**2D character / Rive avatar work**: use the `winemd-rive` skill (`.claude/skills/winemd-rive/SKILL.md`) for anything touching the WineMD character — PSD prep, Rive rigging/State Machine, animations, or wiring a `.riv` into the app. It governs `tools/WineMD-Character-SDK/` and how it maps onto the real `src/visual/*` event system.
+
 ## Turn and session lifecycle
 
 - A user turn must have one authoritative lifecycle (see `generation` object in `realtimeServer.js`).
@@ -112,3 +114,12 @@ A task is complete only when:
 - syntax and relevant smoke checks pass;
 - the final diff is reviewed;
 - limitations and unverified assumptions are stated honestly.
+
+## Integration Testing & Runtime Validation (Strict Rules)
+
+- **No Blind Mocking**: Avoid mocking internal utility files (e.g., DNS, parsers, schema helpers) in unit tests unless they make remote network requests or perform database changes. Run real files to catch boundary type mismatches.
+- **Defensive Type Checking**: Add explicit type guards on API/module boundaries. Throw explicit errors (like `TypeError`) instead of silently ignoring parameter mismatches inside try-catch blocks.
+- **Mandatory Live Reload Check**: After editing any file affecting API routes or frontend scripts, the server process must be restarted and verified with a real HTTP check (e.g., `/health` or UI action) to ensure the code loads and runs correctly in memory.
+- **No Unnecessary Test Execution**: Do NOT run the entire test suite or launch multiple parallel/unnecessary test runs during development unless explicitly requested. Only execute the specific, highly-targeted unit tests directly relevant to the changes being made.
+
+

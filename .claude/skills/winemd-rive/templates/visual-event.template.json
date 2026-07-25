@@ -1,0 +1,13 @@
+{
+  "_comment": "Template matching the REAL schema in src/visual/visualProtocol.js and the real shape emitted by src/visual/visualOrchestrator.js — see references/visual-events-contract.md. Validate with: node scripts/validate-visual-events.mjs <this-file>",
+  "type": "visual.avatar.state",
+  "protocolVersion": 1,
+  "generationId": "generation_0000000000000000",
+  "sequence": 1,
+  "state": "speaking",
+  "speechAmplitude": 0,
+  "mouthOpen": 0,
+  "emotion": "warm",
+  "gesture": "present_wine",
+  "intensity": 0.65
+}
