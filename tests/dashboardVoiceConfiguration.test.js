@@ -299,7 +299,7 @@ async function run() {
                 savedPayload = JSON.parse(options.body);
                 return { status: 200, ok: true, json: async () => ({ ok: true }) };
             }
-            if (url === '/api/persona' && method === 'GET') {
+            if (url.startsWith('/api/persona') && method === 'GET') {
                 return { status: 200, ok: true, json: async () => mockPersonaResponseEmpty };
             }
             if (url.startsWith('/api/voices')) {
@@ -356,7 +356,7 @@ async function run() {
                 savedPayload = JSON.parse(options.body);
                 return { status: 200, ok: true, json: async () => ({ ok: true }) };
             }
-            if (url === '/api/persona' && method === 'GET') {
+            if (url.startsWith('/api/persona') && method === 'GET') {
                 return { status: 200, ok: true, json: async () => mockPersonaResponseWithServerOverride };
             }
             if (url.startsWith('/api/voices')) {
@@ -392,7 +392,7 @@ async function run() {
                 savedPayload = JSON.parse(options.body);
                 return { status: 200, ok: true, json: async () => ({ ok: true }) };
             }
-            if (url === '/api/persona' && method === 'GET') {
+            if (url.startsWith('/api/persona') && method === 'GET') {
                 return { status: 200, ok: true, json: async () => mockPersonaResponseEmpty };
             }
             if (url.startsWith('/api/voices')) {
@@ -427,7 +427,7 @@ async function run() {
             if (url === '/api/persona' && method === 'POST') {
                 return { status: 400, ok: false, json: async () => ({ ok: false, error: 'invalid_data' }) };
             }
-            if (url === '/api/persona' && method === 'GET') {
+            if (url.startsWith('/api/persona') && method === 'GET') {
                 return { status: 200, ok: true, json: async () => mockPersonaResponseEmpty };
             }
             if (url.startsWith('/api/voices')) {
@@ -458,7 +458,7 @@ async function run() {
                 savedPayload = JSON.parse(options.body);
                 return { status: 200, ok: true, json: async () => ({ ok: true }) };
             }
-            if (url === '/api/persona' && method === 'GET') {
+            if (url.startsWith('/api/persona') && method === 'GET') {
                 return { status: 200, ok: true, json: async () => mockPersonaResponseEmpty };
             }
             if (url.startsWith('/api/voices')) {
@@ -503,7 +503,7 @@ async function run() {
                 savedPayload = JSON.parse(options.body);
                 return { status: 200, ok: true, json: async () => ({ ok: true }) };
             }
-            if (url === '/api/persona' && method === 'GET') {
+            if (url.startsWith('/api/persona') && method === 'GET') {
                 return { status: 200, ok: true, json: async () => ({
                     ok: true,
                     overrides: {
@@ -533,6 +533,7 @@ async function run() {
 
         // Verify sparse POST only has the changed provider
         assert.deepStrictEqual(savedPayload, {
+            profileId: 'classic',
             overrides: {
                 runtimeByProvider: {
                     gemini: { voiceId: 'Zephyr' }
@@ -542,10 +543,14 @@ async function run() {
     }
 
     console.log('ALL DASHBOARD VOICE CONFIGURATION UNIT TESTS PASSED!');
-    process.exit(0);
+    if (require.main === module) {
+        process.exit(0);
+    }
 }
 
-run().catch((err) => {
-    console.error('Targeted dashboard unit tests failed:', err);
-    process.exit(1);
-});
+if (require.main === module) {
+    run().catch((err) => {
+        console.error('Targeted dashboard unit tests failed:', err);
+        process.exit(1);
+    });
+}

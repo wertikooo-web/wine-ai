@@ -23,9 +23,9 @@ const { runUpdateCycle } = require('./knowledge/updateCycle');
 const {
     SUPPORTED_LANGUAGES, getRawPersonaPrompt,
     currentPersonaSommelierGender, currentPersonaName, currentPersonaDescription,
-    currentWelcomeMessage, getEffectivePersonaPrompt,
+    currentWelcomeMessage, getEffectivePersonaPrompt, CORE_PERSONA_PROMPT
 } = require('./persona/wineExpertPersona');
-const { listProfiles, MOODS, resolveProfile } = require('./persona/profileRegistry');
+const { listProfiles, MOODS, resolveProfile, getProfileById } = require('./persona/profileRegistry');
 const personaStore = require('./persona/personaStore');
 const { getScreenContext, buildContextualPersona } = require('./persona/screenContexts');
 const { getPurchaseOptions } = require('./data/purchaseOptions');
@@ -48,6 +48,12 @@ function envFlag(name, fallback) {
     if (value == null || value === '') return fallback;
     return /^(1|true|yes|on|enabled)$/i.test(value);
 }
+
+// Tap to Start's auto-close-on-silence timeout — a fixed operational
+// constant (not yet exposed as a user-editable setting; see
+// personaStore.js's voiceMode for the actual mode preference), shipped to
+// the client via GET /api/persona so both stay in sync from one source.
+const TAP_TO_START_IDLE_TIMEOUT_MS = Number(process.env.TAP_TO_START_IDLE_TIMEOUT_MS || 5000);
 
 function getAvatarClientConfig() {
     return {
@@ -178,7 +184,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/voices', '/api/voice-preview', '/api/persona', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/knowledge/status', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -558,12 +564,31 @@ async function handleRequest(req, res) {
         }
     }
 
+    if (pathname.startsWith('/api/persona')) {
+        const loadError = personaStore.getLoadError();
+        if (loadError) {
+            return sendJson(res, 503, {
+                ok: false,
+                error: 'persona_store_unavailable',
+                message: 'Persona settings are temporarily unavailable.'
+            });
+        }
+    }
+
     if (req.method === 'GET' && pathname === '/api/persona/profiles') {
         try {
             const providers = await providerRegistry.getPublicCapabilities();
+            const states = personaStore.listProfileStates();
+            const profilesList = listProfiles().map(p => {
+                const state = states.find(s => s.id === p.id);
+                return {
+                    ...p,
+                    hasCustomSettings: state ? state.hasCustomSettings : false
+                };
+            });
             return sendJson(res, 200, {
                 ok: true,
-                profiles: listProfiles(),
+                profiles: profilesList,
                 moods: MOODS,
                 providers
             });
@@ -573,46 +598,149 @@ async function handleRequest(req, res) {
     }
 
     if (req.method === 'GET' && pathname === '/api/persona') {
-        const override = personaStore.getCached();
-        const baseProfileId = override.baseProfileId;
-        const mood = override.mood;
-        const overrides = override.overrides || {};
-        const resolved = resolveProfile(baseProfileId, overrides, mood);
+        try {
+            const activeProfileId = personaStore.getActiveProfileId();
+            const targetProfileId = requestUrl.searchParams.get('profileId') || activeProfileId;
 
-        let customizationMode = 'preset';
-        if (baseProfileId === null) {
-            customizationMode = 'custom';
-        } else {
+            const builtin = getProfileById(targetProfileId);
+            if (!builtin) {
+                return sendJson(res, 400, { ok: false, error: 'invalid_profile_id', message: `Unknown profile ID: ${targetProfileId}` });
+            }
+
+            const rawOverrides = (personaStore.getProfilesOverrides()[targetProfileId] || {}).overrides || {};
+            const overrides = { ...rawOverrides };
+            const mood = overrides.mood || 'calm';
+            delete overrides.mood;
+            const resolved = resolveProfile(targetProfileId, overrides, mood);
+
+            let customizationMode = 'preset';
             const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
+                if (key === 'mood') {
+                    return false;
+                }
                 if (key === 'style') {
                     return Object.keys(overrides.style || {}).length > 0;
                 }
                 if (key === 'runtimeByProvider') {
                     return Object.keys(overrides.runtimeByProvider || {}).length > 0;
                 }
+                if (key === 'identity') {
+                    return Object.keys(overrides.identity || {}).length > 0;
+                }
                 return overrides[key] !== undefined && overrides[key] !== null;
             });
-            if (hasMeaningfulOverrides) {
+            if (hasMeaningfulOverrides || personaStore.isLegacyCustomProfile()) {
                 customizationMode = 'custom';
             }
+
+            const preview = getEffectivePersonaPrompt(overrides, targetProfileId, mood);
+
+            return sendJson(res, 200, {
+                ok: true,
+                name: resolved.name,
+                description: resolved.description,
+                languages: SUPPORTED_LANGUAGES,
+                welcome_message: resolved.welcomeMessage,
+                system_prompt: overrides.systemPrompt !== undefined ? overrides.systemPrompt : CORE_PERSONA_PROMPT,
+                personality_prompt: overrides.personalityPrompt !== undefined ? overrides.personalityPrompt : undefined,
+                sommelierGender: resolved.sommelierGender,
+                activeProfileId,
+                profileId: targetProfileId,
+                baseProfileId: customizationMode === 'custom' ? null : targetProfileId,
+                customizationMode,
+                mood,
+                voiceMode: personaStore.getVoiceMode(),
+                tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
+                resolved,
+                effectivePromptPreview: preview,
+                overrides
+            });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'persona_get_failed', message: error.message });
+        }
+    }
+
+    if (req.method === 'POST' && pathname === '/api/persona/preview') {
+        let body;
+        try {
+            body = await readJsonBody(req);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
 
-        return sendJson(res, 200, {
-            ok: true,
-            name: currentPersonaName(),
-            description: currentPersonaDescription(),
-            languages: SUPPORTED_LANGUAGES,
-            welcome_message: currentWelcomeMessage(),
-            system_prompt: getRawPersonaPrompt(),
-            sommelierGender: currentPersonaSommelierGender(),
+        try {
+            const profileId = body.profileId || personaStore.getActiveProfileId();
+            const mood = body.overrides?.mood || ((personaStore.getProfilesOverrides()[profileId] || {}).overrides?.mood || 'calm');
 
-            baseProfileId,
-            customizationMode,
-            mood,
-            resolved,
-            effectivePromptPreview: getEffectivePersonaPrompt(),
-            overrides
-        });
+            const current = (personaStore.getProfilesOverrides()[profileId] || {}).overrides || {};
+            const mergedOverrides = JSON.parse(JSON.stringify(current));
+
+            if (body.overrides) {
+                for (const [k, v] of Object.entries(body.overrides)) {
+                    if (v === null) {
+                        delete mergedOverrides[k];
+                    } else if (typeof v === 'object' && !Array.isArray(v)) {
+                        mergedOverrides[k] = {
+                            ...(mergedOverrides[k] || {}),
+                            ...v
+                        };
+                    } else {
+                        mergedOverrides[k] = v;
+                    }
+                }
+            }
+
+            const preview = getEffectivePersonaPrompt(mergedOverrides, profileId, mood);
+            return sendJson(res, 200, { ok: true, effectivePromptPreview: preview });
+        } catch (error) {
+            console.error('[WineAI] Error resolving preview:', error);
+            return sendJson(res, error.statusCode || 500, { ok: false, error: error.message });
+        }
+    }
+
+    if (req.method === 'POST' && pathname === '/api/persona/activate') {
+        let body;
+        try {
+            body = await readJsonBody(req);
+        } catch (error) {
+            return sendJson(res, 400, { ok: false, error: 'invalid_request' });
+        }
+
+        const profileId = body.profileId;
+        if (!profileId) {
+            return sendJson(res, 400, { ok: false, error: 'missing_profile_id' });
+        }
+
+        try {
+            await personaStore.activateProfile(profileId);
+
+            const rawOverrides = (personaStore.getProfilesOverrides()[profileId] || {}).overrides || {};
+            const overrides = { ...rawOverrides };
+            const mood = overrides.mood || 'calm';
+            delete overrides.mood;
+            const resolved = resolveProfile(profileId, overrides, mood);
+            const preview = getEffectivePersonaPrompt(overrides, profileId, mood);
+
+            return sendJson(res, 200, {
+                ok: true,
+                name: resolved.name,
+                description: resolved.description,
+                languages: SUPPORTED_LANGUAGES,
+                welcome_message: resolved.welcomeMessage,
+                system_prompt: overrides.systemPrompt !== undefined ? overrides.systemPrompt : CORE_PERSONA_PROMPT,
+                personality_prompt: overrides.personalityPrompt !== undefined ? overrides.personalityPrompt : undefined,
+                sommelierGender: resolved.sommelierGender,
+                activeProfileId: profileId,
+                profileId: profileId,
+                baseProfileId: profileId,
+                mood,
+                resolved,
+                effectivePromptPreview: preview,
+                overrides
+            });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'failed_to_activate', message: error.message });
+        }
     }
 
     if (req.method === 'POST' && pathname === '/api/persona') {
@@ -623,61 +751,101 @@ async function handleRequest(req, res) {
             return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
         }
 
-        // POST root-field validation with legacy flat fields compatibility
         const allowedRootKeys = [
-            'baseProfileId', 'mood', 'overrides', 'reset',
-            'customizationMode', 'effectivePromptPreview',
-            'name', 'description', 'welcome_message', 'system_prompt', 'sommelierGender', 'personalityPrompt'
+            'profileId', 'baseProfileId', 'mood', 'overrides', 'reset',
+            'customizationMode', 'effectivePromptPreview', 'resolved', 'languages', 'activeProfileId', 'ok',
+            'name', 'description', 'welcomeMessage', 'welcome_message',
+            'sommelierGender', 'sommelier_gender', 'personalityPrompt', 'personality_prompt',
+            'systemPrompt', 'system_prompt'
         ];
         for (const key of Object.keys(body)) {
             if (!allowedRootKeys.includes(key)) {
-                return sendJson(res, 400, { ok: false, error: 'unknown_root_field', message: `Unknown root key: ${key}` });
+                return sendJson(res, 400, { ok: false, error: 'unknown_root_field' });
             }
         }
 
+        const targetProfileId = body.profileId || body.baseProfileId || personaStore.getActiveProfileId();
+
         try {
-            const saved = await personaStore.save(body);
-            const baseProfileId = saved.baseProfileId;
-            const mood = saved.mood;
-            const overrides = saved.overrides || {};
-            const resolved = resolveProfile(baseProfileId, overrides, mood);
+            if (body.baseProfileId === null) {
+                personaStore.setLegacyCustomProfile(true);
+            } else if (body.baseProfileId !== undefined) {
+                personaStore.setLegacyCustomProfile(false);
+                const currentActiveId = personaStore.getActiveProfileId();
+                const currentActiveOverrides = (personaStore.getProfilesOverrides()[currentActiveId] || {}).overrides || {};
+                const activeMood = currentActiveOverrides.mood || 'calm';
+
+                await personaStore.activateProfile(body.baseProfileId);
+                await personaStore.resetProfile(body.baseProfileId);
+                if (activeMood && activeMood !== 'calm') {
+                    await personaStore.updateProfile(body.baseProfileId, { mood: activeMood });
+                }
+            }
+
+            if (body.reset) {
+                if (personaStore.isLegacyCustomProfile()) {
+                    return sendJson(res, 400, { ok: false, error: 'Cannot reset a custom profile' });
+                }
+                await personaStore.resetProfile(targetProfileId);
+            } else {
+                const patch = body.overrides ? { ...body.overrides } : {};
+                const flatKeys = ['name', 'description', 'welcomeMessage', 'sommelierGender', 'personalityPrompt', 'systemPrompt', 'mood', 'style', 'runtimeByProvider', 'identity'];
+                for (const key of Object.keys(body)) {
+                    if (flatKeys.includes(key)) {
+                        patch[key] = body[key];
+                    }
+                }
+                if (Object.keys(patch).length > 0) {
+                    await personaStore.updateProfile(targetProfileId, patch);
+                }
+            }
+
+            const rawOverrides = (personaStore.getProfilesOverrides()[targetProfileId] || {}).overrides || {};
+            const overrides = { ...rawOverrides };
+            const mood = overrides.mood || 'calm';
+            delete overrides.mood;
+            const resolved = resolveProfile(targetProfileId, overrides, mood);
+            const preview = getEffectivePersonaPrompt(overrides, targetProfileId, mood);
 
             let customizationMode = 'preset';
-            if (baseProfileId === null) {
-                customizationMode = 'custom';
-            } else {
-                const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
-                    if (key === 'style') {
-                        return Object.keys(overrides.style || {}).length > 0;
-                    }
-                    if (key === 'runtimeByProvider') {
-                        return Object.keys(overrides.runtimeByProvider || {}).length > 0;
-                    }
-                    return overrides[key] !== undefined && overrides[key] !== null;
-                });
-                if (hasMeaningfulOverrides) {
-                    customizationMode = 'custom';
+            const hasMeaningfulOverrides = Object.keys(overrides).some(key => {
+                if (key === 'mood') {
+                    return false;
                 }
+                if (key === 'style') {
+                    return Object.keys(overrides.style || {}).length > 0;
+                }
+                if (key === 'runtimeByProvider') {
+                    return Object.keys(overrides.runtimeByProvider || {}).length > 0;
+                }
+                if (key === 'identity') {
+                    return Object.keys(overrides.identity || {}).length > 0;
+                }
+                return overrides[key] !== undefined && overrides[key] !== null;
+            });
+            if (hasMeaningfulOverrides || personaStore.isLegacyCustomProfile()) {
+                customizationMode = 'custom';
             }
 
             return sendJson(res, 200, {
                 ok: true,
-                name: currentPersonaName(),
-                description: currentPersonaDescription(),
+                name: resolved.name,
+                description: resolved.description,
                 languages: SUPPORTED_LANGUAGES,
-                welcome_message: currentWelcomeMessage(),
-                system_prompt: getRawPersonaPrompt(),
-                sommelierGender: currentPersonaSommelierGender(),
-
-                baseProfileId,
+                welcome_message: resolved.welcomeMessage,
+                system_prompt: overrides.systemPrompt !== undefined ? overrides.systemPrompt : CORE_PERSONA_PROMPT,
+                personality_prompt: overrides.personalityPrompt !== undefined ? overrides.personalityPrompt : undefined,
+                sommelierGender: resolved.sommelierGender,
+                activeProfileId: personaStore.getActiveProfileId(),
+                baseProfileId: customizationMode === 'custom' ? null : targetProfileId,
                 customizationMode,
                 mood,
                 resolved,
-                effectivePromptPreview: getEffectivePersonaPrompt(),
-                overrides,
-                saved
+                effectivePromptPreview: preview,
+                overrides
             });
         } catch (error) {
+            console.error('[WineAI] POST /api/persona failed:', error);
             const statusCode = error.statusCode || 500;
             const code = error.statusCode ? error.message : 'persona_save_failed';
             return sendJson(res, statusCode, { ok: false, error: code, message: error.message });

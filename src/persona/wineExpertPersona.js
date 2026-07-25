@@ -182,7 +182,7 @@ const DEFAULT_DESCRIPTION = 'Цифровой эксперт по молдавс
 
 function getRawPersonaPrompt() {
     const override = personaStore.getCached();
-    return (override && override.overrides && override.overrides.system_prompt) || CORE_PERSONA_PROMPT;
+    return (override && override.overrides && (override.overrides.systemPrompt || override.overrides.system_prompt)) || CORE_PERSONA_PROMPT;
 }
 
 function currentPersonaSommelierGender() {
@@ -226,6 +226,174 @@ function appendSommelierGenderInstruction(promptText, gender) {
     }
 }
 
+function buildConversationInstruction(style = {}) {
+    const mode = style.conversationMode || 'friendly';
+    const length = style.responseLength || 'balanced';
+    const variety = style.responseVariety || 'natural';
+
+    const parts = [];
+
+    // 1. Mode rules
+    if (mode === 'strict') {
+        parts.push(
+            'CONVERSATION MODE: STRICT\n' +
+            'You must focus strictly on wine, wineries, gastronomy, wine tourism, and adjacent subjects.\n' +
+            'If the user asks off-topic questions, you must gently redirect them using this exact short polite response: ' +
+            '"Я прежде всего винный эксперт, но могу помочь подобрать вино или рассказать о винодельнях Молдовы." ' +
+            'Do not engage in casual small talk or off-topic personal discussions.'
+        );
+    } else if (mode === 'free') {
+        parts.push(
+            'CONVERSATION MODE: FREE TALK\n' +
+            'You may engage in a broad, safe conversation on almost any safe topic while preserving your core identity as a wine sommelier.\n' +
+            'Do not discuss politics or war/geopolitical military conflicts. Do not offer professional medical diagnoses, ' +
+            'treatment prescriptions, personal medical decisions, or personalized legal opinions, and do not represent yourself ' +
+            'as a doctor or lawyer (general safe information on health and law is permitted, but do not provide dangerous instructions).\n' +
+            'If the user touches on forbidden/sensitive political or military topics, respond calmly: ' +
+            '"Я стараюсь не обсуждать политические и военные темы. Давай лучше поговорим о путешествиях, культуре, еде или просто о том, как проходит твой день."'
+        );
+    } else {
+        // friendly
+        parts.push(
+            'CONVERSATION MODE: FRIENDLY\n' +
+            'You may engage in casual conversation beyond wine-related topics. You should participate in safe small talk, ' +
+            'and discuss food, travel, culture, traditions, music, emotions, and everyday subjects.\n' +
+            'You may answer casual personal questions about your fictional persona, and ask natural follow-up questions.\n' +
+            'Do not force every answer back to wine.'
+        );
+    }
+
+    // 2. responseLength rules
+    const lenText = {
+        brief: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
+        short: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
+        balanced: 'RESPONSE LENGTH: BALANCED\nKeep your answers balanced, usually 2–4 sentences (approx. 40–90 words). Give a direct answer, a short explanation, and optionally a single example. This is your default mode.',
+        detailed: 'RESPONSE LENGTH: DETAILED\nProvide detailed and comprehensive answers, usually 4–7 sentences (approx. 90–180 words). You may share context, comparisons, and stories. Do not exceed roughly one minute of speech without a direct request.'
+    }[length];
+    if (lenText) {
+        parts.push(lenText);
+    }
+
+    // 3. responseVariety rules
+    if (variety === 'stable') {
+        parts.push('STYLE VARIETY: STABLE\nMaintain a highly structured, predictable, and consistent style. Avoid variation in phrasing.');
+    } else {
+        const exprHumor = variety === 'expressive' ? 'Use light humor and playful phrasing when appropriate.' : 'Use humor only when appropriate.';
+        parts.push(
+            `STYLE VARIETY: ${variety.toUpperCase()}\n` +
+            'Vary wording and sentence structure naturally. Avoid repeated openings and closing phrases. ' +
+            'Do not repeat the welcome message. Do not begin every answer with praise such as "Отличный вопрос". ' +
+            `Do not end every answer with a follow-up question. ${exprHumor} Preserve factual accuracy.`
+        );
+    }
+
+    // 4. Boolean Flags rules
+    const directives = [];
+    if (style.askFollowUpQuestions === false) {
+        directives.push('Do not ask follow-up questions at the end of your replies.');
+    } else if (style.askFollowUpQuestions === true && mode !== 'strict') {
+        directives.push('Ask natural follow-up questions to keep the conversation engaging.');
+    }
+
+    if (style.useHumor === false) {
+        directives.push('Avoid using humor or jokes.');
+    }
+
+    if (style.talkAboutSelf === false) {
+        directives.push('Do not talk about yourself or your personal details.');
+    }
+
+    if (style.supportSmallTalk === false) {
+        directives.push('Do not engage in casual small talk.');
+    }
+
+    if (style.softlyReturnToWine === true && mode !== 'strict') {
+        directives.push('Gently and naturally connect the conversation back to Moldovan wine or gastronomy when appropriate, but do not force it on every turn or repeat the same transition.');
+    } else if (style.softlyReturnToWine === false) {
+        directives.push('Do not try to redirect the conversation back to wine.');
+    }
+
+    if (style.useFictionalBiography === true) {
+        directives.push(
+            'You may speak from the perspective of a fictional character but you must maintain a transparent frame: ' +
+            'if directly asked, answer gracefully as a fictional persona (e.g., "В моей истории...", "Если говорить как персонаж..."), ' +
+            'without claiming to be a real living human. Do not invent real-world facts (such as education, jobs, travels, family, ' +
+            'awards, or acquaintances) that are not explicitly present in your profile.'
+        );
+    } else {
+        directives.push(
+            'Do not invent any personal backstory or fictional biography. If asked about your origin, ' +
+            'state honestly that your name and settings were designed by the WINE AI creators.'
+        );
+    }
+
+    if (directives.length > 0) {
+        parts.push('CONVERSATION RULES:\n- ' + directives.join('\n- '));
+    }
+
+    return parts.join('\n\n');
+}
+
+function buildPersonaKnowledgeInstruction({ name, description, welcomeMessage, identity = {}, style = {} }) {
+    const lines = [];
+
+    lines.push('Ты — цифровой сомелье, искусственный интеллект (AI).');
+
+    if (name) {
+        lines.push(`Твоё имя: ${name}.`);
+    }
+    if (description) {
+        lines.push(`Твоя роль/описание: ${description}`);
+    }
+
+    if (identity.background) {
+        lines.push(`История имени и происхождения: ${identity.background}`);
+    }
+
+    if (identity.creatorDescription) {
+        lines.push(`Твои создатели: ${identity.creatorDescription}`);
+    }
+
+    if (identity.roleDescription) {
+        lines.push(`Твои возможности и обязанности: ${identity.roleDescription}`);
+    }
+
+    if (identity.selfAdvantages) {
+        lines.push(`Твои преимущества перед человеком: ${identity.selfAdvantages}`);
+    }
+
+    if (identity.selfLimitations) {
+        lines.push(`Преимущества живого человека перед тобой: ${identity.selfLimitations}`);
+    }
+
+    if (identity.wineAffinity) {
+        lines.push(`Твоя связь с молдавским вином и специализация: ${identity.wineAffinity}`);
+    }
+
+    if (identity.interests && identity.interests.length > 0) {
+        lines.push(`Твои интересы для свободного общения: ${identity.interests.join(', ')}.`);
+    }
+
+    const useFictionalBio = style.useFictionalBiography === true;
+    if (useFictionalBio) {
+        lines.push('Твоя биография художественная. Ты можешь использовать художественные и вымышленные детали в рамках своего образа, но никогда не выдавай себя за реального живого человека и не придумывай реальные жизненные факты (такие как конкретное образование, дипломы, работу в реальных ресторанах, поездки, семью или личные знакомства), которых нет в твоём описании.');
+    } else {
+        lines.push('У тебя нет личной человеческой биографии, родителей, детства, места рождения или реального жизненного опыта. Ты — AI-ассистент, и если тебя спрашивают о твоих человеческих деталях (где учился, есть ли дети), ты должен честно и вежливо напомнить, что ты цифровая сущность, созданная и настроенная командой WINE AI.');
+    }
+
+    lines.push(
+        '\nИНСТРУКЦИИ ПО ИСПОЛЬЗОВАНИЮ ЭТИХ ДАННЫХ:\n' +
+        '- Всегда вежливо и открыто признавай, что ты — цифровой сомелье на базе искусственного интеллекта (AI).\n' +
+        '- Уважительно сравнивай себя с живым сомелье: не заявляй, что ты объективно лучше человека, признавай, что у тебя нет физического вкуса, обоняния, осязания, дегустационного опыта и человеческой интуиции.\n' +
+        '- Объясняй свою специализацию на молдавских винах уважительно и без принижения винных традиций других стран (например, Грузии или Франции) — говори, что ты создан и настроен именно как эксперт по Молдове, что и определяет твои обширные знания в этой сфере.\n' +
+        '- Не заявляй, что ты лично пробовал вино или испытываешь от него физическое удовольствие.\n' +
+        '- Используй этот блок сведений как единственный источник правды о своей личности и не выдумывай отсутствующие факты о себе.\n' +
+        '- Отвечай на вопросы о себе естественно, кратко и не повторяй весь этот профиль в каждом ответе.'
+    );
+
+    return lines.join('\n');
+}
+
 function buildProfileRuntimePrompt({
     corePrompt,
     personalityPrompt,
@@ -234,7 +402,8 @@ function buildProfileRuntimePrompt({
     sommelierGender,
     name,
     description,
-    welcomeMessage
+    welcomeMessage,
+    identity
 }) {
     let result = String(corePrompt || '').trim();
 
@@ -256,10 +425,12 @@ function buildProfileRuntimePrompt({
     const personalityBlock = `<!-- PROFILE_PERSONALITY_START -->\nХАРАКТЕР ПЕРСОНАЖА:\n${personalityPrompt || ''}\n<!-- PROFILE_PERSONALITY_END -->`;
     const styleBlock = `<!-- STYLE_SETTINGS_START -->\n${buildStyleInstruction(style)}\n<!-- STYLE_SETTINGS_END -->`;
     const moodBlock = `<!-- MOOD_START -->\n${buildMoodInstruction(mood)}\n<!-- MOOD_END -->`;
+    const conversationBlock = `<!-- CONVERSATION_SETTINGS_START -->\n${buildConversationInstruction(style)}\n<!-- CONVERSATION_SETTINGS_END -->`;
+    const personaKnowledgeBlock = `<!-- PERSONA_KNOWLEDGE_START -->\n${buildPersonaKnowledgeInstruction({ name, description, welcomeMessage, identity, style })}\n<!-- PERSONA_KNOWLEDGE_END -->`;
 
     const blocks = [result];
     if (identityBlock) blocks.push(identityBlock);
-    blocks.push(personalityBlock, styleBlock, moodBlock);
+    blocks.push(personalityBlock, styleBlock, moodBlock, conversationBlock, personaKnowledgeBlock);
 
     result = blocks.join('\n\n');
 
@@ -271,9 +442,13 @@ All preceding character profiles, mood adjustments, and style guidelines are mod
     return result + safetyReminder;
 }
 
-function getEffectivePersonaPrompt() {
+function getEffectivePersonaPrompt(customOverrides, customBaseProfileId, customMood) {
     const override = personaStore.getCached();
-    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
+    const baseProfileId = customBaseProfileId !== undefined ? customBaseProfileId : override.baseProfileId;
+    const mood = customMood !== undefined ? customMood : override.mood;
+    const overrides = customOverrides !== undefined ? customOverrides : override.overrides;
+
+    const resolved = resolveProfile(baseProfileId, overrides, mood);
     const corePrompt = resolved.system_prompt || CORE_PERSONA_PROMPT;
 
     return buildProfileRuntimePrompt({
@@ -284,7 +459,8 @@ function getEffectivePersonaPrompt() {
         sommelierGender: resolved.sommelierGender,
         name: resolved.name,
         description: resolved.description,
-        welcomeMessage: resolved.welcome_message
+        welcomeMessage: resolved.welcome_message,
+        identity: resolved.identity
     });
 }
 
