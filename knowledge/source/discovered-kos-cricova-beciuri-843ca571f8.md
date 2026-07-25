@@ -4,7 +4,7 @@ language: ru
 doc_type: general
 source: https://cricova.md/ro/beciurile
 confidence: unverified
-updated_at: 2026-07-25T08:00:44.056Z
+updated_at: 2026-07-25T08:02:18.262Z
 ---
 
 GALERIILE SUBTERANE
