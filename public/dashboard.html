@@ -1441,17 +1441,22 @@
   // Persisted server-side via personaStore (voiceMode field), same
   // mechanism as mood/baseProfileId — no separate storage.
   //
-  // HOTFIX (temporary): live diagnosis found that provider-native VAD
-  // (both Gemini automaticActivityDetection and Grok server_vad) does not
-  // currently produce a working Tap to Start turn in production — see the
-  // diagnostic logging added to geminiLiveProvider.js/grokVoiceProvider.js
-  // for root-cause investigation. Until that's resolved, Tap to Start is
-  // disabled client-side: the button is inert, shows "Temporarily
-  // unavailable", and any previously-saved tap_to_start preference is
-  // overridden to hold_to_talk on load. The implementation itself is NOT
-  // removed — only gated off. Flip TAP_TO_START_TEMPORARILY_DISABLED back
-  // to false once the provider-native VAD root cause is fixed.
-  const TAP_TO_START_TEMPORARILY_DISABLED = true;
+  // Tap to Start support is gated PER PROVIDER, not by one global flag.
+  // Live-tested and confirmed (2026-07-26): Grok server_vad works
+  // end-to-end including automatic response.create; Gemini
+  // automaticActivityDetection works for real multi-turn conversations
+  // after a server-side fix (this account never emits `voiceActivity`, so
+  // realtimeServer.js/geminiLiveProvider.js now use the arrival of real
+  // inputTranscription/generationComplete content as the practical
+  // equivalent signal — see geminiLiveProvider.js's handleMessage()/
+  // emitOutputEnd() comments). Both providers are confirmed and enabled.
+  // If a future provider is added without a working native-VAD path,
+  // simply leave it out of this set rather than reintroducing a global
+  // disable flag.
+  const TAP_TO_START_SUPPORTED_PROVIDERS = new Set(['gemini', 'grok']);
+  function isTapToStartSupportedForCurrentProvider() {
+    return TAP_TO_START_SUPPORTED_PROVIDERS.has(selectedRealtimeProvider);
+  }
   let voiceMode = 'hold_to_talk';
   let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
   let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
@@ -2485,11 +2490,12 @@
     const tapBtn = el('voiceModeTapBtn');
     if (holdBtn) holdBtn.classList.toggle('active', voiceMode === 'hold_to_talk');
     if (tapBtn) tapBtn.classList.toggle('active', voiceMode === 'tap_to_start');
-    if (tapBtn) tapBtn.disabled = TAP_TO_START_TEMPORARILY_DISABLED;
+    const tapSupported = isTapToStartSupportedForCurrentProvider();
+    if (tapBtn) tapBtn.disabled = !tapSupported;
     const unavailable = el('voiceModeTapUnavailable');
     if (unavailable) {
-      unavailable.hidden = !TAP_TO_START_TEMPORARILY_DISABLED;
-      if (TAP_TO_START_TEMPORARILY_DISABLED) unavailable.textContent = getUiString('voiceModeTapUnavailable');
+      unavailable.hidden = tapSupported;
+      if (!tapSupported) unavailable.textContent = getUiString('voiceModeTapUnavailable');
     }
     const hint = el('voiceModeHint');
     if (hint) hint.textContent = getUiString(voiceMode === 'tap_to_start' ? 'voiceModeTapHint' : 'voiceModeHoldHint');
@@ -2510,7 +2516,7 @@
   // than trying to carry any state into the new mode.
   async function setVoiceMode(mode, { persist = true } = {}) {
     if (mode !== 'hold_to_talk' && mode !== 'tap_to_start') return;
-    if (mode === 'tap_to_start' && TAP_TO_START_TEMPORARILY_DISABLED) return; // hotfix — see declaration above
+    if (mode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) return; // per-provider gate — see declaration above
     if (mode === voiceMode) return;
 
     if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
@@ -2803,12 +2809,27 @@
   }
 
   async function selectRealtimeProvider(providerId) {
+    // The provider buttons are already disabled while a session is open
+    // (setProviderControlsDisabled(true) on connect) and this guard refuses
+    // to run at all while ws is open/connecting — so a provider switch can
+    // never happen out from under an active Tap to Start session in
+    // practice. The teardown below is still applied defensively (harmless
+    // no-op if nothing is active) in case that invariant ever changes.
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     const config = realtimeProviderConfigs.find((item) => item.id === providerId);
     if (!config?.configured) return;
     selectedRealtimeProvider = providerId;
     localStorage.setItem('wineAiRealtimeProvider', providerId);
     selectedVoiceName = localStorage.getItem(`wineAiVoiceName:${providerId}`) || '';
+    // Per-provider Tap to Start gate: if the newly-selected provider
+    // doesn't support it, don't leave voiceMode stuck on a mode the mic
+    // button can no longer act on.
+    if (voiceMode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) {
+      if (tapToStartActive || pendingTapStart) await stopConversationOnTap();
+      if (ws) disconnect();
+      voiceMode = 'hold_to_talk';
+    }
+    applyVoiceModeUI();
     renderProviderOptions(realtimeProviderConfigs);
     await loadVoices();
   }
@@ -4605,12 +4626,11 @@
     // as mood/baseProfileId — no separate storage. tapToStartIdleTimeoutMs
     // is a read-only server config value, not user-editable here.
     if (data && (data.voiceMode === 'hold_to_talk' || data.voiceMode === 'tap_to_start')) {
-      // Hotfix: a previously-saved tap_to_start preference must not be
-      // honored while provider-native VAD is broken — force hold_to_talk
-      // on load instead. Does NOT overwrite the saved preference server-
-      // side, so this reverts cleanly once TAP_TO_START_TEMPORARILY_DISABLED
-      // is flipped back to false.
-      voiceMode = (data.voiceMode === 'tap_to_start' && TAP_TO_START_TEMPORARILY_DISABLED)
+      // A previously-saved tap_to_start preference is only honored if the
+      // CURRENTLY selected provider actually supports it (per-provider
+      // gate — see TAP_TO_START_SUPPORTED_PROVIDERS declaration above).
+      // Does not overwrite the saved preference server-side.
+      voiceMode = (data.voiceMode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider())
         ? 'hold_to_talk'
         : data.voiceMode;
     }
