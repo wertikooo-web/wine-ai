@@ -1951,7 +1951,10 @@
   function log(stage, extra) {
     // Diagnostics tab (and its #log console) was removed per request —
     // kept as a guarded no-op rather than deleting every call site, since
-    // logging calls are threaded through most event handlers below.
+    // logging calls are threaded through most event handlers below. This is
+    // ONLY a local (browser-console-adjacent, in fact nowhere-visible-at-all)
+    // trace — it never reaches the server. Anything that needs to show up in
+    // Railway logs must go through sendTelemetry() instead (see below).
     if (!el('log')) return;
     const line = document.createElement('div');
     const ts = new Date().toISOString().slice(11, 23);
@@ -1960,6 +1963,26 @@
     box.appendChild(line);
     while (box.children.length > 300) box.removeChild(box.firstChild);
     box.scrollTop = box.scrollHeight;
+  }
+
+  // Client-side diagnostics (mic lifecycle, playback stop, mode switches,
+  // disconnect ordering) were previously only passed to log() above, which
+  // — since the Diagnostics tab was removed — is a dead no-op with no
+  // visible sink at all, not even the browser console. None of it ever
+  // reached Railway. This actually sends it over the open ws connection as
+  // a small JSON message the server re-logs (see realtimeServer.js's
+  // 'client_telemetry' handling), which is what makes it show up in
+  // production logs. Never includes audio data — only ids, counts,
+  // durations, and short enum-like reason strings. Best-effort: if the
+  // socket isn't open (already closed, or never connected), this silently
+  // does nothing rather than throwing.
+  function sendTelemetry(stage, data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ type: 'client_telemetry', stage, data: data || {} }));
+      } catch { /* best-effort */ }
+    }
+    log(stage, data);
   }
 
   function addTranscriptTurn(role, text) {
@@ -2202,7 +2225,7 @@
       try {
         await ensureMic();
       } catch (err) {
-        log('mic_prewarm_error', { message: err.message });
+        sendTelemetry('mic_prewarm_error', { message: err.message });
       }
       sendSessionStart();
       log('ws_open', { sampleRate: inputSampleRate });
@@ -2256,9 +2279,10 @@
     });
   }
 
-  // Exact required order (verified by the telemetry below):
-  // disconnect_clicked (logged by the caller) -> playback_stop_called ->
-  // active_sources_after_stop=0 -> mic_stopped -> socket_close_started.
+  // Exact required order (verified by the telemetry below, all sent to the
+  // server via sendTelemetry -> 'client_telemetry' -> Railway logs):
+  // disconnect_clicked (logged by the caller) -> playback_stop_started ->
+  // active_sources_after=0 -> mic_stopped -> socket_close_started.
   // Local playback stop MUST be the first thing this function does, and the
   // socket close MUST be the last — never the other way around. Previously
   // ws.close() ran BEFORE stopMic()/teardown, so a server-side cancel
@@ -2270,7 +2294,7 @@
   // to react while the socket is still open; closing local playback does
   // NOT depend on that message succeeding either way.
   function disconnect() {
-    log('disconnect_started', {
+    sendTelemetry('disconnect_started', {
       wsReadyState: ws ? ws.readyState : null,
       micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
       processorLive: Boolean(processor),
@@ -2281,7 +2305,7 @@
 
     isHolding = false; // stop sending audio frames before the mic itself is torn down
     stopMic();
-    log('mic_stopped', {});
+    sendTelemetry('mic_stopped', {});
 
     // disconnect() is the one low-level teardown point called from several
     // places (the main Connect/Disconnect button's toggleConnection(),
@@ -2300,7 +2324,7 @@
     if (ws && ws.readyState === WebSocket.OPEN) {
       try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
     }
-    log('socket_close_started', {});
+    sendTelemetry('socket_close_started', {});
     if (ws) ws.close();
 
     log('disconnect_completed', {
@@ -2336,7 +2360,7 @@
   }
   function toggleConnection() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-      log('disconnect_clicked', {});
+      sendTelemetry('disconnect_clicked', {});
       disconnect();
     } else {
       // The plain Talk-tab Connect button always starts a general session —
@@ -2348,6 +2372,15 @@
   }
 
   function handleEvent(payload) {
+    // response.interrupted must win a race against every other handling of
+    // this event — it is the server's normalized, generation-scoped signal
+    // that the provider itself (not our own state machine) declared a
+    // generation dead (see geminiLiveProvider.js's handleProviderInterrupted()).
+    // Checked before the log()/visual.* routing below on purpose: nothing
+    // about silencing local playback should wait on those.
+    if (payload.type === 'response.interrupted') {
+      stopPlaybackImmediately({ reason: payload.reason || 'provider_interrupted', generationId: payload.generation_id });
+    }
     log(payload.type, { turn: payload.turn_id, gen: payload.generation_id });
     setText('dSession', payload.session_id || '—');
     if (String(payload.type || '').startsWith('visual.')) {
@@ -2357,6 +2390,10 @@
     }
 
     switch (payload.type) {
+      case 'response.interrupted':
+        // Local stop already ran above, synchronously, before any other
+        // processing of this event. Nothing further to do here.
+        break;
       case 'session.ready':
         setDot('providerDot', 'ok');
         setText('providerLabel', 'provider: ' + (payload.provider || '—'));
@@ -2422,7 +2459,7 @@
         break;
       case 'response.cancelled':
         setText('latencyState', (payload.cancel_latency_ms || 0) + ' ms (interrupted)');
-        log('playback_cancel_received', { reason: payload.reason, generationId: payload.generation_id });
+        sendTelemetry('playback_cancel_received', { reason: payload.reason, generationId: payload.generation_id });
         stopPlaybackImmediately({ reason: payload.reason || 'server_cancel', generationId: payload.generation_id });
         break;
       case 'response.failed':
@@ -2448,7 +2485,7 @@
   function logMicTrackSettings(track, stage) {
     const s = track.getSettings ? track.getSettings() : {};
     lastMicTrackSettings = s;
-    log(stage, {
+    sendTelemetry(stage, {
       trackId: track.id,
       readyState: track.readyState,
       enabled: track.enabled,
@@ -2499,20 +2536,20 @@
     // interruption.
     const forVoice = voiceMode === 'tap_to_start';
     const constraints = { channelCount: 1, sampleRate: 16000, echoCancellation: forVoice, noiseSuppression: forVoice, autoGainControl: false };
-    log('mic_get_user_media_requested', { forVoice, ...constraints });
+    sendTelemetry('mic_get_user_media_requested', { forVoice, ...constraints });
     const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
     micStream = stream;
     const track = stream.getAudioTracks()[0];
-    log('mic_get_user_media_resolved', { trackId: track ? track.id : null, trackCount: stream.getAudioTracks().length });
+    sendTelemetry('mic_get_user_media_resolved', { trackId: track ? track.id : null, trackCount: stream.getAudioTracks().length });
     if (track) {
       logMicTrackSettings(track, 'mic_track_settings');
-      log('mic_track_started', { trackId: track.id });
+      sendTelemetry('mic_track_started', { trackId: track.id });
       // Diagnostic only — surfaces the browser/OS ending the track outside
       // our own stopMic() (device unplugged, OS-level permission revoked,
       // etc.), which would otherwise silently leave micStream pointing at a
       // dead track.
       track.addEventListener('ended', () => {
-        log('mic_track_stopped', { trackId: track.id, reason: 'track_ended_event', readyState: track.readyState });
+        sendTelemetry('mic_track_stopped', { trackId: track.id, reason: 'track_ended_event', readyState: track.readyState });
       });
     }
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
@@ -2524,7 +2561,7 @@
     // obvious error.
     inputSampleRate = audioContext.sampleRate;
     if (inputSampleRate !== 16000 && inputSampleRate !== 24000) {
-      log('mic_sample_rate_unsupported', { actual: inputSampleRate });
+      sendTelemetry('mic_sample_rate_unsupported', { actual: inputSampleRate });
     }
     micSource = audioContext.createMediaStreamSource(micStream);
     processor = audioContext.createScriptProcessor(2048, 1, 1);
@@ -2549,7 +2586,7 @@
     };
     micSource.connect(processor);
     processor.connect(audioContext.destination);
-    log('mic_processor_started', {});
+    sendTelemetry('mic_processor_started', {});
     setText('micState', 'ready');
   }
 
@@ -2564,7 +2601,7 @@
     if (processor) {
       processor.onaudioprocess = null;
       processor.disconnect();
-      log('mic_processor_stopped', {});
+      sendTelemetry('mic_processor_stopped', {});
     }
     processor = null;
     if (micSource) {
@@ -2574,7 +2611,7 @@
     if (micStream) {
       micStream.getTracks().forEach((t) => {
         t.stop();
-        log('mic_track_stopped', { trackId: t.id, reason: 'stop_mic', readyState: t.readyState });
+        sendTelemetry('mic_track_stopped', { trackId: t.id, reason: 'stop_mic', readyState: t.readyState });
       });
     }
     micStream = null;
@@ -2599,7 +2636,7 @@
       setText('micState', 'recording');
       DeviceVisual.setState('listening');
       ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk' }));
-    }).catch((err) => log('mic_error', { message: err.message }));
+    }).catch((err) => sendTelemetry('mic_error', { message: err.message }));
   }
 
   function endTurn() {
@@ -2668,7 +2705,7 @@
     // disconnect(), both awaited below, never fire-and-forget in parallel
     // with the new mode starting up) actually completes before the new mode
     // takes over the mic/ws.
-    log('mode_switch_started', {
+    sendTelemetry('mode_switch_started', {
       from: voiceMode,
       to: mode,
       tapToStartActive,
@@ -2703,7 +2740,7 @@
       }
     }
 
-    log('mode_switch_completed', {
+    sendTelemetry('mode_switch_completed', {
       to: voiceMode,
       tapToStartActive,
       pendingTapStart,
@@ -3057,6 +3094,21 @@
       && !cancelledGenerationIds.has(generationId);
   }
 
+  // Real counter, not a placeholder: incremented before decodeAudioData()
+  // starts, decremented when it settles (either way). The Web Audio API
+  // gives no way to abort an in-flight decode, so this can only report what
+  // is actually true — for the live Gemini/tap_to_start path every audio
+  // chunk is mime_type 'audio/pcm' and goes through the synchronous
+  // playRawPcm16() path below, never through decodeAudioData at all, so this
+  // stays 0 in practice for that path; it exists for the (currently unused
+  // by any live provider) audio/wav branch in playAudioChunk().
+  let pendingDecodeCount = 0;
+  let stopOperationCounter = 0;
+  function nextStopOperationId() {
+    stopOperationCounter += 1;
+    return `stop_${Date.now()}_${stopOperationCounter}`;
+  }
+
   function playRawPcm16(bytes, sampleRate, generationId) {
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
     const samples = bytes.length / 2;
@@ -3085,7 +3137,7 @@
 
   function maybeFinishSpeaking() {
     if (!serverAudioEnded || activeSources.size > 0) return;
-    log('playback_stopped', { reason: 'drained' });
+    sendTelemetry('playback_stopped', { reason: 'drained' });
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
     // Tap to Start: the assistant has FULLY finished (playback drained, not
@@ -3106,10 +3158,10 @@
   // itself synchronous, but callers reach it via an async decode).
   function schedulePlayback(buffer, generationId) {
     if (!isGenerationAccepted(generationId)) {
-      log('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_schedule' });
+      sendTelemetry('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_schedule' });
       return;
     }
-    if (activeSources.size === 0) log('playback_started', {});
+    if (activeSources.size === 0) sendTelemetry('playback_started', {});
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
     src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
@@ -3132,50 +3184,84 @@
   // separate, purely local action rather than something we wait on the
   // server to trigger for us.
   function stopPlaybackImmediately({ reason, generationId }) {
-    log('playback_stop_called', { reason, generationId, acceptedPlaybackGenerationId });
-    const beforeCount = activeSources.size;
-    log('active_sources_before_stop', { count: beforeCount });
+    const stopOperationId = nextStopOperationId();
+    const startedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    sendTelemetry('playback_stop_started', { stopOperationId, reason, generationId, acceptedPlaybackGenerationId });
+
+    const activeSourcesBefore = activeSources.size;
+    // No separate "not yet scheduled" queue exists in this pipeline — every
+    // chunk is either scheduled synchronously (PCM16, the only mime type any
+    // live provider actually sends) or via decodeAudioData (WAV, tracked by
+    // pendingDecodeCount below), both gated by isGenerationAccepted(). 0 here
+    // documents that there is no separate queue to drain, not that one was
+    // skipped.
+    const queuedChunksBefore = 0;
+    const pendingDecodesBefore = pendingDecodeCount;
+    sendTelemetry('active_sources_before', { stopOperationId, count: activeSourcesBefore });
+    sendTelemetry('queued_chunks_before', { stopOperationId, count: queuedChunksBefore });
+    sendTelemetry('pending_decodes_before', { stopOperationId, count: pendingDecodesBefore });
+
     if (generationId) cancelledGenerationIds.add(generationId);
     if (acceptedPlaybackGenerationId) cancelledGenerationIds.add(acceptedPlaybackGenerationId);
     acceptedPlaybackGenerationId = null;
-    log('accepted_generation_cleared', {});
+    sendTelemetry('accepted_generation_cleared', { stopOperationId });
+
     for (const src of activeSources) {
       try { src.onended = null; src.stop(0); } catch { /* already stopped */ }
       try { src.disconnect(); } catch { /* already disconnected */ }
     }
     activeSources.clear();
-    log('active_sources_after_stop', { count: activeSources.size });
-    // No separate "not yet scheduled" queue exists in this pipeline — every
-    // chunk is either scheduled synchronously (PCM16) or via decodeAudioData
-    // (WAV), and both paths are gated by isGenerationAccepted() above/below;
-    // logging 0/0 here documents that there is nothing left to drop by the
-    // time this returns, not that a queue was skipped.
-    log('queued_chunks_before_clear', { count: 0 });
-    log('queued_chunks_after_clear', { count: 0 });
+
     playbackQueueTime = audioContext ? audioContext.currentTime : 0;
     serverAudioEnded = true;
     if (avatar3d) avatar3d.resetAudio();
     DeviceVisual.setState('listening');
-    if (beforeCount > 0) log('playback_stopped', { reason });
-    log('local_playback_stopped', { reason });
+
+    const activeSourcesAfter = activeSources.size;
+    const queuedChunksAfter = 0;
+    // Not literally forced to 0 — decodeAudioData can't be aborted — but any
+    // decode still in flight will find its generation no longer accepted and
+    // self-report as pending_decode_dropped instead of producing sound; see
+    // playAudioChunk().
+    const pendingDecodesAfter = pendingDecodeCount;
+    sendTelemetry('active_sources_after', { stopOperationId, count: activeSourcesAfter });
+    sendTelemetry('queued_chunks_after', { stopOperationId, count: queuedChunksAfter });
+    sendTelemetry('pending_decodes_after', { stopOperationId, count: pendingDecodesAfter });
+
+    if (activeSourcesBefore > 0) sendTelemetry('playback_stopped', { stopOperationId, reason });
+    const stopDurationMs = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt);
+    sendTelemetry('playback_stop_completed', {
+      stopOperationId,
+      reason,
+      stopDurationMs,
+      activeSourcesBefore,
+      activeSourcesAfter,
+      queuedChunksBefore,
+      queuedChunksAfter,
+      pendingDecodesBefore,
+      pendingDecodesAfter,
+    });
+    sendTelemetry('local_playback_stopped', { stopOperationId, reason });
   }
 
   function playAudioChunk(payload) {
     const generationId = payload.generation_id;
     if (!isGenerationAccepted(generationId)) {
-      log('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_decode' });
+      sendTelemetry('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_decode' });
       return;
     }
     const bytes = decodeBase64ToBytes(payload.audio_base64);
     if (payload.mime_type === 'audio/wav') {
       audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      pendingDecodeCount += 1;
       audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), (buf) => {
+        pendingDecodeCount = Math.max(0, pendingDecodeCount - 1);
         if (!isGenerationAccepted(generationId)) {
-          log('pending_decode_dropped', { generationId, acceptedPlaybackGenerationId });
+          sendTelemetry('pending_decode_dropped', { generationId, acceptedPlaybackGenerationId });
           return;
         }
         schedulePlayback(buf, generationId);
-      }).catch(() => {});
+      }).catch(() => { pendingDecodeCount = Math.max(0, pendingDecodeCount - 1); });
     } else {
       playRawPcm16(bytes, payload.sample_rate || 24000, generationId);
     }
@@ -3245,7 +3331,7 @@
   pttBtn.addEventListener('click', () => {
     if (voiceMode !== 'tap_to_start') return;
     if (tapToStartActive) {
-      log('disconnect_clicked', {});
+      sendTelemetry('disconnect_clicked', {});
       stopConversationOnTap();
     } else startConversationOnTap();
   });
