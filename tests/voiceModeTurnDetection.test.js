@@ -271,8 +271,11 @@ test('realtimeServer: tap_to_start turn opened by the client is finalized by a n
         await client.waitFor((e) => e.type === 'session.config.applied');
 
         // The single client-sent input_audio.start that opens the whole
-        // tap_to_start conversation (the tap).
-        client.sendJson({ type: 'input_audio.start', mode: 'tap_to_start' });
+        // tap_to_start conversation (the tap). Real dashboard.html reports
+        // its actual mic track.getSettings() here (see resumeTapListening());
+        // handleNativeSpeechStarted() now requires this confirmation before
+        // trusting a later native "speech started" to open a new turn.
+        client.sendJson({ type: 'input_audio.start', mode: 'tap_to_start', micEchoCancellation: true, micTrackId: 'test-track' });
         const firstStart = await client.waitFor((e) => e.type === 'input_audio.start', { label: 'first input_audio.start echo' });
         assert.ok(firstStart.generation_id);
 
