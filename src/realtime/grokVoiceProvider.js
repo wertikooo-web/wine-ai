@@ -180,9 +180,23 @@ class GrokVoiceProviderSession {
                 socket.on('close', (code) => {
                     if (!this.closed && this.active) this.failActive('grok_socket_closed', new Error(String(code)));
                 });
+                const sentSessionConfig = buildGrokSessionConfig(this.options, this.config);
+                // TEMPORARY diagnostic (tap_to_start only) for the
+                // provider-native-VAD-not-working investigation — logs
+                // exactly what session.update was sent. No API key, no
+                // system prompt text, no audio.
+                if (this.voiceMode === 'tap_to_start') {
+                    log('grok_vad_diag_session_update_sent', {
+                        providerInstanceId: this.instanceId,
+                        model: this.model,
+                        turnDetection: JSON.stringify(sentSessionConfig.turn_detection),
+                        inputAudioFormat: JSON.stringify(sentSessionConfig.audio?.input?.format),
+                        outputAudioFormat: JSON.stringify(sentSessionConfig.audio?.output?.format),
+                    });
+                }
                 this.sendRaw({
                     type: 'session.update',
-                    session: buildGrokSessionConfig(this.options, this.config),
+                    session: sentSessionConfig,
                 });
                 log('provider_connected', {
                     provider: this.name,
@@ -427,6 +441,38 @@ class GrokVoiceProviderSession {
             return;
         }
         const type = String(event.type || '');
+
+        // TEMPORARY diagnostic (tap_to_start only) for the
+        // provider-native-VAD-not-working investigation — logs the `type`
+        // of EVERY incoming message, including ones this file has no
+        // case for at all, so an event we're not expecting is still
+        // visible. session.created/session.updated get one extra line
+        // capturing the actual confirmed turn_detection value, since that
+        // is the single most important fact for this investigation: does
+        // the server actually confirm server_vad, or silently keep/revert
+        // to null? Never logs API keys, audio, or transcript content.
+        if (this.voiceMode === 'tap_to_start') {
+            const log = this.active?.log || this.sessionLog || (() => {});
+            log('grok_vad_diag_message_type', {
+                providerInstanceId: this.instanceId,
+                type: type || '(missing)',
+            });
+            if (type === 'session.created' || type === 'session.updated') {
+                log('grok_vad_diag_session_confirmation', {
+                    providerInstanceId: this.instanceId,
+                    type,
+                    turnDetection: JSON.stringify(event.session?.turn_detection ?? null),
+                    inputAudioFormat: JSON.stringify(event.session?.audio?.input?.format ?? null),
+                });
+            }
+            if (type === 'error') {
+                log('grok_vad_diag_error_event', {
+                    providerInstanceId: this.instanceId,
+                    code: event.error?.code || event.code || 'unknown',
+                    message: String(event.error?.message || event.message || '').slice(0, 300),
+                });
+            }
+        }
 
         // Provider-native VAD signals (tap_to_start only) — these fire
         // independently of whether a generation is currently "active"

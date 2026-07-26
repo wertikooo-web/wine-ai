@@ -371,6 +371,25 @@ class GeminiLiveProviderSession {
                 rotationMode: this.rotationMode,
                 promptApplyCount: this.promptApplyCount,
             });
+            const realtimeInputConfig = buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity, voiceMode: this.voiceMode });
+            // TEMPORARY diagnostic (tap_to_start only) for the
+            // provider-native-VAD-not-working investigation — logs exactly
+            // what config was sent to Gemini. Nothing secret: no API key,
+            // no system prompt text, no audio. Remove once the root cause
+            // is found and fixed.
+            if (this.voiceMode === 'tap_to_start') {
+                log('gemini_vad_diag_config_sent', {
+                    providerInstanceId: this.instanceId,
+                    model: this.model,
+                    automaticActivityDetection: JSON.stringify(realtimeInputConfig.automaticActivityDetection),
+                    activityHandling: realtimeInputConfig.activityHandling,
+                    turnCoverage: realtimeInputConfig.turnCoverage,
+                    inputMimeType: INPUT_MIME_TYPE,
+                    inputSampleRate: INPUT_SAMPLE_RATE,
+                    inputBitsPerSample: 16,
+                    inputChannels: 1,
+                });
+            }
             const session = await ai.live.connect({
                 model: this.model,
                 callbacks: {
@@ -414,7 +433,7 @@ class GeminiLiveProviderSession {
                     inputAudioTranscription: {},
                     outputAudioTranscription: {},
                     tools: buildLiveTools({ enabled: this.contentToolsEnabled, declarations: this.toolDeclarations }),
-                    realtimeInputConfig: buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity, voiceMode: this.voiceMode }),
+                    realtimeInputConfig,
                     // Fully disables Gemini's internal "thinking" pass (draft
                     // reasoning/plan/critique the model normally generates
                     // before its final answer and is supposed to keep
@@ -950,6 +969,29 @@ class GeminiLiveProviderSession {
         if (isRawTraceEnabled()) {
             this.rawTraceSeq += 1;
             logRawProviderMessage(summarizeRawProviderMessage(message, this.rawTraceSeq, this.instanceId));
+        }
+        // TEMPORARY diagnostic (tap_to_start only) for the
+        // provider-native-VAD-not-working investigation — logs the shape of
+        // EVERY incoming top-level message, not just the ones this file
+        // already knows how to handle, so an unexpected/undocumented shape
+        // is visible instead of silently falling through. Never logs API
+        // keys, raw/base64 audio, the full system prompt, or transcript
+        // text/content — only key NAMES and a few small enum-like values.
+        // Remove once the root cause is found and fixed.
+        if (this.voiceMode === 'tap_to_start') {
+            const log = this.active?.log || this.sessionLog || (() => {});
+            const topLevelKeys = Object.keys(message || {});
+            const serverContentKeys = message?.serverContent ? Object.keys(message.serverContent) : null;
+            const voiceActivityKeys = message?.voiceActivity ? Object.keys(message.voiceActivity) : null;
+            log('gemini_vad_diag_message', {
+                providerInstanceId: this.instanceId,
+                topLevelKeys: JSON.stringify(topLevelKeys),
+                serverContentKeys: serverContentKeys ? JSON.stringify(serverContentKeys) : 'none',
+                voiceActivityKeys: voiceActivityKeys ? JSON.stringify(voiceActivityKeys) : 'none',
+                hasInterrupted: Boolean(message?.serverContent?.interrupted),
+                hasTurnComplete: Boolean(message?.serverContent?.turnComplete),
+                hasGenerationComplete: Boolean(message?.serverContent?.generationComplete),
+            });
         }
         if (message?.setupComplete) {
             const log = this.active?.log || this.sessionLog || (() => {});

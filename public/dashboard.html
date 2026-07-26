@@ -339,6 +339,7 @@
   .voice-mode-btn.active { background: var(--wine); color: white; }
   .voice-mode-btn:disabled { opacity: 0.55; cursor: not-allowed; }
   .voice-mode-hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .voice-mode-unavailable { font-size: 10px; color: var(--wine); margin-top: 4px; font-weight: 600; }
   .app-input-row { display: flex; gap: 8px; margin-top: 18px; width: 100%; }
   .app-language-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; width: 100%; text-align: left; }
   .app-language-row label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
@@ -733,6 +734,7 @@
                   <button type="button" class="voice-mode-btn" id="voiceModeTapBtn" data-mode="tap_to_start">Free Conversation</button>
                 </div>
                 <div class="voice-mode-hint" id="voiceModeHint"></div>
+                <div class="voice-mode-unavailable" id="voiceModeTapUnavailable" hidden></div>
               </div>
 
               <button class="ptt" id="pttBtn" disabled>
@@ -1438,6 +1440,18 @@
   // conversation) — see setVoiceMode()/startConversationOnTap() below.
   // Persisted server-side via personaStore (voiceMode field), same
   // mechanism as mood/baseProfileId — no separate storage.
+  //
+  // HOTFIX (temporary): live diagnosis found that provider-native VAD
+  // (both Gemini automaticActivityDetection and Grok server_vad) does not
+  // currently produce a working Tap to Start turn in production — see the
+  // diagnostic logging added to geminiLiveProvider.js/grokVoiceProvider.js
+  // for root-cause investigation. Until that's resolved, Tap to Start is
+  // disabled client-side: the button is inert, shows "Temporarily
+  // unavailable", and any previously-saved tap_to_start preference is
+  // overridden to hold_to_talk on load. The implementation itself is NOT
+  // removed — only gated off. Flip TAP_TO_START_TEMPORARILY_DISABLED back
+  // to false once the provider-native VAD root cause is fixed.
+  const TAP_TO_START_TEMPORARILY_DISABLED = true;
   let voiceMode = 'hold_to_talk';
   let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
   let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
@@ -1551,6 +1565,7 @@
       voiceModeHold: 'Hold to Talk', voiceModeTap: 'Free Conversation',
       voiceModeHoldHint: 'Hold to Talk: the mic only works while the button is pressed.',
       voiceModeTapHint: 'Free Conversation: one tap starts a conversation with no need to press again.',
+      voiceModeTapUnavailable: 'Temporarily unavailable',
       pttCaptionHold: 'Hold and speak',
       pttCaptionTapIdle: 'Start conversation', pttCaptionTapActive: 'End conversation',
     },
@@ -1591,6 +1606,7 @@
       voiceModeHold: 'Удерживать и говорить', voiceModeTap: 'Свободный разговор',
       voiceModeHoldHint: 'Удерживать и говорить: микрофон работает только пока кнопка нажата.',
       voiceModeTapHint: 'Свободный разговор: одно нажатие запускает разговор без повторных нажатий.',
+      voiceModeTapUnavailable: 'Временно недоступно',
       pttCaptionHold: 'Удерживайте и говорите',
       pttCaptionTapIdle: 'Начать разговор', pttCaptionTapActive: 'Завершить разговор',
     },
@@ -2469,6 +2485,12 @@
     const tapBtn = el('voiceModeTapBtn');
     if (holdBtn) holdBtn.classList.toggle('active', voiceMode === 'hold_to_talk');
     if (tapBtn) tapBtn.classList.toggle('active', voiceMode === 'tap_to_start');
+    if (tapBtn) tapBtn.disabled = TAP_TO_START_TEMPORARILY_DISABLED;
+    const unavailable = el('voiceModeTapUnavailable');
+    if (unavailable) {
+      unavailable.hidden = !TAP_TO_START_TEMPORARILY_DISABLED;
+      if (TAP_TO_START_TEMPORARILY_DISABLED) unavailable.textContent = getUiString('voiceModeTapUnavailable');
+    }
     const hint = el('voiceModeHint');
     if (hint) hint.textContent = getUiString(voiceMode === 'tap_to_start' ? 'voiceModeTapHint' : 'voiceModeHoldHint');
     setPttCaption();
@@ -2488,6 +2510,7 @@
   // than trying to carry any state into the new mode.
   async function setVoiceMode(mode, { persist = true } = {}) {
     if (mode !== 'hold_to_talk' && mode !== 'tap_to_start') return;
+    if (mode === 'tap_to_start' && TAP_TO_START_TEMPORARILY_DISABLED) return; // hotfix — see declaration above
     if (mode === voiceMode) return;
 
     if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
@@ -4582,7 +4605,14 @@
     // as mood/baseProfileId — no separate storage. tapToStartIdleTimeoutMs
     // is a read-only server config value, not user-editable here.
     if (data && (data.voiceMode === 'hold_to_talk' || data.voiceMode === 'tap_to_start')) {
-      voiceMode = data.voiceMode;
+      // Hotfix: a previously-saved tap_to_start preference must not be
+      // honored while provider-native VAD is broken — force hold_to_talk
+      // on load instead. Does NOT overwrite the saved preference server-
+      // side, so this reverts cleanly once TAP_TO_START_TEMPORARILY_DISABLED
+      // is flipped back to false.
+      voiceMode = (data.voiceMode === 'tap_to_start' && TAP_TO_START_TEMPORARILY_DISABLED)
+        ? 'hold_to_talk'
+        : data.voiceMode;
     }
     if (data && typeof data.tapToStartIdleTimeoutMs === 'number' && data.tapToStartIdleTimeoutMs > 0) {
       tapToStartIdleTimeoutMs = data.tapToStartIdleTimeoutMs;
