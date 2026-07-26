@@ -853,24 +853,40 @@ class GeminiLiveProviderSession {
     handleProviderInterrupted() {
         const interrupt = this.pendingInterrupt;
         const currentActiveGenerationId = this.active?.generationId || null;
-        // Requirement: fall back to the current active generation when the
-        // provider event carries no generation id of its own (Gemini's
-        // `interrupted` flag never does — it's a bare boolean on
-        // serverContent, not scoped to a specific generation).
-        const effectiveGenerationId = interrupt?.interrupted_generation_id ?? currentActiveGenerationId;
+        // Provider-turn-state check, NOT a bare "whatever is active right
+        // now" fallback: a stale interrupted event from an OLD generation A
+        // can arrive after A has already finalized (this.active === null,
+        // set by emitOutputEnd()) and a brand-new generation B has already
+        // become active. Blindly attributing an unmatched interrupted event
+        // to `this.active` in that case would incorrectly kill B's playback
+        // before it ever produced anything. The one signal we actually have
+        // (Gemini's interrupted flag carries no id of its own) is whether
+        // the CURRENT active generation has itself already started
+        // producing real output (modelOutputStarted, set in handleMessage()
+        // the moment transcript.model/audio content actually arrives for
+        // it) — you can only genuinely interrupt a response that has
+        // started responding. A freshly-opened generation that hasn't
+        // produced anything yet cannot be the subject of this event; it's
+        // stale residue from whatever came before.
+        const activeHasStartedResponding = Boolean(this.active?.modelOutputStarted);
+        const effectiveGenerationId = interrupt?.interrupted_generation_id
+            ?? (activeHasStartedResponding ? currentActiveGenerationId : null);
 
         const log = this.active?.log || interrupt?.log || this.sessionLog || (() => {});
         const emit = this.active?.onSessionEvent || interrupt?.onSessionEvent || this.onProviderEvent;
 
         if (!effectiveGenerationId) {
-            // Genuinely nothing to attribute this to — no pending
-            // client-initiated interrupt AND no active generation at all.
-            // This is the only case still legitimately dropped.
+            // Two cases land here, both correctly dropped:
+            //  - no active generation and no pending interrupt at all
+            //    (reason: no_generation_context);
+            //  - an active generation exists but hasn't produced any output
+            //    yet, so this stale event cannot genuinely be about it
+            //    (reason: active_generation_has_not_started_output).
             log('dropped_provider_event', {
                 providerInstanceId: this.instanceId,
                 eventType: 'provider_interrupted',
-                reason: 'no_generation_context',
-                currentActiveGenerationId: 'none',
+                reason: currentActiveGenerationId ? 'active_generation_has_not_started_output' : 'no_generation_context',
+                currentActiveGenerationId: currentActiveGenerationId || 'none',
             });
             return;
         }
@@ -889,6 +905,7 @@ class GeminiLiveProviderSession {
         log('provider_interrupted_normalized', {
             effectiveGenerationId,
             matchedPendingInterrupt: Boolean(interrupt?.interrupted_generation_id),
+            attributedViaActiveGeneration: !interrupt?.interrupted_generation_id && activeHasStartedResponding,
             currentActiveGenerationId: currentActiveGenerationId || 'none',
             emitAvailable: Boolean(emit),
             providerInstanceId: this.instanceId,

@@ -24,18 +24,24 @@ function makeSession(overrides = {}) {
     return { session, providerEvents };
 }
 
-test('provider-emitted interrupted event with no generation id falls back to the current active generation and is not dropped', () => {
+test('provider-emitted interrupted event with no generation id is attributed to the active generation ONLY once it has genuinely started responding', () => {
     const { session } = makeSession();
     const sessionEvents = [];
     const droppedLogs = [];
     // Simulate an active generation the SAME way beginResponse() would set
     // one up, without going through beginResponse()'s real connect() side
     // effects (this test is about handleProviderInterrupted()'s state
-    // reading, not the network layer).
+    // reading, not the network layer). modelOutputStarted: true mirrors the
+    // real production case this was root-caused from -- the active
+    // generation had already produced several modelTurn/outputTranscription
+    // chunks before the interrupted flag arrived (confirmed from the actual
+    // Railway logs, not assumed), i.e. a genuine "you can only interrupt a
+    // response that has started responding."
     session.active = {
         generationId: 'generation_active_123',
         responseId: 'response_active_123',
         turnId: 'turn_active_123',
+        modelOutputStarted: true,
         onSessionEvent: (event) => sessionEvents.push(event),
         log: (stage, data) => { if (stage === 'dropped_provider_event') droppedLogs.push(data); },
     };
@@ -47,12 +53,65 @@ test('provider-emitted interrupted event with no generation id falls back to the
     // Gemini's real wire shape: a bare boolean, no generation id anywhere.
     session.handleMessage({ serverContent: { interrupted: true } });
 
-    assert.deepEqual(droppedLogs, [], 'the event must not be dropped when an active generation exists');
+    assert.deepEqual(droppedLogs, [], 'the event must not be dropped when the active generation has genuinely started responding');
 
     const normalized = sessionEvents.find((e) => e.type === 'response.interrupted');
     assert.ok(normalized, 'client must receive a normalized response.interrupted event');
-    assert.equal(normalized.generation_id, 'generation_active_123', 'falls back to the current active generation id');
+    assert.equal(normalized.generation_id, 'generation_active_123', 'attributed to the active generation, which has real output in flight');
     assert.equal(normalized.reason, 'provider_interrupted');
+});
+
+// The specific scenario this test guards against: a bare fallback to
+// "whatever this.active happens to be" (no other check) would have
+// incorrectly killed generation B's playback here, even though the
+// interrupted event is genuinely stale residue from generation A, which had
+// already finished before B ever started. B has NOT produced any real
+// output yet (modelOutputStarted stays false until real content arrives),
+// which is the one signal available to tell the two situations apart when
+// Gemini's own event carries no generation id at all.
+test('a stale interrupted event from a completed generation A does not stop a freshly-opened generation B', () => {
+    const { session } = makeSession();
+    const bEvents = [];
+    const droppedLogs = [];
+
+    // 1. Generation A starts and produces real output (it "starts playback").
+    session.active = {
+        generationId: 'generation_A',
+        responseId: 'response_A',
+        turnId: 'turn_A',
+        modelOutputStarted: true,
+        onSessionEvent: () => { throw new Error('A must not receive any event in this test'); },
+        log: () => {},
+    };
+
+    // 2. Generation A finishes/is finalized -- emitOutputEnd()'s real code
+    // path clears this.active and this.pendingInterrupt; reproduced directly
+    // here since that method also touches unrelated provider/session
+    // plumbing this test doesn't set up.
+    session.active = null;
+    session.pendingInterrupt = null;
+
+    // 3. Generation B becomes active -- freshly opened, has NOT produced any
+    // output yet (matches beginResponse()'s real initial state).
+    session.active = {
+        generationId: 'generation_B',
+        responseId: 'response_B',
+        turnId: 'turn_B',
+        modelOutputStarted: false,
+        onSessionEvent: (event) => bEvents.push(event),
+        log: (stage, data) => { if (stage === 'dropped_provider_event') droppedLogs.push(data); },
+    };
+
+    // 4. A's late interrupted event arrives, carrying no generation id (as
+    // it always does), with no pendingInterrupt to match it either.
+    assert.equal(session.pendingInterrupt, null);
+    session.handleMessage({ serverContent: { interrupted: true } });
+
+    // 5. B must not have been notified or stopped.
+    assert.deepEqual(bEvents, [], 'generation B must not receive response.interrupted from a stale A event');
+    assert.equal(droppedLogs.length, 1, 'the stale event must be explicitly dropped, not silently ignored');
+    assert.equal(droppedLogs[0].reason, 'active_generation_has_not_started_output');
+    assert.equal(session.active.generationId, 'generation_B', 'B remains the active generation, untouched');
 });
 
 test('the durable session-level sink (onProviderEvent) is used whenever no per-turn active/pendingInterrupt onSessionEvent is available', () => {
