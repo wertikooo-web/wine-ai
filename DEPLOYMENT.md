@@ -49,3 +49,22 @@ instead and re-check.
 - Deployment IDs and their actual git provenance are not obviously linked
   in `railway deployment list` output — when in doubt, verify via content,
   not via status.
+
+## Pre-deploy checklist
+
+Before pushing or deploying, run these checks locally (or let CI do it):
+
+```bash
+# 1. Every require/import resolves to a committed file
+npm run check:missing-imports
+
+# 2. Server starts clean (no MODULE_NOT_FOUND, no admin auth crash)
+node --test tests/startupNoAdminAuth.test.js
+
+# 3. Smoke tests pass
+npm run test:smoke
+```
+
+If any check fails, fix the issue before deploying. Never deploy a commit
+that adds a `require`/`import` for a file that exists only on your local
+disk — CI and Railway will both crash with `Cannot find module`.
