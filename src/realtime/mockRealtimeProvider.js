@@ -7,6 +7,7 @@ const DEFAULT_CONFIG = {
     chunkCount: Number(process.env.MOCK_CHUNK_COUNT || 8),
     sampleRate: Number(process.env.MOCK_SAMPLE_RATE || 16000),
     toneHz: Number(process.env.MOCK_TONE_HZ || 440),
+    beginResponseDelayMs: Number(process.env.MOCK_BEGIN_RESPONSE_DELAY_MS || 0),
 };
 
 function sleep(ms) {
@@ -105,6 +106,17 @@ class MockRealtimeProviderSession {
     close() {
         this.closed = true;
         this.interrupt('close');
+    }
+
+    beginResponse(context) {
+        if (!this.config.beginResponseDelayMs) return;
+        this.activeSignal = context.signal;
+        const self = this;
+        (async () => {
+            await sleep(self.config.beginResponseDelayMs);
+            if (self.closed || context.signal.cancelled) return;
+            await self.endInput(context);
+        })();
     }
 
     async endInput({ responseId, turnId, turnInputBytes, sessionInputBytes, signal, onEvent, onAudioChunk, log }) {
