@@ -44,6 +44,72 @@ function id(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
+// Client telemetry safety (see 'client_telemetry' handling in the
+// connection handler below): the client can only ever be trusted to send
+// small, enum-like diagnostic events, never arbitrary content. Everything
+// here is enforced server-side, not just assumed from what the client
+// currently sends — a compromised or buggy client must not be able to turn
+// this channel into a way to spam Railway logs or exfiltrate secrets/user
+// text through them.
+const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
+    'disconnect_clicked', 'disconnect_started', 'disconnect_completed',
+    'mic_get_user_media_requested', 'mic_get_user_media_resolved',
+    'mic_track_settings', 'mic_track_started', 'mic_track_stopped',
+    'mic_sample_rate_unsupported', 'mic_processor_started', 'mic_processor_stopped',
+    'mic_prewarm_error', 'mic_error',
+    'mode_switch_started', 'mode_switch_completed', 'voice_mode_save_error',
+    'playback_started', 'playback_stopped', 'playback_cancel_received',
+    'playback_stop_started', 'playback_stop_completed',
+    'active_sources_before', 'active_sources_after',
+    'queued_chunks_before', 'queued_chunks_after',
+    'pending_decodes_before', 'pending_decodes_after',
+    'accepted_generation_cleared', 'stale_audio_chunk_dropped', 'pending_decode_dropped',
+    'local_playback_stopped', 'socket_close_started', 'mic_stopped',
+]);
+// Field allowlist by name, not just "any scalar" — a field named `text`,
+// `prompt`, `token`, `apiKey`, etc. must never pass through even if some
+// future stage accidentally attaches one; only fields this file's own
+// telemetry actually uses are let through.
+const CLIENT_TELEMETRY_ALLOWED_FIELDS = new Set([
+    'forVoice', 'channelCount', 'sampleRate', 'echoCancellation', 'noiseSuppression', 'autoGainControl',
+    'trackId', 'trackCount', 'readyState', 'enabled', 'muted', 'actual', 'message',
+    'wsReadyState', 'micTrackId', 'processorLive', 'micStreamLive',
+    'from', 'to', 'tapToStartActive', 'pendingTapStart', 'isHolding',
+    'reason', 'generationId', 'acceptedPlaybackGenerationId', 'phase', 'count',
+    'stopOperationId', 'stopDurationMs',
+    'activeSourcesBefore', 'activeSourcesAfter', 'queuedChunksBefore', 'queuedChunksAfter',
+    'pendingDecodesBefore', 'pendingDecodesAfter',
+]);
+const CLIENT_TELEMETRY_MAX_STRING_LENGTH = 200;
+const CLIENT_TELEMETRY_MAX_FIELDS = 20;
+const CLIENT_TELEMETRY_MAX_PAYLOAD_BYTES = 2048;
+const CLIENT_TELEMETRY_RATE_LIMIT_WINDOW_MS = 10_000;
+const CLIENT_TELEMETRY_RATE_LIMIT_MAX_PER_WINDOW = 200;
+
+function sanitizeClientTelemetryData(data) {
+    const out = {};
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return out;
+    let fieldCount = 0;
+    for (const key of Object.keys(data)) {
+        if (fieldCount >= CLIENT_TELEMETRY_MAX_FIELDS) break;
+        if (!CLIENT_TELEMETRY_ALLOWED_FIELDS.has(key)) continue;
+        const value = data[key];
+        const type = typeof value;
+        if (type === 'string') {
+            out[key] = value.length > CLIENT_TELEMETRY_MAX_STRING_LENGTH
+                ? `${value.slice(0, CLIENT_TELEMETRY_MAX_STRING_LENGTH)}…(truncated)`
+                : value;
+            fieldCount += 1;
+        } else if (type === 'number' || type === 'boolean' || value === null) {
+            out[key] = value;
+            fieldCount += 1;
+        }
+        // Objects/arrays/functions/undefined are silently dropped — only
+        // scalars are ever allowed through.
+    }
+    return out;
+}
+
 const VALID_ROTATION_MODES = new Set(['per_turn', 'errors_only']);
 const DEFAULT_ROTATION_MODE = 'per_turn';
 const configuredTurnReplayBytes = Number(process.env.REALTIME_TURN_REPLAY_MAX_BYTES);
@@ -279,6 +345,13 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     // caused the false-interrupt bug, not a real barge-in.
     let micPipelineConfirmed = false;
     let micPipelineTrackId = null;
+    // Per-session client_telemetry rate limit — see sanitizeClientTelemetryData()
+    // and the 'client_telemetry' handling below. Simple fixed-window counter,
+    // not a token bucket: good enough to stop a runaway/misbehaving client
+    // from flooding Railway logs without adding a dependency for this.
+    let clientTelemetryWindowStartedAt = 0;
+    let clientTelemetryCountInWindow = 0;
+    let clientTelemetryRateLimitWarned = false;
     let socketClosed = false;
     let providerClosed = false;
     let readySent = false;
@@ -1599,12 +1672,47 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // dashboard.html) — its playback/disconnect telemetry never
             // reached anywhere an operator could actually see it, in the
             // browser console OR here. Re-logging it under the same session
-            // here is what makes it show up in Railway logs at all. Audio
-            // data is never included by the client in these payloads; only
-            // counts, ids, and timings.
+            // here is what makes it show up in Railway logs at all.
+            //
+            // This channel is never trusted with anything beyond a small,
+            // enum-like diagnostic event: whitelisted stage names, whitelisted
+            // scalar field names only (never arbitrary user text, prompt
+            // content, tokens, or secrets — see CLIENT_TELEMETRY_ALLOWED_FIELDS),
+            // truncated strings, a field-count cap, a total payload size cap,
+            // and a per-session rate limit, all enforced here regardless of
+            // what the current client build actually sends.
+            const now = Date.now();
+            if (now - clientTelemetryWindowStartedAt > CLIENT_TELEMETRY_RATE_LIMIT_WINDOW_MS) {
+                clientTelemetryWindowStartedAt = now;
+                clientTelemetryCountInWindow = 0;
+                clientTelemetryRateLimitWarned = false;
+            }
+            clientTelemetryCountInWindow += 1;
+            if (clientTelemetryCountInWindow > CLIENT_TELEMETRY_RATE_LIMIT_MAX_PER_WINDOW) {
+                if (!clientTelemetryRateLimitWarned) {
+                    clientTelemetryRateLimitWarned = true;
+                    log('client_telemetry_rate_limited', {
+                        windowMs: CLIENT_TELEMETRY_RATE_LIMIT_WINDOW_MS,
+                        maxPerWindow: CLIENT_TELEMETRY_RATE_LIMIT_MAX_PER_WINDOW,
+                    });
+                }
+                return;
+            }
+
+            const stage = typeof payload.stage === 'string' ? payload.stage : '';
+            if (!CLIENT_TELEMETRY_ALLOWED_STAGES.has(stage)) {
+                log('client_telemetry_rejected', { reason: 'stage_not_allowed' });
+                return;
+            }
+            let approxBytes = 0;
+            try { approxBytes = Buffer.byteLength(JSON.stringify(payload.data || {})); } catch { approxBytes = Infinity; }
+            if (approxBytes > CLIENT_TELEMETRY_MAX_PAYLOAD_BYTES) {
+                log('client_telemetry_rejected', { reason: 'payload_too_large', stage, approxBytes });
+                return;
+            }
             log('client_telemetry', {
-                stage: payload.stage || 'unknown',
-                ...(payload.data || {}),
+                stage,
+                ...sanitizeClientTelemetryData(payload.data),
             });
         } else if (payload.type === 'ping') {
             emit({
