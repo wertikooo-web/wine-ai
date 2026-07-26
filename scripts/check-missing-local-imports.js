@@ -25,7 +25,14 @@ function getTrackedFiles() {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
     });
-    return raw.split('\n').filter(Boolean);
+    return raw.split('\n').filter((f) => {
+        if (!f) return false;
+        // Exclude test files — they contain synthetic require/import strings
+        // inside fs.writeFileSync() calls and test data, not real imports.
+        if (f.includes(path.sep + 'tests' + path.sep)) return false;
+        if (f.endsWith('.test.js') || f.endsWith('.test.mjs')) return false;
+        return true;
+    });
 }
 
 // ---------------------------------------------------------------
@@ -55,8 +62,17 @@ function getTrackedSet(files) {
 // ---------------------------------------------------------------
 const LOCAL_IMPORT_RE = /(?:require|import)\s*\(\s*['"](\.\.?\/[^'"]+)['"]\s*\)|(?:import\s+.*?\s+from\s+['"](\.\.?\/[^'"]+)['"])/g;
 
+function stripComments(content) {
+    // Remove block comments and single-line comments so the import regex
+    // does not match example/spec strings inside documentation.
+    return content
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+}
+
 function extractLocalImports(filePath) {
-    const content = fs.readFileSync(filePath, 'utf8');
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const content = stripComments(raw);
     const results = [];
     let match;
     while ((match = LOCAL_IMPORT_RE.exec(content)) !== null) {
