@@ -145,6 +145,18 @@ function keywordSearch(query, { limit, language, indexFile } = {}) {
     return { hits: scored, tookMs: Date.now() - startedAt, index };
 }
 
+// pgvector's `<=>` nearest-neighbor operator always returns the top-K
+// closest rows regardless of how close they actually are — for a nonsense
+// or off-corpus query, that's still K "candidates", just all irrelevant.
+// Without a relevance floor, a query like "xyzzy12345" would still fuse in
+// K semantically-nearest-but-unrelated chunks and report mode:'hybrid' with
+// hits>0, making a genuine NOT_FOUND undetectable. Cosine distance ranges
+// 0 (identical) to 2 (opposite); 0.6 is a conservative cut — real paraphrase
+// matches from gemini-embedding-001 in this corpus score well under that,
+// per the "Семь тысяч лет вина" fusion trace (see session notes), while
+// genuinely unrelated content sits well above it.
+const SEMANTIC_MAX_DISTANCE = 0.6;
+
 // Nearest-neighbor lookup against knowledge_chunk_embeddings. Returns
 // chunk_ids ranked by cosine distance (ascending — closer first), NOT
 // resolved against the live index.json here, since the caller already has
@@ -160,10 +172,10 @@ async function semanticCandidateIds(query, { limit }) {
     const { rows } = await pool.query(
         `SELECT chunk_id, embedding <=> $1 AS distance
          FROM knowledge_chunk_embeddings
-         WHERE embedding IS NOT NULL
+         WHERE embedding IS NOT NULL AND embedding <=> $1 < $3
          ORDER BY embedding <=> $1
          LIMIT $2;`,
-        [vectorLiteral, limit]
+        [vectorLiteral, limit, SEMANTIC_MAX_DISTANCE]
     );
     return rows.map((r) => r.chunk_id);
 }
