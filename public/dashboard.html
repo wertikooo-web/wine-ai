@@ -2389,10 +2389,24 @@
     // processing pipeline, tuned for calls, not STT — AGC in particular can
     // misfire as a noise gate and zero out normal-volume speech entirely on
     // some hardware, which looks exactly like "the mic doesn't hear me" even
-    // though the stream is technically open. Disabled so the model gets the
-    // raw signal.
+    // though the stream is technically open. Disabled for Hold to Talk, where
+    // the mic is only ever live while the button is held — the assistant's
+    // own voice is never playing back into it at the same time.
+    //
+    // Tap to Start is different: the mic stays live continuously, including
+    // while the assistant's response is playing out of the speaker. Without
+    // echo cancellation, that playback leaks back into the mic and the
+    // provider's own VAD reads it as new user speech — cancelling the
+    // in-progress response and replying to a fragment of its own voice
+    // (confirmed via production logs: repeated sub-second "utterances" every
+    // ~5s, each superseding the previous generation). AEC subtracts the known
+    // playback signal from the input in real time without muting the mic, so
+    // a genuine barge-in (the user actually talking over the response) still
+    // comes through — it fixes the self-feedback loop without breaking
+    // interruption.
+    const forVoice = voiceMode === 'tap_to_start';
     micStream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, sampleRate: 16000, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      audio: { channelCount: 1, sampleRate: 16000, echoCancellation: forVoice, noiseSuppression: forVoice, autoGainControl: false },
     });
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
     // Never assume the browser actually honored the requested 16000Hz —
