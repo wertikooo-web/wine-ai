@@ -1466,8 +1466,20 @@
   let inputEndedAt = 0;
   let firstAudioAt = 0;
   let playbackQueueTime = 0;
-  let activeSources = [];
+  // Set, not array — schedulePlayback()/stopPlaybackImmediately() need O(1)
+  // add/delete and an authoritative count of every active+scheduled source
+  // node, not just "the most recent one."
+  let activeSources = new Set();
   let serverAudioEnded = true;
+  // The ONLY generation currently allowed to produce audio. Set on
+  // 'audio.start', cleared by stopPlaybackImmediately(). Every audio.chunk
+  // (and the async decodeAudioData callback for WAV chunks) checks this
+  // before touching the AudioContext — closes the gap where a cancel
+  // arrives while a chunk is already in flight over the ws, in the event
+  // loop, or mid-decode, and would otherwise still get scheduled and
+  // resurrect audio that was supposed to be dead.
+  let acceptedPlaybackGenerationId = null;
+  let cancelledGenerationIds = new Set();
   let avatar3d = null;
   let avatarOutputAnalyser = null;
   let avatarOutputAnalyserContext = null;
@@ -2136,7 +2148,7 @@
   function beginContextualTurn(type, id) {
     const data = screenContextCache[`${type}:${id}`];
     if (!data) { log('screen_context_not_ready', { type, id }); return; }
-    clearPlayback();
+    stopPlaybackImmediately({ reason: 'user_interrupt_contextual', generationId: acceptedPlaybackGenerationId });
     DeviceVisual.setState('ready');
     const isNewContext = !activeScreenContext || activeScreenContext.type !== type || activeScreenContext.id !== id;
     activeScreenContext = {
@@ -2244,19 +2256,33 @@
     });
   }
 
+  // Exact required order (verified by the telemetry below):
+  // disconnect_clicked (logged by the caller) -> playback_stop_called ->
+  // active_sources_after_stop=0 -> mic_stopped -> socket_close_started.
+  // Local playback stop MUST be the first thing this function does, and the
+  // socket close MUST be the last — never the other way around. Previously
+  // ws.close() ran BEFORE stopMic()/teardown, so a server-side cancel
+  // triggered by the close raced a socket that was already gone: production
+  // logs showed provider_session_closed reason=client_close immediately
+  // followed by visual.timeline.cancel sent=false / visual.reset sent=false
+  // — the server tried to notify a socket that no longer existed. Sending
+  // session.interrupt HERE, before closing, gives the server a real chance
+  // to react while the socket is still open; closing local playback does
+  // NOT depend on that message succeeding either way.
   function disconnect() {
     log('disconnect_started', {
       wsReadyState: ws ? ws.readyState : null,
       micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
       processorLive: Boolean(processor),
     });
-    // Same instant local stop as PTT/text barge-in (see startTurn()) — closing
-    // the connection must not leave a previous assistant reply audibly
-    // finishing itself out while the UI already shows "disconnected".
-    clearPlayback();
+
+    stopPlaybackImmediately({ reason: 'user_disconnect', generationId: acceptedPlaybackGenerationId });
     DeviceVisual.setState('ready');
-    if (ws) ws.close();
+
+    isHolding = false; // stop sending audio frames before the mic itself is torn down
     stopMic();
+    log('mic_stopped', {});
+
     // disconnect() is the one low-level teardown point called from several
     // places (the main Connect/Disconnect button's toggleConnection(),
     // stopConversationOnTap(), mode/provider switches) — it must always leave
@@ -2270,6 +2296,13 @@
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
+    }
+    log('socket_close_started', {});
+    if (ws) ws.close();
+
     log('disconnect_completed', {
       micStreamLive: Boolean(micStream),
       processorLive: Boolean(processor),
@@ -2303,6 +2336,7 @@
   }
   function toggleConnection() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      log('disconnect_clicked', {});
       disconnect();
     } else {
       // The plain Talk-tab Connect button always starts a general session —
@@ -2371,6 +2405,9 @@
         if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
         serverAudioEnded = false;
+        // The one place a generation becomes eligible to actually reach the
+        // AudioContext — see isGenerationAccepted()/stopPlaybackImmediately().
+        acceptedPlaybackGenerationId = payload.generation_id || null;
         setText('speakerState', 'assistant');
         DeviceVisual.setState('speaking');
         break;
@@ -2385,16 +2422,16 @@
         break;
       case 'response.cancelled':
         setText('latencyState', (payload.cancel_latency_ms || 0) + ' ms (interrupted)');
-        DeviceVisual.setState('ready');
-        clearPlayback();
+        log('playback_cancel_received', { reason: payload.reason, generationId: payload.generation_id });
+        stopPlaybackImmediately({ reason: payload.reason || 'server_cancel', generationId: payload.generation_id });
         break;
       case 'response.failed':
-        clearPlayback();
+        stopPlaybackImmediately({ reason: 'response_failed', generationId: payload.generation_id });
         DeviceVisual.setState('error');
         break;
       case 'error':
         log('error', payload);
-        clearPlayback();
+        stopPlaybackImmediately({ reason: 'error', generationId: payload.generation_id || acceptedPlaybackGenerationId });
         DeviceVisual.setState('error');
         break;
       default:
@@ -2554,7 +2591,7 @@
     // triggered automatically by the input_audio.start sent below) still
     // happens and stops new audio.chunk events from arriving; this just
     // makes the *local* stop instant instead of network-latency-bound.
-    clearPlayback();
+    stopPlaybackImmediately({ reason: 'user_interrupt_ptt', generationId: acceptedPlaybackGenerationId });
     DeviceVisual.setState('ready');
     setText('speakerState', 'you');
     ensureMic().then(() => {
@@ -2769,7 +2806,7 @@
     // interrupts any in-progress reply server-side (submitTextInput() goes
     // through startInput()'s cancelCurrent()), so the client shouldn't wait
     // for the round-trip either.
-    clearPlayback();
+    stopPlaybackImmediately({ reason: 'user_interrupt_text', generationId: acceptedPlaybackGenerationId });
     DeviceVisual.setState('thinking');
     // The server echoes this back as its own transcript.user event (same
     // path voice input uses), so the transcript panel stays a single
@@ -3009,14 +3046,25 @@
     // Legacy voice rendering loop removed. Provider options rendered above.
   }
 
-  function playRawPcm16(bytes, sampleRate) {
+  // A chunk is only allowed to reach the AudioContext if its generation is
+  // still the one accepted for playback AND hasn't been separately marked
+  // cancelled — checked once on arrival (playAudioChunk) and again right
+  // before scheduling (schedulePlayback), since decodeAudioData is async and
+  // a cancel can land in the gap between the two.
+  function isGenerationAccepted(generationId) {
+    return Boolean(acceptedPlaybackGenerationId)
+      && generationId === acceptedPlaybackGenerationId
+      && !cancelledGenerationIds.has(generationId);
+  }
+
+  function playRawPcm16(bytes, sampleRate, generationId) {
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
     const samples = bytes.length / 2;
     const buffer = audioContext.createBuffer(1, samples, sampleRate);
     const channel = buffer.getChannelData(0);
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
-    schedulePlayback(buffer);
+    schedulePlayback(buffer, generationId);
   }
 
   function ensureAvatarOutputAnalyser() {
@@ -3036,7 +3084,7 @@
   }
 
   function maybeFinishSpeaking() {
-    if (!serverAudioEnded || activeSources.length > 0) return;
+    if (!serverAudioEnded || activeSources.size > 0) return;
     log('playback_stopped', { reason: 'drained' });
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
@@ -3052,8 +3100,16 @@
     }
   }
 
-  function schedulePlayback(buffer) {
-    if (activeSources.length === 0) log('playback_started', {});
+  // generationId must match isGenerationAccepted() at call time — checked
+  // again here (not just by the caller) because a cancel can land between
+  // when a chunk was decoded and when this actually runs (schedulePlayback is
+  // itself synchronous, but callers reach it via an async decode).
+  function schedulePlayback(buffer, generationId) {
+    if (!isGenerationAccepted(generationId)) {
+      log('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_schedule' });
+      return;
+    }
+    if (activeSources.size === 0) log('playback_started', {});
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
     src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
@@ -3061,40 +3117,67 @@
     const startAt = Math.max(now, playbackQueueTime);
     src.start(startAt);
     playbackQueueTime = startAt + buffer.duration;
-    activeSources.push(src);
+    activeSources.add(src);
     src.onended = () => {
-      activeSources = activeSources.filter((s) => s !== src);
+      activeSources.delete(src);
       maybeFinishSpeaking();
     };
   }
 
-  // Stops every scheduled/currently-playing audio chunk immediately. The
-  // server cancelling a generation (barge-in via a new PTT press, or the
-  // "Stop response" button) only stops it from sending further chunks —
-  // any chunks already received and scheduled on the AudioContext keep
-  // playing to completion unless we tear them down here too. Called on
-  // 'response.cancelled', which fires for both cases (see
-  // src/realtime/realtimeServer.js's cancelCurrent()).
-  function clearPlayback() {
-    const wasPlaying = activeSources.length > 0;
+  // The single, unified stop path for every case that needs the assistant's
+  // audio to go silent RIGHT NOW: barge-in (response.cancelled), response
+  // failure/error, and disconnect(). A server-side cancel only stops the
+  // PROVIDER from sending more chunks — it can't reach into the browser and
+  // stop AudioBufferSourceNodes already created here, which is why this is a
+  // separate, purely local action rather than something we wait on the
+  // server to trigger for us.
+  function stopPlaybackImmediately({ reason, generationId }) {
+    log('playback_stop_called', { reason, generationId, acceptedPlaybackGenerationId });
+    const beforeCount = activeSources.size;
+    log('active_sources_before_stop', { count: beforeCount });
+    if (generationId) cancelledGenerationIds.add(generationId);
+    if (acceptedPlaybackGenerationId) cancelledGenerationIds.add(acceptedPlaybackGenerationId);
+    acceptedPlaybackGenerationId = null;
+    log('accepted_generation_cleared', {});
     for (const src of activeSources) {
-      try { src.onended = null; src.stop(); } catch { /* already stopped */ }
+      try { src.onended = null; src.stop(0); } catch { /* already stopped */ }
+      try { src.disconnect(); } catch { /* already disconnected */ }
     }
-    activeSources = [];
-    serverAudioEnded = true;
+    activeSources.clear();
+    log('active_sources_after_stop', { count: activeSources.size });
+    // No separate "not yet scheduled" queue exists in this pipeline — every
+    // chunk is either scheduled synchronously (PCM16) or via decodeAudioData
+    // (WAV), and both paths are gated by isGenerationAccepted() above/below;
+    // logging 0/0 here documents that there is nothing left to drop by the
+    // time this returns, not that a queue was skipped.
+    log('queued_chunks_before_clear', { count: 0 });
+    log('queued_chunks_after_clear', { count: 0 });
     playbackQueueTime = audioContext ? audioContext.currentTime : 0;
+    serverAudioEnded = true;
     if (avatar3d) avatar3d.resetAudio();
-    if (wasPlaying) log('playback_stopped', { reason: 'cleared' });
+    DeviceVisual.setState('listening');
+    if (beforeCount > 0) log('playback_stopped', { reason });
+    log('local_playback_stopped', { reason });
   }
 
   function playAudioChunk(payload) {
+    const generationId = payload.generation_id;
+    if (!isGenerationAccepted(generationId)) {
+      log('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_decode' });
+      return;
+    }
     const bytes = decodeBase64ToBytes(payload.audio_base64);
     if (payload.mime_type === 'audio/wav') {
       audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-      audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), (buf) => schedulePlayback(buf))
-        .catch(() => {});
+      audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), (buf) => {
+        if (!isGenerationAccepted(generationId)) {
+          log('pending_decode_dropped', { generationId, acceptedPlaybackGenerationId });
+          return;
+        }
+        schedulePlayback(buf, generationId);
+      }).catch(() => {});
     } else {
-      playRawPcm16(bytes, payload.sample_rate || 24000);
+      playRawPcm16(bytes, payload.sample_rate || 24000, generationId);
     }
   }
 
@@ -3139,7 +3222,7 @@
 
   // Pressing the mic button always starts recording immediately, even while
   // the assistant is mid-response — startTurn() already interrupts whatever
-  // was playing (clearPlayback() + the server-side cancelCurrent() triggered
+  // was playing (stopPlaybackImmediately() + the server-side cancelCurrent() triggered
   // by input_audio.start) before it opens the mic, so one press both stops
   // the old reply and starts capturing the new one. It used to just
   // interrupt-and-stop on that first press, requiring a second press to
@@ -3161,8 +3244,10 @@
   pttBtn.addEventListener('pointerleave', () => { if (voiceMode === 'hold_to_talk' && isHolding) endTurn(); });
   pttBtn.addEventListener('click', () => {
     if (voiceMode !== 'tap_to_start') return;
-    if (tapToStartActive) stopConversationOnTap();
-    else startConversationOnTap();
+    if (tapToStartActive) {
+      log('disconnect_clicked', {});
+      stopConversationOnTap();
+    } else startConversationOnTap();
   });
 
   const voiceModeHoldBtn = el('voiceModeHoldBtn');
