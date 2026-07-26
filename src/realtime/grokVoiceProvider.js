@@ -19,6 +19,19 @@ function makeInstanceId() {
     return `grok_session_${crypto.randomBytes(6).toString('hex')}`;
 }
 
+// Grok's response.cancel is fire-and-forget from our side (interrupt() sends
+// it without waiting for a matching response.created) — whenever our own
+// cancel races a response that already finished naturally on Grok's side,
+// Grok replies with this exact error. It carries no consequence: nothing was
+// left running, there is nothing to recover. Matched narrowly on both the
+// error code and the exact known message text so a real invalid_request_error
+// (bad payload, malformed turn, etc.) still fails the generation as before.
+function isBenignCancellationRace(errorEvent) {
+    const code = errorEvent?.error?.code || errorEvent?.code;
+    const message = String(errorEvent?.error?.message || errorEvent?.message || '');
+    return code === 'invalid_request_error' && message.includes('Cancellation failed: no active response found');
+}
+
 function normalizeJsonSchema(value) {
     if (Array.isArray(value)) return value.map(normalizeJsonSchema);
     if (!value || typeof value !== 'object') return value;
@@ -525,6 +538,14 @@ class GrokVoiceProviderSession {
             return;
         }
         if (type === 'error') {
+            if (isBenignCancellationRace(event)) {
+                (this.active?.log || this.sessionLog)('benign_cancel_race', {
+                    providerInstanceId: this.instanceId,
+                    code: event.error?.code || event.code || 'unknown',
+                    message: String(event.error?.message || event.message || '').slice(0, 300),
+                });
+                return;
+            }
             this.failActive('grok_provider_error', new Error(event.error?.message || event.message || 'grok_provider_error'));
         }
     }
@@ -535,6 +556,7 @@ module.exports = {
     GrokVoiceProviderSession,
     DEFAULT_GROK_MODEL,
     DEFAULT_GROK_REALTIME_URL,
+    isBenignCancellationRace,
     buildGrokSessionConfig,
     buildGrokTools,
     normalizeJsonSchema,
