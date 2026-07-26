@@ -61,7 +61,53 @@ function hashText(text) {
     return crypto.createHash('sha256').update(String(text || ''), 'utf8').digest('hex').slice(0, 12);
 }
 
-function buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage }) {
+// Ground truth for the fields/enum values used below comes from the
+// installed @google/genai SDK's own type declarations
+// (node_modules/@google/genai/dist/genai.d.ts) — AutomaticActivityDetection,
+// ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity — not
+// from documentation prose, since that's the only verifiable ground truth
+// available for this provider.
+//
+// hold_to_talk: unchanged from the original PTT-only design — automatic
+// detection OFF, the client (via activityStart/activityEnd) draws the turn
+// boundary, NO_INTERRUPTION since a human already fully controls when the
+// turn starts/ends, TURN_INCLUDES_ALL_INPUT so pauses while the button is
+// still held don't get treated as end-of-turn.
+//
+// tap_to_start: automatic detection ON — Gemini's own server-side VAD
+// decides turn boundaries from the continuous audio stream. Manual
+// activityStart/activityEnd markers must NOT be sent in this mode (see
+// sendAudioNow()/endInput() below) — LiveClientRealtimeInput's own field
+// comments state manual audioStreamEnd is for when auto-detection is
+// enabled, while activityStart/activityEnd are for when it's disabled;
+// mixing both is not a supported combination. START_OF_ACTIVITY_INTERRUPTS
+// (the SDK's own default) is used deliberately so barge-in works: Gemini
+// itself cancels its in-flight response and emits serverContent.interrupted
+// (already handled by handleProviderInterrupted() below) the moment it
+// detects the user talking again — no separate barge-in mechanism needed.
+// TURN_INCLUDES_ONLY_ACTIVITY (also the SDK's own default for automatic
+// detection) excludes silence between utterances from being part of any
+// turn, matching how tap_to_start actually behaves (many short turns, not
+// one long one).
+function buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity, voiceMode }) {
+    if (voiceMode === 'tap_to_start') {
+        return {
+            automaticActivityDetection: {
+                disabled: false,
+                startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
+                endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
+                // Kept explicit rather than left to SDK defaults, matching
+                // the ~900ms figure the previous client-side RMS timer used
+                // as its "how long a pause before we call it done" guess —
+                // this is likewise an unvalidated starting value, not a
+                // calibrated one; see the interface audit this replaced.
+                prefixPaddingMs: 200,
+                silenceDurationMs: 700,
+            },
+            activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
+            turnCoverage: TurnCoverage.TURN_INCLUDES_ONLY_ACTIVITY,
+        };
+    }
     return {
         automaticActivityDetection: {
             disabled: true,
@@ -205,6 +251,9 @@ class GeminiLiveProvider {
             toolHandlers: options.toolHandlers,
             toolDeclarations: options.toolDeclarations,
             contentToolsEnabled: options.contentToolsEnabled,
+            voiceMode: options.voiceMode,
+            onUserSpeechStarted: options.onUserSpeechStarted,
+            onUserSpeechStopped: options.onUserSpeechStopped,
         });
     }
 }
@@ -224,11 +273,25 @@ class GeminiLiveProviderSession {
         toolHandlers,
         toolDeclarations,
         contentToolsEnabled,
+        voiceMode,
+        onUserSpeechStarted,
+        onUserSpeechStopped,
     }) {
         this.name = 'gemini';
+        this.voiceMode = voiceMode === 'tap_to_start' ? 'tap_to_start' : 'hold_to_talk';
+        this.onUserSpeechStarted = typeof onUserSpeechStarted === 'function' ? onUserSpeechStarted : null;
+        this.onUserSpeechStopped = typeof onUserSpeechStopped === 'function' ? onUserSpeechStopped : null;
         this.rotationMode = normalizeRotationMode(rotationMode);
-        this.rotateOnInterrupt = true;
-        this.rotateAfterOutputComplete = this.rotationMode === 'per_turn';
+        // Rotating the provider connection after every output/interrupt is a
+        // per-turn isolation optimization that makes sense for Hold to Talk
+        // (each press/release is its own bounded interaction) but actively
+        // fights tap_to_start's whole point: ONE continuous connection
+        // listening across many utterances so the server's own VAD can
+        // detect the next one without a reconnect gap in between. See
+        // realtimeServer.js's shouldRotateProviderAfterOutputComplete()/
+        // shouldRotateProviderOnInterrupt(), which read these two flags.
+        this.rotateOnInterrupt = this.voiceMode !== 'tap_to_start';
+        this.rotateAfterOutputComplete = this.voiceMode !== 'tap_to_start' && this.rotationMode === 'per_turn';
         this.model = model;
         this.voiceName = normalizeVoiceName(voiceName);
         this.voiceConfigSource = voiceConfigSource || 'default';
@@ -283,8 +346,10 @@ class GeminiLiveProviderSession {
             });
             const {
                 ActivityHandling,
+                EndSensitivity,
                 GoogleGenAI,
                 Modality,
+                StartSensitivity,
                 TurnCoverage,
             } = await import('@google/genai');
             const ai = new GoogleGenAI({ apiKey: this.apiKey });
@@ -349,7 +414,7 @@ class GeminiLiveProviderSession {
                     inputAudioTranscription: {},
                     outputAudioTranscription: {},
                     tools: buildLiveTools({ enabled: this.contentToolsEnabled, declarations: this.toolDeclarations }),
-                    realtimeInputConfig: buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage }),
+                    realtimeInputConfig: buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity, voiceMode: this.voiceMode }),
                     // Fully disables Gemini's internal "thinking" pass (draft
                     // reasoning/plan/critique the model normally generates
                     // before its final answer and is supposed to keep
@@ -469,7 +534,15 @@ class GeminiLiveProviderSession {
 
     sendAudioNow(buffer) {
         if (this.closed || !this.session) return;
-        this.sendActivityStartIfNeeded();
+        // Manual activityStart markers are a hold_to_talk-only concept —
+        // tap_to_start's automaticActivityDetection is enabled, and mixing
+        // manual activity markers with automatic detection is not how this
+        // field is documented (see buildGeminiRealtimeInputConfig's header
+        // comment); the client just streams raw audio continuously and lets
+        // Gemini's own VAD do the rest.
+        if (this.voiceMode !== 'tap_to_start') {
+            this.sendActivityStartIfNeeded();
+        }
         this.session.sendRealtimeInput({
             audio: {
                 data: buffer.toString('base64'),
@@ -542,6 +615,16 @@ class GeminiLiveProviderSession {
         }
         await this.connect(context.log);
         this.flushPendingAudio();
+        if (this.voiceMode === 'tap_to_start') {
+            // Nothing to send: Gemini's own automatic VAD already decided
+            // this turn was over (that decision — the voiceActivity
+            // ACTIVITY_END signal handled in handleMessage() below — is what
+            // caused realtimeServer.js to call endInput() in the first
+            // place). Sending a manual activityEnd here would be exactly
+            // the "manual marker while automatic detection is on" mix this
+            // mode must avoid.
+            return;
+        }
         if (context.mode === 'push_to_talk') {
             await this.sendSilenceTail(context);
         } else {
@@ -885,6 +968,30 @@ class GeminiLiveProviderSession {
                 });
             });
             return;
+        }
+
+        // Provider-native VAD signal (tap_to_start only) — VoiceActivity is
+        // a top-level LiveServerMessage field, a sibling of serverContent,
+        // not nested inside it (verified against the installed SDK's own
+        // type declarations, not guessed) — so this must be checked before
+        // the `if (!content) return;` below, which would otherwise skip a
+        // message that carries ONLY this field. It can also legitimately
+        // arrive with no `this.active` yet (the gap between utterances,
+        // before the next generation exists) — that's the whole point:
+        // ACTIVITY_START is what causes realtimeServer.js to create the
+        // next generation in the first place, so it must not be gated on
+        // one already existing.
+        if (message?.voiceActivity?.voiceActivityType) {
+            const activityType = message.voiceActivity.voiceActivityType;
+            const log = this.active?.log || this.sessionLog || (() => {});
+            log('gemini_voice_activity', {
+                providerInstanceId: this.instanceId,
+                voiceActivityType: activityType,
+            });
+            if (this.voiceMode === 'tap_to_start') {
+                if (activityType === 'ACTIVITY_START') this.onUserSpeechStarted?.();
+                else if (activityType === 'ACTIVITY_END') this.onUserSpeechStopped?.();
+            }
         }
 
         const content = message?.serverContent;
