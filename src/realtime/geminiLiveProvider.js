@@ -1044,6 +1044,34 @@ class GeminiLiveProviderSession {
             return;
         }
 
+        // Multi-turn Tap to Start fallback (root cause, confirmed via live
+        // testing, not guessed): this account/tier never emits `voiceActivity`
+        // (see handleMessage()'s earlier check), so `onUserSpeechStarted()`
+        // never fires for any utterance after the first, `this.active` stays
+        // null forever, and every subsequent real Gemini response gets
+        // silently dropped right here by the `!this.active` guard below --
+        // even though Gemini's own automatic VAD is genuinely still working
+        // and genuinely still responding; we were just discarding it.
+        //
+        // Fix: for tap_to_start only, when there is no active generation and
+        // a message carries a REAL, already-existing signal that a new user
+        // turn has begun -- inputTranscription text, not anything synthetic
+        // -- treat that as the practical equivalent of ACTIVITY_START and
+        // re-arm via the exact same onUserSpeechStarted() callback path,
+        // then fall through to process this same message's content against
+        // the freshly-opened generation. No manual activityStart/activityEnd
+        // is sent (automatic detection stays fully in control server-side);
+        // this only fixes OUR OWN bookkeeping of which generation is active.
+        if (!this.active && this.voiceMode === 'tap_to_start' && content.inputTranscription !== undefined) {
+            // Broadened from requiring non-empty .text: live diagnostic
+            // logging showed Gemini's first inputTranscription fragment for
+            // a new utterance can arrive with an empty/undefined .text
+            // before real text follows -- the KEY's presence at all is
+            // already the real signal that transcription of a new turn has
+            // begun; waiting for non-empty text missed it entirely.
+            this.onUserSpeechStarted?.();
+        }
+
         if (!this.active || this.active.signal.cancelled) return;
 
         if (content.inputTranscription?.text) {
@@ -1244,6 +1272,23 @@ class GeminiLiveProviderSession {
             elapsed_ms: Date.now() - this.active.startedAt,
             cause,
         });
+        // Multi-turn Tap to Start fallback, other half of the fix above:
+        // realtimeServer.js's own hasOpenTurn check (in
+        // handleNativeSpeechStarted/Stopped) is `currentGeneration &&
+        // inputStartedAt && !inputEndedAt` -- and inputEndedAt is normally
+        // only set by handleNativeSpeechStopped(), which (like
+        // handleNativeSpeechStarted()) depends on voiceActivity, which this
+        // account never sends. Without this call, the server keeps
+        // believing THIS turn is still open forever, so the next
+        // onUserSpeechStarted() call (from the fix above) sees hasOpenTurn
+        // still true and silently no-ops -- confirmed via live testing:
+        // this was the exact reason the first fix alone did not work.
+        // generationComplete/turnComplete reaching here (real model output
+        // actually finished) is the practical, already-real signal that
+        // this turn is genuinely done -- not a synthetic event.
+        if (this.voiceMode === 'tap_to_start') {
+            this.onUserSpeechStopped?.();
+        }
         this.active = null;
         this.inputBytes = 0;
     }
