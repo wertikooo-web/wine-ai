@@ -254,6 +254,7 @@ class GeminiLiveProvider {
             voiceMode: options.voiceMode,
             onUserSpeechStarted: options.onUserSpeechStarted,
             onUserSpeechStopped: options.onUserSpeechStopped,
+            onProviderEvent: options.onProviderEvent,
         });
     }
 }
@@ -276,11 +277,16 @@ class GeminiLiveProviderSession {
         voiceMode,
         onUserSpeechStarted,
         onUserSpeechStopped,
+        onProviderEvent,
     }) {
         this.name = 'gemini';
         this.voiceMode = voiceMode === 'tap_to_start' ? 'tap_to_start' : 'hold_to_talk';
         this.onUserSpeechStarted = typeof onUserSpeechStarted === 'function' ? onUserSpeechStarted : null;
         this.onUserSpeechStopped = typeof onUserSpeechStopped === 'function' ? onUserSpeechStopped : null;
+        // Durable session-level fallback for emitting to the client when no
+        // per-turn `active`/`pendingInterrupt` context exists — see
+        // handleProviderInterrupted() below.
+        this.onProviderEvent = typeof onProviderEvent === 'function' ? onProviderEvent : null;
         this.rotationMode = normalizeRotationMode(rotationMode);
         // Rotating the provider connection after every output/interrupt is a
         // per-turn isolation optimization that makes sense for Hold to Talk
@@ -831,46 +837,87 @@ class GeminiLiveProviderSession {
         }
     }
 
+    // Root cause of the previously-dropped events: this only fired when
+    // `interrupt.interrupted_generation_id` was set, which requires OUR code
+    // to have explicitly called interrupt() first. But cancelCurrent() (see
+    // realtimeServer.js) no-ops whenever currentGeneration is already
+    // completed/cancelled/failed by the time a new turn opens — a completely
+    // normal state in tap_to_start, since a turn frequently finishes
+    // generating before the next utterance starts. Gemini's own
+    // serverContent.interrupted is independent of that: it is the provider's
+    // OWN authoritative signal that IT stopped generating, and arrives
+    // regardless of whether we asked for an interrupt. Dropping it just
+    // because no matching pendingInterrupt existed meant the client was
+    // never told to stop local playback for a generation Gemini itself says
+    // is dead.
     handleProviderInterrupted() {
         const interrupt = this.pendingInterrupt;
         const currentActiveGenerationId = this.active?.generationId || null;
+        // Requirement: fall back to the current active generation when the
+        // provider event carries no generation id of its own (Gemini's
+        // `interrupted` flag never does — it's a bare boolean on
+        // serverContent, not scoped to a specific generation).
+        const effectiveGenerationId = interrupt?.interrupted_generation_id ?? currentActiveGenerationId;
 
-        if (!interrupt?.interrupted_generation_id) {
-            const log = this.active?.log || (() => {});
+        const log = this.active?.log || interrupt?.log || this.sessionLog || (() => {});
+        const emit = this.active?.onSessionEvent || interrupt?.onSessionEvent || this.onProviderEvent;
+
+        if (!effectiveGenerationId) {
+            // Genuinely nothing to attribute this to — no pending
+            // client-initiated interrupt AND no active generation at all.
+            // This is the only case still legitimately dropped.
             log('dropped_provider_event', {
                 providerInstanceId: this.instanceId,
                 eventType: 'provider_interrupted',
-                reason: 'unmatched_provider_interrupt',
-                currentActiveGenerationId: currentActiveGenerationId || 'none',
+                reason: 'no_generation_context',
+                currentActiveGenerationId: 'none',
             });
             return;
         }
 
-        const event = {
-            type: 'provider_interrupt_ack',
-            interrupted_generation_id: interrupt.interrupted_generation_id,
-            interrupted_turn_id: interrupt.interrupted_turn_id,
-            interrupted_response_id: interrupt.interrupted_response_id,
-            provider_instance_id: interrupt.provider_instance_id,
-            current_active_generation_id: currentActiveGenerationId,
-            matched: true,
-            ignored_for_active_generation: true,
-            elapsed_ms: Date.now() - interrupt.interrupt_requested_at,
-        };
-
-        const emit = this.active?.onSessionEvent || interrupt.onSessionEvent;
-        if (emit) emit(event);
-        const log = this.active?.log || interrupt.log || (() => {});
-        log('provider_interrupt_ack', {
-            interruptedGenerationId: event.interrupted_generation_id,
-            interruptedResponseId: event.interrupted_response_id || 'none',
-            currentActiveGenerationId: event.current_active_generation_id || 'none',
-            matched: event.matched,
-            ignoredForActiveGeneration: event.ignored_for_active_generation,
-            elapsedMs: event.elapsed_ms,
+        // Always normalize and forward to the client — this is what makes
+        // the client's stopPlaybackImmediately() reachable even when our own
+        // interrupt() was never called for this turn transition. Requirement
+        // 3's exact shape.
+        if (emit) {
+            emit({
+                type: 'response.interrupted',
+                generation_id: effectiveGenerationId,
+                reason: 'provider_interrupted',
+            });
+        }
+        log('provider_interrupted_normalized', {
+            effectiveGenerationId,
+            matchedPendingInterrupt: Boolean(interrupt?.interrupted_generation_id),
+            currentActiveGenerationId: currentActiveGenerationId || 'none',
+            emitAvailable: Boolean(emit),
             providerInstanceId: this.instanceId,
         });
-        this.pendingInterrupt = null;
+
+        if (interrupt) {
+            const event = {
+                type: 'provider_interrupt_ack',
+                interrupted_generation_id: interrupt.interrupted_generation_id,
+                interrupted_turn_id: interrupt.interrupted_turn_id,
+                interrupted_response_id: interrupt.interrupted_response_id,
+                provider_instance_id: interrupt.provider_instance_id,
+                current_active_generation_id: currentActiveGenerationId,
+                matched: true,
+                ignored_for_active_generation: true,
+                elapsed_ms: Date.now() - interrupt.interrupt_requested_at,
+            };
+            if (emit) emit(event);
+            log('provider_interrupt_ack', {
+                interruptedGenerationId: event.interrupted_generation_id,
+                interruptedResponseId: event.interrupted_response_id || 'none',
+                currentActiveGenerationId: event.current_active_generation_id || 'none',
+                matched: event.matched,
+                ignoredForActiveGeneration: event.ignored_for_active_generation,
+                elapsedMs: event.elapsed_ms,
+                providerInstanceId: this.instanceId,
+            });
+            this.pendingInterrupt = null;
+        }
     }
 
     close() {

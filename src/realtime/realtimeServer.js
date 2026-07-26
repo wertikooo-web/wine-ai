@@ -411,6 +411,17 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // manual vs. provider-native turn detection based on this; see
             // geminiLiveProvider.js/grokVoiceProvider.js.
             voiceMode: personaStore.getVoiceMode(),
+            // Durable, session-level event sink — NOT the same as the
+            // per-turn onSessionEvent handed to beginResponse()/interrupt(),
+            // which only exists while a generation is active or a specific
+            // interrupt is still pending. A provider's own interrupted signal
+            // (e.g. Gemini's serverContent.interrupted) can arrive after both
+            // of those have already been cleared (the generation completed
+            // normally, or the interrupt was never explicitly initiated by
+            // us). Without this, the provider adapter had no way to reach the
+            // client at all in that case and could only log-and-drop the
+            // event — see geminiLiveProvider.js's handleProviderInterrupted().
+            onProviderEvent: emit,
             // Session-level (not per-turn) callbacks a provider adapter
             // invokes when ITS OWN native VAD detects the user starting or
             // stopping speech (tap_to_start only). These call straight into
@@ -1582,6 +1593,19 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             if (cancelledActiveGeneration && shouldRotateProviderOnInterrupt()) {
                 rotateProviderSession(reason);
             }
+        } else if (payload.type === 'client_telemetry') {
+            // The client's own log() previously only appended to a Diagnostics
+            // DOM panel that no longer exists (a dead no-op — see
+            // dashboard.html) — its playback/disconnect telemetry never
+            // reached anywhere an operator could actually see it, in the
+            // browser console OR here. Re-logging it under the same session
+            // here is what makes it show up in Railway logs at all. Audio
+            // data is never included by the client in these payloads; only
+            // counts, ids, and timings.
+            log('client_telemetry', {
+                stage: payload.stage || 'unknown',
+                ...(payload.data || {}),
+            });
         } else if (payload.type === 'ping') {
             emit({
                 type: 'pong',
