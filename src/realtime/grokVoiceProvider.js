@@ -49,12 +49,42 @@ function buildGrokTools(declarations = []) {
         .filter(Boolean);
 }
 
+// turn_detection shape/behavior verified against xAI's own docs
+// (docs.x.ai/developers/model-capabilities/audio/voice-agent and
+// .../rest-api-reference/inference/voice) as of this change — NOT guessed:
+// - server_vad config fields: type, threshold, prefix_padding_ms,
+//   silence_duration_ms (documented range 0-10000), idle_timeout_ms.
+//   Explicit values are set below rather than left to factory defaults —
+//   two separate doc fetches reported inconsistent default `threshold`
+//   values (0.5 vs 0.85), so an explicit number here is deliberate, not
+//   copied from an uncertain default.
+// - With server_vad active, `input_audio_buffer.commit` is documented as
+//   FORBIDDEN (the server owns turn boundaries) — see endInput() below,
+//   which sends neither commit nor response.create in this mode.
+// - Server->client events `input_audio_buffer.speech_started` /
+//   `input_audio_buffer.speech_stopped` are documented event type strings
+//   for server_vad — handled in handleMessage() below.
+// - Whether response.create is still required after server_vad commits a
+//   turn is NOT clearly and consistently documented (one page's prose
+//   suggests it's automatic, but does not say so in an unambiguous,
+//   directly-quotable sentence) — this repo has no Grok API credentials to
+//   verify live, so this is implemented per the more specific "commit is
+//   forbidden" statement and left unverified beyond that; see this
+//   session's report for the exact wording found.
 function buildGrokSessionConfig(options, config) {
     const tools = options.contentToolsEnabled ? buildGrokTools(options.toolDeclarations) : [];
+    const turnDetection = options.voiceMode === 'tap_to_start'
+        ? {
+            type: 'server_vad',
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 700,
+        }
+        : null;
     return {
         instructions: String(options.systemInstructionText || ''),
         voice: normalizeGrokVoiceId(options.voiceName || config.voiceId),
-        turn_detection: null,
+        turn_detection: turnDetection,
         audio: {
             input: {
                 format: { type: 'audio/pcm', rate: 16000 },
@@ -99,6 +129,9 @@ class GrokVoiceProviderSession {
         this.rotationReason = options.rotationReason || 'initial';
         this.rotateOnInterrupt = false;
         this.rotateAfterOutputComplete = false;
+        this.voiceMode = options.voiceMode === 'tap_to_start' ? 'tap_to_start' : 'hold_to_talk';
+        this.onUserSpeechStarted = typeof options.onUserSpeechStarted === 'function' ? options.onUserSpeechStarted : null;
+        this.onUserSpeechStopped = typeof options.onUserSpeechStopped === 'function' ? options.onUserSpeechStopped : null;
         this.config = config;
         this.options = options;
         this.instanceId = instanceId;
@@ -211,6 +244,13 @@ class GrokVoiceProviderSession {
     async endInput(context) {
         await this.connect(context.log);
         if (!this.isActive(context) || context.signal.cancelled) return;
+        if (this.voiceMode === 'tap_to_start') {
+            // server_vad already committed the buffer server-side once it
+            // detected the pause (input_audio_buffer.speech_stopped, handled
+            // in handleMessage() below) — xAI's docs state commit is
+            // forbidden while server_vad is active, so nothing is sent here.
+            return;
+        }
         this.sendRaw({ type: 'input_audio_buffer.commit' });
         this.sendRaw({ type: 'response.create' });
     }
@@ -386,8 +426,23 @@ class GrokVoiceProviderSession {
         } catch {
             return;
         }
-        if (!this.active || this.active.signal.cancelled) return;
         const type = String(event.type || '');
+
+        // Provider-native VAD signals (tap_to_start only) — these fire
+        // independently of whether a generation is currently "active"
+        // server-side. speech_started is exactly what CREATES the next
+        // active generation (via realtimeServer.js's callback), so this
+        // must run before the `!this.active` guard below, not after it.
+        if (type === 'input_audio_buffer.speech_started') {
+            if (this.voiceMode === 'tap_to_start') this.onUserSpeechStarted?.();
+            return;
+        }
+        if (type === 'input_audio_buffer.speech_stopped') {
+            if (this.voiceMode === 'tap_to_start') this.onUserSpeechStopped?.();
+            return;
+        }
+
+        if (!this.active || this.active.signal.cancelled) return;
 
         if (type === 'conversation.item.input_audio_transcription.updated'
             || type === 'conversation.item.input_audio_transcription.completed') {

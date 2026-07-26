@@ -1440,12 +1440,9 @@
   // mechanism as mood/baseProfileId — no separate storage.
   let voiceMode = 'hold_to_talk';
   let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
-  let tapSilenceStartedAt = null; // when the current utterance's amplitude first dropped below threshold
   let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
   let tapToStartIdleTimeoutMs = 5000; // overwritten from /api/persona's config on load
   let pendingTapStart = false;    // Tap to Start pressed before the ws connection finished opening
-  const TAP_SILENCE_RMS_THRESHOLD = 0.02;
-  const TAP_SILENCE_DURATION_MS = 900;
   let currentTurnId = null;
   let inputEndedAt = 0;
   let firstAudioAt = 0;
@@ -2196,7 +2193,11 @@
       setText('wsLabel', 'disconnected');
       setText('dWs', 'closed');
       setConnectionButton('disconnected');
-      el('pttBtn').disabled = true;
+      // In Tap to Start, the mic button IS the connect trigger — it must
+      // stay enabled while disconnected so a tap can open a fresh session
+      // (see startConversationOnTap()). Hold to Talk keeps the previous
+      // behavior: disabled until a session is open.
+      el('pttBtn').disabled = voiceMode !== 'tap_to_start';
       el('textInput').disabled = true;
       el('textSendBtn').disabled = true;
       el('demoWineRed').disabled = true;
@@ -2300,6 +2301,12 @@
         currentTurnId = payload.turn_id;
         setText('dTurn', currentTurnId || '—');
         setText('speakerState', 'you');
+        // Tap to Start: this fires for EVERY utterance now, including ones
+        // the server opened on its own via provider-native VAD (see
+        // src/realtime/realtimeServer.js's handleNativeSpeechStarted()) —
+        // that is the "provider-native event of speech starting" the idle
+        // timer must be cancelled by, not local RMS.
+        if (voiceMode === 'tap_to_start') cancelTapIdleTimer();
         break;
       case 'input_audio.end':
         inputEndedAt = performance.now();
@@ -2379,25 +2386,24 @@
     }
     const source = audioContext.createMediaStreamSource(micStream);
     processor = audioContext.createScriptProcessor(2048, 1, 1);
+    // Tap to Start reuses this exact same audio pipeline unchanged — turn
+    // boundaries are no longer decided here at all. The server's provider
+    // adapter (Gemini automaticActivityDetection / Grok server_vad) decides
+    // when each utterance starts and ends from its own copy of this same
+    // stream; see src/realtime/realtimeServer.js's handleNativeSpeechStarted/
+    // Stopped(). isHolding simply gates "is the mic pipeline armed at all" —
+    // for Hold to Talk that's true only while the button is held; for Tap to
+    // Start it's true for the whole conversation (see resumeTapListening()/
+    // stopConversationOnTap() below), not re-toggled per utterance.
     processor.onaudioprocess = (e) => {
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
       const pcm16 = new Int16Array(input.length);
-      let sumSquares = 0;
       for (let i = 0; i < input.length; i++) {
         const s = Math.max(-1, Math.min(1, input[i]));
         pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-        sumSquares += s * s;
       }
       ws.send(pcm16.buffer);
-      // Tap to Start reuses this exact same PTT audio pipeline — the only
-      // difference is who calls endTurn()-equivalent. Instead of a new VAD
-      // subsystem, a simple RMS-below-threshold-for-N-ms check on the audio
-      // already being read here decides when the user's utterance ended.
-      // See evaluateTapSilence()/finishTapUtterance() below.
-      if (voiceMode === 'tap_to_start') {
-        evaluateTapSilence(Math.sqrt(sumSquares / input.length));
-      }
     };
     source.connect(processor);
     processor.connect(audioContext.destination);
@@ -2466,6 +2472,14 @@
     const hint = el('voiceModeHint');
     if (hint) hint.textContent = getUiString(voiceMode === 'tap_to_start' ? 'voiceModeTapHint' : 'voiceModeHoldHint');
     setPttCaption();
+    // Tap to Start's mic button doubles as the connect trigger, so it must
+    // be enabled even while disconnected; Hold to Talk requires an open
+    // session first (unchanged behavior).
+    const ptt = el('pttBtn');
+    if (ptt) {
+      const isConnected = ws && ws.readyState === WebSocket.OPEN;
+      ptt.disabled = voiceMode === 'tap_to_start' ? false : !isConnected;
+    }
   }
 
   // Switching mode: if a session/turn from the OLD mode is active, tear it
@@ -2541,50 +2555,25 @@
   // Re-arms listening for the NEXT utterance without requiring another tap —
   // called once after the initial tap connects, and again after every
   // assistant reply finishes (see maybeFinishSpeaking()).
+  // Called once, when the tap_to_start conversation opens (either directly
+  // from startConversationOnTap() if already connected, or via
+  // pendingTapStart once the connection finishes opening). isHolding then
+  // stays true for the WHOLE conversation — every subsequent utterance's
+  // start/end is now provider-native (see realtimeServer.js's
+  // handleNativeSpeechStarted/Stopped()), not re-armed here per utterance.
   function resumeTapListening() {
     if (!ws || ws.readyState !== WebSocket.OPEN || !tapToStartActive) return;
     cancelTapIdleTimer();
-    tapSilenceStartedAt = null;
     isHolding = true;
     setText('micState', 'recording');
     DeviceVisual.setState('listening');
     ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'tap_to_start' }));
   }
 
-  // Same effect as endTurn(), but named separately since it's triggered by
-  // silence detection rather than a button release, and deliberately does
-  // NOT touch the "conversation active" UI state (still showing "End
-  // conversation") — only stopConversationOnTap() does that.
-  function finishTapUtterance() {
-    if (!isHolding) return;
-    isHolding = false;
-    setText('micState', 'ready');
-    DeviceVisual.setState('thinking');
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'input_audio.end' }));
-    }
-  }
-
-  // Lightweight energy-threshold silence detector — not a new VAD system,
-  // just a below-threshold-for-N-ms check on the RMS amplitude the mic
-  // pipeline already computes every frame (see processor.onaudioprocess).
-  function evaluateTapSilence(rms) {
-    if (rms > TAP_SILENCE_RMS_THRESHOLD) {
-      if (tapIdleTimer) cancelTapIdleTimer();
-      tapSilenceStartedAt = null;
-      return;
-    }
-    if (tapSilenceStartedAt === null) {
-      tapSilenceStartedAt = performance.now();
-    } else if (performance.now() - tapSilenceStartedAt >= TAP_SILENCE_DURATION_MS) {
-      tapSilenceStartedAt = null;
-      finishTapUtterance();
-    }
-  }
-
   // 5s auto-close timer — armed only once the assistant has fully finished
-  // speaking (see maybeFinishSpeaking()), cancelled the instant the user
-  // starts speaking again (see evaluateTapSilence()'s rms > threshold path).
+  // speaking (see maybeFinishSpeaking()), cancelled by the next
+  // provider-native "user started speaking" signal, echoed to the client
+  // as input_audio.start (see handleEvent()'s case 'input_audio.start').
   function startTapIdleTimer() {
     cancelTapIdleTimer();
     tapIdleTimer = setTimeout(onTapIdleTimeout, tapToStartIdleTimeoutMs);
@@ -2861,11 +2850,13 @@
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
     // Tap to Start: the assistant has FULLY finished (playback drained, not
-    // just audio.end received) — re-arm listening for the next utterance
-    // and start the 5s idle-close timer now, exactly per the requirement
-    // that it must only run once the response is truly over.
+    // just audio.end received) — start the 5s idle-close timer now, exactly
+    // per the requirement that it must only run once the response is truly
+    // over. The mic itself was never stopped between utterances (see
+    // resumeTapListening()'s header comment), so there is nothing to
+    // "re-arm" here anymore — the provider's own native VAD is already
+    // listening for the next utterance.
     if (voiceMode === 'tap_to_start' && tapToStartActive) {
-      resumeTapListening();
       startTapIdleTimer();
     }
   }

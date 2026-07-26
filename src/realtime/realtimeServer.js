@@ -393,7 +393,49 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             contentToolsEnabled,
             toolDeclarations: contentToolsEnabled ? toolDeclarations : [],
             toolHandlers: contentToolsEnabled ? toolHandlers : {},
+            // Session-wide voice mode — read once per provider-session
+            // creation (initial connect + any rotation) from the same
+            // persisted preference the dashboard switcher writes
+            // (personaStore.setVoiceMode()). The provider adapter picks
+            // manual vs. provider-native turn detection based on this; see
+            // geminiLiveProvider.js/grokVoiceProvider.js.
+            voiceMode: personaStore.getVoiceMode(),
+            // Session-level (not per-turn) callbacks a provider adapter
+            // invokes when ITS OWN native VAD detects the user starting or
+            // stopping speech (tap_to_start only). These call straight into
+            // the same startInput()/endInput() the client's own
+            // input_audio.start/input_audio.end messages already trigger —
+            // no second turn/generation state machine, just a different
+            // trigger source for the existing one.
+            onUserSpeechStarted: handleNativeSpeechStarted,
+            onUserSpeechStopped: handleNativeSpeechStopped,
         };
+    }
+
+    // See buildProviderSessionOptions() above — invoked by a provider
+    // adapter's own native VAD (Gemini's voiceActivity signal, Grok's
+    // input_audio_buffer.speech_started/stopped), never by a client
+    // message, in tap_to_start mode only.
+    function handleNativeSpeechStarted() {
+        if (currentMode !== 'tap_to_start') return;
+        const hasOpenTurn = Boolean(currentGeneration && inputStartedAt && !inputEndedAt);
+        // The client's own initial input_audio.start (the tap) already
+        // opened this turn — a native "speech started" for that SAME
+        // utterance is just confirmation, not a new-turn signal. Only a
+        // native start arriving with no open turn (every utterance after
+        // the first, or a genuine barge-in over the assistant's own
+        // response) should open a new one.
+        if (hasOpenTurn) return;
+        log('native_speech_started', { provider: providerSession?.name || 'provider' });
+        startInput({ mode: 'tap_to_start' });
+    }
+
+    function handleNativeSpeechStopped() {
+        if (currentMode !== 'tap_to_start') return;
+        const hasOpenTurn = Boolean(currentGeneration && inputStartedAt && !inputEndedAt);
+        if (!hasOpenTurn) return;
+        log('native_speech_stopped', { provider: providerSession?.name || 'provider' });
+        endInput({ end_reason: 'provider_vad' });
     }
 
     function safePromptPayload() {
@@ -590,7 +632,11 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     }
 
     function armPttTurnTimeout(generation) {
-        if (!generation || currentMode !== 'push_to_talk') return;
+        // Same stuck-generation safety net for both interactive input modes
+        // (Hold to Talk and Tap to Start) — a turn that never gets a
+        // response needs recovering either way; only a future non-
+        // interactive/automated mode would want this skipped.
+        if (!generation || (currentMode !== 'push_to_talk' && currentMode !== 'tap_to_start')) return;
         clearGenerationTimeout(generation);
         const timeoutMs = Math.max(0, Number(process.env.PTT_TURN_TIMEOUT_MS || 4500));
         if (timeoutMs <= 0) return;
@@ -1514,14 +1560,25 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     const parser = createFrameParser({
         onText: handleCommand,
         onBinary(payload) {
-            if (
-                !currentGeneration
-                || !inputStartedAt
-                || inputEndedAt
-                || currentGeneration.status === 'completed'
-                || currentGeneration.status === 'cancelled'
-                || currentGeneration.status === 'failed'
-            ) {
+            const isActiveTurn = Boolean(
+                currentGeneration
+                && inputStartedAt
+                && !inputEndedAt
+                && currentGeneration.status !== 'completed'
+                && currentGeneration.status !== 'cancelled'
+                && currentGeneration.status !== 'failed'
+            );
+            // tap_to_start needs audio flowing to the provider EVEN BETWEEN
+            // utterances (no turn "active") — that gap is exactly what the
+            // provider's own native VAD is listening across to detect the
+            // next utterance's start (see handleNativeSpeechStarted() /
+            // Gemini's voiceActivity / Grok's speech_started above). Once
+            // the very first input_audio.start has opened the session
+            // (turnCounter > 0), continue forwarding regardless of
+            // per-turn state. Hold to Talk is untouched: it still requires
+            // an explicitly active turn, exactly as before.
+            const continuousTapListening = currentMode === 'tap_to_start' && turnCounter > 0;
+            if (!isActiveTurn && !continuousTapListening) {
                 log('dropped_input_audio_frame', {
                     reason: 'no_active_input',
                     bytes: payload.length,
@@ -1558,21 +1615,27 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 return;
             }
             if (resampled.length === 0) return; // buffered internally, nothing to forward yet
-            inputBytes += resampled.length;
             sessionInputBytes += resampled.length;
-            if (currentInputBufferedBytes + resampled.length <= MAX_TURN_REPLAY_BYTES) {
-                currentInputChunks.push(resampled);
-                currentInputBufferedBytes += resampled.length;
-            } else if (currentInputBufferedBytes <= MAX_TURN_REPLAY_BYTES) {
-                log('input_replay_buffer_full', {
-                    bytes: resampled.length,
-                    bufferedBytes: currentInputBufferedBytes,
-                    maxReplayBytes: MAX_TURN_REPLAY_BYTES,
-                    turnId: currentTurnId || 'none',
-                    generationId: currentGeneration?.generationId || 'none',
-                });
-                currentInputBufferedBytes = MAX_TURN_REPLAY_BYTES + 1;
-                currentInputChunks = [];
+            // Per-turn byte/replay-buffer bookkeeping only makes sense while
+            // a turn is actually open — during the tap_to_start "listening
+            // for the next utterance" gap there is no turn to attribute
+            // these bytes to.
+            if (isActiveTurn) {
+                inputBytes += resampled.length;
+                if (currentInputBufferedBytes + resampled.length <= MAX_TURN_REPLAY_BYTES) {
+                    currentInputChunks.push(resampled);
+                    currentInputBufferedBytes += resampled.length;
+                } else if (currentInputBufferedBytes <= MAX_TURN_REPLAY_BYTES) {
+                    log('input_replay_buffer_full', {
+                        bytes: resampled.length,
+                        bufferedBytes: currentInputBufferedBytes,
+                        maxReplayBytes: MAX_TURN_REPLAY_BYTES,
+                        turnId: currentTurnId || 'none',
+                        generationId: currentGeneration?.generationId || 'none',
+                    });
+                    currentInputBufferedBytes = MAX_TURN_REPLAY_BYTES + 1;
+                    currentInputChunks = [];
+                }
             }
             providerSession.sendAudio(resampled);
             log('input_audio_frame', {
