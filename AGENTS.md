@@ -115,6 +115,27 @@ A task is complete only when:
 - the final diff is reviewed;
 - limitations and unverified assumptions are stated honestly.
 
+## Deployment gate
+
+Before merging or deploying any commit, all of the following must pass:
+
+1. `npm run check:missing-imports` — no local `require`/`import` references an untracked file.
+2. `node --test tests/startupNoAdminAuth.test.js` — server starts without the admin auth module.
+3. `npm run test:smoke` — all smoke tests pass against the freshly started server.
+4. The CI workflow (`startup-smoke`) is green.
+
+These are the minimum gates. The commit that broke production (b8b8748) would have been caught by check #1 alone. Do not skip or disable these checks.
+
+## Unfinished feature policy
+
+If a feature branch or commit introduces a `require` or `import` of a file that does not yet exist (i.e. the implementation is incomplete), that commit must **never be merged to `main`** or deployed to production. The correct approach is:
+
+1. Complete the feature in the same branch (all required files committed).
+2. Run `npm run check:missing-imports` to verify.
+3. Only then merge/deploy.
+
+Never commit a "skeleton" import that relies on a developer having the file locally but untracked — this is exactly the class of bug that caused the 2026-07-26 production outage.
+
 ## Integration Testing & Runtime Validation (Strict Rules)
 
 - **No Blind Mocking**: Avoid mocking internal utility files (e.g., DNS, parsers, schema helpers) in unit tests unless they make remote network requests or perform database changes. Run real files to catch boundary type mismatches.

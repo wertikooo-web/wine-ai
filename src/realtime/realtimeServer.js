@@ -1731,13 +1731,16 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     const parser = createFrameParser({
         onText: handleCommand,
         onBinary(payload) {
+            // In PTT mode, input flows until the user explicitly releases the
+            // button (input_audio.end → inputEndedAt set). The provider's
+            // response status is irrelevant here — a fast provider may finish
+            // its response while the user is still holding PTT, but that must
+            // NOT stop incoming audio. Only inputEndedAt is the authoritative
+            // turn-end signal. tap_to_start is handled separately below.
             const isActiveTurn = Boolean(
                 currentGeneration
                 && inputStartedAt
                 && !inputEndedAt
-                && currentGeneration.status !== 'completed'
-                && currentGeneration.status !== 'cancelled'
-                && currentGeneration.status !== 'failed'
             );
             // tap_to_start needs audio flowing to the provider EVEN BETWEEN
             // utterances (no turn "active") — that gap is exactly what the

@@ -19,6 +19,7 @@
     "smoke:realtime": "node scripts/realtime-smoke.js",
     "smoke:language": "node scripts/language-smoke.js",
     "smoke:knowledge": "node scripts/knowledge-smoke.js",
+    "check:missing-imports": "node scripts/check-missing-local-imports.js",
     "lint": "node --check src/server.js",
     "typecheck": "echo \"no build-time typecheck configured (JS + JSDoc project); see AGENTS.md\"",
     "avatar:validate": "npm run avatar:validate:manifest && npm run avatar:validate:events && npm run avatar:validate:assets",
