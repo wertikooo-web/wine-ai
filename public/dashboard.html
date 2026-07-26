@@ -2245,6 +2245,11 @@
   }
 
   function disconnect() {
+    log('disconnect_started', {
+      wsReadyState: ws ? ws.readyState : null,
+      micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
+      processorLive: Boolean(processor),
+    });
     // Same instant local stop as PTT/text barge-in (see startTurn()) — closing
     // the connection must not leave a previous assistant reply audibly
     // finishing itself out while the UI already shows "disconnected".
@@ -2265,6 +2270,10 @@
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
+    log('disconnect_completed', {
+      micStreamLive: Boolean(micStream),
+      processorLive: Boolean(processor),
+    });
   }
 
   // Single connection button — toggles label/behavior instead of showing
@@ -2395,9 +2404,43 @@
 
   // ---- Microphone capture (PTT) ----
   let inputSampleRate = 16000;
+  let micSource = null;
+  // Diagnostics only — the actual constraints/settings, never audio data.
+  let lastMicTrackSettings = null;
+
+  function logMicTrackSettings(track, stage) {
+    const s = track.getSettings ? track.getSettings() : {};
+    lastMicTrackSettings = s;
+    log(stage, {
+      trackId: track.id,
+      readyState: track.readyState,
+      enabled: track.enabled,
+      muted: track.muted,
+      echoCancellation: s.echoCancellation,
+      noiseSuppression: s.noiseSuppression,
+      autoGainControl: s.autoGainControl,
+      sampleRate: s.sampleRate,
+      channelCount: s.channelCount,
+    });
+  }
+
+  // In-flight guard: ensureMic() can be called from more than one path
+  // (connect()'s open handler, endTurn()/PTT re-arm) — without this, two
+  // overlapping calls racing before the first getUserMedia() resolves would
+  // both see micStream === null and each acquire their own track/processor,
+  // leaving two live tracks and two onaudioprocess callbacks both sending
+  // audio into the same ws (see the "exactly one live track/processor"
+  // requirement).
+  let micStreamPromise = null;
 
   async function ensureMic() {
     if (micStream) return;
+    if (micStreamPromise) return micStreamPromise;
+    micStreamPromise = acquireMic().finally(() => { micStreamPromise = null; });
+    return micStreamPromise;
+  }
+
+  async function acquireMic() {
     // echoCancellation/noiseSuppression/autoGainControl are WebRTC's voice
     // processing pipeline, tuned for calls, not STT — AGC in particular can
     // misfire as a noise gate and zero out normal-volume speech entirely on
@@ -2418,9 +2461,23 @@
     // comes through — it fixes the self-feedback loop without breaking
     // interruption.
     const forVoice = voiceMode === 'tap_to_start';
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, sampleRate: 16000, echoCancellation: forVoice, noiseSuppression: forVoice, autoGainControl: false },
-    });
+    const constraints = { channelCount: 1, sampleRate: 16000, echoCancellation: forVoice, noiseSuppression: forVoice, autoGainControl: false };
+    log('mic_get_user_media_requested', { forVoice, ...constraints });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+    micStream = stream;
+    const track = stream.getAudioTracks()[0];
+    log('mic_get_user_media_resolved', { trackId: track ? track.id : null, trackCount: stream.getAudioTracks().length });
+    if (track) {
+      logMicTrackSettings(track, 'mic_track_settings');
+      log('mic_track_started', { trackId: track.id });
+      // Diagnostic only — surfaces the browser/OS ending the track outside
+      // our own stopMic() (device unplugged, OS-level permission revoked,
+      // etc.), which would otherwise silently leave micStream pointing at a
+      // dead track.
+      track.addEventListener('ended', () => {
+        log('mic_track_stopped', { trackId: track.id, reason: 'track_ended_event', readyState: track.readyState });
+      });
+    }
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
     // Never assume the browser actually honored the requested 16000Hz —
     // send the AudioContext's real sample rate to the server instead of a
@@ -2432,7 +2489,7 @@
     if (inputSampleRate !== 16000 && inputSampleRate !== 24000) {
       log('mic_sample_rate_unsupported', { actual: inputSampleRate });
     }
-    const source = audioContext.createMediaStreamSource(micStream);
+    micSource = audioContext.createMediaStreamSource(micStream);
     processor = audioContext.createScriptProcessor(2048, 1, 1);
     // Tap to Start reuses this exact same audio pipeline unchanged — turn
     // boundaries are no longer decided here at all. The server's provider
@@ -2453,13 +2510,36 @@
       }
       ws.send(pcm16.buffer);
     };
-    source.connect(processor);
+    micSource.connect(processor);
     processor.connect(audioContext.destination);
+    log('mic_processor_started', {});
     setText('micState', 'ready');
   }
 
   function stopMic() {
-    if (micStream) micStream.getTracks().forEach((t) => t.stop());
+    // Must fully tear down the processor/source graph, not just the tracks —
+    // leaving the old ScriptProcessorNode connected meant its onaudioprocess
+    // callback (gated only on the shared isHolding/ws module state, not on
+    // "is this still the current mic instance") kept firing and sending
+    // duplicate audio into whatever ws was open next, alongside the new
+    // pipeline ensureMic() would create on reconnect. That's exactly the
+    // "more than one live processor callback" failure mode.
+    if (processor) {
+      processor.onaudioprocess = null;
+      processor.disconnect();
+      log('mic_processor_stopped', {});
+    }
+    processor = null;
+    if (micSource) {
+      micSource.disconnect();
+      micSource = null;
+    }
+    if (micStream) {
+      micStream.getTracks().forEach((t) => {
+        t.stop();
+        log('mic_track_stopped', { trackId: t.id, reason: 'stop_mic', readyState: t.readyState });
+      });
+    }
     micStream = null;
     setText('micState', 'idle');
   }
@@ -2546,6 +2626,22 @@
     if (mode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) return; // per-provider gate — see declaration above
     if (mode === voiceMode) return;
 
+    // Full state snapshot before/after teardown — the requirement this is
+    // meant to make verifiable is that teardown (stopConversationOnTap()/
+    // disconnect(), both awaited below, never fire-and-forget in parallel
+    // with the new mode starting up) actually completes before the new mode
+    // takes over the mic/ws.
+    log('mode_switch_started', {
+      from: voiceMode,
+      to: mode,
+      tapToStartActive,
+      pendingTapStart,
+      isHolding,
+      wsReadyState: ws ? ws.readyState : null,
+      micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
+      processorLive: Boolean(processor),
+    });
+
     if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
       await stopConversationOnTap();
     } else if (voiceMode === 'hold_to_talk' && isHolding) {
@@ -2569,6 +2665,16 @@
         log('voice_mode_save_error', { message: err.message });
       }
     }
+
+    log('mode_switch_completed', {
+      to: voiceMode,
+      tapToStartActive,
+      pendingTapStart,
+      isHolding,
+      wsReadyState: ws ? ws.readyState : null,
+      micStreamLive: Boolean(micStream),
+      processorLive: Boolean(processor),
+    });
   }
 
   async function startConversationOnTap() {
@@ -2623,7 +2729,20 @@
     isHolding = true;
     setText('micState', 'recording');
     DeviceVisual.setState('listening');
-    ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'tap_to_start' }));
+    // Report the mic pipeline actually backing this conversation (not the
+    // requested constraints — track.getSettings() reflects what the browser
+    // actually granted) so the server can gate barge-in on a confirmed,
+    // current, AEC-enabled pipeline rather than trusting inputTranscription
+    // arrival unconditionally. See handleNativeSpeechStarted() in
+    // realtimeServer.js.
+    const track = micStream ? micStream.getAudioTracks()[0] : null;
+    const settings = track && track.getSettings ? track.getSettings() : {};
+    ws.send(JSON.stringify({
+      type: 'input_audio.start',
+      mode: 'tap_to_start',
+      micTrackId: track ? track.id : null,
+      micEchoCancellation: settings.echoCancellation === true,
+    }));
   }
 
   // 5s auto-close timer — armed only once the assistant has fully finished
@@ -2918,6 +3037,7 @@
 
   function maybeFinishSpeaking() {
     if (!serverAudioEnded || activeSources.length > 0) return;
+    log('playback_stopped', { reason: 'drained' });
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
     // Tap to Start: the assistant has FULLY finished (playback drained, not
@@ -2933,6 +3053,7 @@
   }
 
   function schedulePlayback(buffer) {
+    if (activeSources.length === 0) log('playback_started', {});
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
     src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
@@ -2955,6 +3076,7 @@
   // 'response.cancelled', which fires for both cases (see
   // src/realtime/realtimeServer.js's cancelCurrent()).
   function clearPlayback() {
+    const wasPlaying = activeSources.length > 0;
     for (const src of activeSources) {
       try { src.onended = null; src.stop(); } catch { /* already stopped */ }
     }
@@ -2962,6 +3084,7 @@
     serverAudioEnded = true;
     playbackQueueTime = audioContext ? audioContext.currentTime : 0;
     if (avatar3d) avatar3d.resetAudio();
+    if (wasPlaying) log('playback_stopped', { reason: 'cleared' });
   }
 
   function playAudioChunk(payload) {

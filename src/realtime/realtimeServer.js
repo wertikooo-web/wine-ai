@@ -268,6 +268,17 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let sessionInputBytes = 0;
     let currentMode = 'push_to_talk';
     let turnCounter = 0;
+    // Set from the client's OWN tap_to_start input_audio.start message (which
+    // reports its real track.getSettings(), not requested constraints) —
+    // never from the synthetic startInput({mode:'tap_to_start'}) that
+    // handleNativeSpeechStarted() below issues on the provider's native VAD.
+    // Gates whether a native-VAD "speech started" is trusted to open a new
+    // turn: without a confirmed, AEC-enabled mic pipeline behind it, an
+    // inputTranscription arriving mid-playback is exactly the self-echo
+    // pattern (assistant's own voice leaking back through the mic) that
+    // caused the false-interrupt bug, not a real barge-in.
+    let micPipelineConfirmed = false;
+    let micPipelineTrackId = null;
     let socketClosed = false;
     let providerClosed = false;
     let readySent = false;
@@ -426,7 +437,21 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         // the first, or a genuine barge-in over the assistant's own
         // response) should open a new one.
         if (hasOpenTurn) return;
-        log('native_speech_started', { provider: providerSession?.name || 'provider' });
+        // Belt-and-suspenders on top of client-side AEC (which is the actual
+        // fix): don't trust a native "speech started" into opening a new
+        // turn/cancelling the active response unless the client has told us
+        // its mic pipeline is a confirmed, AEC-enabled tap_to_start stream.
+        // This is a pipeline-identity check, not a duration filter — short
+        // real commands like "stop" must still work once the pipeline is
+        // confirmed.
+        if (!micPipelineConfirmed) {
+            log('native_speech_started_ignored_unconfirmed_mic', {
+                provider: providerSession?.name || 'provider',
+                micPipelineTrackId,
+            });
+            return;
+        }
+        log('native_speech_started', { provider: providerSession?.name || 'provider', micPipelineTrackId });
         startInput({ mode: 'tap_to_start' });
     }
 
@@ -1154,6 +1179,20 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             turnId: currentTurnId,
         });
         currentMode = payload.mode || 'push_to_talk';
+        // Only the client's own tap_to_start input_audio.start carries
+        // micEchoCancellation (see resumeTapListening() in dashboard.html);
+        // the synthetic starts handleNativeSpeechStarted() issues for every
+        // utterance after the first don't, so this only (re-)confirms the
+        // pipeline on the real client message, and never clears a prior
+        // confirmation on the synthetic ones.
+        if (currentMode === 'tap_to_start' && typeof payload.micEchoCancellation === 'boolean') {
+            micPipelineConfirmed = payload.micEchoCancellation === true;
+            micPipelineTrackId = payload.micTrackId || null;
+            log('mic_pipeline_confirmation_received', {
+                confirmed: micPipelineConfirmed,
+                trackId: micPipelineTrackId,
+            });
+        }
         inputStartedAt = Date.now();
         inputEndedAt = 0;
         inputBytes = 0;
@@ -1638,8 +1677,16 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 }
             }
             providerSession.sendAudio(resampled);
+            // Attribution fix: once a turn has closed (input_audio_end), these
+            // are session-level continuous-listening bytes, not that turn's
+            // input — logging the stale currentTurnId here made every
+            // between-utterances frame look like it still belonged to the
+            // just-closed turn, even though isActiveTurn already correctly
+            // gated inputBytes/replay-buffer accounting above. Report `null`
+            // instead of the misleading stale ID; turnInputBytes/sessionInputBytes
+            // still reflect the real state either way.
             log('input_audio_frame', {
-                turnId: currentTurnId || 'none',
+                turnId: isActiveTurn ? currentTurnId : null,
                 bytes: payload.length,
                 resampledBytes: resampled.length,
                 turnInputBytes: inputBytes,
