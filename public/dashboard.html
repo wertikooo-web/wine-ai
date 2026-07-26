@@ -2252,6 +2252,19 @@
     DeviceVisual.setState('ready');
     if (ws) ws.close();
     stopMic();
+    // disconnect() is the one low-level teardown point called from several
+    // places (the main Connect/Disconnect button's toggleConnection(),
+    // stopConversationOnTap(), mode/provider switches) — it must always leave
+    // Tap to Start bookkeeping consistent, not just whichever caller happened
+    // to invoke it. Without this, disconnecting via the main button left
+    // tapToStartActive stuck true, so startConversationOnTap()'s
+    // `if (tapToStartActive) return;` guard silently no-opped on every later
+    // attempt to start a conversation — looked exactly like "the button
+    // doesn't react."
+    cancelTapIdleTimer();
+    tapSilenceStartedAt = null;
+    pendingTapStart = false;
+    tapToStartActive = false;
   }
 
   // Single connection button — toggles label/behavior instead of showing
