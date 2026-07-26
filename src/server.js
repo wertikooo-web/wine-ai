@@ -34,7 +34,6 @@ const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
-const { createAdminAuth } = require('./auth/adminAuth');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
