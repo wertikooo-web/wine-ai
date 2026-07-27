@@ -65,6 +65,27 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'pending_decodes_before', 'pending_decodes_after',
     'accepted_generation_cleared', 'stale_audio_chunk_dropped', 'pending_decode_dropped',
     'local_playback_stopped', 'socket_close_started', 'mic_stopped',
+    // Pre-existing stages that were being sent but were never actually
+    // whitelisted, so they were silently dropped by the check below —
+    // discovered while adding the itrace_* diagnostic below.
+    'ptt_pressed_before_ready', 'provider_ready_for_input_received',
+    // DIAGNOSTIC ONLY (temporary): per-interaction PTT trace, see
+    // dashboard.html's itrace()/newInteractionId() and this file's
+    // currentInteractionId. Remove once the readiness-loss root cause is
+    // found and fixed.
+    'itrace_pointerdown', 'itrace_pendingPttStart_set', 'itrace_pointerup',
+    'itrace_pointerup_dropped_pending_never_ready', 'itrace_pointerleave',
+    'itrace_startTurn_entered', 'itrace_startTurn_exited_no_ws',
+    'itrace_startTurn_exited_ok', 'itrace_startTurn_exited_mic_error',
+    'itrace_ensureMic_called', 'itrace_ensureMic_already_warm',
+    'itrace_ensureMic_awaiting_inflight', 'itrace_ensureMic_acquiring',
+    'itrace_ensureMic_resolved_stale_interaction',
+    'itrace_input_audio_start_sending', 'itrace_endTurn_entered',
+    'itrace_endTurn_exited_not_holding', 'itrace_endTurn_exited_no_ws',
+    'itrace_input_audio_end_sent', 'itrace_first_frame_sent',
+    'itrace_provider_ready_received',
+    'itrace_pendingPttStart_resolved_starting_turn',
+    'itrace_pendingPttStart_resolved_already_released',
 ]);
 // Field allowlist by name, not just "any scalar" — a field named `text`,
 // `prompt`, `token`, `apiKey`, etc. must never pass through even if some
@@ -79,6 +100,9 @@ const CLIENT_TELEMETRY_ALLOWED_FIELDS = new Set([
     'stopOperationId', 'stopDurationMs',
     'activeSourcesBefore', 'activeSourcesAfter', 'queuedChunksBefore', 'queuedChunksAfter',
     'pendingDecodesBefore', 'pendingDecodesAfter',
+    // DIAGNOSTIC ONLY (temporary) — see itrace() stage list above.
+    'interactionId', 'turnInteractionId', 'providerReadyForInput', 'wsState',
+    'hasMicStream', 'pendingPttStart', 'isPttPointerDown', 'bytes',
 ]);
 const CLIENT_TELEMETRY_MAX_STRING_LENGTH = 200;
 const CLIENT_TELEMETRY_MAX_FIELDS = 20;
@@ -325,6 +349,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     const recentTurns = [];
     let assistantTranscriptBuffer = '';
     let currentTurnId = null;
+    let currentInteractionId = null; // DIAGNOSTIC ONLY (temporary) — see startInput()
     let currentGeneration = null;
     let inputStartedAt = 0;
     let inputEndedAt = 0;
@@ -1257,6 +1282,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         }
         turnCounter += 1;
         currentTurnId = payload.turn_id || id(`turn${turnCounter}`);
+        // DIAGNOSTIC ONLY (temporary): opaque id the client attaches to one
+        // physical PTT press, threaded through so its client-side stage
+        // timeline can be correlated with this turn's server-side logs.
+        currentInteractionId = payload.interaction_id || null;
         currentGeneration = createGeneration({ turnId: currentTurnId });
         visualOrchestrator.beginGeneration({
             generationId: currentGeneration.generationId,
@@ -1317,6 +1346,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         }
         log('input_audio_start', {
             turnId: currentTurnId,
+            interactionId: currentInteractionId,
             generationId: currentGeneration.generationId,
             responseId: currentGeneration.responseId,
             mode: currentMode,
@@ -1386,6 +1416,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         visualOrchestrator.markThinking(currentGeneration.generationId);
         log('input_audio_end', {
             turnId: currentTurnId,
+            interactionId: currentInteractionId,
             durationMs: recordingDurationMs,
             turnInputBytes: inputBytes,
             sessionInputBytes,
@@ -1781,6 +1812,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                     reason: 'no_active_input',
                     bytes: payload.length,
                     turnId: currentTurnId || 'none',
+                    interactionId: currentInteractionId || 'none',
                     generationId: currentGeneration?.generationId || 'none',
                     providerInstanceId: providerSession?.instanceId || 'unknown',
                 });
@@ -1846,6 +1878,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // still reflect the real state either way.
             log('input_audio_frame', {
                 turnId: isActiveTurn ? currentTurnId : null,
+                interactionId: isActiveTurn ? currentInteractionId : null,
                 bytes: payload.length,
                 resampledBytes: resampled.length,
                 turnInputBytes: inputBytes,

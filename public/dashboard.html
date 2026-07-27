@@ -1476,6 +1476,17 @@
   let providerReadyForInput = false;
   let pendingPttStart = false;    // Hold-to-Talk pressed before provider.ready_for_input arrived
   let isPttPointerDown = false;   // tracks whether the button is still physically held
+  // DIAGNOSTIC ONLY (temporary): tags one physical PTT press end-to-end so
+  // its client-side stage timeline can be correlated with the server's own
+  // logs for the same attempt, by turnId. Not used for any control flow.
+  let currentInteractionId = null;
+  function newInteractionId() {
+    return 'ix_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
+  function itrace(stage, extra) {
+    sendTelemetry('itrace_' + stage, { interactionId: currentInteractionId, ...(extra || {}) });
+  }
+  let firstFrameSentForInteraction = null; // diagnostic only — logs just the first audio frame per turn
   let currentTurnId = null;
   let inputEndedAt = 0;
   let firstAudioAt = 0;
@@ -2438,6 +2449,7 @@
         // across them (see geminiLiveProvider.js's rotateAfterOutputComplete).
         setText('dProviderInstance', payload.provider_instance_id || '—');
         providerReadyForInput = true;
+        itrace('provider_ready_received', { reason: payload.reason || 'unknown', pendingPttStart, isPttPointerDown });
         sendTelemetry('provider_ready_for_input_received', { reason: payload.reason || 'unknown' });
         if (voiceMode === 'hold_to_talk') {
           el('pttBtn').disabled = false;
@@ -2457,7 +2469,8 @@
         }
         if (pendingPttStart) {
           pendingPttStart = false;
-          if (isPttPointerDown) startTurn();
+          if (isPttPointerDown) { itrace('pendingPttStart_resolved_starting_turn', {}); startTurn(); }
+          else { itrace('pendingPttStart_resolved_already_released', {}); }
         }
         break;
       case 'provider.connect_failed':
@@ -2566,8 +2579,9 @@
   let micStreamPromise = null;
 
   async function ensureMic() {
-    if (micStream) return;
-    if (micStreamPromise) return micStreamPromise;
+    if (micStream) { itrace('ensureMic_already_warm', {}); return; }
+    if (micStreamPromise) { itrace('ensureMic_awaiting_inflight', {}); return micStreamPromise; }
+    itrace('ensureMic_acquiring', {});
     micStreamPromise = acquireMic().finally(() => { micStreamPromise = null; });
     return micStreamPromise;
   }
@@ -2640,6 +2654,10 @@
         const s = Math.max(-1, Math.min(1, input[i]));
         pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
       }
+      if (firstFrameSentForInteraction !== currentInteractionId) {
+        firstFrameSentForInteraction = currentInteractionId;
+        itrace('first_frame_sent', { bytes: pcm16.buffer.byteLength });
+      }
       ws.send(pcm16.buffer);
     };
     micSource.connect(processor);
@@ -2677,7 +2695,8 @@
   }
 
   function startTurn() {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    itrace('startTurn_entered', { wsState: ws ? ws.readyState : null, hasMicStream: !!micStream });
+    if (!ws || ws.readyState !== WebSocket.OPEN) { itrace('startTurn_exited_no_ws'); return; }
     // Stop any currently-playing assistant audio and flip the UI to
     // "listening" IMMEDIATELY on press — this is the client's own
     // AudioContext, so there is no reason to wait for a server round-trip
@@ -2689,21 +2708,33 @@
     stopPlaybackImmediately({ reason: 'user_interrupt_ptt', generationId: acceptedPlaybackGenerationId });
     DeviceVisual.setState('ready');
     setText('speakerState', 'you');
+    const turnInteractionId = currentInteractionId;
+    itrace('ensureMic_called', {});
     ensureMic().then(() => {
+      if (turnInteractionId !== currentInteractionId) {
+        itrace('ensureMic_resolved_stale_interaction', { turnInteractionId });
+      }
       isHolding = true;
       setText('micState', 'recording');
       DeviceVisual.setState('listening');
-      ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk' }));
-    }).catch((err) => sendTelemetry('mic_error', { message: err.message }));
+      firstFrameSentForInteraction = null;
+      itrace('input_audio_start_sending', {});
+      ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: turnInteractionId }));
+      itrace('startTurn_exited_ok', {});
+    }).catch((err) => { itrace('startTurn_exited_mic_error', { message: err.message }); sendTelemetry('mic_error', { message: err.message }); });
   }
 
   function endTurn() {
-    if (!isHolding) return;
+    itrace('endTurn_entered', { isHolding });
+    if (!isHolding) { itrace('endTurn_exited_not_holding'); return; }
     isHolding = false;
     setText('micState', 'ready');
     DeviceVisual.setState('thinking');
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'input_audio.end' }));
+      ws.send(JSON.stringify({ type: 'input_audio.end', interaction_id: currentInteractionId }));
+      itrace('input_audio_end_sent', {});
+    } else {
+      itrace('endTurn_exited_no_ws');
     }
   }
 
@@ -3380,6 +3411,8 @@
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', () => {
     if (voiceMode !== 'hold_to_talk') return;
+    currentInteractionId = newInteractionId();
+    itrace('pointerdown', { providerReadyForInput, wsState: ws ? ws.readyState : null, isHolding, hasMicStream: !!micStream });
     isPttPointerDown = true;
     if (!providerReadyForInput) {
       // Held before the provider connection was actually ready to receive
@@ -3389,6 +3422,7 @@
       // button is still held at that point.
       pendingPttStart = true;
       setPttCaption();
+      itrace('pendingPttStart_set', {});
       sendTelemetry('ptt_pressed_before_ready', {});
       return;
     }
@@ -3396,18 +3430,21 @@
   });
   pttBtn.addEventListener('pointerup', () => {
     if (voiceMode !== 'hold_to_talk') return;
+    itrace('pointerup', { pendingPttStart, isHolding });
     isPttPointerDown = false;
     if (pendingPttStart) {
       // Released before readiness ever arrived — nothing was ever recorded,
       // so there is nothing to send. Just clear the pending intent.
       pendingPttStart = false;
       setPttCaption();
+      itrace('pointerup_dropped_pending_never_ready', {});
       return;
     }
     endTurn();
   });
   pttBtn.addEventListener('pointerleave', () => {
     if (voiceMode !== 'hold_to_talk') return;
+    itrace('pointerleave', { pendingPttStart, isHolding });
     isPttPointerDown = false;
     if (pendingPttStart) { pendingPttStart = false; setPttCaption(); return; }
     if (isHolding) endTurn();
