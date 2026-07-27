@@ -86,6 +86,13 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'itrace_provider_ready_received',
     'itrace_pendingPttStart_resolved_starting_turn',
     'itrace_pendingPttStart_resolved_already_released',
+    'itrace_startTurn_exited_stale_after_audio_context',
+    'itrace_startTurn_exited_audio_context_not_running',
+    'itrace_audioContext_created', 'itrace_audioContext_state_before_resume',
+    'itrace_audioContext_resume_started', 'itrace_audioContext_resume_completed',
+    'itrace_audioContext_resume_failed', 'itrace_audioContext_state_after_resume',
+    'itrace_processor_first_callback', 'itrace_first_non_silent_frame',
+    'itrace_pointerdown_to_first_frame_ms',
 ]);
 // Field allowlist by name, not just "any scalar" — a field named `text`,
 // `prompt`, `token`, `apiKey`, etc. must never pass through even if some
@@ -103,6 +110,7 @@ const CLIENT_TELEMETRY_ALLOWED_FIELDS = new Set([
     // DIAGNOSTIC ONLY (temporary) — see itrace() stage list above.
     'interactionId', 'turnInteractionId', 'providerReadyForInput', 'wsState',
     'hasMicStream', 'pendingPttStart', 'isPttPointerDown', 'bytes',
+    'state', 'peak', 'ms',
 ]);
 const CLIENT_TELEMETRY_MAX_STRING_LENGTH = 200;
 const CLIENT_TELEMETRY_MAX_FIELDS = 20;
@@ -141,6 +149,27 @@ const MAX_TURN_REPLAY_BYTES = Number.isFinite(configuredTurnReplayBytes)
     ? Math.max(0, configuredTurnReplayBytes)
     : 512 * 1024;
 let warnedInvalidRotationMode = false;
+// No-speech gate (push_to_talk only) — see countLoudSamples()/endInput().
+// Threshold is on the int16 PCM scale (-32768..32767); ~500 sits well below
+// normal speech peaks but above typical ESP32/browser-mic room-noise floor.
+// Read live (not cached at module load) so tests can override via env
+// without needing a separate process per value — most of this project's
+// existing realtime tests use zero-filled "audio" purely as wire-protocol
+// filler (see mockRealtimeProvider.js), never intending to simulate real
+// speech, and would otherwise be silently rejected by this gate.
+function noSpeechAmplitudeThreshold() {
+    const configured = Number(process.env.NO_SPEECH_AMPLITUDE_THRESHOLD);
+    // `|| 500` would silently discard an intentional 0 (falsy) — tests rely
+    // on being able to set exactly that to disable the gate.
+    return Number.isFinite(configured) && process.env.NO_SPEECH_AMPLITUDE_THRESHOLD !== undefined ? configured : 500;
+}
+// Minimum cumulative time above the amplitude threshold, at the post-
+// resample 16kHz rate, to count as "speech actually happened."
+function noSpeechMinLoudMs() {
+    const configured = Number(process.env.NO_SPEECH_MIN_LOUD_MS);
+    return Number.isFinite(configured) && process.env.NO_SPEECH_MIN_LOUD_MS !== undefined ? configured : 200;
+}
+const NO_SPEECH_SAMPLE_RATE = 16000;
 
 function areContentToolsEnabled(value = process.env.REALTIME_CONTENT_TOOLS) {
     return /^(1|true|yes|on|enabled)$/i.test(String(value || ''));
@@ -356,6 +385,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let inputBytes = 0;
     let currentInputChunks = [];
     let currentInputBufferedBytes = 0;
+    // No-speech gate (push_to_talk only): counts samples whose amplitude
+    // clears NO_SPEECH_AMPLITUDE_THRESHOLD, so a short accidental tap or
+    // pure silence/room-noise never reaches the provider as a real
+    // utterance. Audio *bytes* existing is not proof of speech — a stuck
+    // mic pipeline or a suspended AudioContext can send frames of pure
+    // silence just as easily as a genuine short press.
+    let turnLoudSampleCount = 0;
+    let turnTotalSampleCount = 0;
     let sessionInputBytes = 0;
     let currentMode = 'push_to_talk';
     let turnCounter = 0;
@@ -1252,6 +1289,24 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         });
     }
 
+    // No-speech gate: counts int16 PCM samples whose absolute amplitude
+    // clears NO_SPEECH_AMPLITUDE_THRESHOLD. Deliberately crude (no proper
+    // VAD/spectral analysis) — this only needs to distinguish "a real
+    // utterance happened" from "silence, room noise, or a stuck/suspended
+    // mic pipeline that sent frames of pure zeros," not to be a quality
+    // speech detector.
+    function countLoudSamples(buffer) {
+        const threshold = noSpeechAmplitudeThreshold();
+        const sampleCount = buffer.length >> 1;
+        turnTotalSampleCount += sampleCount;
+        for (let i = 0; i < sampleCount; i += 1) {
+            const sample = buffer.readInt16LE(i * 2);
+            if (sample >= threshold || sample <= -threshold) {
+                turnLoudSampleCount += 1;
+            }
+        }
+    }
+
     function shouldRotateProviderOnInterrupt() {
         return Boolean(providerSession?.rotateOnInterrupt);
     }
@@ -1286,6 +1341,8 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         // physical PTT press, threaded through so its client-side stage
         // timeline can be correlated with this turn's server-side logs.
         currentInteractionId = payload.interaction_id || null;
+        turnLoudSampleCount = 0;
+        turnTotalSampleCount = 0;
         currentGeneration = createGeneration({ turnId: currentTurnId });
         visualOrchestrator.beginGeneration({
             generationId: currentGeneration.generationId,
@@ -1427,6 +1484,43 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
 
         const generationForStream = currentGeneration;
         generationForStream.inputEndedAt = inputEndedAt;
+
+        if (currentMode === 'push_to_talk') {
+            const minLoudMs = noSpeechMinLoudMs();
+            const turnLoudMs = (turnLoudSampleCount / NO_SPEECH_SAMPLE_RATE) * 1000;
+            if (turnLoudMs < minLoudMs) {
+                log('no_speech_turn_cancelled', {
+                    turnId: currentTurnId,
+                    interactionId: currentInteractionId,
+                    generationId: generationForStream.generationId,
+                    turnInputBytes: inputBytes,
+                    turnTotalSampleCount,
+                    turnLoudSampleCount,
+                    turnLoudMs: Math.round(turnLoudMs),
+                    thresholdMs: minLoudMs,
+                    recordingDurationMs,
+                });
+                emit({
+                    type: 'input_audio.no_speech',
+                    turn_id: currentTurnId,
+                    generation_id: generationForStream.generationId,
+                    turn_input_bytes: inputBytes,
+                    loud_ms: Math.round(turnLoudMs),
+                });
+                const cancelled = cancelCurrent('no_speech');
+                // Mirrors the existing barge-in interrupt path (see
+                // startInput()/session.interrupt above) — Hold to Talk
+                // rotates on any interrupt regardless of cause, so a
+                // no-speech cancellation leaves the provider connection in
+                // the exact same known-good state a real interrupt would,
+                // rather than an activity opened-but-never-closed.
+                if (cancelled && shouldRotateProviderOnInterrupt()) {
+                    rotateProviderSession('no_speech_cancelled');
+                }
+                return;
+            }
+        }
+
         armPttTurnTimeout(generationForStream);
 
         const endInputContext = buildProviderContext(generationForStream);
@@ -1852,6 +1946,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // these bytes to.
             if (isActiveTurn) {
                 inputBytes += resampled.length;
+                if (currentMode === 'push_to_talk') {
+                    countLoudSamples(resampled);
+                }
                 if (currentInputBufferedBytes + resampled.length <= MAX_TURN_REPLAY_BYTES) {
                     currentInputChunks.push(resampled);
                     currentInputBufferedBytes += resampled.length;

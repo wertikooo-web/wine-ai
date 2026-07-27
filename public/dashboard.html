@@ -1487,6 +1487,8 @@
     sendTelemetry('itrace_' + stage, { interactionId: currentInteractionId, ...(extra || {}) });
   }
   let firstFrameSentForInteraction = null; // diagnostic only — logs just the first audio frame per turn
+  let firstNonSilentFrameForInteraction = null; // diagnostic only — first frame whose peak clears a small threshold
+  let lastPointerdownAt = 0; // diagnostic only — for pointerdown_to_first_frame_ms
   let currentTurnId = null;
   let inputEndedAt = 0;
   let firstAudioAt = 0;
@@ -1610,6 +1612,7 @@
       voiceModeTapUnavailable: 'Temporarily unavailable',
       pttCaptionHold: 'Hold and speak',
       pttCaptionConnecting: 'Connecting…',
+      pttCaptionAudioError: 'Mic unavailable — tap to retry',
       pttCaptionTapIdle: 'Start conversation', pttCaptionTapActive: 'End conversation',
     },
     ru: {
@@ -1652,6 +1655,7 @@
       voiceModeTapUnavailable: 'Временно недоступно',
       pttCaptionHold: 'Удерживайте и говорите',
       pttCaptionConnecting: 'Подключаюсь…',
+      pttCaptionAudioError: 'Микрофон недоступен — нажмите ещё раз',
       pttCaptionTapIdle: 'Начать разговор', pttCaptionTapActive: 'Завершить разговор',
     },
     ro: {
@@ -2578,6 +2582,34 @@
   // requirement).
   let micStreamPromise = null;
 
+  // Client-side counterpart of the mic-not-heard investigation: browsers can
+  // silently leave an AudioContext 'suspended' (autoplay policy) if it wasn't
+  // constructed — or wasn't resumed — inside a fresh user gesture. A
+  // suspended context's ScriptProcessorNode never calls onaudioprocess: no
+  // exception, no event, just zero bytes ever sent, indistinguishable from
+  // the user simply not having spoken. Called unconditionally at the top of
+  // every startTurn(), NOT only on first acquisition — ensureMic() is a
+  // no-op once micStream is warm, so without this check every press after
+  // the first would skip the one place that used to (maybe) construct/
+  // resume the context at all.
+  async function ensureAudioContextRunning() {
+    const wasNew = !audioContext;
+    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    if (wasNew) itrace('audioContext_created', { state: audioContext.state, sampleRate: audioContext.sampleRate });
+    itrace('audioContext_state_before_resume', { state: audioContext.state });
+    if (audioContext.state === 'suspended' || audioContext.state === 'interrupted') {
+      itrace('audioContext_resume_started', { state: audioContext.state });
+      try {
+        await audioContext.resume();
+        itrace('audioContext_resume_completed', { state: audioContext.state });
+      } catch (err) {
+        itrace('audioContext_resume_failed', { message: err.message, state: audioContext.state });
+      }
+    }
+    itrace('audioContext_state_after_resume', { state: audioContext.state });
+    return audioContext.state === 'running';
+  }
+
   async function ensureMic() {
     if (micStream) { itrace('ensureMic_already_warm', {}); return; }
     if (micStreamPromise) { itrace('ensureMic_awaiting_inflight', {}); return micStreamPromise; }
@@ -2650,13 +2682,27 @@
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
       const pcm16 = new Int16Array(input.length);
+      let peak = 0;
       for (let i = 0; i < input.length; i++) {
         const s = Math.max(-1, Math.min(1, input[i]));
-        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        const v = s < 0 ? s * 0x8000 : s * 0x7fff;
+        pcm16[i] = v;
+        const abs = Math.abs(v);
+        if (abs > peak) peak = abs;
       }
       if (firstFrameSentForInteraction !== currentInteractionId) {
         firstFrameSentForInteraction = currentInteractionId;
+        itrace('processor_first_callback', { peak: Math.round(peak) });
         itrace('first_frame_sent', { bytes: pcm16.buffer.byteLength });
+        itrace('pointerdown_to_first_frame_ms', { ms: Math.round(performance.now() - lastPointerdownAt) });
+      }
+      // Diagnostic only — same amplitude threshold as the server's
+      // no-speech gate (NO_SPEECH_AMPLITUDE_THRESHOLD), so a client trace
+      // can show whether ANY frame this turn actually cleared it, without
+      // waiting for the server's own verdict.
+      if (firstNonSilentFrameForInteraction !== currentInteractionId && peak >= 500) {
+        firstNonSilentFrameForInteraction = currentInteractionId;
+        itrace('first_non_silent_frame', { peak: Math.round(peak) });
       }
       ws.send(pcm16.buffer);
     };
@@ -2694,7 +2740,7 @@
     setText('micState', 'idle');
   }
 
-  function startTurn() {
+  async function startTurn() {
     itrace('startTurn_entered', { wsState: ws ? ws.readyState : null, hasMicStream: !!micStream });
     if (!ws || ws.readyState !== WebSocket.OPEN) { itrace('startTurn_exited_no_ws'); return; }
     // Stop any currently-playing assistant audio and flip the UI to
@@ -2709,19 +2755,50 @@
     DeviceVisual.setState('ready');
     setText('speakerState', 'you');
     const turnInteractionId = currentInteractionId;
-    itrace('ensureMic_called', {});
-    ensureMic().then(() => {
-      if (turnInteractionId !== currentInteractionId) {
-        itrace('ensureMic_resolved_stale_interaction', { turnInteractionId });
+
+    // Must run BEFORE ensureMic() and must not be skipped on a "already
+    // warm" turn — ensureMic() below is a no-op once micStream exists, so
+    // this is the only per-press checkpoint that can still catch/fix an
+    // AudioContext the browser silently suspended between presses (see
+    // ensureAudioContextRunning() above).
+    const audioReady = await ensureAudioContextRunning();
+    if (turnInteractionId !== currentInteractionId) {
+      itrace('startTurn_exited_stale_after_audio_context', { turnInteractionId });
+      return;
+    }
+    if (!audioReady) {
+      itrace('startTurn_exited_audio_context_not_running', { state: audioContext ? audioContext.state : 'none' });
+      DeviceVisual.setState('ready');
+      setText('micState', 'error');
+      setText('speakerState', '—');
+      if (voiceMode === 'hold_to_talk') {
+        const caption = el('pttCaption');
+        if (caption) caption.textContent = getUiString('pttCaptionAudioError');
       }
-      isHolding = true;
-      setText('micState', 'recording');
-      DeviceVisual.setState('listening');
-      firstFrameSentForInteraction = null;
-      itrace('input_audio_start_sending', {});
-      ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: turnInteractionId }));
-      itrace('startTurn_exited_ok', {});
-    }).catch((err) => { itrace('startTurn_exited_mic_error', { message: err.message }); sendTelemetry('mic_error', { message: err.message }); });
+      sendTelemetry('mic_error', { message: 'AudioContext failed to resume' });
+      return; // do NOT send input_audio.start — nothing would ever be heard
+    }
+
+    itrace('ensureMic_called', {});
+    try {
+      await ensureMic();
+    } catch (err) {
+      itrace('startTurn_exited_mic_error', { message: err.message });
+      sendTelemetry('mic_error', { message: err.message });
+      return;
+    }
+    if (turnInteractionId !== currentInteractionId) {
+      itrace('ensureMic_resolved_stale_interaction', { turnInteractionId });
+      return; // user already released/re-pressed — do not start a turn for an abandoned press
+    }
+    isHolding = true;
+    setText('micState', 'recording');
+    DeviceVisual.setState('listening');
+    firstFrameSentForInteraction = null;
+    firstNonSilentFrameForInteraction = null;
+    itrace('input_audio_start_sending', {});
+    ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: turnInteractionId }));
+    itrace('startTurn_exited_ok', {});
   }
 
   function endTurn() {
@@ -3412,6 +3489,7 @@
   pttBtn.addEventListener('pointerdown', () => {
     if (voiceMode !== 'hold_to_talk') return;
     currentInteractionId = newInteractionId();
+    lastPointerdownAt = performance.now();
     itrace('pointerdown', { providerReadyForInput, wsState: ws ? ws.readyState : null, isHolding, hasMicStream: !!micStream });
     isPttPointerDown = true;
     if (!providerReadyForInput) {
