@@ -14,6 +14,7 @@ const { synthesizeProviderVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./vo
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex } = require('./knowledge/index');
+const { getLastSemanticError } = require('./knowledge/search');
 const searchMode = require('./knowledge/searchMode');
 const knowledgeEmbeddings = require('./knowledge/embeddings');
 const knowledgeLoader = require('./knowledge/loader');
@@ -751,7 +752,7 @@ async function handleRequest(req, res) {
         }
 
         const allowedRootKeys = [
-            'profileId', 'baseProfileId', 'mood', 'overrides', 'reset',
+            'profileId', 'baseProfileId', 'mood', 'voiceMode', 'overrides', 'reset',
             'customizationMode', 'effectivePromptPreview', 'resolved', 'languages', 'activeProfileId', 'ok',
             'name', 'description', 'welcomeMessage', 'welcome_message',
             'sommelierGender', 'sommelier_gender', 'personalityPrompt', 'personality_prompt',
@@ -766,6 +767,12 @@ async function handleRequest(req, res) {
         const targetProfileId = body.profileId || body.baseProfileId || personaStore.getActiveProfileId();
 
         try {
+            // Device-wide UX preference, not persona content — handled
+            // separately from the overrides/updateProfile() path below.
+            if (body.voiceMode !== undefined) {
+                await personaStore.setVoiceMode(body.voiceMode);
+            }
+
             if (body.baseProfileId === null) {
                 personaStore.setLegacyCustomProfile(true);
             } else if (body.baseProfileId !== undefined) {
@@ -839,6 +846,8 @@ async function handleRequest(req, res) {
                 baseProfileId: customizationMode === 'custom' ? null : targetProfileId,
                 customizationMode,
                 mood,
+                voiceMode: personaStore.getVoiceMode(),
+                tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
                 resolved,
                 effectivePromptPreview: preview,
                 overrides
@@ -998,13 +1007,59 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && pathname === '/api/knowledge/status') {
         const index = loadIndex();
+        const lastError = getLastSemanticError();
+        let embeddingRowCount = null;
+        let embeddingTableAccessible = false;
+        let totalEmbeddingRowsInTable = null;
+
+        const semanticConfigured = db.isEnabled() && knowledgeEmbeddings.isEnabled();
+
+        if (semanticConfigured) {
+            try {
+                const pool = db.getPool();
+                if (pool) {
+                    const { rows: totalRows } = await pool.query('SELECT COUNT(*) AS cnt FROM knowledge_chunk_embeddings');
+                    totalEmbeddingRowsInTable = Number(totalRows[0].cnt);
+
+                    const currentChunkIds = (index.chunks || []).map((c) => c.id);
+                    if (currentChunkIds.length > 0) {
+                        const { rows } = await pool.query(
+                            'SELECT COUNT(*) AS cnt FROM knowledge_chunk_embeddings WHERE chunk_id = ANY($1)',
+                            [currentChunkIds]
+                        );
+                        embeddingRowCount = Number(rows[0].cnt);
+                    }
+                    embeddingTableAccessible = true;
+                }
+            } catch (_) { }
+        }
+
+        const idxChunkCount = index.chunk_count || 0;
+        const coveragePercent = embeddingRowCount !== null && idxChunkCount > 0
+            ? Math.min(Math.round((embeddingRowCount / idxChunkCount) * 10000) / 100, 100)
+            : null;
+
+        const staleRowCount = totalEmbeddingRowsInTable !== null && embeddingRowCount !== null
+            ? Math.max(0, totalEmbeddingRowsInTable - embeddingRowCount)
+            : null;
+
         return sendJson(res, 200, {
             ok: true,
             built_at: index.built_at,
             document_count: index.document_count || 0,
-            chunk_count: index.chunk_count || 0,
+            chunk_count: idxChunkCount,
             search_mode: searchMode.getMode(),
-            semantic_available: db.isEnabled() && knowledgeEmbeddings.isEnabled(),
+            semantic_available: semanticConfigured,
+            semantic_configured: semanticConfigured,
+            semantic_healthy: embeddingTableAccessible && !lastError,
+            index_chunk_count: idxChunkCount,
+            embedding_row_count: embeddingRowCount,
+            embedding_total_rows_in_table: totalEmbeddingRowsInTable,
+            embedding_stale_row_count: staleRowCount,
+            embedding_coverage_percent: coveragePercent,
+            embedding_model: knowledgeEmbeddings.EMBEDDING_MODEL,
+            embedding_payload_version: 'v2',
+            last_semantic_error: lastError,
         });
     }
 

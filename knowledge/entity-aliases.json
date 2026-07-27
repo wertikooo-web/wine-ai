@@ -1,0 +1,26 @@
+[
+  {
+    "entityId": "wine-md",
+    "entityType": "platform",
+    "canonicalName": "Wine.md",
+    "description": "Wine.md — молдавская платформа: интернет-магазин вин, дегустационный зал, агрегатор экскурсий",
+    "aliases": [
+      { "alias": "Wine & D", "lang": "en" },
+      { "alias": "Wine & D", "lang": "ru" },
+      { "alias": "Wine&D", "lang": "en" },
+      { "alias": "WineMD", "lang": "en" },
+      { "alias": "Wine MD", "lang": "en" },
+      { "alias": "wine.md", "lang": "en" },
+      { "alias": "wine.md", "lang": "ru" },
+      { "alias": "wine.md", "lang": "ro" },
+      { "alias": "Winemd", "lang": "en" },
+      { "alias": "winemd", "lang": "en" },
+      { "alias": "Wine.md", "lang": "en" },
+      { "alias": "Wine.md", "lang": "ro" },
+      { "alias": "Wine.md", "lang": "ru" },
+      { "alias": "ВайнМД", "lang": "ru" },
+      { "alias": "Вайн МД", "lang": "ru" },
+      { "alias": "Вайн.МД", "lang": "ru" }
+    ]
+  }
+]

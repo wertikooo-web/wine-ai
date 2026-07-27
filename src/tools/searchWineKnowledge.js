@@ -83,6 +83,7 @@ function buildQueryVariants(originalQuery) {
 async function runBoundedRetrieval(query, { language }) {
     const attempts = [];
     let bestHits = [];
+    let bestEntityContext = null;
     let sawSuccessfulAttempt = false;
 
     for (const normalizedQuery of buildQueryVariants(query)) {
@@ -95,20 +96,23 @@ async function runBoundedRetrieval(query, { language }) {
             continue;
         }
         attempts.push({ normalizedQuery, hitCount: result.hits.length, mode: result.mode });
+        if (result.entityContext && !bestEntityContext) {
+            bestEntityContext = result.entityContext;
+        }
         if (result.hits.length > 0) {
             bestHits = result.hits;
-            break; // stop at first variant with real evidence — bounded, not exhaustive
+            break;
         }
     }
 
     const finalStatus = bestHits.length > 0 ? 'found' : (sawSuccessfulAttempt ? 'not_found' : 'error');
-    return { attempts, hits: bestHits, finalStatus };
+    return { attempts, hits: bestHits, entityContext: bestEntityContext, finalStatus };
 }
 
 async function impl(args) {
     const query = requireNonEmptyString(args.query, 'query');
     const language = optionalString(args.language, 8) || null;
-    const { attempts, hits, finalStatus } = await runBoundedRetrieval(query, { language });
+    const { attempts, hits, entityContext, finalStatus } = await runBoundedRetrieval(query, { language });
 
     // Diagnostic logging (P2 from docs/KNOWLEDGE_RUNTIME_AUDIT.md) — the
     // only way to tell "the model didn't call this tool" apart from "it
@@ -148,17 +152,32 @@ async function impl(args) {
         };
     }
 
-    return {
-        found: true,
-        status: 'found',
-        results: hits.map(({ chunk, score }) => ({
+    const results = [];
+    if (entityContext) {
+        results.push({
+            text: entityContext,
+            title: 'Entity Resolution',
+            source: 'entity_resolver',
+            confidence: 'high',
+            language: 'en',
+            relevance_score: 1,
+        });
+    }
+    for (const { chunk, score } of hits) {
+        results.push({
             text: chunk.text,
             title: chunk.metadata.title,
             source: chunk.metadata.source,
             confidence: chunk.metadata.confidence,
             language: chunk.metadata.language,
             relevance_score: score,
-        })),
+        });
+    }
+
+    return {
+        found: true,
+        status: 'found',
+        results,
     };
 }
 
