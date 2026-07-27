@@ -83,6 +83,7 @@ function buildQueryVariants(originalQuery) {
 async function runBoundedRetrieval(query, { language }) {
     const attempts = [];
     let bestHits = [];
+    let bestTotalScore = -1;
     let bestEntityContext = null;
     let sawSuccessfulAttempt = false;
 
@@ -100,8 +101,11 @@ async function runBoundedRetrieval(query, { language }) {
             bestEntityContext = result.entityContext;
         }
         if (result.hits.length > 0) {
-            bestHits = result.hits;
-            break;
+            const totalScore = result.hits.reduce((sum, h) => sum + h.score, 0);
+            if (totalScore > bestTotalScore) {
+                bestTotalScore = totalScore;
+                bestHits = result.hits;
+            }
         }
     }
 
@@ -173,6 +177,17 @@ async function impl(args) {
             relevance_score: score,
         });
     }
+
+    // Sort by trust (high > medium > unverified) then by relevance_score
+    const trustOrder = { high: 0, medium: 1, unverified: 2 };
+    results.sort((a, b) => {
+        if (a.source === 'entity_resolver') return -1;
+        if (b.source === 'entity_resolver') return 1;
+        const ta = trustOrder[a.confidence] ?? 2;
+        const tb = trustOrder[b.confidence] ?? 2;
+        if (ta !== tb) return ta - tb;
+        return (b.relevance_score || 0) - (a.relevance_score || 0);
+    });
 
     return {
         found: true,

@@ -18,6 +18,8 @@ const declaration = {
     },
 };
 
+const MAX_RESULTS = 6;
+
 function searchByEntityId(index, entityId, region) {
     const candidates = index.chunks.filter((chunk) => (
         chunk.metadata.entity_id === entityId
@@ -30,7 +32,7 @@ function searchByEntityId(index, entityId, region) {
         found: true,
         winery,
         region: candidates[0].metadata.region,
-        results: candidates.map((chunk) => ({
+        results: candidates.slice(0, MAX_RESULTS).map((chunk) => ({
             text: chunk.text,
             source: chunk.metadata.source,
             confidence: chunk.metadata.confidence,
@@ -56,6 +58,7 @@ async function impl(args) {
                 results.push({ text: aliasContext, source: 'entity_resolver', confidence: 'high' });
             }
             for (const r of entityResult.results) {
+                if (results.length >= MAX_RESULTS) break;
                 results.push(r);
             }
             return { ...entityResult, results };
@@ -74,7 +77,7 @@ async function impl(args) {
             found: true,
             winery: direct[0].metadata.winery,
             region: direct[0].metadata.region,
-            results: direct.map((chunk) => ({
+            results: direct.slice(0, MAX_RESULTS).map((chunk) => ({
                 text: chunk.text,
                 source: chunk.metadata.source,
                 confidence: chunk.metadata.confidence,
@@ -92,6 +95,7 @@ async function impl(args) {
         results.push({ text: entityContext, source: 'entity_resolver', confidence: 'high' });
     }
     for (const { chunk } of hits) {
+        if (results.length >= MAX_RESULTS) break;
         results.push({
             text: chunk.text,
             source: chunk.metadata.source,

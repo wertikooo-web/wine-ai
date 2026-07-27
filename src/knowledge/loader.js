@@ -45,7 +45,8 @@ function validateMetadata(metadata, sourceFile) {
 
 // Chunk on blank-line-separated paragraphs, then merge short ones forward
 // so a chunk is neither a single sentence nor a whole document.
-function chunkText(body, { minChars = 200, maxChars = 1200 } = {}) {
+// Uses a sliding window with overlap to preserve cross-boundary context.
+function chunkText(body, { minChars = 200, maxChars = 1200, overlapChars = 200 } = {}) {
     const paragraphs = body.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).filter(Boolean);
     const chunks = [];
     let current = '';
@@ -53,12 +54,15 @@ function chunkText(body, { minChars = 200, maxChars = 1200 } = {}) {
         const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
         if (candidate.length >= maxChars && current) {
             chunks.push(current);
-            current = paragraph;
+            // Overlap: start new chunk with tail of previous chunk
+            const tail = current.length > overlapChars
+                ? current.slice(current.length - overlapChars)
+                : current;
+            // Find the last paragraph boundary in the tail to avoid splitting mid-sentence
+            const lastBreak = tail.lastIndexOf('\n\n');
+            current = lastBreak > 0 ? tail.slice(lastBreak + 2) + '\n\n' + paragraph : paragraph;
         } else {
             current = candidate;
-        }
-        if (current.length >= minChars && current.length < maxChars) {
-            // keep accumulating until maxChars, unless this is the last paragraph
         }
     }
     if (current) chunks.push(current);

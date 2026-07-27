@@ -33,13 +33,14 @@ let idfCache = { builtAt: null, idf: null };
 function buildIdfIndex(index) {
     if (idfCache.builtAt === index.built_at && idfCache.idf) return idfCache.idf;
     const docFrequency = new Map();
-    for (const chunk of index.chunks) {
+    const enabledChunks = index.chunks.filter((c) => c.metadata.enabled !== false);
+    for (const chunk of enabledChunks) {
         const uniqueTokens = new Set(tokenize(chunk.text));
         for (const token of uniqueTokens) {
             docFrequency.set(token, (docFrequency.get(token) || 0) + 1);
         }
     }
-    const totalChunks = index.chunks.length || 1;
+    const totalChunks = enabledChunks.length || 1;
     const idf = new Map();
     for (const [token, df] of docFrequency) {
         idf.set(token, Math.log((totalChunks + 1) / (df + 1)) + 1);
@@ -49,6 +50,22 @@ function buildIdfIndex(index) {
 }
 
 const DEFAULT_IDF_WEIGHT = 1;
+
+const TRUST_WEIGHTS = { high: 1.2, medium: 1.0, unverified: 0.85 };
+
+function _freshnessBoost(dateStr) {
+    if (!dateStr) return 0;
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 0;
+        const ageMs = Date.now() - d.getTime();
+        const ageDays = ageMs / (1000 * 60 * 60 * 24);
+        if (ageDays <= 30) return 3;
+        if (ageDays <= 90) return 2;
+        if (ageDays <= 365) return 1;
+        return 0;
+    } catch { return 0; }
+}
 
 function scoreChunk(queryTokens, chunk, idf, { skipStopwords } = {}) {
     const significantTokens = skipStopwords ? queryTokens : queryTokens.filter((t) => !SCORING_STOPWORDS.has(t));
@@ -67,6 +84,14 @@ function scoreChunk(queryTokens, chunk, idf, { skipStopwords } = {}) {
     for (const token of significantTokens) {
         if (metaText.includes(token)) score += (idf.get(token) || DEFAULT_IDF_WEIGHT) * 4;
     }
+
+    // Trust weighting
+    const trust = TRUST_WEIGHTS[chunk.metadata.confidence] || 1.0;
+    score *= trust;
+
+    // Freshness boost
+    score += _freshnessBoost(chunk.metadata.date || chunk.metadata.updated_at);
+
     return score;
 }
 
@@ -340,10 +365,13 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
             const kwScore = keywordScoreById.get(chunk.id) || 0;
             const semWeight = semanticWeightById.get(chunk.id) || 0;
 
-            let score = (kwScore > 0 ? Math.min(kwScore, 20) : 0) + semWeight * 2;
+            // Normalize keyword score to [0,1] range, then blend with semantic weight
+            const maxKeywordScore = 20;
+            const normalizedKw = kwScore > 0 ? Math.min(kwScore / maxKeywordScore, 1) : 0;
+            let score = normalizedKw + semWeight;
 
             if (resolved.found && chunk.metadata.entity_id === resolved.entityId) {
-                score += 10;
+                score += 2;
             }
 
             return { chunk, score: Math.max(1, score) };
