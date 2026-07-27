@@ -1,81 +1,40 @@
 'use strict';
 
-// Retrieval for wine knowledge. v1 was dependency-free tokenized
-// term-overlap scoring only. P1 adds an optional semantic branch (pgvector
-// + Gemini embeddings) fused with the same keyword scoring via Reciprocal
-// Rank Fusion — see docs/KNOWLEDGE_RUNTIME_AUDIT.md §17 P2 and
-// src/knowledge/searchMode.js for the runtime on/off toggle. Keyword
-// search remains the always-available fallback: if semantic search is
-// enabled but errors (no DB, no API key, embedding call fails), search()
-// silently falls back to keyword-only rather than throwing — a knowledge
-// lookup failing outright is worse than a slightly-worse-ranked answer.
 const { loadIndex } = require('./index');
 const searchMode = require('./searchMode');
 const db = require('./db');
 const embeddings = require('./embeddings');
+const { resolveEntity, getAliasesForEntity, buildAliasContext } = require('./entityResolver');
+
+let lastSemanticError = null;
+
+function getLastSemanticError() {
+  return lastSemanticError;
+}
 
 function tokenize(text) {
     return (String(text || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).filter((t) => t.length >= 2);
 }
 
-// Common short function words (articles, conjunctions, "about"/"which"/
-// "is" equivalents across the supported languages) trivially appear in
-// almost any sufficiently long document — counting them as body-overlap
-// signal let a long, generic page (mentioning the topic only in passing)
-// occasionally outrank a short, specifically-titled document that's
-// actually about the query. Found via the knowledge-smoke Romanian
-// Fetească Neagră case once the corpus grew past the original 6 curated
-// docs. Excluding them here rather than filtering tokenize() globally,
-// since tokenize() is also used for building the searchable index itself.
+function tokenizeEntity(text) {
+    return (String(text || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) || []);
+}
+
 const SCORING_STOPWORDS = new Set([
     'despre', 'care', 'este', 'și', 'un', 'o', 'la', 'de', 'în', 'cu', 'ce', 'sau',
     'the', 'and', 'is', 'are', 'of', 'to', 'in', 'on', 'for', 'with', 'that', 'this',
     'о', 'об', 'что', 'это', 'как', 'для', 'на', 'из', 'или', 'вы', 'же',
-    // Additional general-language function words — measured against the
-    // real corpus (src/knowledge/search.js's IDF stats): these appear in
-    // 25-42% of all chunks purely as grammar, not content, and were
-    // missing from the original list above.
     'по', 'не', 'от', 'за', 'но', 'со', 'этот', 'до', 'его', 'чем', 'при', 'более', 'также',
     'you', 'also', 'like', 'may', 'by',
-    // Corpus-specific, not general-language, stopwords: every document in
-    // this knowledge base is about Moldovan wine, so "вино"/"молдова"/
-    // "wine"/"winery" and their inflections carry almost no discriminative
-    // signal here even though IDF alone doesn't rate them as rare enough
-    // to ignore (they're in maybe 5-40% of chunks, not 90%+, so plain IDF
-    // gives them a deceptively "moderate" weight) — found via the
-    // Kosher-package case: an article titled "...Молдова представила
-    // вина..." was outranking the actually-relevant chunk purely because
-    // of these two words appearing in ITS title, stacking with the
-    // title-match boost below.
     'вино', 'вина', 'вин', 'вином', 'вине', 'винам', 'винами', 'винах', 'винный', 'винной', 'винного', 'винограда',
     'молдова', 'молдовы', 'молдове', 'молдову', 'молдовой', 'молдавский', 'молдавское', 'молдавская', 'молдавские', 'молдавии', 'молдовский',
     'wine', 'winery',
 ]);
 
-// IDF (inverse document frequency) weighting — a word that appears in
-// nearly every chunk ("вино", "молдова" in this corpus) is worthless for
-// distinguishing which chunk actually answers the query, while a word that
-// appears in only a handful of chunks ("kosher", an estate/brand name, a
-// specific certification) is exactly the signal that should dominate
-// ranking. Flat +1-per-matching-token scoring (the original v1 design)
-// weighted both identically, which is precisely why a broad query like
-// "кошерные вина Молдова" couldn't surface a specific Kosher-tasting-
-// package chunk out of ~900 candidates: the generic "вино"/"молдова"
-// overlap drowned out the one word that actually mattered. Standard
-// smoothed IDF: idf(t) = ln((N+1)/(df(t)+1)) + 1 — always positive
-// (minimum weight 1, same as the old flat scheme, for a term that's in
-// literally every chunk), grows for rarer terms, never divides by zero.
-//
-// Cached per index build (keyed on index.built_at) rather than computed
-// per query — the corpus only changes when buildIndex() runs, so
-// recomputing document frequencies on every single search would be pure
-// waste at this corpus size (~1k chunks) but still unnecessary waste.
 let idfCache = { builtAt: null, idf: null };
 
 function buildIdfIndex(index) {
-    if (idfCache.builtAt === index.built_at && idfCache.idf) {
-        return idfCache.idf;
-    }
+    if (idfCache.builtAt === index.built_at && idfCache.idf) return idfCache.idf;
     const docFrequency = new Map();
     for (const chunk of index.chunks) {
         const uniqueTokens = new Set(tokenize(chunk.text));
@@ -92,13 +51,11 @@ function buildIdfIndex(index) {
     return idf;
 }
 
-// Terms with no recorded document frequency (shouldn't normally happen —
-// every token in the corpus was counted while building the IDF index) get
-// this same "appears everywhere" floor rather than an arbitrary guess.
 const DEFAULT_IDF_WEIGHT = 1;
 
-function scoreChunk(queryTokens, chunk, idf) {
-    const significantTokens = queryTokens.filter((t) => !SCORING_STOPWORDS.has(t));
+function scoreChunk(queryTokens, chunk, idf, { skipStopwords } = {}) {
+    const significantTokens = skipStopwords ? queryTokens : queryTokens.filter((t) => !SCORING_STOPWORDS.has(t));
+    if (significantTokens.length === 0) return 0;
     const bodyTokens = new Set(tokenize(chunk.text));
     let score = 0;
     for (const token of significantTokens) {
@@ -110,12 +67,6 @@ function scoreChunk(queryTokens, chunk, idf) {
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
-    // Weighted higher than body overlap — a query term appearing in the
-    // document's own title/winery/region/grape metadata is a much stronger
-    // "this document is actually about that" signal than merely containing
-    // the word somewhere in a long body of text. Also IDF-scaled: a rare
-    // term matching the title should count for more than a common one
-    // matching the title, same reasoning as the body score above.
     for (const token of significantTokens) {
         if (metaText.includes(token)) score += (idf.get(token) || DEFAULT_IDF_WEIGHT) * 4;
     }
@@ -124,44 +75,40 @@ function scoreChunk(queryTokens, chunk, idf) {
 
 function keywordSearch(query, { limit, language, indexFile } = {}) {
     const startedAt = Date.now();
-    const queryTokens = tokenize(query);
+    const entityQuery = resolveEntity(query).found;
+    const queryTokens = entityQuery ? tokenizeEntity(query) : tokenize(query);
     if (queryTokens.length === 0) {
-        return { hits: [], tookMs: Date.now() - startedAt, index: null };
+        return { hits: [], tookMs: Date.now() - startedAt, index: null, entityQuery };
     }
 
     const index = loadIndex(indexFile);
-    let candidates = index.chunks.filter((chunk) => chunk.metadata.enabled !== false);
-    if (language) {
-        candidates = candidates.filter((chunk) => !chunk.metadata.language || chunk.metadata.language === language);
-    }
+    const candidates = index.chunks.filter((chunk) => chunk.metadata.enabled !== false);
 
     const idf = buildIdfIndex(index);
     const scored = candidates
-        .map((chunk) => ({ chunk, score: scoreChunk(queryTokens, chunk, idf) }))
+        .map((chunk) => {
+            const raw = scoreChunk(queryTokens, chunk, idf, { skipStopwords: entityQuery });
+            let score = raw > 0 ? raw : 0;
+
+            if (language && chunk.metadata.language) {
+                if (chunk.metadata.language === language) {
+                    score *= 1.5;
+                } else {
+                    score *= 0.8;
+                }
+            }
+
+            return { chunk, score };
+        })
         .filter((hit) => hit.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
 
-    return { hits: scored, tookMs: Date.now() - startedAt, index };
+    return { hits: scored, tookMs: Date.now() - startedAt, index, entityQuery };
 }
 
-// pgvector's `<=>` nearest-neighbor operator always returns the top-K
-// closest rows regardless of how close they actually are — for a nonsense
-// or off-corpus query, that's still K "candidates", just all irrelevant.
-// Without a relevance floor, a query like "xyzzy12345" would still fuse in
-// K semantically-nearest-but-unrelated chunks and report mode:'hybrid' with
-// hits>0, making a genuine NOT_FOUND undetectable. Cosine distance ranges
-// 0 (identical) to 2 (opposite); 0.6 is a conservative cut — real paraphrase
-// matches from gemini-embedding-001 in this corpus score well under that,
-// per the "Семь тысяч лет вина" fusion trace (see session notes), while
-// genuinely unrelated content sits well above it.
 const SEMANTIC_MAX_DISTANCE = 0.6;
 
-// Nearest-neighbor lookup against knowledge_chunk_embeddings. Returns
-// chunk_ids ranked by cosine distance (ascending — closer first), NOT
-// resolved against the live index.json here, since the caller already has
-// the index loaded from the keyword pass and can do that cheaper lookup
-// itself with a Map.
 async function semanticCandidateIds(query, { limit }) {
     if (!db.isEnabled() || !embeddings.isEnabled()) return null;
     const pool = db.getPool();
@@ -180,12 +127,6 @@ async function semanticCandidateIds(query, { limit }) {
     return rows.map((r) => r.chunk_id);
 }
 
-// Reciprocal Rank Fusion — combines two ranked lists into one without
-// needing their scores to be on comparable scales (keyword overlap counts
-// vs. cosine distance are not directly comparable). k=60 is the standard
-// RRF constant from the original paper (Cormack et al. 2009); it just
-// controls how much rank position 1 is favored over position 10 — not
-// worth tuning until real query logs justify it.
 function reciprocalRankFusion(rankedLists, k = 60) {
     const scoreByKey = new Map();
     for (const list of rankedLists) {
@@ -197,65 +138,237 @@ function reciprocalRankFusion(rankedLists, k = 60) {
     return [...scoreByKey.entries()].sort((a, b) => b[1] - a[1]).map(([key]) => key);
 }
 
-// Returns { hits, tookMs, mode }. Each hit: { chunk, score }. Empty query or
-// empty index returns an empty hit list (never throws) — an empty
-// knowledge base is a normal, expected state (see docs/ARCHITECTURE.md),
-// not an error. `mode` reports what actually ran ('keyword' or 'hybrid'),
-// which can differ from searchMode.getMode() if hybrid was requested but
-// fell back (see module comment above).
+function aliasTextSearch(query, { index, resolved, limit }) {
+    const aliases = getAliasesForEntity(resolved.entityId);
+    if (aliases.length === 0) return { hits: [] };
+
+    const aliasPatterns = [...new Set(aliases.map((a) => a.toLowerCase()))];
+    const seen = new Set();
+    const hits = [];
+
+    for (const chunk of index.chunks) {
+        if (chunk.metadata.enabled === false) continue;
+        if (seen.has(chunk.id)) continue;
+        const textLower = chunk.text.toLowerCase();
+        const metaLower = [
+            chunk.metadata.title, chunk.metadata.winery,
+            chunk.metadata.region, chunk.metadata.grape,
+        ].filter(Boolean).join(' ').toLowerCase();
+        const combined = textLower + ' ' + metaLower;
+
+        let aliasScore = 0;
+        for (const pattern of aliasPatterns) {
+            if (pattern.length < 3) continue;
+            if (combined.includes(pattern)) {
+                aliasScore = Math.max(aliasScore, 10 - (pattern.length / combined.length) * 5);
+            }
+        }
+
+        if (aliasScore > 0) {
+            seen.add(chunk.id);
+            hits.push({ chunk, score: aliasScore });
+        }
+    }
+
+    hits.sort((a, b) => b.score - a.score);
+    return { hits: hits.slice(0, limit) };
+}
+
+function entityIdSearch(query, { index, resolved, limit }) {
+    const candidates = index.chunks.filter(
+        (c) => c.metadata.entity_id === resolved.entityId && c.metadata.enabled !== false
+    );
+    if (candidates.length === 0) return { hits: [] };
+
+    const queryLower = query.toLowerCase();
+    const aliasLower = (resolved.matchedAlias || '').toLowerCase();
+    const entityLower = (resolved.entityId || '').toLowerCase();
+    const topicQuery = queryLower
+        .replace(new RegExp(aliasLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+        .replace(new RegExp(entityLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+        .replace(/\b(расскажи|про|что|такое|где|находится|какой|какие|как|сколько|расскажите|tell|about|where|what|which|how)\b/gi, ' ')
+        .replace(/[?!.,:;]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const topicTokens = tokenize(topicQuery);
+
+    const scored = candidates.map((chunk) => {
+        let score = 10;
+        const titleLower = (chunk.metadata.title || '').toLowerCase();
+        if (titleLower === queryLower) score += 100;
+        else if (titleLower.includes(queryLower)) score += 50;
+        if ((chunk.metadata.winery || '').toLowerCase().includes(queryLower)) score += 30;
+
+        const bodyTokens = new Set(tokenize(chunk.text));
+        const fullQueryTokens = tokenizeEntity(query);
+        const fullMatched = fullQueryTokens.filter((t) => bodyTokens.has(t)).length;
+        score += (fullMatched / Math.max(fullQueryTokens.length, 1)) * 10;
+
+        if (topicTokens.length > 0) {
+            const topicMatched = topicTokens.filter((t) => bodyTokens.has(t)).length;
+            score += (topicMatched / Math.max(topicTokens.length, 1)) * 30;
+        }
+
+        if (chunk.text.toLowerCase().includes('адрес') || chunk.text.toLowerCase().includes('address') || chunk.text.toLowerCase().includes('str.')) {
+            const locationQuery = /(адрес|где|находится|address|where|located|str\.|ул\.)/i.test(query);
+            if (locationQuery) score += 40;
+        }
+
+        return { chunk, score: Math.max(1, score) };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return { hits: scored.slice(0, limit) };
+}
+
+function evidenceSufficient(entityHits, resolved) {
+    if (entityHits.length === 0) return false;
+    if (resolved && resolved.confidence >= 0.9 && entityHits.length >= 1) return true;
+    if (entityHits.length >= 2) return true;
+    const topScore = entityHits[0].score;
+    if (topScore >= 5) return true;
+    return false;
+}
+
+function _buildDiagnostics() {
+    return {
+        requestedMode: searchMode.getMode(),
+        actualMode: null,
+        entityMatch: false,
+        entityMatchType: null,
+        semanticCandidateCount: null,
+        semanticTookMs: null,
+        semanticError: null,
+        fallbackReason: null,
+        rerankCandidateCount: null,
+    };
+}
+
 async function search(query, { limit = 4, language = null, indexFile } = {}) {
     const startedAt = Date.now();
+    const diag = _buildDiagnostics();
 
-    // Master kill switch (Dashboard "Search mode" = Disabled) — used to
-    // verify the assistant genuinely has no knowledge-base access at all
-    // (as opposed to just answering badly), independent of per-source
-    // enable/disable. Never even touches the index.
     if (searchMode.getMode() === 'disabled') {
-        return { hits: [], tookMs: Date.now() - startedAt, mode: 'disabled' };
+        diag.actualMode = 'disabled';
+        return { hits: [], tookMs: Date.now() - startedAt, mode: 'disabled', diagnostics: diag };
+    }
+
+    const index = loadIndex(indexFile);
+    if (!index.chunks || index.chunks.length === 0) {
+        diag.actualMode = 'keyword';
+        return { hits: [], tookMs: Date.now() - startedAt, mode: 'keyword', diagnostics: diag };
+    }
+
+    const resolved = resolveEntity(query);
+    diag.entityMatch = resolved.found;
+    diag.entityMatchType = resolved.matchType || null;
+
+    if (resolved.found) {
+        const startStep = Date.now();
+
+        const aliasHits = aliasTextSearch(query, { index, resolved, limit });
+        const entityHits = entityIdSearch(query, { index, resolved, limit });
+
+        const seen = new Set();
+        const merged = [];
+        for (const hit of [...entityHits.hits, ...aliasHits.hits]) {
+            if (seen.has(hit.chunk.id)) continue;
+            seen.add(hit.chunk.id);
+            merged.push(hit);
+        }
+        merged.sort((a, b) => b.score - a.score);
+
+        if (evidenceSufficient(merged, resolved)) {
+            diag.actualMode = 'entity';
+            return {
+                hits: merged.slice(0, limit),
+                tookMs: Date.now() - startedAt,
+                mode: 'entity',
+                entityResolved: resolved,
+                entityContext: buildAliasContext(resolved),
+                diagnostics: diag,
+            };
+        }
+
+        diag.fallbackReason = 'entity_evidence_insufficient';
     }
 
     const keyword = keywordSearch(query, { limit, language, indexFile });
+    diag.keywordTookMs = Date.now() - startedAt;
 
     const wantsHybrid = searchMode.getMode() === 'hybrid';
     if (!wantsHybrid || !keyword.index) {
-        return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword' };
+        diag.actualMode = 'keyword';
+        return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword', diagnostics: diag };
     }
 
+    const semStart = Date.now();
+    let semanticIds = null;
     try {
-        const semanticIds = await semanticCandidateIds(query, { limit: limit * 3 });
-        if (!semanticIds || semanticIds.length === 0) {
-            return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword' };
-        }
-
-        // enabled:false chunks are still present in keyword.index.chunks
-        // (so the Dashboard can list/re-enable them) but must never be
-        // resolvable as a search hit — semantic candidates come straight
-        // from Postgres, which doesn't know about the enabled flag at all.
-        const chunkById = new Map(
-            keyword.index.chunks.filter((c) => c.metadata.enabled !== false).map((c) => [c.id, c])
-        );
-        const keywordIds = keyword.hits.map((h) => h.chunk.id);
-        const fusedIds = reciprocalRankFusion([keywordIds, semanticIds]).slice(0, limit);
-
-        // Resolve fused ids back to chunks + a display score. Keyword score
-        // is reused where available (it's meaningful to a human reading
-        // relevance_score); a chunk that only semantic search surfaced gets
-        // a synthetic score of 1 so it doesn't read as "0 relevance" in the
-        // tool output.
-        const keywordScoreById = new Map(keyword.hits.map((h) => [h.chunk.id, h.score]));
-        const hits = fusedIds
-            .map((id) => chunkById.get(id))
-            .filter(Boolean)
-            .map((chunk) => ({ chunk, score: keywordScoreById.get(chunk.id) || 1 }));
-
-        return { hits, tookMs: Date.now() - startedAt, mode: 'hybrid' };
+        semanticIds = await semanticCandidateIds(query, { limit: limit * 3 });
+        diag.semanticTookMs = Date.now() - semStart;
     } catch (err) {
+        diag.semanticTookMs = Date.now() - semStart;
+        diag.semanticError = err.message;
+        diag.actualMode = 'keyword';
+        lastSemanticError = err.message;
         console.error('[knowledge search] semantic branch failed, falling back to keyword-only:', err.message);
-        return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword' };
+        return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword', diagnostics: diag };
     }
+
+    if (!semanticIds || semanticIds.length === 0) {
+        diag.semanticCandidateCount = 0;
+        diag.actualMode = 'keyword';
+        return { hits: keyword.hits, tookMs: Date.now() - startedAt, mode: 'keyword', diagnostics: diag };
+    }
+
+    diag.semanticCandidateCount = semanticIds.length;
+
+    const chunkById = new Map(
+        keyword.index.chunks.filter((c) => c.metadata.enabled !== false).map((c) => [c.id, c])
+    );
+    const keywordIds = keyword.hits.map((h) => h.chunk.id);
+    const fusedIds = reciprocalRankFusion([keywordIds, semanticIds]).slice(0, limit * 2);
+
+    const keywordScoreById = new Map(keyword.hits.map((h) => [h.chunk.id, h.score]));
+    const semanticWeightById = new Map();
+    semanticIds.forEach((id, rank) => {
+        semanticWeightById.set(id, 1 / (rank + 1));
+    });
+
+    const reranked = fusedIds
+        .map((id) => chunkById.get(id))
+        .filter(Boolean)
+        .map((chunk) => {
+            const kwScore = keywordScoreById.get(chunk.id) || 0;
+            const semWeight = semanticWeightById.get(chunk.id) || 0;
+
+            let score = (kwScore > 0 ? Math.min(kwScore, 20) : 0) + semWeight * 2;
+
+            if (resolved.found && chunk.metadata.entity_id === resolved.entityId) {
+                score += 10;
+            }
+
+            return { chunk, score: Math.max(1, score) };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+    diag.rerankCandidateCount = fusedIds.length;
+    diag.actualMode = 'hybrid';
+
+    const result = { hits: reranked, tookMs: Date.now() - startedAt, mode: 'hybrid', diagnostics: diag };
+
+    if (resolved.found) {
+        result.entityResolved = resolved;
+        result.entityContext = buildAliasContext(resolved);
+    }
+
+    return result;
 }
 
 module.exports = {
     tokenize,
     search,
+    getLastSemanticError,
 };

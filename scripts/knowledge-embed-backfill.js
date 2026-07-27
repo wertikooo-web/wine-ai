@@ -14,8 +14,25 @@ const embeddings = require('../src/knowledge/embeddings');
 
 const BATCH_SIZE = 20; // Gemini embedContent accepts a batch of contents per call
 
+const PAYLOAD_VERSION = 'v2';
+
 function contentHash(text) {
-    return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+    return crypto.createHash('sha256').update(PAYLOAD_VERSION + '\n', 'utf8').update(text, 'utf8').digest('hex');
+}
+
+function buildEmbeddingText(chunk) {
+    const meta = chunk.metadata;
+    const parts = [];
+    if (meta.title) parts.push(`Title: ${meta.title}`);
+    if (meta.entity_id) parts.push(`Entity ID: ${meta.entity_id}`);
+    if (meta.winery) parts.push(`Winery: ${meta.winery}`);
+    if (meta.region) parts.push(`Region: ${meta.region}`);
+    if (meta.grape) parts.push(`Grape: ${meta.grape}`);
+    if (meta.doc_type) parts.push(`Type: ${meta.doc_type}`);
+    if (meta.language) parts.push(`Language: ${meta.language}`);
+    parts.push('');
+    parts.push(chunk.text);
+    return parts.join('\n');
 }
 
 async function main() {
@@ -47,7 +64,7 @@ async function main() {
     const { rows: existingRows } = await pool.query('SELECT chunk_id, content_hash FROM knowledge_chunk_embeddings');
     const existingHashByChunkId = new Map(existingRows.map((r) => [r.chunk_id, r.content_hash]));
 
-    const toEmbed = chunks.filter((chunk) => existingHashByChunkId.get(chunk.id) !== contentHash(chunk.text));
+    const toEmbed = chunks.filter((chunk) => existingHashByChunkId.get(chunk.id) !== contentHash(buildEmbeddingText(chunk)));
     console.log(`${toEmbed.length} chunk(s) need (re-)embedding; ${chunks.length - toEmbed.length} already up to date.`);
 
     let embedded = 0;
@@ -55,7 +72,7 @@ async function main() {
     for (let i = 0; i < toEmbed.length; i += BATCH_SIZE) {
         const batch = toEmbed.slice(i, i + BATCH_SIZE);
         try {
-            const vectors = await embeddings.embedTexts(batch.map((c) => c.text), { taskType: 'RETRIEVAL_DOCUMENT' });
+            const vectors = await embeddings.embedTexts(batch.map((c) => buildEmbeddingText(c)), { taskType: 'RETRIEVAL_DOCUMENT' });
             for (let j = 0; j < batch.length; j += 1) {
                 const chunk = batch[j];
                 const vector = vectors[j];
@@ -69,7 +86,7 @@ async function main() {
                         embedding = EXCLUDED.embedding,
                         content_hash = EXCLUDED.content_hash,
                         updated_at = NOW();`,
-                    [chunk.id, chunk.metadata.source_file, embeddings.EMBEDDING_MODEL, vectorLiteral, contentHash(chunk.text)]
+                    [chunk.id, chunk.metadata.source_file, embeddings.EMBEDDING_MODEL, vectorLiteral, contentHash(buildEmbeddingText(chunk))]
                 );
                 embedded += 1;
             }
