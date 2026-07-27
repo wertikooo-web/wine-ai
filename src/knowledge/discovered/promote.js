@@ -9,6 +9,59 @@ const path = require('path');
 
 const DEFAULT_SOURCE_DIR = path.resolve(__dirname, '..', '..', '..', 'knowledge', 'source');
 
+const KNOWN_WINERIES = [
+    'Cricova', 'Purcari', 'Mileștii Mici', 'Castel Mimi', 'Purcari Wineries',
+    'Crama Dealul de Aur', 'Kvint', 'Fautor', 'Gitana', 'Vinuri de Comrat',
+    'Novak', 'Carlevana', 'Bulgari', 'Aurelius', 'Epigramma', 'Shervin',
+    'Levin', 'Bravista', 'Doina Vin', 'Tomai Vinex', 'Aroma Pădurii',
+    'Vitis Sylvestris', 'Hedonism Wines', 'Bostavan', 'Asconi',
+    'Château Purcari', 'Crama Vulpe', 'Cricova Prestige',
+];
+
+const KNOWN_REGIONS = [
+    'Codru', 'Ștefan Vodă', 'Purcari', 'Valul lui Traian', 'Codru, Ștefan Vodă',
+    'Ștefan Vodă, Purcari', 'Bălți', 'Comrat', 'Cahul', 'Orhei', 'Hâncești',
+    'Nisporeni', 'Leova', 'Ialoveni', 'Strășeni', 'Călărași', 'Dondușeni',
+    'Edineț', 'Drochia', 'Sângerei', 'Râșcani', 'Glodeni', 'Florești',
+    'Șoldănești', 'Rezina', 'Telenești', 'Anenii Noi', 'Cimișlia',
+    'Basarabeasca', 'Căușeni', 'Ștefan Vodă', 'Taraclia',
+];
+
+const KNOWN_GRAPES = [
+    'Fetească Neagră', 'Fetească Regală', 'Rara Neagră', 'Viorica',
+    'Cabernet Sauvignon', 'Merlot', 'Pinot Noir', 'Syrah', 'Shiraz',
+    'Chardonnay', 'Sauvignon Blanc', 'Riesling', 'Pinot Gris',
+    'Traminer', 'Muscat', 'Plavai', 'Saperavi', 'Rkatsiteli',
+];
+
+const KNOWN_BRANDS = [
+    'Fetească Neagră', 'Feteasca Regală', 'Rara Neagră', 'Viorica',
+    'Purcari 1827', 'Château Purcari', 'Negru de Purcari',
+    'Cricova Prestige', 'Mileștii Mici Golden Collection',
+];
+
+function extractEntitiesFromText(text) {
+    if (!text) return { wineries: [], regions: [], grapes: [] };
+
+    const textLower = text.toLowerCase();
+    const wineries = KNOWN_WINERIES.filter(w => textLower.includes(w.toLowerCase()));
+    const regions = KNOWN_REGIONS.filter(r => textLower.includes(r.toLowerCase()));
+    const grapes = KNOWN_GRAPES.filter(g => textLower.includes(g.toLowerCase()));
+
+    return { wineries, regions, grapes };
+}
+
+function guessPrimaryEntity(doc) {
+    const combined = `${doc.title || ''} ${doc.text || ''}`;
+    const { wineries, regions, grapes } = extractEntitiesFromText(combined);
+
+    const winery = wineries.length > 0 ? wineries[0] : null;
+    const region = regions.length > 0 ? regions[0] : null;
+    const grape = grapes.length > 0 ? grapes[0] : null;
+
+    return { winery, region, grape };
+}
+
 // The `doc.id` suffix is load-bearing, not cosmetic: several crawled pages
 // on the same site can share a generic <title> (a template default, not a
 // per-page title), which made a title-only filename collide and silently
@@ -35,6 +88,8 @@ function docTypeForTopics(topics = []) {
 }
 
 function frontmatter(doc) {
+    const { winery, region, grape } = guessPrimaryEntity(doc);
+
     const lines = [
         '---',
         `title: ${(doc.title || '').replace(/\r?\n/g, ' ')}`,
@@ -43,10 +98,13 @@ function frontmatter(doc) {
         `source: ${doc.publisher || doc.url}`,
         `confidence: ${doc.trustLevel === 'A' ? 'high' : doc.trustLevel === 'B' ? 'medium' : 'unverified'}`,
         `updated_at: ${doc.fetchedAt || ''}`,
-        '---',
-        '',
-        doc.text || '',
     ];
+
+    if (winery) lines.push(`winery: ${winery}`);
+    if (region) lines.push(`region: ${region}`);
+    if (grape) lines.push(`grape: ${grape}`);
+
+    lines.push('---', '', doc.text || '');
     return lines.join('\n');
 }
 
@@ -63,4 +121,4 @@ function promote(doc, sourceDir = DEFAULT_SOURCE_DIR) {
     return fileName;
 }
 
-module.exports = { promote, safeFileName, docTypeForTopics };
+module.exports = { promote, safeFileName, docTypeForTopics, extractEntitiesFromText, guessPrimaryEntity };
