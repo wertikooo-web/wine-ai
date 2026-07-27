@@ -31,6 +31,10 @@ function startTestServer({ mockConfig = {} } = {}) {
         server.listen(0, () => {
             resolve({
                 port: server.address().port,
+                // Test introspection only (e.g. inspecting/driving a specific
+                // provider session instance directly) — production code
+                // never touches this.
+                provider: mockProvider,
                 // NOTE: this sandbox's loopback networking does not always
                 // deliver socket teardown back to a listening http.Server
                 // after a hijacked (post-upgrade) socket is destroyed —

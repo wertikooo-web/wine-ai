@@ -17,6 +17,19 @@ const DEFAULT_CONFIG = {
     // cancelled as no_speech. Set to '' to simulate a turn Gemini's own ASR
     // genuinely transcribed as empty (real no-speech).
     mockTranscript: process.env.MOCK_TRANSCRIPT !== undefined ? process.env.MOCK_TRANSCRIPT : 'mock utterance',
+    // Mirrors geminiLiveProvider.js's hold_to_talk rotateOnInterrupt/
+    // rotateAfterOutputComplete flags (both false by default here, matching
+    // the mock's original no-rotation behavior) so per-turn-rotation tests
+    // can opt in without affecting every other test that uses this provider.
+    rotateOnInterrupt: false,
+    rotateAfterOutputComplete: false,
+    // When true, endInput() does everything up to (but not including) the
+    // final audio.end — the test grabs the captured context itself
+    // (via provider.sessions[n].lastEndInputContext) and fires audio.end
+    // manually, whenever it wants, including after a later turn has begun.
+    // This is what makes it possible to reproduce "a stale completion for
+    // turn N arrives after turn N+1 already started" deterministically.
+    manualCompletion: false,
 };
 
 function sleep(ms) {
@@ -61,11 +74,16 @@ class MockRealtimeProvider {
         };
         this.name = 'mock';
         this.instanceCounter = 0;
+        // Test introspection only — lets a test grab a specific instance
+        // (e.g. turn 1's session) by index after the fact, to drive its
+        // captured provider-callback context independently of whichever
+        // instance is current. Production code never reads this.
+        this.sessions = [];
     }
 
     createSession(options = {}) {
         this.instanceCounter += 1;
-        return new MockRealtimeProviderSession({
+        const session = new MockRealtimeProviderSession({
             config: this.config,
             providerName: this.name,
             instanceId: `mock_session_${this.instanceCounter}`,
@@ -74,6 +92,8 @@ class MockRealtimeProvider {
             promptSource: options.promptSource,
             rotationReason: options.rotationReason,
         });
+        this.sessions.push(session);
+        return session;
     }
 }
 
@@ -98,6 +118,9 @@ class MockRealtimeProviderSession {
         this.activeSignal = null;
         this.inputBytes = 0;
         this.connected = false;
+        this.rotateOnInterrupt = Boolean(config.rotateOnInterrupt);
+        this.rotateAfterOutputComplete = Boolean(config.rotateAfterOutputComplete);
+        this.lastEndInputContext = null;
     }
 
     async connect(log) {
@@ -141,8 +164,10 @@ class MockRealtimeProviderSession {
         })();
     }
 
-    async endInput({ responseId, turnId, turnInputBytes, sessionInputBytes, signal, onEvent, onAudioChunk, log }) {
+    async endInput(context) {
+        const { responseId, turnId, turnInputBytes, sessionInputBytes, signal, onEvent, onAudioChunk, log } = context;
         this.activeSignal = signal;
+        this.lastEndInputContext = context;
         const startedAt = Date.now();
         if (this.config.mockTranscript) {
             onEvent({
@@ -196,6 +221,11 @@ class MockRealtimeProviderSession {
         }
 
         if (this.closed || signal.cancelled) return;
+        if (this.config.manualCompletion) {
+            // Test drives audio.end itself via this.lastEndInputContext,
+            // whenever it wants — see DEFAULT_CONFIG.manualCompletion.
+            return;
+        }
         onEvent({
             type: 'audio.end',
             response_id: responseId,
