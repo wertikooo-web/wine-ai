@@ -93,6 +93,12 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'itrace_audioContext_resume_failed', 'itrace_audioContext_state_after_resume',
     'itrace_processor_first_callback', 'itrace_first_non_silent_frame',
     'itrace_pointerdown_to_first_frame_ms', 'itrace_server_no_speech_received',
+    // DIAGNOSTIC ONLY (temporary): end-to-end two-adjacent-press trace —
+    // see ptt_attempt_summary/logPttAttemptSummary() below.
+    'itrace_server_input_audio_start_received', 'itrace_input_audio_end_received',
+    'itrace_client_frames_summary', 'itrace_transcript_user_received',
+    'itrace_first_model_event_received', 'itrace_first_audio_chunk_received',
+    'itrace_playback_started',
 ]);
 // Field allowlist by name, not just "any scalar" — a field named `text`,
 // `prompt`, `token`, `apiKey`, etc. must never pass through even if some
@@ -111,6 +117,9 @@ const CLIENT_TELEMETRY_ALLOWED_FIELDS = new Set([
     'interactionId', 'turnInteractionId', 'providerReadyForInput', 'wsState',
     'hasMicStream', 'pendingPttStart', 'isPttPointerDown', 'bytes',
     'state', 'peak', 'ms', 'turnInputBytes', 'loudMs',
+    // DIAGNOSTIC ONLY (temporary) — see itrace_* stage list above.
+    'clientInstanceId', 'websocketConnectionId', 'turnId',
+    'clientFrameCount', 'clientByteCount', 'eventType',
 ]);
 const CLIENT_TELEMETRY_MAX_STRING_LENGTH = 200;
 const CLIENT_TELEMETRY_MAX_FIELDS = 20;
@@ -325,7 +334,7 @@ function createCancellation() {
     };
 }
 
-function createGeneration({ turnId, mode }) {
+function createGeneration({ turnId, mode, interactionId, providerInstanceId }) {
     return {
         turnId,
         mode: mode || null,
@@ -345,6 +354,12 @@ function createGeneration({ turnId, mode }) {
         memoryExtractionStarted: false,
         safetyCheckStarted: false,
         noSpeechChecked: false,
+        // DIAGNOSTIC ONLY (temporary) -- see ptt_attempt_summary below.
+        interactionId: interactionId || null,
+        providerInstanceId: providerInstanceId || null,
+        serverFramesReceived: 0,
+        providerBytesSent: 0,
+        summaryLogged: false,
     };
 }
 
@@ -394,6 +409,12 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let assistantTranscriptBuffer = '';
     let currentTurnId = null;
     let currentInteractionId = null; // DIAGNOSTIC ONLY (temporary) — see startInput()
+    // DIAGNOSTIC ONLY (temporary): identifies the browser tab/page instance
+    // and the specific WebSocket connection it opened, sent by the client on
+    // session.start — lets us tell "two tabs/reconnects overlapping" apart
+    // from "one connection, intermittent per-press behavior" in the logs.
+    let sessionClientInstanceId = null;
+    let sessionWebsocketConnectionId = null;
     let currentGeneration = null;
     let inputStartedAt = 0;
     let inputEndedAt = 0;
@@ -952,6 +973,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             newProviderInstanceId: providerSession?.instanceId || 'unknown',
             elapsedMs: Date.now() - startedAt,
         });
+        logPttAttemptSummary(generation, 'provider_timeout');
     }
 
     async function recoverFromProviderFailure(generation, reason, payload = {}) {
@@ -975,6 +997,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             reason,
             providerInstanceId: providerSession?.instanceId || 'unknown',
         });
+        logPttAttemptSummary(generation, reason);
         emit({
             ...payload,
             type: 'response.failed',
@@ -1209,6 +1232,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             clearGenerationTimeout(generation);
             rememberTurn('assistant', assistantTranscriptBuffer);
             assistantTranscriptBuffer = '';
+            logPttAttemptSummary(generation, 'completed');
         }
         const emitted = emit({
             ...payload,
@@ -1248,6 +1272,32 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         return emitted;
     }
 
+    // DIAGNOSTIC ONLY (temporary): one summary line per PTT attempt, logged
+    // exactly once when its generation reaches a terminal state, so a single
+    // interactionId's whole story (turn/generation/provider ownership, byte
+    // counts, which milestones it actually reached) is readable without
+    // reconstructing it from dozens of interleaved lines. Restricted to
+    // push_to_talk since interactionId is a Hold-to-Talk-press concept.
+    function logPttAttemptSummary(generation, terminalReason) {
+        if (!generation || generation.mode !== 'push_to_talk' || generation.summaryLogged) return;
+        generation.summaryLogged = true;
+        log('ptt_attempt_summary', {
+            interactionId: generation.interactionId,
+            sessionId,
+            turnId: generation.turnId,
+            generationId: generation.generationId,
+            providerInstanceId: generation.providerInstanceId,
+            clientInstanceId: sessionClientInstanceId,
+            websocketConnectionId: sessionWebsocketConnectionId,
+            serverFramesReceived: generation.serverFramesReceived,
+            providerBytesSent: generation.providerBytesSent,
+            transcriptionReceived: Boolean(generation.firstInputTranscriptionAt),
+            modelEventReceived: Boolean(generation.firstModelEventAt),
+            validAudioReceived: Boolean(generation.firstValidAudioAt),
+            terminalReason,
+        });
+    }
+
     function cancelCurrent(reason) {
         if (
             !currentGeneration
@@ -1283,6 +1333,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             reason,
             cancelLatencyMs,
         });
+        logPttAttemptSummary(currentGeneration, reason);
         return true;
     }
 
@@ -1398,7 +1449,21 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         turnLoudSampleCount = 0;
         turnTotalSampleCount = 0;
         currentMode = payload.mode || 'push_to_talk';
-        currentGeneration = createGeneration({ turnId: currentTurnId, mode: currentMode });
+        currentGeneration = createGeneration({
+            turnId: currentTurnId,
+            mode: currentMode,
+            interactionId: currentInteractionId,
+            providerInstanceId: providerSession?.instanceId || null,
+        });
+        log('ptt_attempt_started', {
+            interactionId: currentInteractionId,
+            sessionId,
+            turnId: currentTurnId,
+            generationId: currentGeneration.generationId,
+            providerInstanceId: currentGeneration.providerInstanceId,
+            clientInstanceId: sessionClientInstanceId,
+            websocketConnectionId: sessionWebsocketConnectionId,
+        });
         visualOrchestrator.beginGeneration({
             generationId: currentGeneration.generationId,
             turnId: currentTurnId,
@@ -1693,6 +1758,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 });
                 return;
             }
+            // DIAGNOSTIC ONLY (temporary) — see ptt_attempt_summary below.
+            if (payload.client_instance_id) sessionClientInstanceId = String(payload.client_instance_id).slice(0, 64);
+            if (payload.websocket_connection_id) sessionWebsocketConnectionId = String(payload.websocket_connection_id).slice(0, 64);
+            log('session_client_identity', {
+                sessionId,
+                clientInstanceId: sessionClientInstanceId,
+                websocketConnectionId: sessionWebsocketConnectionId,
+            });
             // Microphone input sample-rate gate: an explicit, unsupported
             // rate is rejected outright (never guessed). A MISSING rate
             // falls back to 16000 pass-through for backward compatibility
@@ -2000,6 +2073,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // these bytes to.
             if (isActiveTurn) {
                 inputBytes += resampled.length;
+                if (currentGeneration) {
+                    currentGeneration.serverFramesReceived += 1;
+                    currentGeneration.providerBytesSent += resampled.length;
+                }
                 if (currentMode === 'push_to_talk') {
                     countLoudSamples(resampled);
                 }

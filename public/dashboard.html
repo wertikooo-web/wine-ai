@@ -1484,11 +1484,35 @@
     return 'ix_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   }
   function itrace(stage, extra) {
-    sendTelemetry('itrace_' + stage, { interactionId: currentInteractionId, ...(extra || {}) });
+    sendTelemetry('itrace_' + stage, { interactionId: currentInteractionId, clientInstanceId, websocketConnectionId, ...(extra || {}) });
+  }
+  // Response-side events carry turn_id, not the (possibly stale by then)
+  // currentInteractionId — look up the interactionId that actually started
+  // this turn (see interactionIdByTurnId above).
+  function itraceForTurn(turnId, stage, extra) {
+    const interactionId = (turnId && interactionIdByTurnId[turnId]) || null;
+    sendTelemetry('itrace_' + stage, { interactionId, clientInstanceId, websocketConnectionId, turnId, ...(extra || {}) });
   }
   let firstFrameSentForInteraction = null; // diagnostic only — logs just the first audio frame per turn
   let firstNonSilentFrameForInteraction = null; // diagnostic only — first frame whose peak clears a small threshold
   let lastPointerdownAt = 0; // diagnostic only — for pointerdown_to_first_frame_ms
+  let clientFrameCount = 0; // diagnostic only — reset per turn, reported at endTurn
+  let clientByteCount = 0; // diagnostic only — reset per turn, reported at endTurn
+  // DIAGNOSTIC ONLY (temporary): identifies this page load (survives
+  // reconnects within the same tab) and the specific WebSocket connection —
+  // lets production logs distinguish "two tabs/sessions overlapping" from
+  // "one connection, intermittent per-press behavior."
+  const clientInstanceId = 'ci_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  let websocketConnectionId = null;
+  // Response-side events (transcript.model, audio.start, playback) arrive
+  // after currentInteractionId may already have moved to a NEWER press —
+  // this maps each turnId to the interactionId that actually started it, so
+  // late-arriving response telemetry is tagged correctly regardless of what
+  // the user has pressed since.
+  const interactionIdByTurnId = {};
+  const transcriptUserSeenForTurn = {}; // diagnostic only — fire itrace once per turn
+  const modelEventSeenForTurn = {}; // diagnostic only — fire itrace once per turn
+  const audioChunkSeenForTurn = {}; // diagnostic only — fire itrace once per turn
   let currentTurnId = null;
   let inputEndedAt = 0;
   let firstAudioAt = 0;
@@ -2081,7 +2105,7 @@
   function sendSessionStart() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     const language = el('langSelect').value;
-    const payload = { type: 'session.start', sampleRate: inputSampleRate, include_prompt_debug: true };
+    const payload = { type: 'session.start', sampleRate: inputSampleRate, include_prompt_debug: true, client_instance_id: clientInstanceId, websocket_connection_id: websocketConnectionId };
     if (language && language !== 'auto') payload.language = language;
     if (activeScreenContext) payload.config = { persona: activeScreenContext.persona };
     ws.send(JSON.stringify(payload));
@@ -2231,6 +2255,7 @@
     DeviceVisual.setState('connecting');
     setConnectionButton('connecting');
     providerReadyForInput = false;
+    websocketConnectionId = 'wc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
     ws = new WebSocket(socketUrl());
     ws.binaryType = 'arraybuffer';
 
@@ -2488,6 +2513,10 @@
         break;
       case 'input_audio.start':
         currentTurnId = payload.turn_id;
+        if (currentTurnId) {
+          interactionIdByTurnId[currentTurnId] = currentInteractionId;
+          itrace('server_input_audio_start_received', {});
+        }
         setText('dTurn', currentTurnId || '—');
         setText('speakerState', 'you');
         // Tap to Start: this fires for EVERY utterance now, including ones
@@ -2500,12 +2529,22 @@
       case 'input_audio.end':
         inputEndedAt = performance.now();
         setText('speakerState', 'thinking…');
+        itraceForTurn(currentTurnId, 'input_audio_end_received', {});
+        itraceForTurn(currentTurnId, 'client_frames_summary', { clientFrameCount, clientByteCount });
         break;
       case 'transcript.user':
+        if (!transcriptUserSeenForTurn[payload.turn_id]) {
+          transcriptUserSeenForTurn[payload.turn_id] = true;
+          itraceForTurn(payload.turn_id, 'transcript_user_received', {});
+        }
         addTranscriptTurn('user', payload.text);
         maybeHighlightWhereToBuy(payload.text);
         break;
       case 'transcript.model':
+        if (!modelEventSeenForTurn[payload.turn_id]) {
+          modelEventSeenForTurn[payload.turn_id] = true;
+          itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'transcript.model' });
+        }
         addTranscriptTurn('assistant', payload.text);
         showReplyBox(payload);
         break;
@@ -2513,6 +2552,10 @@
         setText('langState', payload.to_language || '—');
         break;
       case 'audio.start':
+        if (!modelEventSeenForTurn[payload.turn_id]) {
+          modelEventSeenForTurn[payload.turn_id] = true;
+          itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'audio.start' });
+        }
         firstAudioAt = performance.now();
         if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
@@ -2524,6 +2567,10 @@
         DeviceVisual.setState('speaking');
         break;
       case 'audio.chunk':
+        if (!audioChunkSeenForTurn[payload.turn_id]) {
+          audioChunkSeenForTurn[payload.turn_id] = true;
+          itraceForTurn(payload.turn_id, 'first_audio_chunk_received', {});
+        }
         playAudioChunk(payload);
         break;
       case 'audio.end':
@@ -2714,6 +2761,8 @@
         firstNonSilentFrameForInteraction = currentInteractionId;
         itrace('first_non_silent_frame', { peak: Math.round(peak) });
       }
+      clientFrameCount += 1;
+      clientByteCount += pcm16.buffer.byteLength;
       ws.send(pcm16.buffer);
     };
     micSource.connect(processor);
@@ -2806,6 +2855,8 @@
     DeviceVisual.setState('listening');
     firstFrameSentForInteraction = null;
     firstNonSilentFrameForInteraction = null;
+    clientFrameCount = 0;
+    clientByteCount = 0;
     itrace('input_audio_start_sending', {});
     ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: turnInteractionId }));
     itrace('startTurn_exited_ok', {});
@@ -3338,7 +3389,10 @@
       sendTelemetry('stale_audio_chunk_dropped', { generationId, acceptedPlaybackGenerationId, phase: 'pre_schedule' });
       return;
     }
-    if (activeSources.size === 0) sendTelemetry('playback_started', {});
+    if (activeSources.size === 0) {
+      sendTelemetry('playback_started', {});
+      itraceForTurn(currentTurnId, 'playback_started', { generationId });
+    }
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
     src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
