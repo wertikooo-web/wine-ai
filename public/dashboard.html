@@ -1462,6 +1462,20 @@
   let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
   let tapToStartIdleTimeoutMs = 5000; // overwritten from /api/persona's config on load
   let pendingTapStart = false;    // Tap to Start pressed before the ws connection finished opening
+  // Readiness handshake: WebSocket OPEN is NOT "ready to record" — the
+  // realtime provider (Gemini/Grok) connection is established lazily and
+  // asynchronously after session.start, and a fast first press could
+  // previously start capturing/sending audio before the provider was
+  // actually there to receive it, silently losing the first utterance.
+  // providerReadyForInput only becomes true once the server confirms
+  // 'provider.ready_for_input' (see handleEvent() below) — sent once after
+  // the initial connect, and again after any REAL reconnect (voice/model
+  // change, error recovery), never between ordinary turns now that the
+  // provider session persists across turns (see geminiLiveProvider.js's
+  // rotateAfterOutputComplete).
+  let providerReadyForInput = false;
+  let pendingPttStart = false;    // Hold-to-Talk pressed before provider.ready_for_input arrived
+  let isPttPointerDown = false;   // tracks whether the button is still physically held
   let currentTurnId = null;
   let inputEndedAt = 0;
   let firstAudioAt = 0;
@@ -1584,6 +1598,7 @@
       voiceModeTapHint: 'Free Conversation: one tap starts a conversation with no need to press again.',
       voiceModeTapUnavailable: 'Temporarily unavailable',
       pttCaptionHold: 'Hold and speak',
+      pttCaptionConnecting: 'Connecting…',
       pttCaptionTapIdle: 'Start conversation', pttCaptionTapActive: 'End conversation',
     },
     ru: {
@@ -1625,6 +1640,7 @@
       voiceModeTapHint: 'Свободный разговор: одно нажатие запускает разговор без повторных нажатий.',
       voiceModeTapUnavailable: 'Временно недоступно',
       pttCaptionHold: 'Удерживайте и говорите',
+      pttCaptionConnecting: 'Подключаюсь…',
       pttCaptionTapIdle: 'Начать разговор', pttCaptionTapActive: 'Завершить разговор',
     },
     ro: {
@@ -2199,6 +2215,7 @@
   function connect() {
     DeviceVisual.setState('connecting');
     setConnectionButton('connecting');
+    providerReadyForInput = false;
     ws = new WebSocket(socketUrl());
     ws.binaryType = 'arraybuffer';
 
@@ -2207,7 +2224,11 @@
       setText('wsLabel', 'connected');
       setText('dWs', 'open');
       setConnectionButton('connected');
-      el('pttBtn').disabled = false;
+      // pttBtn stays disabled (Hold to Talk) / shows a connecting caption
+      // (Tap to Start) until provider.ready_for_input actually arrives —
+      // see providerReadyForInput above. WebSocket OPEN only means the
+      // client<->server link exists, not that the realtime provider
+      // connection is ready to receive audio.
       el('textInput').disabled = false;
       el('textSendBtn').disabled = false;
       el('demoWineRed').disabled = false;
@@ -2216,6 +2237,7 @@
       el('langSelect').disabled = false;
       setProviderControlsDisabled(true);
       DeviceVisual.setState('ready');
+      if (voiceMode === 'hold_to_talk') setPttCaption();
       // Acquire the mic (and therefore know its real AudioContext sample
       // rate) BEFORE declaring session.start's sampleRate — sending a
       // hardcoded 16000 here regardless of what the browser actually
@@ -2229,19 +2251,10 @@
       }
       sendSessionStart();
       log('ws_open', { sampleRate: inputSampleRate });
-      // A winery/wine ask-button was pressed-and-held before the connection
-      // finished opening — start recording now that it's ready. If the user
-      // already released the button (pendingContextTurnStart cleared by
-      // endContextualTurn), don't start a turn nobody is holding for.
-      if (pendingContextTurnStart) {
-        pendingContextTurnStart = false;
-        startTurn();
-      }
-      // Tap to Start pressed before this connection finished opening.
-      if (pendingTapStart) {
-        pendingTapStart = false;
-        resumeTapListening();
-      }
+      // pendingContextTurnStart/pendingTapStart/pendingPttStart are now
+      // resolved on 'provider.ready_for_input' (see handleEvent() below),
+      // not here — WebSocket OPEN happening does not mean the realtime
+      // provider connection is ready to receive audio yet.
     });
 
     ws.addEventListener('close', () => {
@@ -2249,6 +2262,8 @@
       setText('wsLabel', 'disconnected');
       setText('dWs', 'closed');
       setConnectionButton('disconnected');
+      providerReadyForInput = false;
+      pendingPttStart = false;
       // In Tap to Start, the mic button IS the connect trigger — it must
       // stay enabled while disconnected so a tap can open a fresh session
       // (see startConversationOnTap()). Hold to Talk keeps the previous
@@ -2407,9 +2422,52 @@
           setText('langState', 'auto');
         }
         break;
-      case 'provider.ready':
       case 'provider.rotated':
+        // Fired the instant the OLD provider connection is torn down and a
+        // NEW one is constructed — the new one is NOT yet connected at this
+        // point (that's what 'provider.ready' below confirms). Must not be
+        // treated as a readiness signal.
         setText('dProviderInstance', payload.new_provider_instance_id || payload.provider_instance_id || '—');
+        break;
+      case 'provider.ready':
+        // The realtime provider connection is now actually able to receive
+        // audio — emitted by warmProviderSession() once providerSession.connect()
+        // resolves. Sent once after the initial connect, and again after any
+        // real reconnect (voice/model change, error recovery). Never sent
+        // between ordinary turns now that the provider session persists
+        // across them (see geminiLiveProvider.js's rotateAfterOutputComplete).
+        setText('dProviderInstance', payload.provider_instance_id || '—');
+        providerReadyForInput = true;
+        sendTelemetry('provider_ready_for_input_received', { reason: payload.reason || 'unknown' });
+        if (voiceMode === 'hold_to_talk') {
+          el('pttBtn').disabled = false;
+          setPttCaption();
+        }
+        // A winery/wine ask-button was pressed-and-held before the provider
+        // was ready — start recording now. If the user already released it
+        // (pendingContextTurnStart cleared by endContextualTurn), don't
+        // start a turn nobody is holding for.
+        if (pendingContextTurnStart) {
+          pendingContextTurnStart = false;
+          startTurn();
+        }
+        if (pendingTapStart) {
+          pendingTapStart = false;
+          resumeTapListening();
+        }
+        if (pendingPttStart) {
+          pendingPttStart = false;
+          if (isPttPointerDown) startTurn();
+        }
+        break;
+      case 'provider.connect_failed':
+        setDot('providerDot', 'err');
+        setText('providerLabel', 'provider: connect failed');
+        sendTelemetry('provider_connect_failed_received', { reason: payload.reason || 'unknown' });
+        if (voiceMode === 'hold_to_talk') {
+          pendingPttStart = false;
+          setPttCaption();
+        }
         break;
       case 'input_audio.start':
         currentTurnId = payload.turn_id;
@@ -2660,7 +2718,8 @@
     const caption = el('pttCaption');
     if (!caption) return;
     if (voiceMode === 'hold_to_talk') {
-      caption.textContent = getUiString('pttCaptionHold');
+      const connected = ws && ws.readyState === WebSocket.OPEN;
+      caption.textContent = getUiString(connected && !providerReadyForInput ? 'pttCaptionConnecting' : 'pttCaptionHold');
     } else {
       caption.textContent = getUiString(tapToStartActive ? 'pttCaptionTapActive' : 'pttCaptionTapIdle');
     }
@@ -3321,13 +3380,38 @@
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', () => {
     if (voiceMode !== 'hold_to_talk') return;
+    isPttPointerDown = true;
+    if (!providerReadyForInput) {
+      // Held before the provider connection was actually ready to receive
+      // audio — do NOT start recording yet (that's exactly what silently
+      // lost the first utterance before). Wait for provider.ready_for_input
+      // (see handleEvent() above), which starts the turn immediately if the
+      // button is still held at that point.
+      pendingPttStart = true;
+      setPttCaption();
+      sendTelemetry('ptt_pressed_before_ready', {});
+      return;
+    }
     startTurn();
   });
   pttBtn.addEventListener('pointerup', () => {
     if (voiceMode !== 'hold_to_talk') return;
+    isPttPointerDown = false;
+    if (pendingPttStart) {
+      // Released before readiness ever arrived — nothing was ever recorded,
+      // so there is nothing to send. Just clear the pending intent.
+      pendingPttStart = false;
+      setPttCaption();
+      return;
+    }
     endTurn();
   });
-  pttBtn.addEventListener('pointerleave', () => { if (voiceMode === 'hold_to_talk' && isHolding) endTurn(); });
+  pttBtn.addEventListener('pointerleave', () => {
+    if (voiceMode !== 'hold_to_talk') return;
+    isPttPointerDown = false;
+    if (pendingPttStart) { pendingPttStart = false; setPttCaption(); return; }
+    if (isHolding) endTurn();
+  });
   pttBtn.addEventListener('click', () => {
     if (voiceMode !== 'tap_to_start') return;
     if (tapToStartActive) {

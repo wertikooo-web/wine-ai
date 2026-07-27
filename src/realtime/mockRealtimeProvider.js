@@ -8,6 +8,7 @@ const DEFAULT_CONFIG = {
     sampleRate: Number(process.env.MOCK_SAMPLE_RATE || 16000),
     toneHz: Number(process.env.MOCK_TONE_HZ || 440),
     beginResponseDelayMs: Number(process.env.MOCK_BEGIN_RESPONSE_DELAY_MS || 0),
+    connectDelayMs: Number(process.env.MOCK_CONNECT_DELAY_MS || 0),
 };
 
 function sleep(ms) {
@@ -88,6 +89,19 @@ class MockRealtimeProviderSession {
         this.closed = false;
         this.activeSignal = null;
         this.inputBytes = 0;
+        this.connected = false;
+    }
+
+    async connect(log) {
+        if (this.connected) return;
+        if (this.config.connectDelayMs) {
+            await sleep(this.config.connectDelayMs);
+        }
+        if (this.closed) return;
+        this.connected = true;
+        if (typeof log === 'function') {
+            log('mock_provider_connected', { providerInstanceId: this.instanceId });
+        }
     }
 
     sendAudio(buffer) {
