@@ -505,6 +505,24 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let inputResampler = createInputResampler(inputSampleRate);
     let sessionRuntimeSnapshot = null;
     let providerSession = providerFactory(buildProviderSessionOptions('initial'));
+    // Provider Manager fact (see docs/architecture/STATE_OWNERSHIP.md 3.5):
+    // has `providerSession` already been assigned to a turn via
+    // beginResponse()/endInput()? A turn can end (audio.end, response.failed,
+    // timeout, cancel) via several different code paths, and not all of them
+    // rotate the provider before returning (e.g. geminiLiveProvider.js's
+    // "closed_during_input"/"closed_before_output" early-exit branches never
+    // reach the audio.end rotation trigger). If the NEXT turn were allowed to
+    // start on an already-used instance, a late/duplicate provider signal
+    // meant for the OLD turn can be misattributed to the NEW one, because the
+    // adapter's `this.active` is a single mutable slot with no id of its own
+    // on the raw provider message — this was the confirmed root cause of the
+    // "не услышал -> услышал" alternating PTT failures. startInput() is the
+    // single place that both reads and clears this flag; rotateProviderSession()
+    // is the only other writer (it always resets to false, since rotation
+    // itself produces a fresh, unused instance).
+    let providerSessionUsedForTurn = false;
+    let lastTurnProviderInstanceId = null;
+    let invariantViolationCount = 0;
 
     function log(stage, extra = {}) {
         const details = Object.entries(extra)
@@ -1339,6 +1357,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
 
     function rotateProviderSession(reason) {
         providerRotationCount += 1;
+        providerSessionUsedForTurn = false;
         const oldProviderSession = providerSession;
         const oldProviderInstanceId = oldProviderSession?.instanceId || 'unknown';
         const oldProviderVoiceName = oldProviderSession?.voiceName || sessionVoiceName || 'none';
@@ -1440,6 +1459,24 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         if (cancelledActiveGeneration && shouldRotateProviderOnInterrupt()) {
             rotateProviderSession('new_input_after_cancel');
         }
+        // Correctness backstop for per_turn isolation (see
+        // providerSessionUsedForTurn's declaration comment above): the
+        // after-output-complete rotation is an optimization that pre-warms
+        // the next instance early, but some provider exit paths (e.g.
+        // geminiLiveProvider.js's provider_turn_closed_during_input /
+        // provider_turn_closed_before_output early returns) finish a turn
+        // without ever reaching that trigger. Gated on the same
+        // rotateOnInterrupt flag as the interrupt-rotation above (true only
+        // for hold_to_talk) so tap_to_start's deliberate single continuous
+        // connection is untouched. This is what makes "fresh provider
+        // instance per turn" an actual guarantee instead of a best-effort.
+        if (
+            rotationMode === 'per_turn'
+            && providerSession?.rotateOnInterrupt
+            && providerSessionUsedForTurn
+        ) {
+            rotateProviderSession('per_turn_new_turn');
+        }
         turnCounter += 1;
         currentTurnId = payload.turn_id || id(`turn${turnCounter}`);
         // DIAGNOSTIC ONLY (temporary): opaque id the client attaches to one
@@ -1455,6 +1492,27 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             interactionId: currentInteractionId,
             providerInstanceId: providerSession?.instanceId || null,
         });
+        if (
+            rotationMode === 'per_turn'
+            && providerSession?.rotateOnInterrupt
+            && lastTurnProviderInstanceId
+            && currentGeneration.providerInstanceId
+            && currentGeneration.providerInstanceId === lastTurnProviderInstanceId
+        ) {
+            invariantViolationCount += 1;
+            log('invariant_violation', {
+                invariant: 'per_turn_rotation_provider_instance_reuse',
+                sessionId,
+                turnId: currentTurnId,
+                generationId: currentGeneration.generationId,
+                providerInstanceId: currentGeneration.providerInstanceId,
+                previousTurnProviderInstanceId: lastTurnProviderInstanceId,
+                rotationMode,
+                invariantViolationCount,
+            });
+        }
+        providerSessionUsedForTurn = true;
+        lastTurnProviderInstanceId = currentGeneration.providerInstanceId;
         log('ptt_attempt_started', {
             interactionId: currentInteractionId,
             sessionId,
