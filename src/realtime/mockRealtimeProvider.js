@@ -9,6 +9,14 @@ const DEFAULT_CONFIG = {
     toneHz: Number(process.env.MOCK_TONE_HZ || 440),
     beginResponseDelayMs: Number(process.env.MOCK_BEGIN_RESPONSE_DELAY_MS || 0),
     connectDelayMs: Number(process.env.MOCK_CONNECT_DELAY_MS || 0),
+    // realtimeServer.js's no-speech gate treats an empty inputTranscription
+    // as ground truth that nothing was said (see emitProviderEvent()'s
+    // comment) -- real providers only ever emit transcript.user with
+    // non-empty text, so the mock must emit one too by default, or every
+    // push_to_talk turn in the existing test suite would be wrongly
+    // cancelled as no_speech. Set to '' to simulate a turn Gemini's own ASR
+    // genuinely transcribed as empty (real no-speech).
+    mockTranscript: process.env.MOCK_TRANSCRIPT !== undefined ? process.env.MOCK_TRANSCRIPT : 'mock utterance',
 };
 
 function sleep(ms) {
@@ -136,6 +144,14 @@ class MockRealtimeProviderSession {
     async endInput({ responseId, turnId, turnInputBytes, sessionInputBytes, signal, onEvent, onAudioChunk, log }) {
         this.activeSignal = signal;
         const startedAt = Date.now();
+        if (this.config.mockTranscript) {
+            onEvent({
+                type: 'transcript.user',
+                response_id: responseId,
+                turn_id: turnId,
+                text: this.config.mockTranscript,
+            });
+        }
         log('response_processing_started', {
             responseId,
             turnId,

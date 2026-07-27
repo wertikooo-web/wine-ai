@@ -150,8 +150,21 @@ const MAX_TURN_REPLAY_BYTES = Number.isFinite(configuredTurnReplayBytes)
     : 512 * 1024;
 let warnedInvalidRotationMode = false;
 // No-speech gate (push_to_talk only) — see countLoudSamples()/endInput().
-// Threshold is on the int16 PCM scale (-32768..32767); ~500 sits well below
-// normal speech peaks but above typical ESP32/browser-mic room-noise floor.
+// Threshold is on the int16 PCM scale (-32768..32767).
+//
+// PRODUCTION INCIDENT (2026-07-27): the original 500/200ms pair rejected a
+// genuine real utterance — turnLoudSampleCount=2890 turnLoudMs=181,
+// interactionId ix_ms34g8m0_3pc4g1 — a few ms under the 200ms floor, on a
+// real browser mic with autoGainControl disabled (see acquireMic()'s
+// comment on why AGC is off for Hold to Talk). Soft consonants and
+// quieter speakers routinely spend much of an utterance below 500 on raw,
+// un-normalized mic input; the gate was tuned against synthetic/loud test
+// tones, not real recorded speech. Lowered both values well below what a
+// real (if quiet) utterance measured, while a genuinely silent/accidental
+// press still measures 0 loud samples regardless of threshold — the gate
+// only needs to separate "some speech happened" from "literally nothing,"
+// not judge speech quality.
+//
 // Read live (not cached at module load) so tests can override via env
 // without needing a separate process per value — most of this project's
 // existing realtime tests use zero-filled "audio" purely as wire-protocol
@@ -159,15 +172,15 @@ let warnedInvalidRotationMode = false;
 // speech, and would otherwise be silently rejected by this gate.
 function noSpeechAmplitudeThreshold() {
     const configured = Number(process.env.NO_SPEECH_AMPLITUDE_THRESHOLD);
-    // `|| 500` would silently discard an intentional 0 (falsy) — tests rely
+    // `|| 200` would silently discard an intentional 0 (falsy) — tests rely
     // on being able to set exactly that to disable the gate.
-    return Number.isFinite(configured) && process.env.NO_SPEECH_AMPLITUDE_THRESHOLD !== undefined ? configured : 500;
+    return Number.isFinite(configured) && process.env.NO_SPEECH_AMPLITUDE_THRESHOLD !== undefined ? configured : 200;
 }
 // Minimum cumulative time above the amplitude threshold, at the post-
 // resample 16kHz rate, to count as "speech actually happened."
 function noSpeechMinLoudMs() {
     const configured = Number(process.env.NO_SPEECH_MIN_LOUD_MS);
-    return Number.isFinite(configured) && process.env.NO_SPEECH_MIN_LOUD_MS !== undefined ? configured : 200;
+    return Number.isFinite(configured) && process.env.NO_SPEECH_MIN_LOUD_MS !== undefined ? configured : 60;
 }
 const NO_SPEECH_SAMPLE_RATE = 16000;
 
@@ -312,9 +325,10 @@ function createCancellation() {
     };
 }
 
-function createGeneration({ turnId }) {
+function createGeneration({ turnId, mode }) {
     return {
         turnId,
+        mode: mode || null,
         generationId: id('generation'),
         responseId: null,
         status: 'pending',
@@ -330,6 +344,7 @@ function createGeneration({ turnId }) {
         userTranscriptBuffer: '',
         memoryExtractionStarted: false,
         safetyCheckStarted: false,
+        noSpeechChecked: false,
     };
 }
 
@@ -1121,6 +1136,45 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 inputEndToInputTranscriptionMs: generation.firstInputTranscriptionAt - generation.inputEndedAt,
             });
         }
+        // Definitive no-speech backstop: the amplitude heuristic in endInput()
+        // is a cheap pre-filter only (see NO_SPEECH_AMPLITUDE_THRESHOLD's
+        // comment for the 2026-07-27 false-positive incident it caused on
+        // real quiet speech) — this is the actual source of truth. Gemini's
+        // own inputTranscription is only ever emitted with non-empty text
+        // (see geminiLiveProvider.js's `if (content.inputTranscription?.text)`),
+        // so if the model is about to produce real output and never once
+        // transcribed anything from this push_to_talk turn, that is Gemini's
+        // own ASR confirming there was no recognizable speech -- not a
+        // guess. Checked exactly once per generation, right as the first
+        // real model-output event would otherwise start reaching the
+        // client, so a genuine no-speech press is cancelled before any
+        // audio/transcript ever plays and before the turn is counted as a
+        // real response.
+        if (startsGenerationEvents.has(eventType) && generation.inputEndedAt && !generation.noSpeechChecked) {
+            generation.noSpeechChecked = true;
+            if (generation.mode === 'push_to_talk' && !generation.userTranscriptBuffer.trim()) {
+                log('no_speech_turn_cancelled', {
+                    generationId: generation.generationId,
+                    turnId: generation.turnId,
+                    reason: 'empty_provider_transcription',
+                    eventType,
+                });
+                emit({
+                    type: 'input_audio.no_speech',
+                    turn_id: generation.turnId,
+                    generation_id: generation.generationId,
+                });
+                // No reconnect: unlike a real barge-in, this generation
+                // already went through a normal endInput()/activityEnd()
+                // cycle -- the provider session is not left half-open, so
+                // there is nothing a reconnect would fix. cancelCurrent()
+                // still calls providerSession.interrupt() to stop any
+                // further output for this generation, but the connection
+                // itself is left exactly as-is.
+                cancelCurrent('no_speech');
+                return false;
+            }
+        }
         if (startsGenerationEvents.has(eventType) && generation.inputEndedAt && !generation.firstModelEventAt) {
             generation.firstModelEventAt = Date.now();
             log('provider_first_model_event', {
@@ -1343,12 +1397,12 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         currentInteractionId = payload.interaction_id || null;
         turnLoudSampleCount = 0;
         turnTotalSampleCount = 0;
-        currentGeneration = createGeneration({ turnId: currentTurnId });
+        currentMode = payload.mode || 'push_to_talk';
+        currentGeneration = createGeneration({ turnId: currentTurnId, mode: currentMode });
         visualOrchestrator.beginGeneration({
             generationId: currentGeneration.generationId,
             turnId: currentTurnId,
         });
-        currentMode = payload.mode || 'push_to_talk';
         // Only the client's own tap_to_start input_audio.start carries
         // micEchoCancellation (see resumeTapListening() in dashboard.html);
         // the synthetic starts handleNativeSpeechStarted() issues for every
@@ -1457,7 +1511,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         inputEndedAt = Date.now();
         const recordingDurationMs = inputEndedAt - inputStartedAt;
         if (!currentGeneration) {
-            currentGeneration = createGeneration({ turnId: currentTurnId });
+            currentGeneration = createGeneration({ turnId: currentTurnId, mode: currentMode });
         }
 
         emit({
@@ -1485,11 +1539,28 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         const generationForStream = currentGeneration;
         generationForStream.inputEndedAt = inputEndedAt;
 
+        // PRODUCTION INCIDENT (2026-07-27, interactionId ix_ms34g8m0_3pc4g1):
+        // a real utterance -- turnInputBytes=57344, ~1.8s -- measured only
+        // turnLoudMs=181 against the (then) 200ms floor and was wrongly
+        // rejected pre-flight, before the provider ever saw the audio. Local
+        // amplitude/duration is not a reliable speech detector against real
+        // microphones (quiet speakers, soft consonants, AGC disabled by
+        // design -- see acquireMic()): it cannot safely reject anything on
+        // its own. This turn is now ALWAYS sent to the provider; the only
+        // no-speech decision is made in emitProviderEvent() using Gemini's
+        // own inputTranscription as ground truth (empty transcription is
+        // never a false positive -- geminiLiveProvider.js only emits
+        // transcript.user when Gemini's ASR produced non-empty text). This
+        // also means a no-speech turn always went through a normal
+        // endInput()/activityEnd() cycle, so cancelling it afterward never
+        // leaves the provider session in a half-open state -- no reconnect
+        // needed (contrast the barge-in path, which is a real interrupt of
+        // an in-flight response and does still rotate).
         if (currentMode === 'push_to_talk') {
             const minLoudMs = noSpeechMinLoudMs();
             const turnLoudMs = (turnLoudSampleCount / NO_SPEECH_SAMPLE_RATE) * 1000;
             if (turnLoudMs < minLoudMs) {
-                log('no_speech_turn_cancelled', {
+                log('no_speech_candidate', {
                     turnId: currentTurnId,
                     interactionId: currentInteractionId,
                     generationId: generationForStream.generationId,
@@ -1499,25 +1570,8 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                     turnLoudMs: Math.round(turnLoudMs),
                     thresholdMs: minLoudMs,
                     recordingDurationMs,
+                    note: 'low local energy reading -- not rejected here, deferring to provider transcription',
                 });
-                emit({
-                    type: 'input_audio.no_speech',
-                    turn_id: currentTurnId,
-                    generation_id: generationForStream.generationId,
-                    turn_input_bytes: inputBytes,
-                    loud_ms: Math.round(turnLoudMs),
-                });
-                const cancelled = cancelCurrent('no_speech');
-                // Mirrors the existing barge-in interrupt path (see
-                // startInput()/session.interrupt above) — Hold to Talk
-                // rotates on any interrupt regardless of cause, so a
-                // no-speech cancellation leaves the provider connection in
-                // the exact same known-good state a real interrupt would,
-                // rather than an activity opened-but-never-closed.
-                if (cancelled && shouldRotateProviderOnInterrupt()) {
-                    rotateProviderSession('no_speech_cancelled');
-                }
-                return;
             }
         }
 
