@@ -92,7 +92,7 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'itrace_audioContext_resume_started', 'itrace_audioContext_resume_completed',
     'itrace_audioContext_resume_failed', 'itrace_audioContext_state_after_resume',
     'itrace_processor_first_callback', 'itrace_first_non_silent_frame',
-    'itrace_pointerdown_to_first_frame_ms',
+    'itrace_pointerdown_to_first_frame_ms', 'itrace_server_no_speech_received',
 ]);
 // Field allowlist by name, not just "any scalar" — a field named `text`,
 // `prompt`, `token`, `apiKey`, etc. must never pass through even if some
@@ -110,7 +110,7 @@ const CLIENT_TELEMETRY_ALLOWED_FIELDS = new Set([
     // DIAGNOSTIC ONLY (temporary) — see itrace() stage list above.
     'interactionId', 'turnInteractionId', 'providerReadyForInput', 'wsState',
     'hasMicStream', 'pendingPttStart', 'isPttPointerDown', 'bytes',
-    'state', 'peak', 'ms',
+    'state', 'peak', 'ms', 'turnInputBytes', 'loudMs',
 ]);
 const CLIENT_TELEMETRY_MAX_STRING_LENGTH = 200;
 const CLIENT_TELEMETRY_MAX_FIELDS = 20;

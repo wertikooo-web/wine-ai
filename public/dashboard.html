@@ -2537,6 +2537,16 @@
         sendTelemetry('playback_cancel_received', { reason: payload.reason, generationId: payload.generation_id });
         stopPlaybackImmediately({ reason: payload.reason || 'server_cancel', generationId: payload.generation_id });
         break;
+      case 'input_audio.no_speech':
+        // Server-side no-speech gate (realtimeServer.js's countLoudSamples)
+        // rejected this turn before it ever reached the provider — a
+        // response.cancelled event follows immediately and handles the
+        // actual playback/state cleanup; this just returns the UI to ready
+        // right away instead of leaving it on "listening"/"thinking".
+        itrace('server_no_speech_received', { turnInputBytes: payload.turn_input_bytes, loudMs: payload.loud_ms });
+        DeviceVisual.setState('ready');
+        setText('speakerState', '—');
+        break;
       case 'response.failed':
         stopPlaybackImmediately({ reason: 'response_failed', generationId: payload.generation_id });
         DeviceVisual.setState('error');
