@@ -1,5 +1,12 @@
 'use strict';
 
+// This file's frames are silent placeholder audio, not real speech — the
+// server's no-speech gate (realtimeServer.js's countLoudSamples/endInput)
+// would otherwise cancel every turn here before it ever reaches the mock
+// provider. Disable it for this file only (see noSpeechAmplitudeThreshold()
+// in realtimeServer.js, read live rather than cached at module load).
+process.env.NO_SPEECH_MIN_LOUD_MS = '0';
+
 // Regression: PTT input frames are dropped when the provider completes its
 // response while the user is still holding the PTT button.
 //
