@@ -14,27 +14,11 @@
 // providerSession.connect() and emits a provider.ready event once it
 // resolves. See public/dashboard.html's providerReadyForInput/
 // pendingPttStart for the client-side half of this handshake.
-// This file's frames are silent placeholder audio (Buffer.alloc), not real
-// speech — the server's no-speech gate (realtimeServer.js's
-// countLoudSamples/endInput) would otherwise cancel every turn here before
-// it ever reaches the mock provider. Disabled for the readiness tests below;
-// the dedicated no-speech gate tests further down re-enable it explicitly.
-process.env.NO_SPEECH_MIN_LOUD_MS = '0';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { startTestServer } = require('./helpers/testServer');
 const { connect } = require('./helpers/wsTestClient');
-
-function loudFrame(samples = 320) {
-    const buffer = Buffer.alloc(samples * 2);
-    for (let i = 0; i < samples; i += 1) {
-        // A simple full-scale square wave — clears any realistic amplitude
-        // threshold without needing an FFT/real speech to prove the gate.
-        buffer.writeInt16LE(i % 2 === 0 ? 16000 : -16000, i * 2);
-    }
-    return buffer;
-}
 
 test('provider.ready fires only after connect() resolves, even when connect is slow', async () => {
     const { port, close } = await startTestServer({ mockConfig: { connectDelayMs: 300 } });
@@ -90,78 +74,68 @@ test('a PTT press issued before provider.ready is not lost — the turn still st
     }
 });
 
-// No-speech gate: "audio bytes exist" must not be treated as proof of
-// speech — a short press with only silence/room-noise must not reach the
-// provider as a real turn. These two tests re-enable the real threshold
-// (disabled at the top of this file for the readiness tests above).
-test('a push_to_talk turn with only silence is cancelled as no_speech — zero model responses', async () => {
-    const previousThreshold = process.env.NO_SPEECH_MIN_LOUD_MS;
-    delete process.env.NO_SPEECH_MIN_LOUD_MS; // real default (200ms)
+// No-speech gate: ground truth is the provider's OWN transcription, not a
+// local amplitude/duration guess (see realtimeServer.js's emitProviderEvent()
+// comment on the 2026-07-27 false-positive incident this replaced). The mock
+// provider emits a synthetic transcript.user by default (see
+// mockRealtimeProvider.js's mockTranscript config) so ordinary tests are
+// unaffected; these two tests override it directly to exercise both sides
+// of the real gate.
+test('a push_to_talk turn the provider transcribes as empty is cancelled as no_speech — zero model responses', async () => {
+    const { port, close } = await startTestServer({ mockConfig: { mockTranscript: '' } });
     try {
-        const { port, close } = await startTestServer();
+        const client = await connect(port);
+        await client.waitFor((e) => e.type === 'session.ready', { label: 'session.ready' });
+        client.sendJson({ type: 'session.start' });
+        await client.waitFor((e) => e.type === 'provider.ready', { label: 'provider.ready', timeoutMs: 3000 });
+
+        client.sendJson({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: 'ix_test_silence' });
+        client.sendBinary(Buffer.alloc(320)); // bytes exist, but the provider transcribes nothing
+        client.sendJson({ type: 'input_audio.end' });
+
+        const noSpeechEvent = await client.waitFor((e) => e.type === 'input_audio.no_speech', {
+            label: 'input_audio.no_speech',
+            timeoutMs: 3000,
+        });
+        assert.ok(noSpeechEvent);
+
+        // Prove no model response follows — if the gate failed silently
+        // and let the turn through, the mock provider would still emit
+        // audio.start shortly after.
+        let sawAudioStart = false;
         try {
-            const client = await connect(port);
-            await client.waitFor((e) => e.type === 'session.ready', { label: 'session.ready' });
-            client.sendJson({ type: 'session.start' });
-            await client.waitFor((e) => e.type === 'provider.ready', { label: 'provider.ready', timeoutMs: 3000 });
-
-            client.sendJson({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: 'ix_test_silence' });
-            client.sendBinary(Buffer.alloc(320)); // pure silence
-            client.sendJson({ type: 'input_audio.end' });
-
-            const noSpeechEvent = await client.waitFor((e) => e.type === 'input_audio.no_speech', {
-                label: 'input_audio.no_speech',
-                timeoutMs: 3000,
-            });
-            assert.ok(noSpeechEvent);
-
-            // Prove no model response follows — if the gate failed silently
-            // and let the turn through, the mock provider would still emit
-            // audio.start shortly after.
-            let sawAudioStart = false;
-            try {
-                await client.waitFor((e) => e.type === 'audio.start', { timeoutMs: 800 });
-                sawAudioStart = true;
-            } catch { /* expected: no audio.start ever arrives */ }
-            assert.equal(sawAudioStart, false, 'no_speech turn must produce zero model responses');
-            client.close();
-        } finally {
-            await close();
-        }
+            await client.waitFor((e) => e.type === 'audio.start', { timeoutMs: 800 });
+            sawAudioStart = true;
+        } catch { /* expected: no audio.start ever arrives */ }
+        assert.equal(sawAudioStart, false, 'no_speech turn must produce zero model responses');
+        client.close();
     } finally {
-        if (previousThreshold === undefined) delete process.env.NO_SPEECH_MIN_LOUD_MS;
-        else process.env.NO_SPEECH_MIN_LOUD_MS = previousThreshold;
+        await close();
     }
 });
 
-test('a push_to_talk turn with real signal above the threshold still gets a normal response (no regression)', async () => {
-    const previousThreshold = process.env.NO_SPEECH_MIN_LOUD_MS;
-    delete process.env.NO_SPEECH_MIN_LOUD_MS; // real default (200ms)
+test('a push_to_talk turn the provider actually transcribes still gets a normal response, even with quiet/short audio (no false positive)', async () => {
+    // Deliberately quiet AND short — this is exactly the shape of real
+    // utterance (turnInputBytes=57344, loudMs=181 against the old 200ms
+    // floor) that the amplitude-only gate wrongly rejected in production.
+    const { port, close } = await startTestServer({ mockConfig: { mockTranscript: 'какое вино к ужину' } });
     try {
-        const { port, close } = await startTestServer();
-        try {
-            const client = await connect(port);
-            await client.waitFor((e) => e.type === 'session.ready', { label: 'session.ready' });
-            client.sendJson({ type: 'session.start' });
-            await client.waitFor((e) => e.type === 'provider.ready', { label: 'provider.ready', timeoutMs: 3000 });
+        const client = await connect(port);
+        await client.waitFor((e) => e.type === 'session.ready', { label: 'session.ready' });
+        client.sendJson({ type: 'session.start' });
+        await client.waitFor((e) => e.type === 'provider.ready', { label: 'provider.ready', timeoutMs: 3000 });
 
-            client.sendJson({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: 'ix_test_loud' });
-            // 320 samples/frame @ 16kHz = 20ms/frame; need > 200ms of loud
-            // audio to clear NO_SPEECH_MIN_LOUD_MS, so send comfortably more.
-            for (let i = 0; i < 15; i += 1) client.sendBinary(loudFrame());
-            client.sendJson({ type: 'input_audio.end' });
+        client.sendJson({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: 'ix_test_quiet_real' });
+        client.sendBinary(Buffer.alloc(320)); // quiet/short on purpose — the provider transcribed it anyway
+        client.sendJson({ type: 'input_audio.end' });
 
-            const audioStart = await client.waitFor((e) => e.type === 'audio.start', {
-                label: 'audio.start',
-                timeoutMs: 3000,
-            });
-            assert.ok(audioStart);
-            client.close();
-        } finally {
-            await close();
-        }
+        const audioStart = await client.waitFor((e) => e.type === 'audio.start', {
+            label: 'audio.start',
+            timeoutMs: 3000,
+        });
+        assert.ok(audioStart);
+        client.close();
     } finally {
-        if (previousThreshold === undefined) delete process.env.NO_SPEECH_MIN_LOUD_MS;
-        else process.env.NO_SPEECH_MIN_LOUD_MS = previousThreshold;
+        await close();
     }
 });

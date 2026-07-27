@@ -218,6 +218,11 @@ class FakeVadProviderSession {
 
     async endInput(context) {
         if (this.closed || context.signal.cancelled) return;
+        // realtimeServer.js's no-speech gate (emitProviderEvent()) treats an
+        // empty inputTranscription as ground truth that nothing was said —
+        // real providers only ever emit transcript.user with non-empty text,
+        // so this fake must too, or every turn here gets wrongly cancelled.
+        context.onEvent({ type: 'transcript.user', response_id: context.responseId, turn_id: context.turnId, text: 'fake utterance' });
         context.onEvent({ type: 'audio.start', response_id: context.responseId, turn_id: context.turnId });
         context.onAudioChunk({ type: 'audio.chunk', response_id: context.responseId, turn_id: context.turnId, chunk_index: 0, audio_base64: 'AAA=' });
         context.onEvent({ type: 'audio.end', response_id: context.responseId, turn_id: context.turnId, cause: 'fake_done' });
