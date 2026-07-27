@@ -1650,6 +1650,30 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                         maxChars: error.maxChars || PROMPT_MAX_CHARS,
                         chars: error.chars || 0,
                     });
+                    return;
+                }
+                // Readiness handshake: eagerly connect the provider now,
+                // rather than waiting for the first turn's audio to trigger
+                // it lazily. WebSocket OPEN (already true by the time
+                // session.start arrives) is not "ready to record" — without
+                // this, a fast first PTT press could start capturing and
+                // sending audio before the provider connection existed to
+                // receive it, silently losing the first utterance. The
+                // client gates its PTT button on the 'provider.ready' event
+                // this emits (see warmProviderSession() above) rather than
+                // on the WebSocket 'open' event.
+                try {
+                    await warmProviderSession('session_start_config');
+                } catch (error) {
+                    log('provider_connect_failed', {
+                        reason: 'session_start_config',
+                        message: error.message || String(error),
+                    });
+                    emit({
+                        type: 'provider.connect_failed',
+                        reason: 'session_start_config',
+                        message: error.message || String(error),
+                    });
                 }
             })();
             log('session_start_received');
