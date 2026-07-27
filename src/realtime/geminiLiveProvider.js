@@ -297,7 +297,24 @@ class GeminiLiveProviderSession {
         // realtimeServer.js's shouldRotateProviderAfterOutputComplete()/
         // shouldRotateProviderOnInterrupt(), which read these two flags.
         this.rotateOnInterrupt = this.voiceMode !== 'tap_to_start';
-        this.rotateAfterOutputComplete = this.voiceMode !== 'tap_to_start' && this.rotationMode === 'per_turn';
+        // Reconnecting the provider after every single output used to be a
+        // Hold-to-Talk-only "per-turn isolation" behavior (Tap to Start and
+        // Grok never did this — see their own rotateAfterOutputComplete).
+        // The actual reason was that buildPromptBundle() (realtimeServer.js)
+        // rebuilds recentTurns/sessionMemory/localDateTime into a fresh
+        // systemInstructionText, and Gemini's Live SDK only accepts
+        // systemInstruction at connect() time — reconnecting was the only
+        // way to get that text seen again. But a live connection already
+        // natively accumulates the real conversation for as long as it
+        // stays open, making recentTurns' text restatement of the same
+        // thing redundant once the connection persists — and reconnecting
+        // after every turn was exactly why "provider not ready" kept
+        // recurring mid-conversation, not just on the first turn. See
+        // realtimeServer.js's shouldRotateProviderAfterOutputComplete() —
+        // every other rotation trigger (voice/model/config change, fatal
+        // error, explicit reconnect) is a separate, already-explicit call
+        // site and is untouched by this.
+        this.rotateAfterOutputComplete = false;
         this.model = model;
         this.voiceName = normalizeVoiceName(voiceName);
         this.voiceConfigSource = voiceConfigSource || 'default';
