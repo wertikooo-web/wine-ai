@@ -259,11 +259,6 @@ function resolveEntity(input, options = {}) {
   const all = resolveEntities(input, options);
 
   if (all.length === 0) {
-    // Check if suggestions were returned (found=false with suggestions array)
-    if (all[0] && all[0].suggestions) {
-      return all[0];
-    }
-
     // Try mention extraction as fallback for natural-language queries
     const entities = _loadAliases(options.aliasesFile);
     const mentions = _extractEntityMentions(input, entities);
@@ -302,6 +297,30 @@ function resolveEntity(input, options = {}) {
 
   if (all.length === 1) {
     const m = all[0];
+    // If resolveEntities returned suggestions only (found=false), also try mention extraction
+    // so that multi-entity queries work correctly even with includeSuggestions=true.
+    if (!m.found && m.suggestions) {
+      const entities = _loadAliases(options.aliasesFile);
+      const mentions = _extractEntityMentions(input, entities);
+      if (mentions.length > 0) {
+        console.log('[entityResolver] suggestions + mention extraction in "%s": %s',
+          input, mentions.map((x) => x.entity.entityId).join(', '));
+        return {
+          found: true,
+          entityId: mentions[0].entity.entityId,
+          canonicalName: mentions[0].entity.canonicalName,
+          matchedAlias: mentions[0].matchedAlias,
+          matchType: 'mention_extract',
+          confidence: 0.85,
+          allMentions: mentions.map((x) => ({
+            entityId: x.entity.entityId,
+            canonicalName: x.entity.canonicalName,
+            matchedAlias: x.matchedAlias,
+          })),
+          suggestions: m.suggestions,
+        };
+      }
+    }
     console.log('[entityResolver] resolved "%s" -> entity=%s matchType=%s confidence=%s',
       input, m.entityId, m.matchType, m.confidence);
     return m;
