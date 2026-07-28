@@ -11,6 +11,16 @@
 
 const crypto = require('crypto');
 
+let lastTimeMs = 0;
+function getUniqueTime() {
+    let nowMs = Date.now();
+    if (nowMs <= lastTimeMs) {
+        nowMs = lastTimeMs + 1;
+    }
+    lastTimeMs = nowMs;
+    return new Date(nowMs);
+}
+
 class PostgresError extends Error {
     constructor(message, code, table, constraint) {
         super(message);
@@ -628,17 +638,20 @@ class MemoryPgEngine {
             const table = this.tables.get('kos_crawl_runs') || { name: 'kos_crawl_runs', rows: [] };
             this.tables.set('kos_crawl_runs', table);
 
-            const [id, source_id, status, config_snapshot, started_at] = params;
+            const id = params[0];
+            const source_id = params[1];
+            const config_snapshot = params[2];
+            const started_at = params[3];
             const newRow = {
                 id,
                 source_id,
-                status: status || 'crawling',
+                status: 'crawling',
                 config_snapshot: typeof config_snapshot === 'string' ? JSON.parse(config_snapshot) : config_snapshot,
                 pages_discovered: 0,
                 pages_fetched: 0,
                 pages_failed: 0,
-                started_at: started_at || new Date().toISOString(),
-                created_at: new Date().toISOString(),
+                started_at: started_at || getUniqueTime().toISOString(),
+                created_at: getUniqueTime().toISOString(),
             };
             table.rows.push(newRow);
             return { rows: [newRow] };
@@ -665,29 +678,103 @@ class MemoryPgEngine {
             
             // Check if error update or final status update
             if (/error_details/i.test(sql)) {
-                const errorDetails = params[0];
-                const id = params[1] || params[2];
+                let errorDetails, id, status;
+                if (/status = \$1/i.test(sql)) {
+                    status = params[0];
+                    errorDetails = params[1];
+                    id = params[2];
+                } else {
+                    status = 'failed';
+                    errorDetails = params[0];
+                    id = params[1];
+                }
                 const row = table.rows.find(r => r.id === id);
                 if (row) {
-                    if (/status = 'failed'/i.test(sql)) row.status = 'failed';
-                    else if (/status = \$1/i.test(sql)) row.status = params[0];
+                    row.status = status;
                     row.error_details = typeof errorDetails === 'string' ? JSON.parse(errorDetails) : errorDetails;
                     row.completed_at = new Date().toISOString();
                 }
                 return { rows: row ? [row] : [] };
             }
 
-            const [status, pages_discovered, pages_fetched, pages_failed, completed_at, id] = params;
-            const targetId = id || params[params.length - 1];
+            const targetId = params[params.length - 1];
             const row = table.rows.find(r => r.id === targetId);
             if (row) {
-                row.status = status;
-                if (pages_discovered !== undefined) row.pages_discovered = pages_discovered;
-                if (pages_fetched !== undefined) row.pages_fetched = pages_fetched;
-                if (pages_failed !== undefined) row.pages_failed = pages_failed;
-                if (completed_at !== undefined) row.completed_at = completed_at;
+                if (/status = 'completed'/i.test(sql)) {
+                    row.status = 'completed';
+                } else if (/status = 'failed'/i.test(sql)) {
+                    row.status = 'failed';
+                } else if (/status = \$1/i.test(sql)) {
+                    row.status = params[0];
+                }
+                
+                if (/pages_discovered = \$2/i.test(sql)) {
+                    row.pages_discovered = params[1];
+                }
+                if (/pages_fetched = \$3/i.test(sql)) {
+                    row.pages_fetched = params[2];
+                }
+                if (/pages_failed = \$4/i.test(sql)) {
+                    row.pages_failed = params[3];
+                }
+                if (/completed_at = \$5/i.test(sql)) {
+                    row.completed_at = params[4];
+                }
             }
             return { rows: row ? [row] : [] };
+        }
+
+        // INSERT INTO kos_sources
+        if (/^INSERT INTO kos_sources/i.test(sql)) {
+            const table = this.tables.get('kos_sources') || { name: 'kos_sources', rows: [] };
+            this.tables.set('kos_sources', table);
+
+            const [id, name, seed_url, normalized_origin, source_type, trust_level, publisher, winery_id] = params;
+
+            // Unique origin check
+            if (table.rows.some(r => r.normalized_origin === normalized_origin)) {
+                throw new PostgresError(`duplicate key value violates unique constraint "kos_sources_normalized_origin_key"`, '23505', 'kos_sources', 'kos_sources_normalized_origin_key');
+            }
+
+            const row = {
+                id,
+                name: name ? name.trim() : '',
+                seed_url,
+                normalized_origin,
+                source_type,
+                trust_level: trust_level || 'C',
+                publisher,
+                winery_id,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            table.rows.push(row);
+            return { rows: [row] };
+        }
+
+        // SELECT FROM kos_sources by normalized_origin
+        if (/^SELECT \* FROM kos_sources WHERE normalized_origin = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_sources');
+            const origin = params[0];
+            const match = table ? table.rows.find(r => r.normalized_origin === origin) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_sources by id
+        if (/^SELECT \* FROM kos_sources WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('kos_sources');
+            const match = table ? table.rows.find(r => r.id === params[0]) : null;
+            return { rows: match ? [match] : [] };
+        }
+
+        // SELECT FROM kos_sources (list)
+        if (/^SELECT \* FROM kos_sources/i.test(sql) && !/WHERE/i.test(sql)) {
+            const table = this.tables.get('kos_sources');
+            let rows = table ? table.rows : [];
+            if (/ORDER BY created_at DESC/i.test(sql)) {
+                rows = [...rows].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            }
+            return { rows };
         }
 
         // DELETE FROM kos_sources
@@ -697,6 +784,33 @@ class MemoryPgEngine {
                 table.rows = table.rows.filter(r => r.id !== params[0]);
             }
             return { rows: [] };
+        }
+
+        // JOIN COUNT handler
+        if (/FROM kos_source_document_versions v JOIN kos_source_documents d/i.test(sql)) {
+            const docTable = this.tables.get('kos_source_documents');
+            const verTable = this.tables.get('kos_source_document_versions');
+            const sourceId = params[0];
+            
+            const docIds = new Set(docTable ? docTable.rows.filter(d => d.source_id === sourceId).map(d => d.id) : []);
+            const verCount = verTable ? verTable.rows.filter(v => docIds.has(v.document_id)).length : 0;
+            return { rows: [{ count: verCount }] };
+        }
+
+        // Generic COUNT handler
+        if (/^SELECT COUNT\(\*\)/i.test(sql) || /SELECT COUNT\(\*\) as count/i.test(sql)) {
+            const tableNameMatch = sql.match(/FROM (\w+)/i);
+            if (tableNameMatch) {
+                const tableName = tableNameMatch[1];
+                const table = this.tables.get(tableName);
+                let rows = table ? table.rows : [];
+                if (/WHERE (\w+) = \$1/i.test(sql)) {
+                    const colName = sql.match(/WHERE (\w+) = \$1/i)[1];
+                    const val = params[0];
+                    rows = rows.filter(r => r[colName] === val);
+                }
+                return { rows: [{ count: rows.length }] };
+            }
         }
 
         // Generic SELECT/INSERT/UPDATE handler for MemoryPgEngine v2/v3 tables
@@ -730,6 +844,9 @@ class MockPgClient {
 }
 
 class MockPgPool {
+    constructor() {
+        this.tables = memoryEngine.tables;
+    }
     async query(sql, params) {
         return memoryEngine.query(sql, params);
     }

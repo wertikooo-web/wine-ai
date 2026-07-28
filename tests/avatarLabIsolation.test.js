@@ -14,7 +14,7 @@ function run() {
     const server = readProjectFile('src', 'server.js');
     let assertionCount = 0;
 
-    assert.match(dashboard, /<img(?: class="avatar-fallback")? src="\/avatar\.png"/); assertionCount += 1;
+    assert.match(dashboard, /<img(?: class="avatar-fallback")? src="\/visual-assets\/avatar-woman-1\.png"/); assertionCount += 1;
     assert.doesNotMatch(dashboard, /^\s*initAvatar3d\(\);\s*$/m); assertionCount += 1;
     assert.match(dashboard, /href="\/avatar-lab" target="_blank" rel="noopener"/); assertionCount += 1;
     assert.match(server, /pathname === '\/avatar-lab'/); assertionCount += 1;

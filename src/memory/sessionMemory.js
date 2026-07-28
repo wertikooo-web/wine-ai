@@ -24,6 +24,15 @@ function createSessionMemory() {
         occasion: null,
         plannedDish: null,
         tastingContext: null,
+        // Phase 4: Conversation context for follow-up resolution
+        activeEntityId: null,
+        activeEntityName: null,
+        activeEntityType: null,
+        activeWineId: null,
+        activeWineName: null,
+        lastIntent: null,
+        lastToolResult: null,
+        lastReferencedEntityType: null,
     };
 
     function recordDiscussedWine(name) {
@@ -71,6 +80,45 @@ function createSessionMemory() {
         state.tastingContext = clip(context) || null;
     }
 
+    // Phase 4: Conversation context setters
+    function setActiveEntity(entityId, entityName, entityType) {
+        state.activeEntityId = clip(entityId) || null;
+        state.activeEntityName = clip(entityName) || null;
+        state.activeEntityType = clip(entityType) || null;
+    }
+
+    function setActiveWine(wineId, wineName) {
+        state.activeWineId = clip(wineId) || null;
+        state.activeWineName = clip(wineName) || null;
+    }
+
+    function setLastIntent(intent) {
+        state.lastIntent = clip(intent) || null;
+    }
+
+    function setLastToolResult(result) {
+        state.lastToolResult = clip(JSON.stringify(result)) || null;
+    }
+
+    function setLastReferencedEntityType(entityType) {
+        state.lastReferencedEntityType = clip(entityType) || null;
+    }
+
+    function getActiveEntity() {
+        return {
+            id: state.activeEntityId,
+            name: state.activeEntityName,
+            type: state.activeEntityType,
+        };
+    }
+
+    function getActiveWine() {
+        return {
+            id: state.activeWineId,
+            name: state.activeWineName,
+        };
+    }
+
     // Renders a short block for [CURRENT CONTEXT] — omits empty fields
     // entirely rather than printing "none" noise into every prompt.
     function formatForPrompt() {
@@ -82,6 +130,10 @@ function createSessionMemory() {
         if (state.occasion) lines.push(`Occasion: ${state.occasion}`);
         if (state.plannedDish) lines.push(`Planned dish: ${state.plannedDish}`);
         if (state.tastingContext) lines.push(`Tasting context: ${state.tastingContext}`);
+        // Phase 4: Conversation context for follow-up resolution
+        if (state.activeEntityId) lines.push(`Active entity: ${state.activeEntityName || state.activeEntityId} (type: ${state.activeEntityType || 'unknown'})`);
+        if (state.activeWineId) lines.push(`Active wine: ${state.activeWineName || state.activeWineId}`);
+        if (state.lastIntent) lines.push(`Last intent: ${state.lastIntent}`);
         return lines.length ? lines.join('\n') : null;
     }
 
@@ -97,6 +149,13 @@ function createSessionMemory() {
         setOccasion,
         recordPairingRequest,
         setTastingContext,
+        setActiveEntity,
+        setActiveWine,
+        setLastIntent,
+        setLastToolResult,
+        setLastReferencedEntityType,
+        getActiveEntity,
+        getActiveWine,
         formatForPrompt,
         snapshot,
     };

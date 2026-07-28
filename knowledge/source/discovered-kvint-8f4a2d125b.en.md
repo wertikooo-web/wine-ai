@@ -4,7 +4,7 @@ language: en
 doc_type: general
 source: KVINT (Tiraspol Winery & Distillery)
 confidence: high
-updated_at: 2026-07-24T20:36:18.607Z
+updated_at: 2026-07-28T16:36:09.674Z
 ---
 
 VS
@@ -23,14 +23,6 @@ Prince Wittgenstein
 
 XXO KVINT Legacy
 
-Jubilee 3 years
- Its bouquet harmoniously combines light tones of maturity and aroma of meadow...
- read more
-
-KVINT 3 года (специального наименования)
- Готовится по классической технологии из дистиллятов для дивина, выдержанных в...
- read more
-
 KVINT KOSHER 3 years
  It is made under control of the Union of Orthodox Jewish Congregations of New York...
  read more
@@ -39,20 +31,12 @@ KVINT 3 y.o.
  Harmonious and well-balanced, it features divin tones in aroma, which makes it...
  read more
 
-KVINT KOSHER 5 years
- It is made under control of the Union of Orthodox Jewish Congregations of New York...
+KVINT 3 года (специального наименования)
+ Готовится по классической технологии из дистиллятов для дивина, выдержанных в...
  read more
 
-KVINT 6 years
- It gladdens the eye with golden color and stands out for its mellow, harmonious,...
- read more
-
-KVINT 6 лет (выдержанный)
- Приготовлен по традиционной технологии в результате купажирования собственных...
- read more
-
-KVINT 5 years
- It features golden-amber color, fine aroma, soft and harmonious taste with light...
+Jubilee 3 years
+ Its bouquet harmoniously combines light tones of maturity and aroma of meadow...
  read more
 
 Jubilee 5 years
@@ -63,48 +47,48 @@ Tiras
  The name comes from the word Tiras, so the Ancient Greeks called the...
  read more
 
+KVINT KOSHER 5 years
+ It is made under control of the Union of Orthodox Jewish Congregations of New York...
+ read more
+
 KVINT 5 лет (специального наименования)
  Готовится по классической технологии из дистиллятов для дивина, выдержанных в...
  read more
 
-KVINT DIVINS MINIATURES COLLECTION
- This four-pack of divins in 50 ml mini-bottles DIVINS COLLECTION KVINT includes...
+KVINT 5 years
+ It features golden-amber color, fine aroma, soft and harmonious taste with light...
  read more
 
-KVINT 8 лет (выдержанный)
+KVINT 6 years
+ It gladdens the eye with golden color and stands out for its mellow, harmonious,...
+ read more
+
+KVINT 6 лет (выдержанный)
  Приготовлен по традиционной технологии в результате купажирования собственных...
- read more
-
-KVINT 8 years
- It stands out for its soft, gentle, harmonious taste with pronounced divin tones.
- read more
-
-Doina
- Doina is a Moldovan lyrical folk song. Divin with such a melodious...
  read more
 
 KVINT 10 years
  It features intense amber color. Fragrant, rich and full aroma reveals exciting...
  read more
 
+Doina
+ Doina is a Moldovan lyrical folk song. Divin with such a melodious...
+ read more
+
+KVINT 8 years
+ It stands out for its soft, gentle, harmonious taste with pronounced divin tones.
+ read more
+
+KVINT 8 лет (выдержанный)
+ Приготовлен по традиционной технологии в результате купажирования собственных...
+ read more
+
 Nistru
  The name can be translated from Moldovan as the...
  read more
 
-KVINT 20 years
- It stands out for a deep amber color with shades of gold, the richness and...
- read more
-
-KVINT AGED 14 YEARS
- A delicate and versatile aroma with pronounced floral, resinous and enanthic...
- read more
-
-KVINT Surprise
- This divin was created in 1961; it was dedicated to the upcoming...
- read more
-
-KVINT 25 years
- This product stands out for its bright and complex bouquet, with perfect harmony...
+KVINT DIVINS MINIATURES COLLECTION
+ This four-pack of divins in 50 ml mini-bottles DIVINS COLLECTION KVINT includes...
  read more
 
 KVINT 33 years
@@ -119,12 +103,28 @@ KVINT 14 years
  A delicate and versatile aroma with pronounced floral, resinous and enanthic...
  read more
 
+KVINT Surprise
+ This divin was created in 1961; it was dedicated to the upcoming...
+ read more
+
 KVINT DIVINS ELITE MINIATURES COLLECTION
  This four-pack of divins in 50 ml mini-bottles ELITE COLLECTION KVINT includes XO...
  read more
 
-KVINT Sunny
- It was launched in 1967 in honor of the 50th anniversary of the...
+KVINT AGED 14 YEARS
+ A delicate and versatile aroma with pronounced floral, resinous and enanthic...
+ read more
+
+KVINT 20 years
+ It stands out for a deep amber color with shades of gold, the richness and...
+ read more
+
+KVINT 25 years
+ This product stands out for its bright and complex bouquet, with perfect harmony...
+ read more
+
+Jubilee
+ The divin “Jubilee” was prepared in 1982 in honor of the...
  read more
 
 Tiraspol
@@ -135,8 +135,8 @@ Victoria
  This divin was born in 1977, the name was given by the First Secretary of the...
  read more
 
-Jubilee
- The divin “Jubilee” was prepared in 1982 in honor of the...
+KVINT Sunny
+ It was launched in 1967 in honor of the 50th anniversary of the...
  read more
 
 Suvorov
@@ -183,6 +183,10 @@ CHARDONNAY WITH PROTECTED GEOGRAPHICAL INDICATION CODRU
  In aroma and taste one can feel combination of wide range of fruity and floral...
  read more
 
+CABERNET SAUVIGNON WITH PROTECTED GEOGRAPHICAL INDICATION CODRU
+ Cabernet Sauvignon is harmonious wine distinguished by elegant ruby color, fresh...
+ read more
+
 MERLOT WITH PROTECTED GEOGRAPHICAL INDICATION CODRU
  It stands out for its pronounced fruit and berry aroma with nuances of cornelian...
  read more
@@ -191,16 +195,12 @@ SAUVIGNON BLANC WITH PROTECTED GEOGRAPHICAL INDICATION CODRU
  It stands out for its pronounced aroma with nuances of cassis, ripe gooseberry and...
  read more
 
-CABERNET SAUVIGNON WITH PROTECTED GEOGRAPHICAL INDICATION CODRU
- Cabernet Sauvignon is harmonious wine distinguished by elegant ruby color, fresh...
+FETEASCA NEAGRA VINVOYAGE
+ This wine is made from grapes of the unique autochthonous variety Feteasca Neagra...
  read more
 
 VIORICA VINVOYAGE
  The unique autochthonous grape variety Viorica is grown on the picturesque slopes...
- read more
-
-FETEASCA NEAGRA VINVOYAGE
- This wine is made from grapes of the unique autochthonous variety Feteasca Neagra...
  read more
 
 CABERNET SAUVIGNON-SAPERAVI GOURMET
@@ -215,18 +215,6 @@ ROSE PINOT NOIR GOURMET
  This delicate wine attracts with its peach color with a powdery shade. Its aroma...
  read more
 
-SAUVIGNON BLANC CLASSIC
- One of the best white table wines, possessing a well-pronounced aroma with bright...
- read more
-
-CHARDONNAY CLASSIC
- Light, well-balanced, elegant, it features a unique floral tone with hints of...
- read more
-
-MERLOT CLASSIC
- This wine features a beautiful ruby color. Its bouquet possesses bright aromas of...
- read more
-
 PINOT NOIR CLASSIC
  This is delicate exquisite wine with aroma of berries and fruits tones, its...
  read more
@@ -235,12 +223,16 @@ CABERNET SAUVIGNON CLASSIC
  This wine is deservedly revered as a king of red wines. It has a pleasant...
  read more
 
-MERLOT SEMI-SWEET
- This exquisite wine features rich aroma of red berries, harmonious taste, pleasant...
+SAUVIGNON BLANC CLASSIC
+ One of the best white table wines, possessing a well-pronounced aroma with bright...
  read more
 
-ALIGOTE SEMI-SWEET
- It stands out for its golden straw color, gentle velvety taste with pleasant...
+MERLOT CLASSIC
+ This wine features a beautiful ruby color. Its bouquet possesses bright aromas of...
+ read more
+
+CHARDONNAY CLASSIC
+ Light, well-balanced, elegant, it features a unique floral tone with hints of...
  read more
 
 CABERNET SAUVIGNON SEMI-SWEET
@@ -251,12 +243,20 @@ CHARDONNAY SEMI-SWEET
  Light, well-balanced, elegant, it features a unique floral tone with hints of...
  read more
 
-PASTORAL
- It gladdens the eyes with dark garnet red color. It features mild astringency,...
+MERLOT SEMI-SWEET
+ This exquisite wine features rich aroma of red berries, harmonious taste, pleasant...
+ read more
+
+ALIGOTE SEMI-SWEET
+ It stands out for its golden straw color, gentle velvety taste with pleasant...
  read more
 
 VIORICA
  Delightful, harmonious, gentle taste of this wine combines with aroma of tea rose,...
+ read more
+
+PASTORAL
+ It gladdens the eyes with dark garnet red color. It features mild astringency,...
  read more
 
 SUMMER MOTIVES RED
@@ -279,10 +279,6 @@ RIESLING ICEWINE
  Icewine is an exclusive wine created from the grape variety Riesling (vintage...
  read more
 
-MERLOT
- This wine features a beautiful garnet color, fine aroma with hints of cassis, and...
- read more
-
 CABERNET SAUVIGNON
  Pleasant astringency of this wine combines with gorgeous tones of black currant...
  read more
@@ -295,6 +291,18 @@ CHARDONNAY
  Light, well-balanced, elegant, it features a unique floral tone with hints of...
  read more
 
+MERLOT
+ This wine features a beautiful garnet color, fine aroma with hints of cassis, and...
+ read more
+
+KVINTESSENCE SPARKLING BRUT VIOGNIER
+ A series of sparkling wines KVINTESSENCE is made according to the classical method...
+ read more
+
+242 SPARKLING SWEET VIOGNIER
+ This sparkling wine is created from the French grape variety Viognier. Delicate...
+ read more
+
 242 SPARKLING SEMIDRY PINOT NOIR
  This sparkling semidry wine is made from the grapes of French variety Pinot Noir....
  read more
@@ -303,52 +311,40 @@ CHARDONNAY
  This sparkling wine is made from the grapes of French variety Pinot Noir. Delicate...
  read more
 
-242 SPARKLING SWEET VIOGNIER
- This sparkling wine is created from the French grape variety Viognier. Delicate...
- read more
-
 242 SPARKLING BRUT VIOGNIER
  This sparkling brut wine is created from the French grape variety Viognier....
- read more
-
-KVINTESSENCE SPARKLING BRUT NATUR VIORICA
- A series of sparkling wines KVINTESSENCE is made according to the classical method...
  read more
 
 KVINTESSENCE SPARKLING BRUT PINOT NOIR
  A series of sparkling wines KVINTESSENCE is made according to the classical method...
  read more
 
-KVINTESSENCE SPARKLING BRUT VIOGNIER
+KVINTESSENCE SPARKLING BRUT NATUR VIORICA
  A series of sparkling wines KVINTESSENCE is made according to the classical method...
- read more
-
-KVINTOFF Crystal
- Vodka KVINTOFF Crystal is produced and bottled by the Tiraspol Winery &...
- read more
-
-VOLK
- It is made by triple distillation process from selected grains, according to an...
  read more
 
 KVINTOFF Wheat
  Vodka KVINTOFF Wheat is produced and bottled by the Tiraspol Winery &...
  read more
 
-VOLCHITSA
- Is made according to an old Russian classical recipe from triple distilled grain...
+VYUGA
+ It is made by original production process from top-quality grain spirits...
  read more
 
 Покровская
  The central street in Tiraspol was named Pokrovskaya after the Church of...
  read more
 
-VYUGA
- It is made by original production process from top-quality grain spirits...
+KVINTOFF Crystal
+ Vodka KVINTOFF Crystal is produced and bottled by the Tiraspol Winery &...
  read more
 
-KVINT
- Brandy KVINT is made by special production process with eaux-de-vie spirits aged...
+VOLCHITSA
+ Is made according to an old Russian classical recipe from triple distilled grain...
+ read more
+
+VOLK
+ It is made by triple distillation process from selected grains, according to an...
  read more
 
 Alexeich
@@ -357,6 +353,10 @@ Alexeich
 
 KVINT KOSHER
  It is made under control of the Union of Orthodox Jewish Congregations of New York...
+ read more
+
+KVINT
+ Brandy KVINT is made by special production process with eaux-de-vie spirits aged...
  read more
 
 ELECTIO

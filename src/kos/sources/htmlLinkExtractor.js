@@ -63,7 +63,7 @@ function extractHtmlLinks(htmlContent, baseUrl) {
                 }
             }
 
-            const normalized = normalizeUrlSyntactic(parsed.href);
+            const normalized = normalizeUrlSyntactic(parsed.href).canonicalUrl;
             discoveredUrls.add(normalized);
         } catch {
             /* Ignore invalid URLs */

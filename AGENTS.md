@@ -143,4 +143,62 @@ Never commit a "skeleton" import that relies on a developer having the file loca
 - **Mandatory Live Reload Check**: After editing any file affecting API routes or frontend scripts, the server process must be restarted and verified with a real HTTP check (e.g., `/health` or UI action) to ensure the code loads and runs correctly in memory.
 - **No Unnecessary Test Execution**: Do NOT run the entire test suite or launch multiple parallel/unnecessary test runs during development unless explicitly requested. Only execute the specific, highly-targeted unit tests directly relevant to the changes being made.
 
+## Mandatory architecture rules
 
+Before changing realtime, voice, session, provider, playback, visual, or knowledge lifecycle code, read:
+
+- `docs/architecture/STATE_OWNERSHIP.md`
+
+The rules in that document are mandatory.
+
+Any implementation that introduces duplicate lifecycle paths, competing state owners, speculative boolean flags, or timer-based synchronization must be rejected unless explicitly justified and tested.
+
+## Engineering Principles
+
+The architecture must become simpler over time.
+
+When implementing new functionality:
+
+- extend existing abstractions instead of creating parallel implementations;
+- preserve a single source of truth and clear state ownership;
+- minimize mutable state;
+- keep provider-specific logic isolated;
+- remove obsolete code and unnecessary workarounds whenever practical;
+- leave the code cleaner than you found it.
+
+Priority:
+
+1. Correctness
+2. Simplicity
+3. Maintainability
+4. Extensibility
+5. Performance
+
+## Prompt Control Tokens
+
+Architecture compliance is always mandatory.
+
+`+A`  
+Perform an explicit architecture review before implementation.
+
+`+F`  
+Perform an explicit architecture review after implementation, including validation results and architecture compliance.
+
+`+A` and `+F` may be combined.
+
+## Mandatory Architecture Documents
+
+Before changing architecture, follow:
+
+- ARCHITECTURE.md
+- docs/architecture/STATE_OWNERSHIP.md
+- docs/architecture/ARCHITECTURAL_DECISIONS.md
+
+Additional guidance may exist in subdirectories.
+
+## КПД command
+
+When the user writes `КПД` or `кпд` on a separate line, treat it as explicit authorization to run the project’s standard validation, then commit, push, and deploy without asking for additional approval.  
+Do not include unrelated changes, secrets, or bypass failing checks.  
+Do not use force push, destructive Git commands, or history rewriting.  
+If blocked, stop at the failed stage and report the exact reason.

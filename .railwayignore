@@ -1,5 +1,15 @@
 DATABASE WINE ALL/
 *.mp4
 *.pptx
+*.docx
+*.zip
+*.djvu
+WINE MD +  WINE AI/
+WineMD-Character-SDK-v0.1.0/
 node_modules/
 .git/
+# Raw unused avatar source photos (not referenced by any code — grepped
+# public/ for their filenames, zero matches) that ballooned the deploy
+# upload past Railway's size limit alongside the other large media above.
+public/visual/Avatar main*.png
+public/visual/Avatar MAINn*.png

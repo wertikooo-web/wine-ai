@@ -2,6 +2,7 @@
 title: "Wine.md — интернет-магазин вин, дегустационный зал и агрегатор винных экскурсий по Молдове"
 language: ro
 doc_type: general
+entity_id: wine-md
 source: "wine.md — content captured manually via rendered browser 2026-07-21 (paraphrased, not copied verbatim; the site is a large e-commerce catalog, only structural/business facts were captured, not the product catalog itself, which changes constantly)"
 confidence: high
 ---

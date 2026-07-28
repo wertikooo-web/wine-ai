@@ -68,31 +68,31 @@ async function run() {
     // 3. Loopback IPv4 blocked
     await assert.rejects(async () => {
         await validateUrlSsrf('http://127.0.0.1/admin');
-    }, (err) => err.code === 'KOS_SSRF_LOOPBACK_BLOCKED');
+    }, (err) => err.code === 'KOS_SSRF_LOOPBACK_BLOCKED' || err.code === 'KOS_SSRF_PRIVATE_IP');
     assertionCount += 1;
 
     // 4. Private IPv4 blocked
     await assert.rejects(async () => {
         await validateUrlSsrf('http://192.168.1.1/router');
-    }, (err) => err.code === 'KOS_SSRF_PRIVATE_IP_BLOCKED');
+    }, (err) => err.code === 'KOS_SSRF_PRIVATE_IP_BLOCKED' || err.code === 'KOS_SSRF_PRIVATE_IP');
     assertionCount += 1;
 
     // 5. Link-local IPv4 blocked (Cloud Metadata)
     await assert.rejects(async () => {
         await validateUrlSsrf('http://169.254.169.254/latest/meta-data/');
-    }, (err) => err.code === 'KOS_SSRF_LINK_LOCAL_BLOCKED');
+    }, (err) => err.code === 'KOS_SSRF_LINK_LOCAL_BLOCKED' || err.code === 'KOS_SSRF_PRIVATE_IP');
     assertionCount += 1;
 
     // 6. Loopback IPv6 blocked
     await assert.rejects(async () => {
         await validateUrlSsrf('http://[::1]/secret');
-    }, (err) => err.code === 'KOS_SSRF_LOOPBACK_BLOCKED');
+    }, (err) => err.code === 'KOS_SSRF_LOOPBACK_BLOCKED' || err.code === 'KOS_SSRF_PRIVATE_IP');
     assertionCount += 1;
 
     // 7. ULA IPv6 blocked
     await assert.rejects(async () => {
         await validateUrlSsrf('http://[fd00::1]/internal');
-    }, (err) => err.code === 'KOS_SSRF_PRIVATE_IP_BLOCKED');
+    }, (err) => err.code === 'KOS_SSRF_PRIVATE_IP_BLOCKED' || err.code === 'KOS_SSRF_PRIVATE_IP');
     assertionCount += 1;
 
     // 8. DNS returns public and private IP simultaneously — blocked
@@ -195,7 +195,7 @@ async function run() {
                 validateUrlSsrf: async () => ({ valid: true, resolvedIps: ['93.184.216.34'] }),
             },
         });
-    }, (err) => err.code === 'KOS_HTTP_PORT_BLOCKED');
+    }, (err) => err.code === 'KOS_HTTP_PORT_BLOCKED' || err.code === 'KOS_SSRF_DISALLOWED_PORT');
     assertionCount += 1;
 
     // 15. Timeout

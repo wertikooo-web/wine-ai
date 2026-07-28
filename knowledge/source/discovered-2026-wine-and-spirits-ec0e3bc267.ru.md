@@ -4,7 +4,7 @@ language: ru
 doc_type: news
 source: Wine and Spirits (wine-and-spirits.md)
 confidence: high
-updated_at: 2026-07-24T20:39:32.878Z
+updated_at: 2026-07-25T14:56:39.808Z
 ---
 
 Экспорт молдавской винодельческой продукции за январь-июнь 2026 г.

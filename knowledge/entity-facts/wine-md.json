@@ -1,0 +1,218 @@
+{
+  "address": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "address",
+      "value": "str. Alexei Mateevici 106, Chișinău, Moldova",
+      "source_url": "https://wine.md/",
+      "source_type": "official_website",
+      "source_priority": 2,
+      "confidence": "low",
+      "validation_status": "discovered",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-08-27T00:00:00.000Z",
+      "extraction_method": "web_search",
+      "raw_evidence": "Extracted from homepage. WineMD is primarily an online marketplace. Physical visitor address not confirmed on dedicated contact page."
+    }
+  ],
+  "city": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "city",
+      "value": "Chișinău",
+      "source_url": "https://wine.md/",
+      "source_type": "official_website",
+      "source_priority": 2,
+      "confidence": "medium",
+      "validation_status": "candidate",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2027-01-24T00:00:00.000Z",
+      "extraction_method": "web_search",
+      "raw_evidence": "Inferred from address and website context"
+    }
+  ],
+  "country": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "country",
+      "value": "Moldova",
+      "source_url": null,
+      "source_type": "manually_verified",
+      "source_priority": 1,
+      "confidence": "high",
+      "validation_status": "approved",
+      "active": true,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": "2026-07-28T00:00:00.000Z",
+      "expires_at": "2027-07-28T00:00:00.000Z",
+      "extraction_method": "manual",
+      "raw_evidence": null
+    }
+  ],
+  "phone": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "phone",
+      "value": "+373 60 333 933",
+      "source_url": "https://wine.md/",
+      "source_type": "official_website",
+      "source_priority": 2,
+      "confidence": "medium",
+      "validation_status": "candidate",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-08-27T00:00:00.000Z",
+      "extraction_method": "web_search",
+      "raw_evidence": "Extracted from homepage"
+    }
+  ],
+  "email": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "email",
+      "value": "info@wine.md",
+      "source_url": "https://wine.md/",
+      "source_type": "official_website",
+      "source_priority": 2,
+      "confidence": "medium",
+      "validation_status": "candidate",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-08-27T00:00:00.000Z",
+      "extraction_method": "web_search",
+      "raw_evidence": "Extracted from homepage"
+    }
+  ],
+  "official_website": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "official_website",
+      "value": "https://wine.md/",
+      "source_url": "https://wine.md/",
+      "source_type": "manually_verified",
+      "source_priority": 1,
+      "confidence": "high",
+      "validation_status": "approved",
+      "active": true,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": "2026-07-28T00:00:00.000Z",
+      "expires_at": "2027-07-28T00:00:00.000Z",
+      "extraction_method": "manual",
+      "raw_evidence": null
+    }
+  ],
+  "opening_hours": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "opening_hours",
+      "value": "Luni-Vineri: 10:00-19:00, Sâmbătă: 11:00-17:00",
+      "source_url": "https://wine.md/",
+      "source_type": "official_website",
+      "source_priority": 2,
+      "confidence": "low",
+      "validation_status": "discovered",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-08-04T00:00:00.000Z",
+      "extraction_method": "web_search",
+      "raw_evidence": "Extracted from homepage text. May not be current or accurate for tasting room hours."
+    }
+  ],
+  "short_description": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "short_description",
+      "value": "Wine.md — молдавская платформа: интернет-магазин вин, дегустационный зал, агрегатор экскурсий по винодельням Молдовы",
+      "source_url": null,
+      "source_type": "manually_verified",
+      "source_priority": 1,
+      "confidence": "high",
+      "validation_status": "approved",
+      "active": true,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": "2026-07-28T00:00:00.000Z",
+      "expires_at": "2027-01-24T00:00:00.000Z",
+      "extraction_method": "manual",
+      "raw_evidence": null
+    }
+  ],
+  "entity_type": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "entity_type",
+      "value": "platform",
+      "source_url": null,
+      "source_type": "manually_verified",
+      "source_priority": 1,
+      "confidence": "high",
+      "validation_status": "approved",
+      "active": true,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": "2026-07-28T00:00:00.000Z",
+      "expires_at": "2027-07-28T00:00:00.000Z",
+      "extraction_method": "manual",
+      "raw_evidence": null
+    }
+  ],
+  "booking_url": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "booking_url",
+      "value": "https://wine.md/excursions",
+      "source_url": "https://wine.md/",
+      "source_type": "official_website",
+      "source_priority": 2,
+      "confidence": "medium",
+      "validation_status": "candidate",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-10-26T00:00:00.000Z",
+      "extraction_method": "web_search",
+      "raw_evidence": "URL extracted from homepage navigation"
+    }
+  ],
+  "latitude": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "latitude",
+      "value": "47.0105",
+      "source_url": null,
+      "source_type": "maps_place_provider",
+      "source_priority": 3,
+      "confidence": "low",
+      "validation_status": "discovered",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-10-26T00:00:00.000Z",
+      "extraction_method": "maps_lookup",
+      "raw_evidence": "Coordinates from Nominatim. May not match actual business location."
+    }
+  ],
+  "longitude": [
+    {
+      "entity_id": "wine-md",
+      "fact_type": "longitude",
+      "value": "28.8638",
+      "source_url": null,
+      "source_type": "maps_place_provider",
+      "source_priority": 3,
+      "confidence": "low",
+      "validation_status": "discovered",
+      "active": false,
+      "fetched_at": "2026-07-28T00:00:00.000Z",
+      "verified_at": null,
+      "expires_at": "2026-10-26T00:00:00.000Z",
+      "extraction_method": "maps_lookup",
+      "raw_evidence": "Coordinates from Nominatim. May not match actual business location."
+    }
+  ]
+}

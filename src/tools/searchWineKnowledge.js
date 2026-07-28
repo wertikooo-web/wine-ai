@@ -153,7 +153,7 @@ async function impl(args) {
             found: false,
             status: 'not_found',
             results: [],
-            instruction: 'No information about this was found in the knowledge base, even after trying alternate phrasings of the same query. Tell the user you do not have this information in your knowledge base. Do NOT answer from your own general/pretrained knowledge instead — that would misrepresent an unverified guess as a sourced fact.',
+            instruction: 'No information about this was found in the knowledge base, even after trying alternate phrasings of the same query. You MUST now use an external tool (search_web, search_place, or fetch_page) to look up this information online. Do NOT answer from your own general/pretrained knowledge — that would misrepresent an unverified guess as a sourced fact. If external tools are unavailable or return no results, tell the user honestly that the information is not available from any source right now.',
         };
     }
 

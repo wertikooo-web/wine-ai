@@ -4,7 +4,7 @@ language: ru
 doc_type: news
 source: Wine and Spirits (wine-and-spirits.md)
 confidence: high
-updated_at: 2026-07-24T20:38:47.484Z
+updated_at: 2026-07-25T14:56:41.183Z
 ---
 
 Гид по Chardonnay – самому популярному белому вину в мире

@@ -140,8 +140,23 @@ class GrokVoiceProviderSession {
         this.systemInstructionMeta = options.systemInstructionMeta || {};
         this.promptSource = options.promptSource || 'provider_default';
         this.rotationReason = options.rotationReason || 'initial';
-        this.rotateOnInterrupt = false;
+        // Fresh instance per interrupted turn (see markDraining()/interrupt()
+        // below) is what makes lifecycle isolation an actual guarantee: once
+        // an instance is draining, realtimeServer.js never holds a reference
+        // to it as `providerSession` again, so it can never be handed a new
+        // generation via beginResponse(). rotateAfterOutputComplete stays
+        // false -- normal, uninterrupted completed turns still reuse the
+        // same connection (no reason to isolate a turn that finished on its
+        // own terms).
+        this.rotateOnInterrupt = true;
         this.rotateAfterOutputComplete = false;
+        // active: eligible for beginResponse(). draining: this.active is
+        // permanently null, socket stays open only to receive late events
+        // for logging/cleanup. closed: socket closed, terminal.
+        this.lifecycleState = 'active';
+        this.drainReason = null;
+        this.drainStartedAt = null;
+        this.drainTimer = null;
         this.voiceMode = options.voiceMode === 'tap_to_start' ? 'tap_to_start' : 'hold_to_talk';
         this.onUserSpeechStarted = typeof options.onUserSpeechStarted === 'function' ? options.onUserSpeechStarted : null;
         this.onUserSpeechStopped = typeof options.onUserSpeechStopped === 'function' ? options.onUserSpeechStopped : null;
@@ -318,18 +333,90 @@ class GrokVoiceProviderSession {
             elapsed_ms: 0,
         });
         this.active = null;
+        // If a response was actually in flight, Grok may still send a late,
+        // unqualified response.done/delta/error for it -- markDraining()
+        // keeps the socket alive just long enough to log and discard those,
+        // without ever letting this instance be reassigned to a new turn
+        // (realtimeServer.js's rotateOnInterrupt path swaps in a fresh
+        // instance for the next turn before this one's late events arrive).
+        if (active) {
+            this.markDraining(reason);
+        } else {
+            this.hardClose();
+        }
     }
 
-    close() {
+    markDraining(reason) {
+        if (this.lifecycleState !== 'active') return;
+        this.lifecycleState = 'draining';
+        this.drainReason = reason;
+        this.drainStartedAt = Date.now();
+        const timeoutMs = Math.max(0, Number(process.env.GROK_DRAIN_TIMEOUT_MS || 5000));
+        this.drainTimer = setTimeout(() => this.finishDraining('drain_timeout'), timeoutMs);
+        (this.active?.log || this.sessionLog)('provider_instance_draining', {
+            providerInstanceId: this.instanceId,
+            lifecycleState: this.lifecycleState,
+            drainReason: reason,
+        });
+    }
+
+    logLateEvent(eventType) {
+        this.sessionLog('provider_late_event_ignored', {
+            providerInstanceId: this.instanceId,
+            lifecycleState: this.lifecycleState,
+            lateEventIgnored: true,
+            lateEventType: eventType,
+        });
+    }
+
+    finishDraining(drainReason) {
+        if (this.lifecycleState === 'closed') return;
+        if (this.drainTimer) {
+            clearTimeout(this.drainTimer);
+            this.drainTimer = null;
+        }
+        const drainDurationMs = this.drainStartedAt ? Date.now() - this.drainStartedAt : 0;
+        this.sessionLog('provider_instance_drain_completed', {
+            providerInstanceId: this.instanceId,
+            drainReason,
+            drainDurationMs,
+        });
+        this.hardClose();
+    }
+
+    hardClose() {
+        this.lifecycleState = 'closed';
         this.closed = true;
         this.active = null;
         this.pendingAudio = [];
         this.pendingAudioBytes = 0;
+        if (this.drainTimer) {
+            clearTimeout(this.drainTimer);
+            this.drainTimer = null;
+        }
         try {
             if (this.socket?.readyState < WebSocket.CLOSING) this.socket.close();
         } catch { /* best effort */ }
         this.socket = null;
         this.connectPromise = null;
+    }
+
+    // Public API used by realtimeServer.js's rotateProviderSession(). An
+    // instance with nothing in flight (this.active already null -- e.g.
+    // rotation triggered by something other than an interrupt) has nothing
+    // to drain and can close immediately; one with a response in flight
+    // drains first (see interrupt()/markDraining()) so a late terminal
+    // event still gets logged instead of silently vanishing mid-close.
+    destroySession(reason = 'destroy_session') {
+        if (this.active) {
+            this.markDraining(reason);
+            return;
+        }
+        this.hardClose();
+    }
+
+    close() {
+        this.hardClose();
     }
 
     failActive(reason, error) {
@@ -493,11 +580,31 @@ class GrokVoiceProviderSession {
         // active generation (via realtimeServer.js's callback), so this
         // must run before the `!this.active` guard below, not after it.
         if (type === 'input_audio_buffer.speech_started') {
+            if (this.lifecycleState === 'draining') {
+                this.logLateEvent(type);
+                return;
+            }
             if (this.voiceMode === 'tap_to_start') this.onUserSpeechStarted?.();
             return;
         }
         if (type === 'input_audio_buffer.speech_stopped') {
+            if (this.lifecycleState === 'draining') {
+                this.logLateEvent(type);
+                return;
+            }
             if (this.voiceMode === 'tap_to_start') this.onUserSpeechStopped?.();
+            return;
+        }
+
+        if (this.lifecycleState === 'draining') {
+            this.logLateEvent(type);
+            // A terminal event settles the drain immediately instead of
+            // waiting out the full timeout; a non-terminal one (delta,
+            // transcript fragment, benign error) just gets logged and
+            // dropped -- there is no generation left for it to belong to.
+            if (type === 'response.done' || type === 'response.cancelled' || type === 'error') {
+                this.finishDraining(type);
+            }
             return;
         }
 

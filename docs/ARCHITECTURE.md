@@ -92,3 +92,11 @@ Every session should record: time to first audio byte, end-to-end response laten
 ## Product Rule
 
 This repository must never be merged back into, or made to depend on, the project it borrowed its transport core from. Any future *shared* utility between the two must be an explicit, reviewed, standalone package — not a runtime coupling.
+
+## State ownership
+
+Detailed state ownership boundaries and anti-spaghetti constraints are defined in:
+
+- `docs/architecture/STATE_OWNERSHIP.md`
+
+This document is normative for all voice, realtime, provider, playback, visual, and knowledge-layer changes.

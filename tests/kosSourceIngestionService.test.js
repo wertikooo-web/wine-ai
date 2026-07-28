@@ -82,11 +82,16 @@ async function runTests() {
 
     // 4. Parallel crawl prevention
     // Simulate an active crawl run by inserting 'crawling' status into kos_crawl_runs
+    // Wait 5ms to ensure system clock/timestamp strictly increases
+    await new Promise(resolve => setTimeout(resolve, 5));
+
     await memoryDb.query(
         `INSERT INTO kos_crawl_runs (id, source_id, status, config_snapshot, started_at)
          VALUES ($1, $2, 'crawling', '{}', NOW())`,
         ['run_active_sim', ingestRes1.source.id]
     );
+
+
 
     await assert.rejects(
         async () => {

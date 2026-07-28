@@ -1,0 +1,23 @@
+﻿✖ late response.done from an interrupted turn's old Grok socket does not affect the next turn (3249.8569ms)
+✖ late response.output_audio.delta from an interrupted turn's old Grok socket does not affect the next turn (3108.7023ms)
+✖ late response.output_audio_transcript.delta from an interrupted turn's old Grok socket does not affect the next turn (3079.7281ms)
+✖ late error from an interrupted turn's old Grok socket does not affect the next turn (3084.7586ms)
+✖ late input_audio_buffer.speech_stopped from an interrupted turn's old Grok socket does not affect the next turn (3085.3544ms)
+✔ normal, non-interrupted Grok turns continue reusing the same provider instance (124.5811ms)
+[Realtime] session=session_09d5efe1b1c707b2 stage=ptt_turn_timeout generationId=generation_6f658d39f5c41671 responseId=null turnId=turn2_1f2cde532fe29931 timeoutMs=4500 turnInputBytes=320 sessionInputBytes=640
+[Realtime] session=session_09d5efe1b1c707b2 stage=turn_timeout_recovery_started failedGenerationId=generation_6f658d39f5c41671 oldProviderInstanceId=grok_session_1057e29223eb
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_instance_draining providerInstanceId=grok_session_1057e29223eb lifecycleState=draining drainReason=provider_timeout
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_session_rotated reason=provider_timeout oldProviderInstanceId=grok_session_1057e29223eb newProviderInstanceId=grok_session_c3f02b309250 interruptedProviderInstanceId=null replacementProviderInstanceId=grok_session_c3f02b309250 generationId=generation_6f658d39f5c41671 turnId=turn2_1f2cde532fe29931 provider=grok oldProviderVoiceName=rigel newProviderVoiceName=rigel voicePreserved=true oldPromptHash=0bccc5a25401 newPromptHash=0bccc5a25401 personaPreserved=true rotationMode=errors_only providerRotationCount=2 providerSessionReuseCount=1 promptApplyCount=1
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_connected provider=grok providerInstanceId=grok_session_c3f02b309250 model=grok-voice-latest voiceName=rigel
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_session_closed reason=socket_error provider=grok providerInstanceId=grok_session_c3f02b309250
+[Realtime] session=session_09d5efe1b1c707b2 stage=socket_error message=write ECONNABORTED
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_ready reason=provider_timeout provider=grok providerInstanceId=grok_session_c3f02b309250 voiceName=rigel rotationMode=errors_only promptApplyCount=2
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_voice_config clientSessionId=session_09d5efe1b1c707b2 providerInstanceId=grok_session_c3f02b309250 voiceName=rigel configSource=session_start inheritedFromPreviousProvider=true rotationReason=provider_timeout rotationMode=errors_only providerRotationCount=2 promptApplyCount=2
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_prompt_config clientSessionId=session_09d5efe1b1c707b2 providerInstanceId=grok_session_c3f02b309250 promptSource=default rotationReason=provider_timeout promptChars=13187 promptHash=0bccc5a25401 personaChars=12924 personaHash=cb6b20f0730d rotationMode=errors_only providerRotationCount=2 promptApplyCount=2 currentContextChars=233 currentContextHash=19f8b5650d6e
+[Realtime] session=session_09d5efe1b1c707b2 stage=turn_timeout_recovery_completed failedGenerationId=generation_6f658d39f5c41671 oldProviderInstanceId=grok_session_1057e29223eb newProviderInstanceId=grok_session_c3f02b309250 elapsedMs=4
+[Realtime] session=session_09d5efe1b1c707b2 stage=ptt_attempt_summary interactionId=ix_turn2 sessionId=session_09d5efe1b1c707b2 turnId=turn2_1f2cde532fe29931 generationId=generation_6f658d39f5c41671 providerInstanceId=grok_session_1057e29223eb clientInstanceId=null websocketConnectionId=null serverFramesReceived=1 providerBytesSent=320 transcriptionReceived=false modelEventReceived=false validAudioReceived=false terminalReason=provider_timeout
+[Realtime] session=session_09d5efe1b1c707b2 stage=visual_event_sent generationId=generation_6f658d39f5c41671 sequence=4 eventType=visual.timeline.cancel sent=false
+[Realtime] session=session_09d5efe1b1c707b2 stage=visual_event_sent generationId=generation_6f658d39f5c41671 sequence=5 eventType=visual.reset sent=false
+[Realtime] session=session_09d5efe1b1c707b2 stage=visual_generation_cancelled generationId=generation_6f658d39f5c41671 reason=disconnect
+[Realtime] session=session_09d5efe1b1c707b2 stage=disconnect connectedMs=4526
+[Realtime] session=session_09d5efe1b1c707b2 stage=provider_instance_drain_completed providerInstanceId=grok_session_1057e29223eb drainReason=drain_timeout drainDurationMs=5006

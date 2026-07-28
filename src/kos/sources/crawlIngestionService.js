@@ -26,7 +26,8 @@ const rawResourceStorage = require('./rawResourceStorage');
 const { DEFAULT_SOURCE_DIR } = require('../../knowledge/loader');
 const { buildIndex } = require('../../knowledge/index');
 const { cleanText, isSubstantial } = require('../../knowledge/processor/clean');
-const { commitKnowledgeFiles } = require('../../knowledge/gitPersist');
+// gitPersist removed from crawler — crawled data must go to Postgres, not Git.
+// Manual curated file management (server.js) still uses gitPersist directly.
 
 function generateId(prefix = 'id') {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
@@ -301,11 +302,9 @@ async function ingestSource({
                     writtenPaths.push(filePath);
                 }
                 buildIndex();
-                commitKnowledgeFiles(
-                    path.resolve(__dirname, '..', '..', '..'),
-                    writtenPaths,
-                    `Add crawled KOS source pages: ${source.name || source.id} (${writtenPaths.length} page(s))`
-                );
+                // Git push REMOVED — crawled data stays in Postgres/filesystem only.
+                // This prevents crawler batches from triggering Railway deploys.
+                console.log(`[KOS bridge] ${writtenPaths.length} crawled page(s) written to local knowledge index (not pushed to Git)`);
             } catch (bridgeErr) {
                 console.error('[KOS bridge] failed to write crawled pages into legacy knowledge index (crawl run itself still succeeded):', bridgeErr.message);
             }
