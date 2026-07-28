@@ -22,5 +22,178 @@
       { "alias": "Вайн МД", "lang": "ru" },
       { "alias": "Вайн.МД", "lang": "ru" }
     ]
+  },
+  {
+    "entityId": "purcari",
+    "entityType": "winery",
+    "canonicalName": "Purcari",
+    "description": "Purcari — один из старейших и наиболее известных винодельческих брендов Молдовы",
+    "aliases": [
+      { "alias": "Purcari", "lang": "ro" },
+      { "alias": "Purcari", "lang": "ru" },
+      { "alias": "Purcari", "lang": "en" },
+      { "alias": "Пуркари", "lang": "ru" },
+      { "alias": "Purcari Wineries", "lang": "en" },
+      { "alias": "Château Purcari", "lang": "fr" },
+      { "alias": "Пуркэрь", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "cricova",
+    "entityType": "winery",
+    "canonicalName": "Cricova",
+    "description": "Cricova — крупнейший производитель игристых вин и одного из самых больших подземных винных погребов мира",
+    "aliases": [
+      { "alias": "Cricova", "lang": "ro" },
+      { "alias": "Cricova", "lang": "ru" },
+      { "alias": "Cricova", "lang": "en" },
+      { "alias": "Крикова", "lang": "ru" },
+      { "alias": "Cricova Prestige", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "mileshtii-mici",
+    "entityType": "winery",
+    "canonicalName": "Mileștii Mici",
+    "description": "Mileștii Mici — подземный город-винный погреб, Книга рекордов Гиннесса как крупнейшее винное хранилище",
+    "aliases": [
+      { "alias": "Mileștii Mici", "lang": "ro" },
+      { "alias": "Mileștii Mici", "lang": "ru" },
+      { "alias": "Mileștii Mici", "lang": "en" },
+      { "alias": "Милештий Мичь", "lang": "ru" },
+      { "alias": "Милештии Мичь", "lang": "ru" },
+      { "alias": "Milestii Mici", "lang": "en" },
+      { "alias": "Mileștii Mici Golden Collection", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "castel-mimi",
+    "entityType": "winery",
+    "canonicalName": "Castel Mimi",
+    "description": "Castel Mimi — винодельня и 5-star zero-emission винный курорт",
+    "aliases": [
+      { "alias": "Castel Mimi", "lang": "ro" },
+      { "alias": "Castel Mimi", "lang": "ru" },
+      { "alias": "Castel Mimi", "lang": "en" },
+      { "alias": "Кастель Мими", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "fautor",
+    "entityType": "winery",
+    "canonicalName": "Fautor",
+    "description": "Fautor — наиболее награждённая молдавская винодельня в 2017-2022",
+    "aliases": [
+      { "alias": "Fautor", "lang": "ro" },
+      { "alias": "Fautor", "lang": "ru" },
+      { "alias": "Fautor", "lang": "en" },
+      { "alias": "Фаутор", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "gitana",
+    "entityType": "winery",
+    "canonicalName": "Gitana",
+    "description": "Gitana — молдавская винодельня, производитель вин из автохтонных и международных сортов",
+    "aliases": [
+      { "alias": "Gitana", "lang": "ro" },
+      { "alias": "Gitana", "lang": "ru" },
+      { "alias": "Gitana", "lang": "en" },
+      { "alias": "Gitana Winery", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "kvint",
+    "entityType": "winery",
+    "canonicalName": "Kvint",
+    "description": "Kvint — тираспольский винно-коньячный комбинат, производитель коньяков и вин",
+    "aliases": [
+      { "alias": "Kvint", "lang": "ro" },
+      { "alias": "Kvint", "lang": "ru" },
+      { "alias": "Kvint", "lang": "en" },
+      { "alias": "Квint", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "vinuri-de-comrat",
+    "entityType": "winery",
+    "canonicalName": "Vinuri de Comrat",
+    "description": "Vinuri de Comrat — винодельня в Гагаузии, производство вин из местных сортов",
+    "aliases": [
+      { "alias": "Vinuri de Comrat", "lang": "ro" },
+      { "alias": "Vinuri de Comrat", "lang": "ru" },
+      { "alias": "Vinuri de Comrat", "lang": "en" },
+      { "alias": "Винури де Комрат", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "novak",
+    "entityType": "winery",
+    "canonicalName": "Novak",
+    "description": "Novak — винодельня из села Копчак, Гагаузия",
+    "aliases": [
+      { "alias": "Novak", "lang": "ro" },
+      { "alias": "Novak", "lang": "ru" },
+      { "alias": "Novak", "lang": "en" },
+      { "alias": "Новак", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "asconi",
+    "entityType": "winery",
+    "canonicalName": "Asconi",
+    "description": "Asconi — семейная винодельня, производство качественных вин",
+    "aliases": [
+      { "alias": "Asconi", "lang": "ro" },
+      { "alias": "Asconi", "lang": "ru" },
+      { "alias": "Asconi", "lang": "en" },
+      { "alias": "Asconi Winery", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "basavin",
+    "entityType": "winery",
+    "canonicalName": "Basavin",
+    "description": "Basavin — винодельня, производство вин в регионе Кодру",
+    "aliases": [
+      { "alias": "Basavin", "lang": "ro" },
+      { "alias": "Basavin", "lang": "ru" },
+      { "alias": "Basavin", "lang": "en" },
+      { "alias": "Basavin Winery", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "crama-dealul-de-aur",
+    "entityType": "winery",
+    "canonicalName": "Crama Dealul de Aur",
+    "description": "Crama Dealul de Aur — винодельня Золотой Холм",
+    "aliases": [
+      { "alias": "Crama Dealul de Aur", "lang": "ro" },
+      { "alias": "Crama Dealul de Aur", "lang": "ru" },
+      { "alias": "Crama Dealul de Aur", "lang": "en" },
+      { "alias": "Деалул де Аур", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "bravista",
+    "entityType": "winery",
+    "canonicalName": "Bravista",
+    "description": "Bravista — винодельня, производство вин",
+    "aliases": [
+      { "alias": "Bravista", "lang": "ro" },
+      { "alias": "Bravista", "lang": "ru" },
+      { "alias": "Bravista", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "bulgari",
+    "entityType": "winery",
+    "canonicalName": "Bulgari",
+    "description": "Bulgari — винодельня в Гагаузии",
+    "aliases": [
+      { "alias": "Bulgari", "lang": "ro" },
+      { "alias": "Bulgari", "lang": "ru" },
+      { "alias": "Bulgari", "lang": "en" }
+    ]
   }
 ]

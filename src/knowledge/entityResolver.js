@@ -61,12 +61,16 @@ function normalizeEntityName(input) {
 
   const noSpaces = base.replace(/\s+/g, '');
 
+  // Also produce a "stripped" variant: remove &, ., - and all spaces
+  const stripped = lower.replace(/[&.\-]/g, '').replace(/\s+/g, '');
+
   const variants = new Set();
   variants.add(lower);
   variants.add(noSpaces);
   variants.add(base.replace(/\s+/g, ' ').trim());
   variants.add(lower.replace(/&/g, 'and').replace(/\s+/g, ''));
-  variants.add(lower.replace(/['"«»]/g, '').replace(/[.\-&]/g, ' ').replace(/\s+/g, ''));
+  variants.add(stripped);
+  variants.add(lower.replace(/['"«»]/g, '').replace(/[.\-&]/g, ' ').replace(/\s+/g, ' '));
 
   if (lower.includes('&')) {
     variants.add(lower.replace(/&/g, 'and'));
@@ -92,33 +96,57 @@ function normalizeEntityName(input) {
   };
 }
 
-function _extractEntityMention(input, entities) {
+// Unicode-aware word-boundary check: ensures alias match is at a word boundary
+// in the input. Uses lookaround for Unicode letters/digits (\p{L}\p{N}).
+function _isWordBoundaryMatch(inputLower, aliasLower) {
+  const idx = inputLower.indexOf(aliasLower);
+  if (idx === -1) return false;
+  const before = idx > 0 ? inputLower[idx - 1] : ' ';
+  const afterIdx = idx + aliasLower.length;
+  const after = afterIdx < inputLower.length ? inputLower[afterIdx] : ' ';
+  const wordChar = /[\p{L}\p{N}]/u;
+  const beforeIsWord = wordChar.test(before);
+  const afterIsWord = wordChar.test(after);
+  // Match if alias is at a word boundary (not surrounded by word characters)
+  return !beforeIsWord || !afterIsWord;
+}
+
+// Find all entity mentions in input using word-boundary-aware matching.
+// Returns array of { entity, matchedAlias } sorted by alias length (longest first).
+function _extractEntityMentions(input, entities) {
   const inputLower = input.toLowerCase();
-  let bestAlias = null;
-  let bestEntity = null;
-  let bestLen = 0;
+  const matches = [];
 
   for (const entity of entities) {
     for (const { alias } of entity.aliases) {
       const aliasLower = alias.toLowerCase();
       if (aliasLower.length < 2) continue;
-      if (inputLower.includes(aliasLower) && aliasLower.length > bestLen) {
-        bestAlias = alias;
-        bestEntity = entity;
-        bestLen = aliasLower.length;
+      if (_isWordBoundaryMatch(inputLower, aliasLower)) {
+        matches.push({ entity, matchedAlias: alias, len: aliasLower.length });
       }
     }
   }
 
-  return bestEntity ? { entity: bestEntity, matchedAlias: bestAlias } : null;
+  // Sort by alias length descending — longest match first
+  matches.sort((a, b) => b.len - a.len);
+
+  // Deduplicate: once an entity is matched, skip shorter aliases for the same entity
+  const seenEntities = new Set();
+  const deduped = [];
+  for (const m of matches) {
+    if (seenEntities.has(m.entity.entityId)) continue;
+    seenEntities.add(m.entity.entityId);
+    deduped.push({ entity: m.entity, matchedAlias: m.matchedAlias });
+  }
+
+  return deduped;
 }
 
-function resolveEntity(input, options = {}) {
+// Resolve ALL entities mentioned in the input. Returns array of matches.
+function resolveEntities(input, options = {}) {
   const { aliasesFile } = options;
   const { original, normalized, variants } = normalizeEntityName(input);
-  if (!original) {
-    return { found: false, entityId: null, canonicalName: null, matchedAlias: null, matchType: null, confidence: 0 };
-  }
+  if (!original) return [];
 
   const entities = _loadAliases(aliasesFile);
   const normalizedVariants = new Set(variants.map(_normalizeForCompare));
@@ -134,6 +162,7 @@ function resolveEntity(input, options = {}) {
       const aliasNorm = _normalizeForCompare(alias);
       const aliasLower = alias.toLowerCase();
 
+      // Exact match (case-sensitive full input)
       if (aliasLower === original.toLowerCase()) {
         if (1.0 > bestConfidence) {
           bestAlias = alias; bestConfidence = 1.0; bestMatchType = 'exact';
@@ -141,6 +170,7 @@ function resolveEntity(input, options = {}) {
         continue;
       }
 
+      // Normalized match (after stripping punctuation/spaces)
       if (normalizedVariants.has(aliasNorm)) {
         if (0.9 > bestConfidence) {
           bestAlias = alias; bestConfidence = 0.9; bestMatchType = 'normalized';
@@ -148,6 +178,7 @@ function resolveEntity(input, options = {}) {
         continue;
       }
 
+      // Fuzzy match (Dice coefficient) — only if input is long enough
       if (normalized.length >= MIN_FUZZY_INPUT_LENGTH) {
         const dice = diceCoefficient(aliasNorm, normalized);
         if (dice >= FUZZY_MATCH_THRESHOLD && dice > bestConfidence) {
@@ -156,62 +187,96 @@ function resolveEntity(input, options = {}) {
       }
     }
 
-    if (!bestAlias) {
-      const entityNorm = entity.entityId.toLowerCase().replace(/['"«»]/g, '').replace(/[.\-]/g, '');
-      for (const variant of normalizedVariants) {
-        if (entityNorm.includes(variant) || variant.includes(entityNorm)) {
-          if (0.7 > bestConfidence) {
-            bestAlias = original; bestConfidence = 0.7; bestMatchType = 'normalized';
-          }
-          break;
-        }
-      }
-    }
+    // NO entity-ID substring fallback — it was too permissive
+    // (e.g. "wine" inside a sentence would match wine-md)
 
     if (bestAlias) {
       matches.push({ entity, alias: bestAlias, confidence: bestConfidence, matchType: bestMatchType });
     }
   }
 
-  if (matches.length === 0) {
-    const mention = _extractEntityMention(original, entities);
-    if (mention) {
-      console.log('[entityResolver] extracted mention "%s" from "%s" -> entity=%s',
-        mention.matchedAlias, original, mention.entity.entityId);
-      return {
-        found: true,
-        entityId: mention.entity.entityId,
-        canonicalName: mention.entity.canonicalName,
-        matchedAlias: mention.matchedAlias,
-        matchType: 'mention_extract',
-        confidence: 0.85,
-      };
-    }
-    return { found: false, entityId: null, canonicalName: null, matchedAlias: null, matchType: null, confidence: 0 };
-  }
-
+  // Sort by confidence descending
   matches.sort((a, b) => b.confidence - a.confidence);
-  const best = matches[0];
 
+  // Ambiguity check: if top two are within gap, reject both
   if (matches.length > 1) {
     const gap = matches[0].confidence - matches[1].confidence;
     if (gap < FUZZY_AMBIGUITY_GAP) {
       console.log('[entityResolver] ambiguous match for "%s": %s (%s) vs %s (%s) gap=%s',
         original, matches[0].entity.entityId, matches[0].confidence, matches[1].entity.entityId, matches[1].confidence, gap.toFixed(3));
-      return { found: false, entityId: null, canonicalName: null, matchedAlias: null, matchType: null, confidence: 0, ambiguous: true };
+      return [];
     }
   }
 
-  console.log('[entityResolver] resolved "%s" -> entity=%s matchType=%s confidence=%s',
-    original, best.entity.entityId, best.matchType, best.confidence);
-
-  return {
+  return matches.map((m) => ({
     found: true,
-    entityId: best.entity.entityId,
-    canonicalName: best.entity.canonicalName,
-    matchedAlias: best.alias,
-    matchType: best.matchType,
-    confidence: best.confidence,
+    entityId: m.entity.entityId,
+    canonicalName: m.entity.canonicalName,
+    matchedAlias: m.alias,
+    matchType: m.matchType,
+    confidence: m.confidence,
+  }));
+}
+
+// Backward-compatible: resolve exactly one entity.
+// Returns single match only if unambiguous; otherwise found=false.
+function resolveEntity(input, options = {}) {
+  const all = resolveEntities(input, options);
+
+  if (all.length === 0) {
+    // Try mention extraction as fallback for natural-language queries
+    const entities = _loadAliases(options.aliasesFile);
+    const mentions = _extractEntityMentions(input, entities);
+    if (mentions.length === 1) {
+      console.log('[entityResolver] extracted mention "%s" from "%s" -> entity=%s',
+        mentions[0].matchedAlias, input, mentions[0].entity.entityId);
+      return {
+        found: true,
+        entityId: mentions[0].entity.entityId,
+        canonicalName: mentions[0].entity.canonicalName,
+        matchedAlias: mentions[0].matchedAlias,
+        matchType: 'mention_extract',
+        confidence: 0.85,
+      };
+    }
+    if (mentions.length > 1) {
+      // Multiple mentions — return first (longest alias), but mark as multi-entity
+      console.log('[entityResolver] multiple mentions in "%s": %s',
+        input, mentions.map((m) => m.entity.entityId).join(', '));
+      return {
+        found: true,
+        entityId: mentions[0].entity.entityId,
+        canonicalName: mentions[0].entity.canonicalName,
+        matchedAlias: mentions[0].matchedAlias,
+        matchType: 'mention_extract',
+        confidence: 0.85,
+        allMentions: mentions.map((m) => ({
+          entityId: m.entity.entityId,
+          canonicalName: m.entity.canonicalName,
+          matchedAlias: m.matchedAlias,
+        })),
+      };
+    }
+    return { found: false, entityId: null, canonicalName: null, matchedAlias: null, matchType: null, confidence: 0 };
+  }
+
+  if (all.length === 1) {
+    const m = all[0];
+    console.log('[entityResolver] resolved "%s" -> entity=%s matchType=%s confidence=%s',
+      input, m.entityId, m.matchType, m.confidence);
+    return m;
+  }
+
+  // Multiple distinct entities matched via aliases (e.g. "Purcari Cricova")
+  console.log('[entityResolver] multiple entities in "%s": %s',
+    input, all.map((m) => m.entityId).join(', '));
+  return {
+    ...all[0],
+    allMentions: all.map((m) => ({
+      entityId: m.entityId,
+      canonicalName: m.canonicalName,
+      matchedAlias: m.matchedAlias,
+    })),
   };
 }
 
@@ -261,6 +326,7 @@ function getAllEntityIds(options = {}) {
 module.exports = {
   normalizeEntityName,
   resolveEntity,
+  resolveEntities,
   getAliasesForEntity,
   buildAliasContext,
   findByEntityId,
