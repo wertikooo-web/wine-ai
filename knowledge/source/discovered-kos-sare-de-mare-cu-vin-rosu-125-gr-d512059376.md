@@ -4,7 +4,7 @@ language: ru
 doc_type: general
 source: https://wine.md/catalog/produse-gourmet/sare-de-mare-cu-vin-rosu-/-125-gr
 confidence: unverified
-updated_at: 2026-07-28T18:22:56.651Z
+updated_at: 2026-07-28T18:27:38.866Z
 ---
 
 Catalog vinuri
