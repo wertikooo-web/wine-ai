@@ -3,6 +3,7 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const crypto = require('crypto');
 const { commitKnowledgeFiles, deleteKnowledgeFile } = require('./knowledge/gitPersist');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./realtime/mockRealtimeProvider');
@@ -13,7 +14,7 @@ const { listGrokVoices } = require('./grokVoices');
 const { synthesizeProviderVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./voicePreview');
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
-const { loadIndex, buildIndex } = require('./knowledge/index');
+const { loadIndex, buildIndex, buildIndexFromPostgres } = require('./knowledge/index');
 const { getLastSemanticError } = require('./knowledge/search');
 const searchMode = require('./knowledge/searchMode');
 const knowledgeEmbeddings = require('./knowledge/embeddings');
@@ -1249,12 +1250,91 @@ async function handleRequest(req, res) {
         if (!rawName) {
             return sendJson(res, 400, { ok: false, error: 'filename_required' });
         }
-        // path.basename strips any directory component the client sent —
-        // this must never be able to write outside knowledge/source/.
         const safeName = path.basename(rawName).replace(/[^a-zA-Z0-9_.-]/g, '_');
         const ext = path.extname(safeName).toLowerCase();
-        const sourceDir = knowledgeLoader.DEFAULT_SOURCE_DIR;
 
+        // Helper: generate ID and compute content hash
+        function generateId(prefix = 'id') {
+            return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
+        }
+        function computeContentHash(text) {
+            return crypto.createHash('sha256').update(text).digest('hex');
+        }
+
+        // Helper: ensure 'uploaded' source exists in kos_sources
+        async function getOrCreateUploadedSource(pool) {
+            const existing = await pool.query("SELECT id FROM kos_sources WHERE id = 'uploaded'");
+            if (existing.rows.length > 0) return 'uploaded';
+            await pool.query(
+                `INSERT INTO kos_sources (id, name, seed_url, normalized_origin, source_type, trust_level, created_at, updated_at)
+                 VALUES ('uploaded', 'Dashboard Uploads', 'https://uploaded.local', 'uploaded.local', 'upload', 'unverified', NOW(), NOW())`
+            );
+            return 'uploaded';
+        }
+
+        // Helper: insert document into Postgres and reindex
+        async function insertAndReindex(title, extractedText, documentType) {
+            const pool = db.getPool();
+            if (!pool) {
+                return sendJson(res, 500, { ok: false, error: 'database_not_available' });
+            }
+
+            const sourceId = await getOrCreateUploadedSource(pool);
+            const docId = generateId('doc');
+            const canonicalUrl = `uploaded://${safeName}`;
+            const contentHash = computeContentHash(extractedText);
+
+            // Detect language (simple heuristic)
+            const hasCyrillic = /[а-яА-ЯёЁ]/.test(extractedText);
+            const hasRomanian = /\b(și|sau|este|sunt|pentru|despre)\b/i.test(extractedText);
+            const language = hasRomanian ? 'ro' : hasCyrillic ? 'ru' : 'en';
+
+            // Insert into kos_source_documents
+            const sql = `
+                INSERT INTO kos_source_documents (
+                    id, source_id, requested_url, canonical_url, title, content_type, content_length,
+                    document_type, content_hash, normalized_text, language, status, created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'active', NOW(), NOW())
+                ON CONFLICT (source_id, canonical_url)
+                DO UPDATE SET
+                    title = EXCLUDED.title,
+                    document_type = EXCLUDED.document_type,
+                    content_hash = EXCLUDED.content_hash,
+                    normalized_text = EXCLUDED.normalized_text,
+                    language = EXCLUDED.language,
+                    updated_at = NOW()
+                RETURNING id;
+            `;
+
+            const result = await pool.query(sql, [
+                docId,
+                sourceId,
+                canonicalUrl,
+                canonicalUrl,
+                title,
+                ext === '.pdf' ? 'application/pdf' : 'text/plain',
+                Buffer.byteLength(extractedText, 'utf8'),
+                documentType,
+                contentHash,
+                extractedText.slice(0, 100000), // Limit text size
+                language,
+            ]);
+
+            // Reindex from Postgres
+            const indexResult = await buildIndexFromPostgres(pool);
+
+            return {
+                ok: true,
+                filename: safeName,
+                document_id: result.rows[0]?.id,
+                document_count: indexResult.documents.length,
+                chunk_count: indexResult.chunks.length,
+                errors: indexResult.errors,
+                language,
+            };
+        }
+
+        // Handle PDF upload
         if (ext === '.pdf') {
             const contentBase64 = String(body.contentBase64 || '');
             if (!contentBase64) {
@@ -1281,37 +1361,16 @@ async function handleRequest(req, res) {
                     message: 'No extractable text found — this is likely a scanned PDF without a text layer (needs OCR, not supported here).',
                 });
             }
-            const mdName = safeName.replace(/\.pdf$/i, '') + '.md';
-            const title = rawName.replace(/\.pdf$/i, '');
-            const frontmatter = [
-                '---',
-                `title: ${title}`,
-                'language: ru',
-                'doc_type: uploaded_pdf',
-                `source: Uploaded PDF via dashboard (${rawName}) — raw pdf-parse text extraction, not reviewed`,
-                'confidence: unverified',
-                '---',
-                '',
-                extractedText,
-            ].join('\n');
             try {
-                fs.mkdirSync(sourceDir, { recursive: true });
-                const filePath = path.join(sourceDir, mdName);
-                fs.writeFileSync(filePath, frontmatter, 'utf8');
-                const result = buildIndex();
-                commitKnowledgeFiles(path.join(__dirname, '..'), [filePath], `Add uploaded knowledge doc: ${mdName}`);
-                return sendJson(res, 200, {
-                    ok: true,
-                    filename: mdName,
-                    document_count: result.documentCount,
-                    chunk_count: result.chunkCount,
-                    errors: result.errors,
-                });
+                const title = rawName.replace(/\.pdf$/i, '');
+                const result = await insertAndReindex(title, extractedText, 'uploaded_pdf');
+                return sendJson(res, 200, result);
             } catch (error) {
                 return sendJson(res, 500, { ok: false, error: 'upload_failed', message: error.message });
             }
         }
 
+        // Handle text files (.md, .txt, .json, .csv)
         const content = String(body.content || '');
         if (!content) {
             return sendJson(res, 400, { ok: false, error: 'content_required' });
@@ -1324,18 +1383,10 @@ async function handleRequest(req, res) {
             });
         }
         try {
-            fs.mkdirSync(sourceDir, { recursive: true });
-            const filePath = path.join(sourceDir, safeName);
-            fs.writeFileSync(filePath, content, 'utf8');
-            const result = buildIndex();
-            commitKnowledgeFiles(path.join(__dirname, '..'), [filePath], `Add uploaded knowledge doc: ${safeName}`);
-            return sendJson(res, 200, {
-                ok: true,
-                filename: safeName,
-                document_count: result.documentCount,
-                chunk_count: result.chunkCount,
-                errors: result.errors,
-            });
+            const title = safeName.replace(/\.[^.]+$/, '');
+            const documentType = ext === '.md' ? 'uploaded_markdown' : 'uploaded_text';
+            const result = await insertAndReindex(title, content, documentType);
+            return sendJson(res, 200, result);
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'upload_failed', message: error.message });
         }
