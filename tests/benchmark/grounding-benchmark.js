@@ -7,13 +7,27 @@
  * for answer generation. Checks entity correctness, no foreign contamination,
  * evidence sufficiency, and language appropriateness.
  *
+ * NOTE: This benchmark tests retrieval grounding (which chunks are found for a query).
+ * It does NOT test LLM generation — it validates that the retrieval system returns
+ * appropriate evidence that could support a correct answer. The generation step
+ * (actual LLM call) is tested separately via smoke tests with REALTIME_PROVIDER=gemini.
+ *
+ * What this benchmark validates:
+ * - Real retrieval from a production-like fixture index (not mocked)
+ * - Entity resolution correctness
+ * - Evidence topic coverage (relevant keywords present in retrieved chunks)
+ * - No foreign entity contamination in top results
+ * - Evidence sufficiency (minimum number of relevant chunks)
+ *
  * Usage: node tests/benchmark/grounding-benchmark.js [--json]
  */
 
+const path = require('path');
 const { search } = require('../../src/knowledge/search');
 const { resolveEntity } = require('../../src/knowledge/entityResolver');
 
 const JSON_OUTPUT = process.argv.includes('--json');
+const FIXTURE_INDEX = path.join(__dirname, 'benchmark-fixture-index.json');
 
 // ─── Golden Cases ────────────────────────────────────────────────────
 // Each case: query → expected evidence properties
@@ -217,6 +231,18 @@ const GOLDEN_CASES = [
       maxHits: 0,
     },
   },
+
+  // Multi-entity comparison (both entities should have evidence)
+  {
+    q: 'Сравни Purcari и Cricova',
+    expect: {
+      entity: null,
+      multiEntity: ['purcari', 'cricova'],
+      evidenceTopics: ['Purcari', 'Cricova'],
+      noForeignEntities: [],
+      minHits: 2,
+    },
+  },
 ];
 
 // ─── Validation ──────────────────────────────────────────────────────
@@ -329,7 +355,7 @@ async function runBenchmark() {
     const startTime = Date.now();
 
     const entityResult = resolveEntity(q);
-    const searchResult = await search(q, { limit: 5 });
+    const searchResult = await search(q, { limit: 5, indexFile: FIXTURE_INDEX });
     const searchMs = Date.now() - startTime;
     latencies.push(searchMs);
 
