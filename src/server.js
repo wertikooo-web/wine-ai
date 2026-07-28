@@ -70,6 +70,30 @@ initKosSchema().catch((error) => {
     console.error('[WineAI] KOS schema initialization failed:', error);
 });
 
+// One-time data migration: import crawled docs and entity facts into Postgres.
+// Runs at boot if the target tables are empty — idempotent, safe to restart.
+if (db.isEnabled()) {
+    const { migrateCrawledData } = require('./kos/sources/migrateCrawledData');
+    const { migrateEntityFacts } = require('./kos/sources/migrateEntityFacts');
+    (async () => {
+        try {
+            const pool = db.getPool();
+            const { rows: docRows } = await pool.query('SELECT COUNT(*) as c FROM kos_source_documents');
+            if (parseInt(docRows[0].c, 10) === 0) {
+                console.log('[WineAI] Running one-time crawled data migration...');
+                await migrateCrawledData();
+            }
+            const { rows: factRows } = await pool.query('SELECT COUNT(*) as c FROM entity_facts');
+            if (parseInt(factRows[0].c, 10) === 0) {
+                console.log('[WineAI] Running one-time entity facts migration...');
+                await migrateEntityFacts();
+            }
+        } catch (err) {
+            console.error('[WineAI] Boot-time data migration failed (non-fatal):', err.message);
+        }
+    })();
+}
+
 // Defense in depth beyond the per-request try/catch below: this process
 // also owns every active realtime WebSocket session, so a bug anywhere
 // outside the HTTP handler (a stray unhandled promise rejection, for

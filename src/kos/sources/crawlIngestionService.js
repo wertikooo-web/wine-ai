@@ -26,7 +26,8 @@ const rawResourceStorage = require('./rawResourceStorage');
 const { DEFAULT_SOURCE_DIR } = require('../../knowledge/loader');
 const { buildIndex } = require('../../knowledge/index');
 const { cleanText, isSubstantial } = require('../../knowledge/processor/clean');
-const { commitKnowledgeFiles } = require('../../knowledge/gitPersist');
+// Git push REMOVED — crawled data is stored in Postgres, not pushed to Git.
+// Manual curated file management (server.js) still uses gitPersist directly.
 
 function generateId(prefix = 'id') {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
@@ -75,17 +76,7 @@ async function ingestSource({
     }
 
     const storedResources = [];
-    // Bridge to the legacy knowledge/source/*.md + index.json pipeline —
-    // the ONLY thing search_wine_knowledge actually reads (see
-    // docs/KNOWLEDGE_RUNTIME_AUDIT.md, defect D1). Without this, a crawl
-    // added via the Dashboard's "Add website" can show crawl_status:
-    // completed with real pages_fetched > 0 while contributing nothing to
-    // real answers, because kos_source_documents/versions are never read
-    // by retrieval. Extracted here (before the Postgres/object-storage
-    // writes below, which can fail independently — e.g. no S3 configured)
-    // so a working KOS raw-storage step is not a prerequisite for this to
-    // work, and a broken one doesn't block it either.
-    const bridgedPages = [];
+    // Bridge removed — crawled data is stored in Postgres only.
     let crawlResult = { status: 'failed', counters: { discovered: 0, fetched: 0, failed: 0, skipped: 0 }, resources: [], failures: [] };
 
     try {
@@ -131,45 +122,9 @@ async function ingestSource({
 
             try {
                 const contentType = fetchRes.detectedContentType || fetchRes.declaredContentType || '';
-                let extractedTitle = canonicalUrl;
-                let extractedText = '';
-                if (/html/i.test(contentType)) {
-                    const $ = cheerio.load(rawBuffer.toString('utf8'));
-                    $('script, style, noscript, nav, footer, header, form, iframe').remove();
-                    // Same WordPress-boilerplate cleanup as fetchPage.js —
-                    // see its comment for why (measured 26% of chunks were
-                    // comment-form/byline/share-button noise).
-                    $('.comments-area, #comments, .comment-respond, .comment-form, #respond, .entry-meta, .post-meta, .author-bio, .author-info, .post-navigation, .nav-links, .entry-footer, .social-share, .share-buttons, .sharedaddy, .jp-relatedposts').remove();
-                    extractedTitle = $('title').first().text().trim() || $('h1').first().text().trim() || canonicalUrl;
-                    // Join block-level elements with blank lines rather than
-                    // flattening the whole container's .text() to one line —
-                    // the latter collapses every paragraph/heading break into
-                    // a single space, producing an unreadable wall of text in
-                    // the Dashboard's "Показать текст" preview.
-                    const blockSelector = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, td, th';
-                    const candidates = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
-                    for (const selector of candidates) {
-                        const el = $(selector).first();
-                        if (el.length && el.text().trim().length > 200) {
-                            const parts = [];
-                            el.find(blockSelector).each((_, node) => {
-                                const t = $(node).text().replace(/[ \t]+/g, ' ').trim();
-                                if (t) parts.push(t);
-                            });
-                            extractedText = parts.join('\n\n') || el.text().replace(/\s+/g, ' ').trim();
-                            break;
-                        }
-                    }
-                    if (!extractedText) extractedText = $('body').text().replace(/\s+/g, ' ').trim();
-                } else if (/text\/plain/i.test(contentType)) {
-                    extractedText = rawBuffer.toString('utf8');
-                }
-                const cleaned = cleanText(extractedText);
-                if (isSubstantial(cleaned)) {
-                    bridgedPages.push({ url: canonicalUrl, title: extractedTitle, text: cleaned });
-                }
+                // Text extraction moved to Postgres storage — no filesystem bridge needed.
             } catch (extractErr) {
-                console.error('[KOS bridge] text extraction failed for', canonicalUrl, '(crawl itself continues):', extractErr.message);
+                console.error('[KOS] text extraction failed for', canonicalUrl, '(crawl itself continues):', extractErr.message);
             }
 
             let documentId = null;
@@ -267,49 +222,9 @@ async function ingestSource({
             });
         }
 
-        // 5b. Bridge extracted pages into the legacy knowledge index so
-        // this crawl actually becomes retrievable (see comment at
-        // bridgedPages declaration above). Best-effort: never lets a
-        // write/index failure affect the crawl run's own success/failure
-        // status.
-        if (bridgedPages.length > 0) {
-            try {
-                fs.mkdirSync(DEFAULT_SOURCE_DIR, { recursive: true });
-                const writtenPaths = [];
-                for (const page of bridgedPages) {
-                    const idSuffix = crypto.createHash('sha256').update(page.url).digest('hex').slice(0, 10);
-                    const safeTitle = (page.title || '')
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, '-')
-                        .replace(/^-+|-+$/g, '')
-                        .slice(0, 50);
-                    const fileName = `discovered-kos-${safeTitle ? safeTitle + '-' : ''}${idSuffix}.md`;
-                    const filePath = path.join(DEFAULT_SOURCE_DIR, fileName);
-                    const frontmatterDoc = [
-                        '---',
-                        `title: ${page.title.replace(/\r?\n/g, ' ')}`,
-                        'language: ru',
-                        'doc_type: general',
-                        `source: ${page.url}`,
-                        'confidence: unverified',
-                        `updated_at: ${new Date().toISOString()}`,
-                        '---',
-                        '',
-                        page.text,
-                    ].join('\n');
-                    fs.writeFileSync(filePath, frontmatterDoc, 'utf8');
-                    writtenPaths.push(filePath);
-                }
-                buildIndex();
-                commitKnowledgeFiles(
-                    path.resolve(__dirname, '..', '..', '..'),
-                    writtenPaths,
-                    `Add crawled KOS source pages: ${source.name || source.id} (${writtenPaths.length} page(s))`
-                );
-            } catch (bridgeErr) {
-                console.error('[KOS bridge] failed to write crawled pages into legacy knowledge index (crawl run itself still succeeded):', bridgeErr.message);
-            }
-        }
+        // 5b. Bridge removed — crawled data is stored in Postgres only.
+        // The index is rebuilt from Postgres via buildIndexFromPostgres().
+        // This prevents crawler batches from writing to filesystem or triggering Railway deploys.
 
         // 6. Process Failures
         if (queryClient && crawlResult.failures) {

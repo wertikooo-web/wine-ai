@@ -5,9 +5,14 @@
 // format is deliberately simple (frontmatter + paragraphs) so it stays
 // auditable; swap in a real vector store later behind the same
 // loadDocuments()/chunkDocument() contract if retrieval quality demands it.
+//
+// Postgres-first: When DATABASE_URL is set, active knowledge is read from
+// kos_source_documents. Filesystem is used only for curated fixtures and
+// local development.
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const db = require('./db');
 
 const DEFAULT_SOURCE_DIR = path.resolve(__dirname, '..', '..', 'knowledge', 'source');
 const SUPPORTED_EXTENSIONS = new Set(['.md', '.txt', '.json', '.csv']);
@@ -60,7 +65,7 @@ function chunkText(body, { minChars = 200, maxChars = 1200, overlapChars = 200 }
                 : current;
             // Find the last paragraph boundary in the tail to avoid splitting mid-sentence
             const lastBreak = tail.lastIndexOf('\n\n');
-            current = lastBreak > 0 ? tail.slice(lastBreak + 2) + '\n\n' + paragraph : paragraph;
+            current = lastBreak > 0 ? tail.slice(lastBreak + 2) + '\n\n' : paragraph;
         } else {
             current = candidate;
         }
@@ -69,7 +74,10 @@ function chunkText(body, { minChars = 200, maxChars = 1200, overlapChars = 200 }
     return chunks.length > 0 ? chunks : (body.trim() ? [body.trim()] : []);
 }
 
-function loadDocuments(sourceDir = DEFAULT_SOURCE_DIR) {
+/**
+ * Load documents from filesystem (curated fixtures and local dev).
+ */
+function loadDocumentsFromFilesystem(sourceDir = DEFAULT_SOURCE_DIR) {
     const result = { documents: [], errors: [] };
     if (!fs.existsSync(sourceDir)) {
         result.errors.push({ sourceFile: sourceDir, message: 'source_dir_missing' });
@@ -102,6 +110,68 @@ function loadDocuments(sourceDir = DEFAULT_SOURCE_DIR) {
             result.errors.push({ sourceFile: file, message: error.message });
         }
     }
+    return result;
+}
+
+/**
+ * Load documents from filesystem (curated fixtures and local dev).
+ * Postgres loading is handled separately by buildIndexFromPostgres.
+ */
+function loadDocuments(sourceDir = DEFAULT_SOURCE_DIR) {
+    return loadDocumentsFromFilesystem(sourceDir);
+}
+
+/**
+ * Load documents from Postgres (primary source of truth).
+ * Falls back to filesystem if Postgres is not available.
+ */
+async function loadDocumentsFromPostgres(pool, sourceDir = DEFAULT_SOURCE_DIR) {
+    if (!pool) {
+        return loadDocumentsFromFilesystem(sourceDir);
+    }
+
+    const result = { documents: [], errors: [] };
+
+    try {
+        const sql = `
+            SELECT id, canonical_url, title, document_type, content_hash, normalized_text,
+                   language, status, source_id, created_at, updated_at
+            FROM kos_source_documents
+            WHERE normalized_text IS NOT NULL AND LENGTH(normalized_text) > 0
+              AND (status = 'active' OR status IS NULL)
+            ORDER BY created_at DESC;
+        `;
+        const { rows } = await pool.query(sql);
+
+        for (const row of rows) {
+            const sourceFile = `postgres:${row.id}`;
+            const metadata = {
+                title: row.title || row.canonical_url,
+                language: row.language || 'auto',
+                doc_type: row.document_type || 'unknown',
+                source: row.canonical_url,
+                confidence: 'unverified',
+                updated_at: row.updated_at,
+                entity_id: null,
+            };
+            const body = row.normalized_text;
+
+            result.documents.push({
+                sourceFile,
+                metadata,
+                body,
+                validation: { sourceFile, missing: [], unknown: [] },
+            });
+        }
+    } catch (error) {
+        result.errors.push({ sourceFile: 'postgres', message: error.message });
+    }
+
+    // If no documents found in Postgres, fall back to filesystem
+    if (result.documents.length === 0) {
+        return loadDocumentsFromFilesystem(sourceDir);
+    }
+
     return result;
 }
 
@@ -143,5 +213,7 @@ module.exports = {
     validateMetadata,
     chunkText,
     loadDocuments,
+    loadDocumentsFromFilesystem,
+    loadDocumentsFromPostgres,
     chunkDocument,
 };
