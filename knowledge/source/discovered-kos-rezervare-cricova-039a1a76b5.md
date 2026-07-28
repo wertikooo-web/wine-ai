@@ -4,7 +4,7 @@ language: ru
 doc_type: general
 source: https://wine.md/content/excursie-cricova
 confidence: unverified
-updated_at: 2026-07-28T18:22:56.651Z
+updated_at: 2026-07-28T18:27:38.882Z
 ---
 
 Explorează celebrele galerii subterane, degustă vinuri selecte și pătrunde în atmosfera autentică a unuia dintre cele mai impresionante orașe ale vinului din lume.O experiență unică care merită trăită — află mai mult.
