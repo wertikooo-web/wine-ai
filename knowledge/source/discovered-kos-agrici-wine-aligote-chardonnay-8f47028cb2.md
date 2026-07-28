@@ -4,7 +4,7 @@ language: ru
 doc_type: general
 source: https://wine.md/catalog/wine/vinuri-albe/aligote/agrici-wine-aligote-and-chardonnay
 confidence: unverified
-updated_at: 2026-07-28T18:22:56.651Z
+updated_at: 2026-07-28T18:27:38.863Z
 ---
 
 Catalog vinuri
