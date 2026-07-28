@@ -15,12 +15,16 @@
  * --hybrid: enable hybrid mode (requires DATABASE_URL + embeddings)
  */
 
+const path = require('path');
 const { search } = require('../../src/knowledge/search');
 const { resolveEntity, resolveEntities } = require('../../src/knowledge/entityResolver');
 const { loadIndex } = require('../../src/knowledge/index');
 
 const JSON_OUTPUT = process.argv.includes('--json');
 const HYBRID_MODE = process.argv.includes('--hybrid');
+
+// Fixture index: production-like dataset with proper entity_id tags
+const FIXTURE_INDEX = path.join(__dirname, 'benchmark-fixture-index.json');
 
 // ─── Benchmark Queries ───────────────────────────────────────────────
 // Each query has:
@@ -337,13 +341,14 @@ function validateResult(query, searchResult, entityResult, expect) {
 // ─── Benchmark Runner ────────────────────────────────────────────────
 
 async function runBenchmark() {
-  const index = loadIndex();
+  const index = loadIndex(FIXTURE_INDEX);
   const modeLabel = HYBRID_MODE ? 'Hybrid (semantic+keyword)' : 'Keyword only';
   console.log(`\n${'='.repeat(80)}`);
   console.log(`  Phase 3 — Retrieval Relevance Benchmark (Hardened)`);
   console.log(`${'='.repeat(80)}`);
   console.log(`  Mode:    ${modeLabel}`);
   console.log(`  Index:   ${index.chunks.length} chunks, ${index.chunks.filter((c) => c.metadata.entity_id).length} entity-tagged`);
+  console.log(`  Fixture: ${FIXTURE_INDEX}`);
   console.log(`  Queries: ${QUERIES.length}`);
   console.log(`${'='.repeat(80)}\n`);
 
@@ -372,7 +377,7 @@ async function runBenchmark() {
     const startTime = Date.now();
 
     const entityResult = resolveEntity(q, { includeSuggestions: true });
-    const searchResult = await search(q, { limit: 5, diagnostics: true });
+    const searchResult = await search(q, { limit: 5, diagnostics: true, indexFile: FIXTURE_INDEX });
     const searchMs = Date.now() - startTime;
     latencies.push(searchMs);
 

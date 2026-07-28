@@ -1,0 +1,1148 @@
+{
+  "built_at": "2026-07-28T12:00:00.000Z",
+  "source_dir": "tests/benchmark/fixture-sources",
+  "document_count": 15,
+  "chunk_count": 57,
+  "chunks": [
+    {
+      "id": "purcari-001",
+      "text": "Purcari — один из старейших и наиболее престижных винодельческих регионов Молдовы, расположенный на юге страны вблизи реки Днестр. Регион известен своими красными винами из сортов Рара Нягрэ, Каберне Совиньон и Мерло. Винодельня Purcari была основана в 1827 году и является одним из символов молдавского виноделия.",
+      "metadata": {
+        "title": "Purcari — винодельческий регион Молдовы",
+        "winery": "Purcari",
+        "region": "Штефан Водэ",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "region_overview",
+        "date": "2026-01-15",
+        "source": "Wine of Moldova official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "purcari-region.md",
+        "chunk_index": 0,
+        "entity_id": "purcari",
+        "enabled": true
+      }
+    },
+    {
+      "id": "purcari-002",
+      "text": "Винодельня Purcari производит около 2 миллионов бутылок в год. Основные сорта: Рара Нягрэ (около 40%), Каберне Совиньон (25%), Мерло (20%), а также белые сорта — Баталья Албэ и Алиготе. Вина Purcari экспортируются в более чем 30 стран мира.",
+      "metadata": {
+        "title": "Винодельня Purcari — производство",
+        "winery": "Purcari",
+        "region": "Штефан Водэ",
+        "grape": "Рара Нягрэ",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-06-10",
+        "source": "Purcari official website",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "purcari-production.md",
+        "chunk_index": 1,
+        "entity_id": "purcari",
+        "enabled": true
+      }
+    },
+    {
+      "id": "purcari-003",
+      "text": "Negru de Purcari — флагманское красное купажное вино винодельни Purcari. Состав: Рара Нягрэ (40%), Каберне Совиньон (30%), Мерло (30%). Выдержка в дубовых бочках 18 месяцев. Вкус: насыщенный, бархатистый, с нотами чёрной смородины, шоколада и специй. Рейтинг: 91 балл по Decanter.",
+      "metadata": {
+        "title": "Negru de Purcari — флагманское вино",
+        "winery": "Purcari",
+        "region": "Штефан Водэ",
+        "grape": "Рара Нягрэ",
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-09-20",
+        "source": "Decanter World Wine Awards",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "purcari-negru.md",
+        "chunk_index": 2,
+        "entity_id": "purcari",
+        "enabled": true
+      }
+    },
+    {
+      "id": "purcari-004",
+      "text": "Purcari Wineries Tourism — проект винного туризма, включающий дегустационный зал, ресторан и отель. Расположен по адресу: село Пуркари, Штефан Водэский район, Молдова. Экскурсии проводятся ежедневно с 10:00 до 18:00.",
+      "metadata": {
+        "title": "Purcari — винный туризм",
+        "winery": "Purcari",
+        "region": "Штефан Водэ",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-03-15",
+        "source": "Purcari Wineries",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "purcari-tourism.md",
+        "chunk_index": 3,
+        "entity_id": "purcari",
+        "enabled": true
+      }
+    },
+    {
+      "id": "purcari-005",
+      "text": "Баталья Албэ Purcari — белое сухое вино из одноимённого автохтонного молдавского сорта винограда. Вкус: лёгкий, освежающий, с нотами цитрусовых и зелёного яблока. Температура подачи: 10-12°C. Идеально подходит к морепродуктам и лёгким салатам.",
+      "metadata": {
+        "title": "Баталья Албэ Purcari — белое вино",
+        "winery": "Purcari",
+        "region": "Штефан Водэ",
+        "grape": "Баталья Албэ",
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-11-05",
+        "source": "Purcari catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "purcari-battalia.md",
+        "chunk_index": 4,
+        "entity_id": "purcari",
+        "enabled": true
+      }
+    },
+    {
+      "id": "cricova-001",
+      "text": "Cricova — один из крупнейших винных производителей Молдовы, расположенный в городе Криково, в 15 км от Кишинёва. Основан в 1952 году. Известен своими игристыми винами и подземными винными погребами протяжённостью 120 км.",
+      "metadata": {
+        "title": "Cricova — винодельня Молдовы",
+        "winery": "Cricova",
+        "region": "Криково",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2026-01-20",
+        "source": "Cricova official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "cricova-overview.md",
+        "chunk_index": 0,
+        "entity_id": "cricova",
+        "enabled": true
+      }
+    },
+    {
+      "id": "cricova-002",
+      "text": "Cricova производит более 30 наименований вин, включая игристые вина по классическому методу. Популярные сорта: Каберне Совиньон, Мерло, Рислинг, Шардоне, Пино Гри. Годовой объём производства — около 5 миллионов бутылок.",
+      "metadata": {
+        "title": "Cricova — ассортимент вин",
+        "winery": "Cricova",
+        "region": "Криково",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-08-15",
+        "source": "Cricova catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "cricova-wines.md",
+        "chunk_index": 1,
+        "entity_id": "cricova",
+        "enabled": true
+      }
+    },
+    {
+      "id": "cricova-003",
+      "text": "Подземные винные погреба Cricova — уникальный объект, расположенный на глубине 80 метров. Общая протяжённость тоннелей составляет 120 км. Здесь хранятся коллекционные вина возрастом до 50 лет. Адрес: ул. Мира, 1, г. Криково, Молдова.",
+      "metadata": {
+        "title": "Cricova — подземные погреба",
+        "winery": "Cricova",
+        "region": "Криково",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-04-10",
+        "source": "Cricova tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "cricova-caves.md",
+        "chunk_index": 2,
+        "entity_id": "cricova",
+        "enabled": true
+      }
+    },
+    {
+      "id": "cricova-004",
+      "text": "Игристое вино Cricola Brut — классическое метода традиционного. Состав: Шардоне (60%), Пино Нуар (30%), Пино Гри (10%). Выдержка на осадке 24 месяца. Аромат: цитрусовые, злёный яблоко, хлебные корочки. Пенка: мелкая, устойчивая.",
+      "metadata": {
+        "title": "Cricola Brut — игристое вино",
+        "winery": "Cricova",
+        "region": "Криково",
+        "grape": "Шардоне",
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-10-01",
+        "source": "Cricova catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "cricova-brut.md",
+        "chunk_index": 3,
+        "entity_id": "cricova",
+        "enabled": true
+      }
+    },
+    {
+      "id": "cricova-005",
+      "text": "Cricova Рислинг — белое сухое вино. Вкус: минеральный, освежающий, с нотами зелёного яблока и лайма. Кислотность: 6.5 г/л. Остаточный сахар: 3.2 г/л. Идеально подходит к рыбе и морепродуктам.",
+      "metadata": {
+        "title": "Cricova Рислинг — белое вино",
+        "winery": "Cricova",
+        "region": "Криково",
+        "grape": "Рислинг",
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-12-10",
+        "source": "Cricova catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "cricova-riesling.md",
+        "chunk_index": 4,
+        "entity_id": "cricova",
+        "enabled": true
+      }
+    },
+    {
+      "id": "mileshtii-001",
+      "text": "Mileștii Mici — винодельня в Молдове, известная своими подземными хранилищами, занесёнными в Книгу рекордов Гиннесса как крупнейшие в мире. Протяжённость тоннелей — 200 км, где хранится более 2 миллионов бутылок вина.",
+      "metadata": {
+        "title": "Mileștii Mici — винодельня",
+        "winery": "Mileștii Mici",
+        "region": "Яловены",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2026-02-01",
+        "source": "Mileștii Mici official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "mileshtii-overview.md",
+        "chunk_index": 0,
+        "entity_id": "mileshtii-mici",
+        "enabled": true
+      }
+    },
+    {
+      "id": "mileshtii-002",
+      "text": "Mileștii Mici производит вина из более чем 20 сортов винограда. Основные: Каберне Совиньон, Мерло, Рара Нягрэ, Фетяска Нягрэ, Саперави, Ркацители. Годовой объём — около 4 миллионов бутылок. Вина экспортируются в 25 стран.",
+      "metadata": {
+        "title": "Mileștii Mici — ассортимент",
+        "winery": "Mileștii Mici",
+        "region": "Яловены",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-07-20",
+        "source": "Mileștii Mici catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "mileshtii-wines.md",
+        "chunk_index": 1,
+        "entity_id": "mileshtii-mici",
+        "enabled": true
+      }
+    },
+    {
+      "id": "mileshtii-003",
+      "text": "Винный погреб Mileștii Mici — уникальный объект, расположенный на глубине 40-80 метров. Температура в погребе постоянная: 12-14°C. Влажность: 85-90%. Здесь хранятся вина возрастом до 40 лет. Адрес: село Mileștii Mici, Яловенский район, Молдова.",
+      "metadata": {
+        "title": "Mileștii Mici — винный погреб",
+        "winery": "Mileștii Mici",
+        "region": "Яловены",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-05-15",
+        "source": "Mileștii Mici tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "mileshtii-cellar.md",
+        "chunk_index": 2,
+        "entity_id": "mileshtii-mici",
+        "enabled": true
+      }
+    },
+    {
+      "id": "mileshtii-004",
+      "text": "Золотая Коллекция Mileștii Mici — премиальная линейка вин. Включает: Резерв Каберне Совиньон (выдержка 24 мес.), Резерв Мерло (18 мес.), Резерв Рара Нягрэ (12 мес.). Ценовой диапазон: 15-35 USD.",
+      "metadata": {
+        "title": "Mileștii Mici — Золотая Коллекция",
+        "winery": "Mileștii Mici",
+        "region": "Яловены",
+        "grape": "Мерло",
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-08-30",
+        "source": "Mileștii Mici catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "mileshtii-gold.md",
+        "chunk_index": 3,
+        "entity_id": "mileshtii-mici",
+        "enabled": true
+      }
+    },
+    {
+      "id": "mileshtii-005",
+      "text": "Mileștii Mici предлагает экскурсии по подземным погребам на автомобилях. Длительность экскурсии: 1.5-2 часа. Стоимость: 20-50 MDL за человека. Режим работы: ежедневно с 9:00 до 17:00.",
+      "metadata": {
+        "title": "Mileștii Mici — экскурсии",
+        "winery": "Mileștii Mici",
+        "region": "Яловены",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-11-20",
+        "source": "Mileștii Mici tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "mileshtii-tours.md",
+        "chunk_index": 4,
+        "entity_id": "mileshtii-mici",
+        "enabled": true
+      }
+    },
+    {
+      "id": "wine-md-001",
+      "text": "Wine.md — молдавская платформа, объединяющая три направления: интернет-магазин вин и крепких напитков, офлайн дегустационный зал в Кишинёве, и агрегатор экскурсий по винодельням Молдовы. Расположена по адресу: ул. Влэдимиреску, 15, Кишинёв, Молдова.",
+      "metadata": {
+        "title": "Wine.md — платформа",
+        "winery": "Wine.md",
+        "region": "Кишинёв",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "business_profile",
+        "date": "2026-03-01",
+        "source": "Wine.md official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-md-overview.md",
+        "chunk_index": 0,
+        "entity_id": "wine-md",
+        "enabled": true
+      }
+    },
+    {
+      "id": "wine-md-002",
+      "text": "Дегустационный зал Wine.md расположен в центре Кишинёва. Адрес: ул. Влэдимиреску, 15. Режим работы: Вс-Чт 12:00-22:00, Пт-Сб 12:00-00:00. В зале представлено более 200 наименований вин от молдавских производителей.",
+      "metadata": {
+        "title": "Wine.md — дегустационный зал",
+        "winery": "Wine.md",
+        "region": "Кишинёв",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-09-15",
+        "source": "Wine.md official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-md-tasting.md",
+        "chunk_index": 1,
+        "entity_id": "wine-md",
+        "enabled": true
+      }
+    },
+    {
+      "id": "wine-md-003",
+      "text": "Интернет-магазин Wine.md предлагает более 500 наименований вин и крепких напитков. Доставка по Кишинёву: бесплатно при заказе от 500 MDL. По Молдове: от 100 MDL. Способы оплаты: наличные, карта, банковский перевод.",
+      "metadata": {
+        "title": "Wine.md — интернет-магазин",
+        "winery": "Wine.md",
+        "region": "Кишинёв",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "business_profile",
+        "date": "2025-12-01",
+        "source": "Wine.md catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-md-shop.md",
+        "chunk_index": 2,
+        "entity_id": "wine-md",
+        "enabled": true
+      }
+    },
+    {
+      "id": "wine-md-004",
+      "text": "Wine.md агрегатор экскурсий — сервис для бронирования винных экскурсий по Молдове. Представлены экскурсии от более чем 30 виноделен. Средняя стоимость: 300-800 MDL за человека. Включает: трансфер, экскурсию, дегустацию, обед.",
+      "metadata": {
+        "title": "Wine.md — экскурсии",
+        "winery": "Wine.md",
+        "region": "Кишинёв",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-10-20",
+        "source": "Wine.md tours",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-md-tours.md",
+        "chunk_index": 3,
+        "entity_id": "wine-md",
+        "enabled": true
+      }
+    },
+    {
+      "id": "wine-md-005",
+      "text": "Wine.md — это НЕ винодельня. Это торговая и туристическая платформа-посредник. Если пользователь спрашивает про конкретное вино, ищи это вино в профиле конкретной винодельни, а не в профиле Wine.md.",
+      "metadata": {
+        "title": "Wine.md — важное уточнение",
+        "winery": "Wine.md",
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "note",
+        "date": "2026-01-01",
+        "source": "Internal note",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-md-note.md",
+        "chunk_index": 4,
+        "entity_id": "wine-md",
+        "enabled": true
+      }
+    },
+    {
+      "id": "asconi-001",
+      "text": "Asconi Winery — молдавская винодельня, основанная в 1994 году в городе Комрат, Гагаузия. Известна своими красными винами из сортов Каберне Совиньон, Мерло и Рара Нягрэ. Производит около 1.5 миллиона бутылок в год.",
+      "metadata": {
+        "title": "Asconi Winery — винодельня",
+        "winery": "Asconi",
+        "region": "Комрат",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2026-01-10",
+        "source": "Asconi official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "asconi-overview.md",
+        "chunk_index": 0,
+        "entity_id": "asconi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "asconi-002",
+      "text": "Asconi производит вина из сортов: Каберне Совиньон, Мерло, Рара Нягрэ, Фетяска Нягрэ, Саперави, Ркацители. Популярные вина: Asconi Reserve Cabernet Sauvignon, Asconi Merlot, Asconi Rara Neagra. Ценовой диапазон: 8-25 USD.",
+      "metadata": {
+        "title": "Asconi — ассортимент вин",
+        "winery": "Asconi",
+        "region": "Комрат",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-06-20",
+        "source": "Asconi catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "asconi-wines.md",
+        "chunk_index": 1,
+        "entity_id": "asconi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "asconi-003",
+      "text": "Asconi Winery расположена по адресу: ул. Пушкина, 45, г. Комрат, Гагаузия, Молдова. Контакты: тел. +373 298 2-12-34, email: info@asconi.md. Официальный сайт: asconi.md.",
+      "metadata": {
+        "title": "Asconi — контакты",
+        "winery": "Asconi",
+        "region": "Комрат",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "contact_info",
+        "date": "2025-04-05",
+        "source": "Asconi official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "asconi-contacts.md",
+        "chunk_index": 2,
+        "entity_id": "asconi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "asconi-004",
+      "text": "Asconi Reserve Cabernet Sauvignon — красное сухое вино. Выдержка в дубовых бочках 12 месяцев. Вкус: насыщенный, с нотами чёрной смородины, ванили и кокоса. Танины: мягкие, округлые. Рейтинг: 89 баллов по Wine Enthusiast.",
+      "metadata": {
+        "title": "Asconi Reserve Cabernet Sauvignon",
+        "winery": "Asconi",
+        "region": "Комрат",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-09-10",
+        "source": "Wine Enthusiast",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "asconi-cabernet.md",
+        "chunk_index": 3,
+        "entity_id": "asconi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "asconi-005",
+      "text": "Asconi Winery предлагает дегустации и экскурсии по производству. Расписание: Пн-Пт 10:00-17:00, Сб 10:00-15:00. Стоимость экскурсии: 200 MDL за человека. Включает дегустацию 5 вин и закуски.",
+      "metadata": {
+        "title": "Asconi — экскурсии",
+        "winery": "Asconi",
+        "region": "Комрат",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-07-25",
+        "source": "Asconi tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "asconi-tours.md",
+        "chunk_index": 4,
+        "entity_id": "asconi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "kvint-001",
+      "text": "KVINT (Квинт) — тираспольский коньячно-винодельческий комбинат, основанный в 1953 году. Один из крупнейших производителей коньяков и вин в Молдове. Производит более 10 миллионов бутылок в год.",
+      "metadata": {
+        "title": "KVINT — коньячно-винодельческий комбинат",
+        "winery": "KVINT",
+        "region": "Тирасполь",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2026-02-15",
+        "source": "KVINT official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "kvint-overview.md",
+        "chunk_index": 0,
+        "entity_id": "kvint",
+        "enabled": true
+      }
+    },
+    {
+      "id": "kvint-002",
+      "text": "KVINT производит коньяки: Квинт VS (3 года), Квинт VSOP (5 лет), Квинт XO (10 лет), а также линейку «Избранное». Также производит вина из сортов: Каберне Совиньон, Мерло, Фетяска Нягрэ, Рислинг.",
+      "metadata": {
+        "title": "KVINT — коньяки и вина",
+        "winery": "KVINT",
+        "region": "Тирасполь",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-05-10",
+        "source": "KVINT catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "kvint-brandy.md",
+        "chunk_index": 1,
+        "entity_id": "kvint",
+        "enabled": true
+      }
+    },
+    {
+      "id": "kvint-003",
+      "text": "KVINT расположен по адресу: ул. Ленина, 153, г. Тирасполь, Молдова. Официальный сайт: kvint.md. Контакты: тел. +373 552 3-45-67, email: info@kvint.md.",
+      "metadata": {
+        "title": "KVINT — контакты",
+        "winery": "KVINT",
+        "region": "Тирасполь",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "contact_info",
+        "date": "2025-08-01",
+        "source": "KVINT official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "kvint-contacts.md",
+        "chunk_index": 2,
+        "entity_id": "kvint",
+        "enabled": true
+      }
+    },
+    {
+      "id": "kvint-004",
+      "text": "Коньяк Квинт VSOP — выдержанный коньяк 5 лет. Аромат: ваниль, карамель, сухофрукты. Вкус: мягкий, бархатистый, с длинным.finish. Крепость: 40%. Объём: 0.5 л. Ценовой диапазон: 15-20 USD.",
+      "metadata": {
+        "title": "Квинт VSOP — коньяк",
+        "winery": "KVINT",
+        "region": "Тирасполь",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_description",
+        "date": "2025-10-15",
+        "source": "KVINT catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "kvint-vsop.md",
+        "chunk_index": 3,
+        "entity_id": "kvint",
+        "enabled": true
+      }
+    },
+    {
+      "id": "kvint-005",
+      "text": "KVINT предлагает экскурсии по производству коньяков и вин. Длительность: 2 часа. Стоимость: 100 MDL за человека. Включает дегустацию 3 коньяков и 2 вин. Запись по телефону: +373 552 3-45-67.",
+      "metadata": {
+        "title": "KVINT — экскурсии",
+        "winery": "KVINT",
+        "region": "Тирасполь",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-12-20",
+        "source": "KVINT tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "kvint-tours.md",
+        "chunk_index": 4,
+        "entity_id": "kvint",
+        "enabled": true
+      }
+    },
+    {
+      "id": "unknown-001",
+      "text": "Château Margaux — один из самых престижных производителей Бордо, Франция. Классификация: ПервоеGrand Cru Classé. Основан в 16 веке. Основной сорт: Каберне Совиньон (75%). Виноградники расположены на 262 гектарах.",
+      "metadata": {
+        "title": "Château Margaux — Бордо",
+        "winery": "Château Margaux",
+        "region": "Бордо",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-01-10",
+        "source": "Bordeaux wine guide",
+        "confidence": "verified",
+        "updated_at": null,
+        "source_file": "chateau-margaux.md",
+        "chunk_index": 0,
+        "entity_id": "chateau-margaux",
+        "enabled": true
+      }
+    },
+    {
+      "id": "grape-001",
+      "text": "Фетяска Нягрэ (Fetească Neagră) — автохтонный молдавский сорт винограда. Происхождение: регион Кодру, Молдова. Красное вино: насыщенное, с нотами чёрной вишни, сливы и шоколада. Танины: средние. Кислотность: умеренная.",
+      "metadata": {
+        "title": "Фетяска Нягрэ — сорт винограда",
+        "winery": null,
+        "region": "Кодру",
+        "grape": "Фетяска Нягрэ",
+        "language": "ru",
+        "doc_type": "grape_variety",
+        "date": "2025-03-01",
+        "source": "Wine of Moldova",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "feteasca-neagra.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "grape-002",
+      "text": "Фетяска Нягрэ — один из древнейших сортов винограда в Европе. Устойчив к засухе и морозам до -22°C. Созревает в конце сентября. Урожайность: 6-8 тонн с гектара. Используется для производства красных и розовых вин.",
+      "metadata": {
+        "title": "Фетяска Нягрэ — характеристики",
+        "winery": null,
+        "region": "Кодру",
+        "grape": "Фетяска Нягрэ",
+        "language": "ru",
+        "doc_type": "grape_variety",
+        "date": "2025-06-15",
+        "source": "Wine of Moldova",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "feteasca-neagra-chars.md",
+        "chunk_index": 1,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "grape-003",
+      "text": "Каберне Совиньон — один из самых популярных сортов винограда в мире. Происхождение: Бордо, Франция. Красное вино: насыщенное, с нотами чёрной смородины, кедра и табака. Танины: высокие. Созревает поздно.",
+      "metadata": {
+        "title": "Каберне Совиньон — сорт винограда",
+        "winery": null,
+        "region": null,
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "grape_variety",
+        "date": "2025-02-20",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "cabernet-sauvignon.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-001",
+      "text": "Ферментация вина — процесс превращения сахара винограда в этиловый спирт и углекислый газ под действием дрожжей. Существует два основных типа: алкогольная (сахар → спирт + CO2) и яблочно-кислая (яблочная кислота → молочная кислота + CO2).",
+      "metadata": {
+        "title": "Ферментация вина",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-01-01",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "fermentation.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-002",
+      "text": "Танины в вине — полифенольные соединения, придающие вину терпкость и вяжущий вкус. Источники: кожица винограда, косточки, дерево бочек. Танины влияют на структуру вина и его способность к старению.",
+      "metadata": {
+        "title": "Танины в вине",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-02-15",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "tannins.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-003",
+      "text": "Регион Кодру — винодельческий регион Молдовы, расположенный в центральной части страны. Климат: умеренно-континентальный. Основные сорта: Фетяска Нягрэ, Фетяска Албэ, Ркацители. Винодельни: Castel Mimi, Mileștii Mici, Purcari.",
+      "metadata": {
+        "title": "Регион Кодру — Молдова",
+        "winery": null,
+        "region": "Кодру",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "region_overview",
+        "date": "2025-04-10",
+        "source": "Wine of Moldova",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "codru-region.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-004",
+      "text": "Виноделие в Молдове — одна из древнейших традиций страны. Молдова занимает 11-е место в мире по производству вина. Основные регионы: Кодру, Штефан Водэ, Нистру, Булбоки, Тараклия. Общая площадь виноградников: 147 000 га.",
+      "metadata": {
+        "title": "Виноделие в Молдове",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-05-20",
+        "source": "Wine of Moldova",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "moldova-wine.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-005",
+      "text": "Красное вино производится из красных сортов винограда с мезгой. Ключевые этапы: прессование, ферментация при 25-30°C, выдержка в дубовых бочках 12-24 месяца. Основные сорта: Каберне Совиньон, Мерло, Пино Нуар, Рара Нягрэ.",
+      "metadata": {
+        "title": "Производство красного вина",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-06-30",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "red-wine-production.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-006",
+      "text": "Белое вино производится из белых сортов винограда (или из красных без мезги). Ключевые этапы: прессование, ферментация при 15-20°C, выдержка 6-12 месяцев. Основные сорта: Шардоне, Рислинг, Совиньон Блан, Фетяска Албэ.",
+      "metadata": {
+        "title": "Производство белого вина",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-07-15",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "white-wine-production.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-007",
+      "text": "Дегустация вина — процесс оценки вина по внешнему виду, аромату и вкусу. Этапы: визуальная оценка, оценка аромата (букета), оценка вкуса, оценка послевкусия. Используется стандартная система баллов: 50-100.",
+      "metadata": {
+        "title": "Дегустация вина",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-08-25",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "tasting.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-008",
+      "text": "Хранение вина: температура 10-15°C, влажность 60-70%, отсутствие света и вибраций. Бутылки хранить горизонтально. Красные вина: 10-15°C, белые: 8-12°C, игристые: 6-8°C. Срок хранения: от 1 до 20+ лет в зависимости от качества.",
+      "metadata": {
+        "title": "Хранение вина",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-09-30",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "storage.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "vinuri-comrat-001",
+      "text": "Vinuri de Comrat — винодельня в городе Комрат, Гагаузия, Молдова. Основана в 1957 году. Производит вина из местных сортов винограда: Рара Нягрэ, Фетяска Нягрэ, Саперави, Каберне Совиньон.",
+      "metadata": {
+        "title": "Vinuri de Comrat — винодельня",
+        "winery": "Vinuri de Comrat",
+        "region": "Комрат",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-03-15",
+        "source": "Vinuri de Comrat official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "vinuri-comrat.md",
+        "chunk_index": 0,
+        "entity_id": "vinuri-de-comrat",
+        "enabled": true
+      }
+    },
+    {
+      "id": "vinuri-comrat-002",
+      "text": "Vinuri de Comrat производит более 20 наименований вин. Популярные: Comrat Reserve Cabernet Sauvignon, Comrat Merlot, Comrat Feteasca Neagra. Годовой объём: 2 миллиона бутылок.",
+      "metadata": {
+        "title": "Vinuri de Comrat — ассортимент",
+        "winery": "Vinuri de Comrat",
+        "region": "Комрат",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-07-20",
+        "source": "Vinuri de Comrat catalog",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "vinuri-comrat-wines.md",
+        "chunk_index": 1,
+        "entity_id": "vinuri-de-comrat",
+        "enabled": true
+      }
+    },
+    {
+      "id": "novak-001",
+      "text": "Novak Winery — молдавская винодельня, расположенная в селе Копчак, Гагаузия. Основана в 2003 году. Специализируется на красных винах из сортов Саперави и Рара Нягрэ.",
+      "metadata": {
+        "title": "Novak Winery — винодельня",
+        "winery": "Novak",
+        "region": "Копчак",
+        "grape": "Саперави",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-04-10",
+        "source": "Novak official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "novak.md",
+        "chunk_index": 0,
+        "entity_id": "novak",
+        "enabled": true
+      }
+    },
+    {
+      "id": "castel-mimi-001",
+      "text": "Castel Mimi — винодельня в Молдове, основанная в 1900 году. Расположена в селе Копчак, Гагаузия. Известна своими премиальными винами и винным отелем. Адрес: село Копчак, ул. Виноградная, 1.",
+      "metadata": {
+        "title": "Castel Mimi — винодельня",
+        "winery": "Castel Mimi",
+        "region": "Копчак",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2026-01-20",
+        "source": "Castel Mimi official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "castel-mimi.md",
+        "chunk_index": 0,
+        "entity_id": "castel-mimi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "castel-mimi-002",
+      "text": "Castel Mimi предлагает дегустации и экскурсии. Винный отель: 20 номеров, ресторан, спа. Стоимость проживания: от 100 USD за ночь.",
+      "metadata": {
+        "title": "Castel Mimi — туризм",
+        "winery": "Castel Mimi",
+        "region": "Копчак",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-08-15",
+        "source": "Castel Mimi tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "castel-mimi-tourism.md",
+        "chunk_index": 1,
+        "entity_id": "castel-mimi",
+        "enabled": true
+      }
+    },
+    {
+      "id": "gitana-001",
+      "text": "Gitana Winery — молдавская винодельня, основанная в 1999 году в городе Кагул. Производит вина из сортов: Каберне Совиньон, Мерло, Рара Нягрэ, Фетяска Нягрэ. Экспорт в 15 стран.",
+      "metadata": {
+        "title": "Gitana Winery — винодельня",
+        "winery": "Gitana",
+        "region": "Кагул",
+        "grape": null,
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-05-20",
+        "source": "Gitana official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "gitana.md",
+        "chunk_index": 0,
+        "entity_id": "gitana",
+        "enabled": true
+      }
+    },
+    {
+      "id": "fautor-001",
+      "text": "Fautor Winery — молдавская винодельня, основанная в 2003 году. Расположена в селе Копчак, Гагаузия. Специализируется на красных винах из сортов Каберне Совиньон и Мерло.",
+      "metadata": {
+        "title": "Fautor Winery — винодельня",
+        "winery": "Fautor",
+        "region": "Копчак",
+        "grape": "Каберне Совиньон",
+        "language": "ru",
+        "doc_type": "winery_profile",
+        "date": "2025-06-10",
+        "source": "Fautor official",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "fautor.md",
+        "chunk_index": 0,
+        "entity_id": "fautor",
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-en-001",
+      "text": "Fermentation in wine is the process of converting grape sugar into ethyl alcohol and carbon dioxide using yeast. There are two main types: alcoholic fermentation (sugar → alcohol + CO2) and malolactic fermentation (malic acid → lactic acid + CO2).",
+      "metadata": {
+        "title": "Wine fermentation",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "en",
+        "doc_type": "wine_education",
+        "date": "2025-01-01",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "fermentation-en.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-en-002",
+      "text": "Tannins in wine are polyphenolic compounds that give wine its astringency and bitterness. Sources: grape skins, seeds, and oak barrels. Tannins affect the structure of wine and its aging potential.",
+      "metadata": {
+        "title": "Tannins in wine",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "en",
+        "doc_type": "wine_education",
+        "date": "2025-02-15",
+        "source": "Wine encyclopedia",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "tannins-en.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-en-003",
+      "text": "Wine regions of Moldova include Codru (central), Stefan Voda (south), Nistru (east), Bulboacai (south), and Taraclia (south). Each region has distinct climate and grape varieties. Moldova is the 11th largest wine producer in the world.",
+      "metadata": {
+        "title": "Wine regions of Moldova",
+        "winery": null,
+        "region": "Кодру",
+        "grape": null,
+        "language": "en",
+        "doc_type": "region_overview",
+        "date": "2025-04-10",
+        "source": "Wine of Moldova",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "moldova-regions-en.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-en-004",
+      "text": "Wine tourism in Moldova is growing rapidly. Popular destinations include Purcari, Mileștii Mici, Cricova, and Castel Mimi. Wine routes cover the main wine regions. Average tour cost: 300-800 MDL per person.",
+      "metadata": {
+        "title": "Wine tourism in Moldova",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "en",
+        "doc_type": "tourism",
+        "date": "2025-05-20",
+        "source": "Wine of Moldova tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "moldova-tourism-en.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-tourism-001",
+      "text": "Винный туризм в Молдове — одно из направлений развития туристической отрасли страны. Молдова предлагает экскурсии по винодельням, дегустации, и винные маршруты. Популярные маршруты: Кишинёв — Криково — Пуркари — Штефан Водэ. Туризм включает посещение подземных погребов, дегустационных залов и ресторанов.",
+      "metadata": {
+        "title": "Винный туризм в Молдове",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "tourism",
+        "date": "2025-01-15",
+        "source": "Wine of Moldova tourism",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "moldova-tourism.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-pairing-001",
+      "text": "Вино и сыр — классическая комбинация. Красные вина (Каберне Совиньон, Мерло) хорошо сочетаются с твёрдыми сырами (Пармезан, Чеддер). Белые вина (Шардоне, Рислинг) — с мягкими сырами (Бри, Камамбер). Игристые вина — с любыми сырами.",
+      "metadata": {
+        "title": "Вино и сыр — сочетание",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ru",
+        "doc_type": "wine_education",
+        "date": "2025-03-10",
+        "source": "Wine pairing guide",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-cheese.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-ro-001",
+      "text": "Fermentarea vinului este procesul de conversie a zahărului din struguri în alcool etilic și dioxid de carbon sub acțiunea drojdiei. Există două tipuri principale: fermentarea alcoolică (zahăr → alcool + CO2) și fermentarea malolactică (acidul malic → acid lactic + CO2).",
+      "metadata": {
+        "title": "Fermentarea vinului",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "ro",
+        "doc_type": "wine_education",
+        "date": "2025-01-01",
+        "source": "Wine encyclopedia RO",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "fermentare-ro.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    },
+    {
+      "id": "general-pairing-en-001",
+      "text": "Wine and cheese pairing is a classic combination. Red wines (Cabernet Sauvignon, Merlot) pair well with hard cheeses (Parmesan, Cheddar). White wines (Chardonnay, Riesling) pair with soft cheeses (Brie, Camembert). Sparkling wines go with any cheese. The key is to match the intensity of the wine with the intensity of the cheese.",
+      "metadata": {
+        "title": "Wine and cheese pairing",
+        "winery": null,
+        "region": null,
+        "grape": null,
+        "language": "en",
+        "doc_type": "wine_education",
+        "date": "2025-03-10",
+        "source": "Wine pairing guide",
+        "confidence": "verified",
+        "updated_at": "2026-07-01T00:00:00.000Z",
+        "source_file": "wine-cheese-en.md",
+        "chunk_index": 0,
+        "entity_id": null,
+        "enabled": true
+      }
+    }
+  ]
+}
