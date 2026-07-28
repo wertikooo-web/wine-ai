@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * Wine.md Extractor — extracts structured data from wine.md pages.
+ * Wine.md Extractor — extracts structured data from wine.md pages using cheerio.
  * Handles wine products, editorial articles, and contact pages.
  */
 
-const { JSDOM } = require('jsdom');
+const cheerio = require('cheerio');
 
 /**
  * Extract structured wine product data from HTML.
@@ -14,8 +14,7 @@ const { JSDOM } = require('jsdom');
  * @returns {Object} Extracted wine product data
  */
 function extractWineProduct(html, url) {
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
+    const $ = cheerio.load(html);
 
     const result = {
         type: 'wine_product',
@@ -44,31 +43,30 @@ function extractWineProduct(html, url) {
     };
 
     // Try JSON-LD first (most reliable)
-    const jsonLdScripts = doc.querySelectorAll('script[type="application/ld+json"]');
-    for (const script of jsonLdScripts) {
+    $('script[type="application/ld+json"]').each((_, el) => {
         try {
-            const data = JSON.parse(script.textContent);
+            const data = JSON.parse($(el).html());
             if (data['@type'] === 'Product' || data['@type'] === 'WineProduct') {
                 extractFromJsonLd(result, data);
             }
         } catch {
             // Ignore parse errors
         }
-    }
+    });
 
     // Fallback to HTML parsing
     if (!result.name) {
-        extractFromHtml(result, doc, url);
+        extractFromHtml(result, $, url);
     }
 
     // Extract price from common patterns
     if (!result.price) {
-        result.price = extractPrice(doc);
+        result.price = extractPrice($);
     }
 
     // Extract availability
     if (!result.availability) {
-        result.availability = extractAvailability(doc);
+        result.availability = extractAvailability($);
     }
 
     return result;
@@ -129,62 +127,61 @@ function extractFromJsonLd(result, data) {
 }
 
 /**
- * Extract data from HTML elements.
+ * Extract data from HTML elements using cheerio.
  */
-function extractFromHtml(result, doc, url) {
+function extractFromHtml(result, $, url) {
     // Extract name from title or h1
-    const h1 = doc.querySelector('h1');
-    if (h1) {
-        result.name = h1.textContent.trim();
-    } else if (doc.title) {
-        result.name = doc.title.split('|')[0].split('-')[0].trim();
+    const h1 = $('h1').first();
+    if (h1.length) {
+        result.name = h1.text().trim();
+    } else if ($.title) {
+        result.name = $.title.split('|')[0].split('-')[0].trim();
     }
 
     // Extract winery from breadcrumbs or meta
-    const breadcrumbs = doc.querySelectorAll('[class*="breadcrumb"] a, nav a');
-    for (const crumb of breadcrumbs) {
-        const text = crumb.textContent.trim();
+    $('[class*="breadcrumb"] a, nav a').each((_, el) => {
+        const text = $(el).text().trim();
         if (text && !text.toLowerCase().includes('wine') && !text.toLowerCase().includes('vin')) {
             result.winery = text;
-            break;
+            return false; // break
         }
-    }
+    });
 
     // Extract description from meta or first paragraph
-    const metaDesc = doc.querySelector('meta[name="description"]');
+    const metaDesc = $('meta[name="description"]').attr('content');
     if (metaDesc) {
-        result.description = metaDesc.getAttribute('content');
+        result.description = metaDesc;
     } else {
-        const firstP = doc.querySelector('article p, .content p, main p');
-        if (firstP) {
-            result.description = firstP.textContent.trim().slice(0, 500);
+        const firstP = $('article p, .content p, main p').first();
+        if (firstP.length) {
+            result.description = firstP.text().trim().slice(0, 500);
         }
     }
 
     // Extract image
-    const ogImage = doc.querySelector('meta[property="og:image"]');
+    const ogImage = $('meta[property="og:image"]').attr('content');
     if (ogImage) {
-        result.image = ogImage.getAttribute('content');
+        result.image = ogImage;
     } else {
-        const productImg = doc.querySelector('img[class*="product"], img[class*="wine"], .product img');
-        if (productImg) {
-            result.image = productImg.getAttribute('src');
+        const productImg = $('img[class*="product"], img[class*="wine"], .product img').first();
+        if (productImg.length) {
+            result.image = productImg.attr('src');
         }
     }
 
     // Extract product URL (canonical)
-    const canonical = doc.querySelector('link[rel="canonical"]');
+    const canonical = $('link[rel="canonical"]').attr('href');
     if (canonical) {
-        result.product_url = canonical.getAttribute('href');
+        result.product_url = canonical;
     } else {
         result.product_url = url;
     }
 }
 
 /**
- * Extract price from HTML.
+ * Extract price from HTML using cheerio.
  */
-function extractPrice(doc) {
+function extractPrice($) {
     // Look for price patterns
     const pricePatterns = [
         /(\d+[\.,]\d+)\s*(?:MDL|lei|RON)/i,
@@ -192,19 +189,18 @@ function extractPrice(doc) {
         /(\d+[\.,]\d+)/,
     ];
 
-    const priceElements = doc.querySelectorAll('[class*="price"], [class*="cost"], [data-price]');
-    for (const el of priceElements) {
-        const text = el.textContent;
+    $('[class*="price"], [class*="cost"], [data-price]').each((_, el) => {
+        const text = $(el).text();
         for (const pattern of pricePatterns) {
             const match = text.match(pattern);
             if (match) {
                 return parseFloat(match[1].replace(',', '.')) || null;
             }
         }
-    }
+    });
 
     // Fallback: search in body text
-    const bodyText = doc.body ? doc.body.textContent : '';
+    const bodyText = $('body').text() || '';
     for (const pattern of pricePatterns) {
         const match = bodyText.match(pattern);
         if (match) {
@@ -216,11 +212,11 @@ function extractPrice(doc) {
 }
 
 /**
- * Extract availability from HTML.
+ * Extract availability from HTML using cheerio.
  */
-function extractAvailability(doc) {
+function extractAvailability($) {
     const availabilityTexts = ['в наличии', 'in stock', 'available', 'нет в наличии', 'out of stock', 'unavailable'];
-    const bodyText = (doc.body ? doc.body.textContent : '').toLowerCase();
+    const bodyText = ($('body').text() || '').toLowerCase();
 
     for (const text of availabilityTexts) {
         if (bodyText.includes(text)) {
@@ -229,8 +225,8 @@ function extractAvailability(doc) {
     }
 
     // Check for add-to-cart button
-    const addToCart = doc.querySelector('button[class*="cart"], button[class*="buy"], [data-action="add-to-cart"]');
-    if (addToCart) {
+    const addToCart = $('button[class*="cart"], button[class*="buy"], [data-action="add-to-cart"]').first();
+    if (addToCart.length) {
         return 'available';
     }
 
@@ -238,14 +234,13 @@ function extractAvailability(doc) {
 }
 
 /**
- * Extract editorial article data from HTML.
+ * Extract editorial article data from HTML using cheerio.
  * @param {string} html - Raw HTML content
  * @param {string} url - Page URL
  * @returns {Object} Extracted article data
  */
 function extractEditorialArticle(html, url) {
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
+    const $ = cheerio.load(html);
 
     const result = {
         type: 'editorial_article',
@@ -262,68 +257,65 @@ function extractEditorialArticle(html, url) {
     };
 
     // Extract title
-    const h1 = doc.querySelector('h1');
-    if (h1) {
-        result.title = h1.textContent.trim();
-    } else if (doc.title) {
-        result.title = doc.title.split('|')[0].split('-')[0].trim();
+    const h1 = $('h1').first();
+    if (h1.length) {
+        result.title = h1.text().trim();
+    } else if ($.title) {
+        result.title = $.title.split('|')[0].split('-')[0].trim();
     }
 
     // Extract author
-    const authorEl = doc.querySelector('[class*="author"], [rel="author"], meta[name="author"]');
-    if (authorEl) {
-        result.author = authorEl.getAttribute('content') || authorEl.textContent.trim();
+    const authorEl = $('[class*="author"], [rel="author"], meta[name="author"]').first();
+    if (authorEl.length) {
+        result.author = authorEl.attr('content') || authorEl.text().trim();
     }
 
     // Extract published date
-    const dateEl = doc.querySelector('time[datetime], [class*="date"], meta[property="article:published_time"]');
-    if (dateEl) {
-        result.published_date = dateEl.getAttribute('datetime') || dateEl.getAttribute('content') || dateEl.textContent.trim();
+    const dateEl = $('time[datetime], [class*="date"], meta[property="article:published_time"]').first();
+    if (dateEl.length) {
+        result.published_date = dateEl.attr('datetime') || dateEl.attr('content') || dateEl.text().trim();
     }
 
     // Extract description
-    const metaDesc = doc.querySelector('meta[name="description"]');
+    const metaDesc = $('meta[name="description"]').attr('content');
     if (metaDesc) {
-        result.description = metaDesc.getAttribute('content');
+        result.description = metaDesc;
     }
 
     // Extract content (main article text)
-    const article = doc.querySelector('article, .content, .post-content, main');
-    if (article) {
+    const article = $('article, .content, .post-content, main').first();
+    if (article.length) {
         // Remove navigation, footer, etc.
-        const nav = article.querySelectorAll('nav, footer, .sidebar, .related-posts');
-        nav.forEach(el => el.remove());
+        article.find('nav, footer, .sidebar, .related-posts').remove();
 
-        result.content = article.textContent.trim().slice(0, 10000);
+        result.content = article.text().trim().slice(0, 10000);
     }
 
     // Extract tags
-    const tagElements = doc.querySelectorAll('[class*="tag"] a, [class*="category"] a');
-    for (const tag of tagElements) {
-        const text = tag.textContent.trim();
+    $('[class*="tag"] a, [class*="category"] a').each((_, el) => {
+        const text = $(el).text().trim();
         if (text && !result.tags.includes(text)) {
             result.tags.push(text);
         }
-    }
+    });
 
     // Extract image
-    const ogImage = doc.querySelector('meta[property="og:image"]');
+    const ogImage = $('meta[property="og:image"]').attr('content');
     if (ogImage) {
-        result.image = ogImage.getAttribute('content');
+        result.image = ogImage;
     }
 
     return result;
 }
 
 /**
- * Extract contact page data from HTML.
+ * Extract contact page data from HTML using cheerio.
  * @param {string} html - Raw HTML content
  * @param {string} url - Page URL
  * @returns {Object} Extracted contact data
  */
 function extractContactPage(html, url) {
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
+    const $ = cheerio.load(html);
 
     const result = {
         type: 'contact_page',
@@ -340,14 +332,14 @@ function extractContactPage(html, url) {
     };
 
     // Extract company name
-    const h1 = doc.querySelector('h1');
-    if (h1) {
-        result.company_name = h1.textContent.trim();
+    const h1 = $('h1').first();
+    if (h1.length) {
+        result.company_name = h1.text().trim();
     }
 
     // Extract phone
     const phoneRegex = /(?:\+?373|0)[\s\-]?\d{2}[\s\-]?\d{3}[\s\-]?\d{3}/g;
-    const bodyText = doc.body ? doc.body.textContent : '';
+    const bodyText = $('body').text() || '';
     const phoneMatch = bodyText.match(phoneRegex);
     if (phoneMatch) {
         result.phone = phoneMatch[0];
@@ -361,21 +353,20 @@ function extractContactPage(html, url) {
     }
 
     // Extract address
-    const addressEl = doc.querySelector('[class*="address"], [itemprop="address"]');
-    if (addressEl) {
-        result.address = addressEl.textContent.trim();
+    const addressEl = $('[class*="address"], [itemprop="address"]').first();
+    if (addressEl.length) {
+        result.address = addressEl.text().trim();
     }
 
     // Extract social links
-    const socialLinks = doc.querySelectorAll('a[href*="facebook"], a[href*="instagram"], a[href*="twitter"], a[href*="linkedin"]');
-    for (const link of socialLinks) {
-        result.social_links.push(link.getAttribute('href'));
-    }
+    $('a[href*="facebook"], a[href*="instagram"], a[href*="twitter"], a[href*="linkedin"]').each((_, el) => {
+        result.social_links.push($(el).attr('href'));
+    });
 
     // Extract working hours
-    const hoursEl = doc.querySelector('[class*="hours"], [class*="schedule"], [itemprop="openingHours"]');
-    if (hoursEl) {
-        result.working_hours = hoursEl.textContent.trim();
+    const hoursEl = $('[class*="hours"], [class*="schedule"], [itemprop="openingHours"]').first();
+    if (hoursEl.length) {
+        result.working_hours = hoursEl.text().trim();
     }
 
     return result;
