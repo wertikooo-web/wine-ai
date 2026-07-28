@@ -550,6 +550,109 @@ const MIGRATIONS = [
             `);
         },
     },
+    {
+        version: 5,
+        name: 'v5_entity_facts_and_crawl_resume',
+        up: async (client) => {
+            // 1. Entity Facts — structured scalar facts with provenance
+            // Replaces the file-based knowledge/entity-facts/*.json store
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS entity_facts (
+                    id TEXT PRIMARY KEY,
+                    entity_id TEXT NOT NULL,
+                    entity_type TEXT NOT NULL DEFAULT 'unknown',
+                    field_name TEXT NOT NULL,
+                    normalized_value TEXT NOT NULL,
+                    raw_value TEXT,
+                    confidence TEXT NOT NULL DEFAULT 'medium' CHECK (confidence IN ('high', 'medium', 'low')),
+                    validation_status TEXT NOT NULL DEFAULT 'discovered' CHECK (validation_status IN ('discovered', 'candidate', 'validated', 'approved', 'rejected', 'stale')),
+                    active BOOLEAN NOT NULL DEFAULT FALSE,
+                    source_url TEXT,
+                    source_type TEXT NOT NULL DEFAULT 'general_web',
+                    source_domain TEXT,
+                    evidence TEXT,
+                    extraction_method TEXT DEFAULT 'unknown',
+                    extractor_version TEXT DEFAULT 'v1',
+                    conflict_state TEXT DEFAULT 'none' CHECK (conflict_state IN ('none', 'detected', 'resolved')),
+                    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    verified_at TIMESTAMPTZ,
+                    expires_at TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_facts_entity ON entity_facts(entity_id, field_name);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_facts_active ON entity_facts(entity_id, field_name, active) WHERE active = TRUE;');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_facts_status ON entity_facts(validation_status);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_facts_source ON entity_facts(source_type, source_domain);');
+
+            // 2. Add resume support columns to kos_crawl_run_items
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items
+                    ADD COLUMN IF NOT EXISTS priority INT DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS retry_after TIMESTAMPTZ,
+                    ADD COLUMN IF NOT EXISTS last_error TEXT,
+                    ADD COLUMN IF NOT EXISTS locked_by TEXT,
+                    ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ;
+            `);
+
+            // 3. Index for resume queries (SELECT ... FOR UPDATE SKIP LOCKED)
+            await client.query(`
+                CREATE INDEX IF NOT EXISTS idx_crawl_items_resume
+                ON kos_crawl_run_items(crawl_run_id, status, priority DESC)
+                WHERE status IN ('queued', 'fetching');
+            `);
+
+            // 4. Add document_type to kos_source_documents for classification
+            await client.query(`
+                ALTER TABLE kos_source_documents
+                    ADD COLUMN IF NOT EXISTS document_type TEXT DEFAULT 'unknown',
+                    ADD COLUMN IF NOT EXISTS content_hash TEXT,
+                    ADD COLUMN IF NOT EXISTS normalized_text TEXT;
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_kos_source_docs_type ON kos_source_documents(document_type);');
+        },
+    },
+    {
+        version: 6,
+        name: 'v6_entity_facts_provenance_and_doc_enrichment',
+        up: async (client) => {
+            // 1. Entity Facts Provenance — tracks source URLs, extraction method, and verification per fact
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS entity_facts_provenance (
+                    id TEXT PRIMARY KEY,
+                    fact_id TEXT NOT NULL REFERENCES entity_facts(id) ON DELETE CASCADE,
+                    source_url TEXT,
+                    source_type TEXT NOT NULL DEFAULT 'general_web',
+                    source_domain TEXT,
+                    evidence TEXT,
+                    extraction_method TEXT DEFAULT 'unknown',
+                    extractor_version TEXT DEFAULT 'v1',
+                    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    verified_at TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_fact_provenance_fact ON entity_facts_provenance(fact_id);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_fact_provenance_source ON entity_facts_provenance(source_type, source_domain);');
+
+            // 2. Add title, language, status, fetched_at to kos_source_documents
+            await client.query(`
+                ALTER TABLE kos_source_documents
+                    ADD COLUMN IF NOT EXISTS title TEXT,
+                    ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'auto',
+                    ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'archived', 'failed')),
+                    ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ;
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_kos_source_docs_status ON kos_source_documents(status);');
+
+            // 3. Add fetched_at to kos_crawl_run_items for resume tracking
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items
+                    ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ;
+            `);
+        },
+    },
 ];
 
 const crypto = require('crypto');
