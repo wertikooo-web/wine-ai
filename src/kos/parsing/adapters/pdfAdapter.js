@@ -44,7 +44,19 @@ async function parse({ rawBody }) {
         }
 
         if (pdfParseFn && typeof pdfParseFn === 'function') {
-            const parsedData = await pdfParseFn(rawBody);
+            // pdf-parse v2 exports PDFParse as a class — must be called with `new`.
+            // Detect class vs plain function: classes throw when called without `new`.
+            let parsedData;
+            try {
+                parsedData = await pdfParseFn(rawBody);
+            } catch (err) {
+                if (err instanceof TypeError && err.message.includes('without \'new\'')) {
+                    // Class constructor — retry with `new`
+                    parsedData = await new pdfParseFn(rawBody);
+                } else {
+                    throw err;
+                }
+            }
             extractedText = parsedData.text || '';
         } else {
             // Fallback plain text extraction over ASCII text stream

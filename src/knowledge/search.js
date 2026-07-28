@@ -291,11 +291,36 @@ function _buildDiagnostics() {
     };
 }
 
-// Multi-entity search: search for each entity separately, then merge results
-async function _multiEntitySearch(query, allMentions, { limit, language, indexFile }) {
-    const allHits = [];
-    const seenIds = new Set();
+// Build per-hit diagnostic detail (only when diagnostics mode is enabled)
+function _hitDiagnostic(chunk, { kwScore = 0, semWeight = 0, entityBonus = 0, freshnessBoost = 0, rerankerScore = 0, included = true, reason = null } = {}) {
+    return {
+        chunkId: chunk.id,
+        title: chunk.metadata.title,
+        entity_id: chunk.metadata.entity_id || null,
+        source: chunk.metadata.source || null,
+        confidence: chunk.metadata.confidence || null,
+        language: chunk.metadata.language || null,
+        keywordScore: Math.round(kwScore * 100) / 100,
+        semanticScore: Math.round(semWeight * 100) / 100,
+        entityBonus: Math.round(entityBonus * 100) / 100,
+        freshnessBoost: Math.round(freshnessBoost * 100) / 100,
+        rerankerScore: Math.round(rerankerScore * 100) / 100,
+        finalScore: Math.round((kwScore + semWeight + entityBonus + freshnessBoost) * 100) / 100,
+        included,
+        reason,
+    };
+}
 
+// Multi-entity search: search for each entity separately, then merge results.
+// Ensures balanced evidence: each entity gets a minimum quota of results,
+// preventing a more popular entity from dominating all top-k slots.
+// Options:
+//   - perEntityQuota: minimum number of results per entity (default: 2)
+async function _multiEntitySearch(query, allMentions, { limit, language, indexFile }) {
+    const perEntityQuota = Math.max(2, Math.ceil(limit / allMentions.length));
+    const entityResults = [];
+
+    // Search each entity independently
     for (const mention of allMentions) {
         const resolved = {
             found: true,
@@ -304,11 +329,50 @@ async function _multiEntitySearch(query, allMentions, { limit, language, indexFi
             matchedAlias: mention.matchedAlias,
         };
 
-        const aliasHits = aliasTextSearch(query, { index: loadIndex(indexFile), resolved, limit });
-        const entityHits = entityIdSearch(query, { index: loadIndex(indexFile), resolved, limit });
+        const index = loadIndex(indexFile);
+        const aliasHits = aliasTextSearch(query, { index, resolved, limit: perEntityQuota + 2 });
+        const entityHits = entityIdSearch(query, { index, resolved, limit: perEntityQuota + 2 });
 
-        const merged = [...entityHits.hits, ...aliasHits.hits];
-        for (const hit of merged) {
+        // Merge and dedup per-entity results
+        const seen = new Set();
+        const merged = [];
+        for (const hit of [...entityHits.hits, ...aliasHits.hits]) {
+            if (!seen.has(hit.chunk.id)) {
+                seen.add(hit.chunk.id);
+                merged.push(hit);
+            }
+        }
+        merged.sort((a, b) => b.score - a.score);
+
+        entityResults.push({
+            entityId: mention.entityId,
+            canonicalName: mention.canonicalName,
+            hits: merged.slice(0, perEntityQuota + 2), // keep extra for fallback
+            hasSufficientEvidence: merged.length >= 2,
+        });
+    }
+
+    // Balanced merge: interleave results from each entity, respecting quotas
+    const allHits = [];
+    const seenIds = new Set();
+
+    // Round 1: fill each entity's quota
+    for (const er of entityResults) {
+        let added = 0;
+        for (const hit of er.hits) {
+            if (added >= perEntityQuota) break;
+            if (!seenIds.has(hit.chunk.id)) {
+                seenIds.add(hit.chunk.id);
+                allHits.push(hit);
+                added++;
+            }
+        }
+    }
+
+    // Round 2: fill remaining slots from any entity's surplus
+    for (const er of entityResults) {
+        for (const hit of er.hits) {
+            if (allHits.length >= limit) break;
             if (!seenIds.has(hit.chunk.id)) {
                 seenIds.add(hit.chunk.id);
                 allHits.push(hit);
@@ -316,11 +380,26 @@ async function _multiEntitySearch(query, allMentions, { limit, language, indexFi
         }
     }
 
+    // Check for insufficient evidence on any entity
+    const insufficientEvidence = entityResults
+        .filter((er) => !er.hasSufficientEvidence)
+        .map((er) => er.entityId);
+
     allHits.sort((a, b) => b.score - a.score);
-    return allHits.slice(0, limit);
+
+    return {
+        hits: allHits.slice(0, limit),
+        evidenceByEntity: entityResults.map((er) => ({
+            entityId: er.entityId,
+            canonicalName: er.canonicalName,
+            hitCount: er.hits.length,
+            sufficient: er.hasSufficientEvidence,
+        })),
+        insufficientEvidence: insufficientEvidence.length > 0 ? insufficientEvidence : null,
+    };
 }
 
-async function search(query, { limit = 4, language = null, indexFile } = {}) {
+async function search(query, { limit = 4, language = null, indexFile, diagnostics: enableDiagnostics = false } = {}) {
     const startedAt = Date.now();
     const diag = _buildDiagnostics();
 
@@ -341,14 +420,16 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
 
     // Multi-entity path: if allMentions is present, search each entity separately
     if (resolved.found && resolved.allMentions && resolved.allMentions.length > 1) {
-        const multiHits = await _multiEntitySearch(query, resolved.allMentions, { limit, language, indexFile });
+        const multiResult = await _multiEntitySearch(query, resolved.allMentions, { limit, language, indexFile });
         diag.actualMode = 'multi_entity';
         return {
-            hits: multiHits,
+            hits: multiResult.hits,
             tookMs: Date.now() - startedAt,
             mode: 'multi_entity',
             entityResolved: resolved,
             entityContext: buildAliasContext(resolved),
+            evidenceByEntity: multiResult.evidenceByEntity,
+            insufficientEvidence: multiResult.insufficientEvidence,
             diagnostics: diag,
         };
     }
@@ -436,14 +517,27 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
             const normalizedKw = kwScore > 0 ? Math.min(kwScore / maxKeywordScore, 1) : 0;
             let score = normalizedKw + semWeight;
 
+            let entityBonus = 0;
             if (resolved.found && chunk.metadata.entity_id === resolved.entityId) {
-                score += 2;
+                entityBonus = 2;
+                score += entityBonus;
             }
 
             // Apply freshness to hybrid candidates too
-            score += _freshnessBoost(chunk);
+            const freshnessBoost = _freshnessBoost(chunk);
+            score += freshnessBoost;
 
-            return { chunk, score: Math.max(0.1, score) };
+            return {
+                chunk,
+                score: Math.max(0.1, score),
+                _diag: enableDiagnostics ? {
+                    kwScore: normalizedKw,
+                    semWeight,
+                    entityBonus,
+                    freshnessBoost,
+                    rerankerScore: score,
+                } : undefined,
+            };
         })
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
@@ -452,6 +546,16 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
     diag.actualMode = 'hybrid';
 
     const result = { hits: reranked, tookMs: Date.now() - startedAt, mode: 'hybrid', diagnostics: diag };
+
+    // When diagnostics mode is enabled, attach per-hit scoring breakdown
+    if (enableDiagnostics) {
+        result.hitDiagnostics = reranked.map((h) => _hitDiagnostic(h.chunk, h._diag));
+        // Clean up internal _diag property
+        for (const h of result.hits) { delete h._diag; }
+    } else {
+        // Clean up _diag even if diagnostics not exposed
+        for (const h of result.hits) { delete h._diag; }
+    }
 
     if (resolved.found) {
         result.entityResolved = resolved;
