@@ -1341,8 +1341,8 @@ async function handleRequest(req, res) {
                 return sendJson(res, 400, { ok: false, error: 'content_base64_required_for_pdf' });
             }
             let extractedText;
+            const buffer = Buffer.from(contentBase64, 'base64');
             try {
-                const buffer = Buffer.from(contentBase64, 'base64');
                 const { PDFParse } = require('pdf-parse');
                 const parser = new PDFParse({ data: buffer });
                 try {
@@ -1354,13 +1354,40 @@ async function handleRequest(req, res) {
             } catch (error) {
                 return sendJson(res, 400, { ok: false, error: 'pdf_parse_failed', message: error.message });
             }
+
+            // If no text layer, try OCR via Gemini Vision
             if (extractedText.length < 50) {
-                return sendJson(res, 400, {
-                    ok: false,
-                    error: 'pdf_text_extraction_empty',
-                    message: 'No extractable text found — this is likely a scanned PDF without a text layer (needs OCR, not supported here).',
-                });
+                try {
+                    const { pdfToImages } = require('./knowledge/pdfToImages');
+                    const { recognizeImages } = require('./knowledge/visionOcr');
+
+                    const images = await pdfToImages(buffer, { maxPages: 30 });
+                    if (images.length === 0) {
+                        return sendJson(res, 400, {
+                            ok: false,
+                            error: 'pdf_no_pages',
+                            message: 'Could not render any pages from this PDF.',
+                        });
+                    }
+
+                    extractedText = await recognizeImages(images);
+                } catch (ocrError) {
+                    return sendJson(res, 400, {
+                        ok: false,
+                        error: 'pdf_ocr_failed',
+                        message: `OCR failed: ${ocrError.message}`,
+                    });
+                }
+
+                if (!extractedText || extractedText.length < 50) {
+                    return sendJson(res, 400, {
+                        ok: false,
+                        error: 'pdf_ocr_empty',
+                        message: 'OCR could not extract any text from this PDF.',
+                    });
+                }
             }
+
             try {
                 const title = rawName.replace(/\.pdf$/i, '');
                 const result = await insertAndReindex(title, extractedText, 'uploaded_pdf');
