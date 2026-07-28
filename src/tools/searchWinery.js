@@ -47,12 +47,20 @@ async function impl(args) {
     const index = loadIndex();
     const nameLower = name.toLowerCase();
 
-    const resolved = resolveEntity(name);
+    // Multi-entity: resolve all entities mentioned in the query
+    const allMentions = [];
+    const primaryResolved = resolveEntity(name);
+    if (primaryResolved.found && primaryResolved.allMentions) {
+        allMentions.push(...primaryResolved.allMentions);
+    } else if (primaryResolved.found) {
+        allMentions.push({ entityId: primaryResolved.entityId, canonicalName: primaryResolved.canonicalName, matchedAlias: primaryResolved.matchedAlias });
+    }
 
-    if (resolved.found) {
-        const entityResult = searchByEntityId(index, resolved.entityId, region);
+    // If entity resolver matched, check for chunks
+    if (primaryResolved.found) {
+        const entityResult = searchByEntityId(index, primaryResolved.entityId, region);
         if (entityResult) {
-            const aliasContext = buildAliasContext(resolved);
+            const aliasContext = buildAliasContext(primaryResolved);
             const results = [];
             if (aliasContext) {
                 results.push({ text: aliasContext, source: 'entity_resolver', confidence: 'high' });
@@ -63,8 +71,11 @@ async function impl(args) {
             }
             return { ...entityResult, results };
         }
+        // Entity resolved but no chunks → found: false (not a false positive)
+        return { found: false, results: [], reason: 'entity_known_no_chunks', entity: primaryResolved.entityId };
     }
 
+    // No entity match — only search for winery_profile doc_type
     const direct = index.chunks.filter((chunk) => (
         chunk.metadata.doc_type === 'winery_profile'
         && chunk.metadata.winery
@@ -85,8 +96,15 @@ async function impl(args) {
         };
     }
 
+    // Last resort: keyword search — but only return found: true if we actually have content
     const { hits, entityContext } = await search(`${name} ${region}`.trim(), { limit: 3 });
     if (hits.length === 0) {
+        return { found: false, results: [] };
+    }
+
+    // Only consider results as evidence if they have reasonable scores (not just noise)
+    const evidenceHits = hits.filter((h) => h.score >= 3);
+    if (evidenceHits.length === 0) {
         return { found: false, results: [] };
     }
 
@@ -94,7 +112,7 @@ async function impl(args) {
     if (entityContext) {
         results.push({ text: entityContext, source: 'entity_resolver', confidence: 'high' });
     }
-    for (const { chunk } of hits) {
+    for (const { chunk } of evidenceHits) {
         if (results.length >= MAX_RESULTS) break;
         results.push({
             text: chunk.text,

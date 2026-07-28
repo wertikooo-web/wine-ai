@@ -4,7 +4,7 @@ const { loadIndex } = require('./index');
 const searchMode = require('./searchMode');
 const db = require('./db');
 const embeddings = require('./embeddings');
-const { resolveEntity, getAliasesForEntity, buildAliasContext } = require('./entityResolver');
+const { resolveEntity, resolveEntities, getAliasesForEntity, buildAliasContext } = require('./entityResolver');
 
 let lastSemanticError = null;
 
@@ -51,18 +51,40 @@ function buildIdfIndex(index) {
 
 const DEFAULT_IDF_WEIGHT = 1;
 
-const TRUST_WEIGHTS = { high: 1.2, medium: 1.0, unverified: 0.85 };
+// Normalized trust mapping: all known confidence values → bounded multiplier
+// 'verified' is stronger than 'high'; 'demo' is excluded from production scoring
+const TRUST_WEIGHTS = {
+    verified: 1.25,
+    high: 1.15,
+    medium: 1.0,
+    unverified: 0.9,
+    demo: 0.5,  // severely penalized in production
+};
 
-function _freshnessBoost(dateStr) {
+// Freshness scoring: type-aware, not one-size-fits-all.
+// Uses published_at when available; fetch time is only used for news where no pub date exists.
+function _freshnessBoost(chunk) {
+    const docType = (chunk.metadata.doc_type || '').toLowerCase();
+    const pubDate = chunk.metadata.date || chunk.metadata.published_at;
+    const fetchDate = chunk.metadata.updated_at;
+
+    // History, grape profiles, region profiles: no freshness boost (stable facts)
+    const stableTypes = ['grape_profile', 'region_profile', 'manual', 'internal_reference'];
+    if (stableTypes.includes(docType)) return 0;
+
+    // For news/events: use published date if available, else fetch date
+    const dateStr = pubDate || (docType === 'news' ? fetchDate : null);
     if (!dateStr) return 0;
+
     try {
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return 0;
+        // Reject future dates (likely fetch-time artifacts)
         const ageMs = Date.now() - d.getTime();
+        if (ageMs < 0) return 0;
         const ageDays = ageMs / (1000 * 60 * 60 * 24);
-        if (ageDays <= 30) return 3;
-        if (ageDays <= 90) return 2;
-        if (ageDays <= 365) return 1;
+        if (ageDays <= 30) return 2;
+        if (ageDays <= 90) return 1;
         return 0;
     } catch { return 0; }
 }
@@ -77,6 +99,7 @@ function scoreChunk(queryTokens, chunk, idf, { skipStopwords } = {}) {
     }
     if (score === 0) return 0;
 
+    // Metadata match bonus (title, winery, region, grape)
     const metaText = [chunk.metadata.title, chunk.metadata.winery, chunk.metadata.region, chunk.metadata.grape]
         .filter(Boolean)
         .join(' ')
@@ -85,12 +108,8 @@ function scoreChunk(queryTokens, chunk, idf, { skipStopwords } = {}) {
         if (metaText.includes(token)) score += (idf.get(token) || DEFAULT_IDF_WEIGHT) * 4;
     }
 
-    // Trust weighting
-    const trust = TRUST_WEIGHTS[chunk.metadata.confidence] || 1.0;
-    score *= trust;
-
-    // Freshness boost
-    score += _freshnessBoost(chunk.metadata.date || chunk.metadata.updated_at);
+    // Freshness boost (type-aware)
+    score += _freshnessBoost(chunk);
 
     return score;
 }
@@ -243,12 +262,18 @@ function entityIdSearch(query, { index, resolved, limit }) {
     return { hits: scored.slice(0, limit) };
 }
 
+// Stricter evidence sufficiency: requires verified identity + meaningful evidence.
+// One alias substring hit is NOT sufficient evidence.
 function evidenceSufficient(entityHits, resolved) {
     if (entityHits.length === 0) return false;
-    if (resolved && resolved.confidence >= 0.9 && entityHits.length >= 1) return true;
+    // Need at least 2 evidence hits, OR 1 hit with high entity-id match and topic coverage
     if (entityHits.length >= 2) return true;
-    const topScore = entityHits[0].score;
-    if (topScore >= 5) return true;
+    if (entityHits.length === 1) {
+        const top = entityHits[0];
+        // Entity-ID matched chunks with topic bonus are strong evidence
+        if (top.score >= 20 && resolved && resolved.confidence >= 0.9) return true;
+        return false;
+    }
     return false;
 }
 
@@ -264,6 +289,35 @@ function _buildDiagnostics() {
         fallbackReason: null,
         rerankCandidateCount: null,
     };
+}
+
+// Multi-entity search: search for each entity separately, then merge results
+async function _multiEntitySearch(query, allMentions, { limit, language, indexFile }) {
+    const allHits = [];
+    const seenIds = new Set();
+
+    for (const mention of allMentions) {
+        const resolved = {
+            found: true,
+            entityId: mention.entityId,
+            canonicalName: mention.canonicalName,
+            matchedAlias: mention.matchedAlias,
+        };
+
+        const aliasHits = aliasTextSearch(query, { index: loadIndex(indexFile), resolved, limit });
+        const entityHits = entityIdSearch(query, { index: loadIndex(indexFile), resolved, limit });
+
+        const merged = [...entityHits.hits, ...aliasHits.hits];
+        for (const hit of merged) {
+            if (!seenIds.has(hit.chunk.id)) {
+                seenIds.add(hit.chunk.id);
+                allHits.push(hit);
+            }
+        }
+    }
+
+    allHits.sort((a, b) => b.score - a.score);
+    return allHits.slice(0, limit);
 }
 
 async function search(query, { limit = 4, language = null, indexFile } = {}) {
@@ -285,9 +339,21 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
     diag.entityMatch = resolved.found;
     diag.entityMatchType = resolved.matchType || null;
 
-    if (resolved.found) {
-        const startStep = Date.now();
+    // Multi-entity path: if allMentions is present, search each entity separately
+    if (resolved.found && resolved.allMentions && resolved.allMentions.length > 1) {
+        const multiHits = await _multiEntitySearch(query, resolved.allMentions, { limit, language, indexFile });
+        diag.actualMode = 'multi_entity';
+        return {
+            hits: multiHits,
+            tookMs: Date.now() - startedAt,
+            mode: 'multi_entity',
+            entityResolved: resolved,
+            entityContext: buildAliasContext(resolved),
+            diagnostics: diag,
+        };
+    }
 
+    if (resolved.found) {
         const aliasHits = aliasTextSearch(query, { index, resolved, limit });
         const entityHits = entityIdSearch(query, { index, resolved, limit });
 
@@ -374,7 +440,10 @@ async function search(query, { limit = 4, language = null, indexFile } = {}) {
                 score += 2;
             }
 
-            return { chunk, score: Math.max(1, score) };
+            // Apply freshness to hybrid candidates too
+            score += _freshnessBoost(chunk);
+
+            return { chunk, score: Math.max(0.1, score) };
         })
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
