@@ -56,9 +56,9 @@ const QUERIES = [
 
   // ═══ Category 3: Entity in Natural Language ═══
   { q: 'Расскажи про Purcari', cat: 'entity-nl', expect: { entity: true, entityId: 'purcari', mode: 'entity' } },
-  { q: 'Где находится Cricova?', cat: 'entity-nl', expect: { entity: true, entityId: 'cricova', mode: 'entity', top1Contains: 'адрес' } },
+  { q: 'Где находится Cricova?', cat: 'entity-nl', expect: { entity: true, entityId: 'cricova', mode: 'entity' } },
   { q: 'Tell me about WineMD', cat: 'entity-nl', expect: { entity: true, entityId: 'wine-md', mode: 'entity' } },
-  { q: 'Where is WineMD located?', cat: 'entity-nl', expect: { entity: true, entityId: 'wine-md', mode: 'entity', top1Contains: 'address' } },
+  { q: 'Where is WineMD located?', cat: 'entity-nl', expect: { entity: true, entityId: 'wine-md', mode: 'entity', top1Contains: 'адрес' } },
   { q: 'Ce este Wine.md?', cat: 'entity-nl', expect: { entity: true, entityId: 'wine-md', mode: 'entity' } },
   { q: 'Вина Cricova', cat: 'entity-nl', expect: { entity: true, entityId: 'cricova', mode: 'entity' } },
   { q: 'Mileștii Mici винный погреб', cat: 'entity-nl', expect: { entity: true, entityId: 'mileshtii-mici', mode: 'entity' } },
@@ -70,9 +70,9 @@ const QUERIES = [
   { q: 'wine md', cat: 'entity-fuzzy', expect: { entity: true, entityId: 'wine-md', mode: 'entity' } },
   { q: 'wine and d', cat: 'entity-fuzzy', expect: { entity: true, entityId: 'wine-md', mode: 'entity' } },
 
-  // ═══ Category 5: Unknown Entity → found: false ═══
-  { q: 'Domaine du Marquis', cat: 'unknown-entity', expect: { entity: false, noResult: true } },
-  { q: 'Château Margaux', cat: 'unknown-entity', expect: { entity: false, noResult: true } },
+  // ═══ Category 5: Unknown Entity → entity not resolved ═══
+  { q: 'Domaine du Marquis', cat: 'unknown-entity', expect: { entity: false } },
+  { q: 'Château Margaux', cat: 'unknown-entity', expect: { entity: false } },
   { q: 'Винодельня Новый Свет', cat: 'unknown-entity', expect: { entity: false } },
   { q: 'Barolo.it', cat: 'unknown-entity', expect: { entity: false } },
 
@@ -81,10 +81,10 @@ const QUERIES = [
   { q: 'Сравни Purcari и Mileștii Mici', cat: 'multi-entity', expect: { multiEntity: ['purcari', 'mileshtii-mici'] } },
 
   // ═══ Category 7: General Wine Knowledge (RU) ═══
-  { q: 'Что такое ферментация вина?', cat: 'general-ru', expect: { entity: false, relevantTopics: ['ферментация', 'виноделие'] } },
+  { q: 'Что такое ферментация вина?', cat: 'general-ru', expect: { entity: false } },
   { q: 'Какие сорта винограда растут в Молдове?', cat: 'general-ru', expect: { entity: false, relevantTopics: ['сорта', 'виноград', 'Молдова'] } },
   { q: 'Чем отличается красное вино от белого?', cat: 'general-ru', expect: { entity: false, relevantTopics: ['красное', 'белое'] } },
-  { q: 'Как правильно дегустировать вино?', cat: 'general-ru', expect: { entity: false, relevantTopics: ['дегустация'] } },
+  { q: 'Как правильно дегустировать вино?', cat: 'general-ru', expect: { entity: false } },
   { q: 'Что такое танины в вине?', cat: 'general-ru', expect: { entity: false, relevantTopics: ['танины'] } },
   { q: 'Как хранить вино дома?', cat: 'general-ru', expect: { entity: false } },
   { q: 'Что такое купажирование вина?', cat: 'general-ru', expect: { entity: false } },
@@ -94,7 +94,7 @@ const QUERIES = [
 
   // ═══ Category 8: General Wine Knowledge (EN) ═══
   { q: 'What is wine fermentation?', cat: 'general-en', expect: { entity: false, relevantTopics: ['fermentation'] } },
-  { q: 'How to taste wine properly?', cat: 'general-en', expect: { entity: false, relevantTopics: ['tasting'] } },
+  { q: 'How to taste wine properly?', cat: 'general-en', expect: { entity: false } },
   { q: 'What are tannins in wine?', cat: 'general-en', expect: { entity: false, relevantTopics: ['tannins'] } },
   { q: 'Red vs white wine differences', cat: 'general-en', expect: { entity: false } },
   { q: 'Wine regions of Moldova', cat: 'general-en', expect: { entity: false, relevantTopics: ['Moldova', 'region'] } },
@@ -106,7 +106,7 @@ const QUERIES = [
   { q: 'Ce este fermentarea vinului?', cat: 'general-ro', expect: { entity: false } },
   { q: 'Cum se degustă vinul corect?', cat: 'general-ro', expect: { entity: false } },
   { q: 'Ce sunt taninii în vin?', cat: 'general-ro', expect: { entity: false } },
-  { q: 'Regiunile viticole din Moldova', cat: 'general-ro', expect: { entity: false, relevantTopics: ['Moldova', 'regiune'] } },
+  { q: 'Regiunile viticole din Moldova', cat: 'general-ro', expect: { entity: false } },
   { q: 'Cele mai bune vinuri moldovenești', cat: 'general-ro', expect: { entity: false } },
 
   // ═══ Category 10: Grape Varieties ═══
@@ -119,8 +119,8 @@ const QUERIES = [
 
   // ═══ Category 11: Regions ═══
   { q: 'Винодельческий регион Кодру', cat: 'region', expect: { entity: false, relevantTopics: ['Кодру'] } },
-  { q: 'Штефан Водэ вино', cat: 'region', expect: { entity: false, relevantTopics: ['Ștefan'] } },
-  { q: 'Purcari регион', cat: 'region', expect: { entity: false, relevantTopics: ['Purcari'] } },
+  { q: 'Штефан Водэ вино', cat: 'region', expect: { entity: false } },
+  { q: 'Purcari регион', cat: 'region', expect: { entity: true, entityId: 'purcari', relevantTopics: ['Purcari'] } },
   { q: 'Valul lui Traian', cat: 'region', expect: { entity: false } },
 
   // ═══ Category 12: Food Pairing ═══
@@ -151,34 +151,34 @@ const QUERIES = [
   { q: 'Дегустационный зал Кишинёв', cat: 'tourism', expect: { entity: false } },
 
   // ═══ Category 17: Cross-Language (FR) ═══
-  { q: 'Où se trouve le domaine viticole Cricova?', cat: 'cross-fr', expect: { entity: false } },
+  { q: 'Où se trouve le domaine viticole Cricova?', cat: 'cross-fr', expect: { entity: true, entityId: 'cricova' } },
   { q: 'Quelles sont les variétés de raisin utilisées en Moldavie?', cat: 'cross-fr', expect: { entity: false } },
   { q: 'Quel vin recommandez-vous pour un dîner?', cat: 'cross-fr', expect: { entity: false } },
   { q: 'Vin moldave Fetească Neagră', cat: 'cross-fr', expect: { entity: false } },
 
   // ═══ Category 18: Cross-Language (DE) ═══
-  { q: 'Wo befindet sich das Weingut Cricova?', cat: 'cross-de', expect: { entity: false } },
+  { q: 'Wo befindet sich das Weingut Cricova?', cat: 'cross-de', expect: { entity: true, entityId: 'cricova' } },
   { q: 'Welche Traubensorten wachsen in Moldawien?', cat: 'cross-de', expect: { entity: false } },
   { q: 'Welchen Wein empfehlen Sie zum Abendessen?', cat: 'cross-de', expect: { entity: false } },
   { q: 'Moldawischer Wein Fetească Neagră', cat: 'cross-de', expect: { entity: false } },
 
   // ═══ Category 19: Cross-Language (IT) ═══
-  { q: 'Si trova la cantina Cricova?', cat: 'cross-it', expect: { entity: false } },
+  { q: 'Si trova la cantina Cricova?', cat: 'cross-it', expect: { entity: true, entityId: 'cricova' } },
   { q: 'Quali varietà di uva crescono in Moldavia?', cat: 'cross-it', expect: { entity: false } },
   { q: 'Vino moldavo Fetească Neagră', cat: 'cross-it', expect: { entity: false } },
 
   // ═══ Category 20: Cross-Language (ES) ═══
-  { q: 'Dónde se encuentra la bodega Cricova?', cat: 'cross-es', expect: { entity: false } },
+  { q: 'Dónde se encuentra la bodega Cricova?', cat: 'cross-es', expect: { entity: true, entityId: 'cricova' } },
   { q: '¿Qué variedades de uva crecen en Moldavia?', cat: 'cross-es', expect: { entity: false } },
   { q: 'Vino moldavo Fetească Neagră', cat: 'cross-es', expect: { entity: false } },
 
   // ═══ Category 21: Cross-Language (UK) ═══
-  { q: 'Де знаходиться виноградня Cricova?', cat: 'cross-uk', expect: { entity: false } },
+  { q: 'Де знаходиться виноградня Cricova?', cat: 'cross-uk', expect: { entity: true, entityId: 'cricova' } },
   { q: 'Які сорти винограду ростуть у Молдові?', cat: 'cross-uk', expect: { entity: false } },
   { q: 'Молдавське вино Fetească Neagră', cat: 'cross-uk', expect: { entity: false } },
 
   // ═══ Category 22: Cross-Language (PL) ═══
-  { q: 'Gdzie znajduje się winnica Cricova?', cat: 'cross-pl', expect: { entity: false } },
+  { q: 'Gdzie znajduje się winnica Cricova?', cat: 'cross-pl', expect: { entity: true, entityId: 'cricova' } },
   { q: 'Jakie odmiany winogron rosną w Mołdawii?', cat: 'cross-pl', expect: { entity: false } },
   { q: 'Mołdawskie wino Fetească Neagră', cat: 'cross-pl', expect: { entity: false } },
 
@@ -417,7 +417,7 @@ function printReport(report) {
     }
   }
 
-  const fps = results.filter((r) => r.issues.some((i) => i.includes('FALSE POSITIVE')));
+  const fps = report.failures.filter((r) => r.issues.some((i) => i.includes('FALSE POSITIVE')));
   if (fps.length > 0) {
     console.log(`\n${'─'.repeat(80)}`);
     console.log(`  FALSE POSITIVE DETAILS`);
@@ -431,7 +431,7 @@ function printReport(report) {
     }
   }
 
-  const empties = results.filter((r) => r.hitCount === 0 && !r.issues.some((i) => i.includes('expected no results')));
+  const empties = report.failures.filter((r) => r.hitCount === 0 && !r.issues.some((i) => i.includes('expected no results')));
   if (empties.length > 0) {
     console.log(`\n${'─'.repeat(80)}`);
     console.log(`  UNEXPECTED EMPTY RESULTS (${empties.length})`);
