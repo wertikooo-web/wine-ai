@@ -103,14 +103,16 @@ async function migrateCrawledData() {
             const docId = generateId('doc');
             const sql = `
                 INSERT INTO kos_source_documents (
-                    id, source_id, requested_url, canonical_url, content_type, content_length,
-                    document_type, content_hash, normalized_text, created_at, updated_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+                    id, source_id, requested_url, canonical_url, title, content_type, content_length,
+                    document_type, content_hash, normalized_text, language, status, created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'active', NOW(), NOW())
                 ON CONFLICT (source_id, canonical_url)
                 DO UPDATE SET
+                    title = EXCLUDED.title,
                     document_type = EXCLUDED.document_type,
                     content_hash = EXCLUDED.content_hash,
                     normalized_text = EXCLUDED.normalized_text,
+                    language = EXCLUDED.language,
                     updated_at = NOW()
                 RETURNING id;
             `;
@@ -121,11 +123,13 @@ async function migrateCrawledData() {
                 'migrated',
                 url,
                 url,
+                title,
                 'text/markdown',
                 Buffer.byteLength(body, 'utf8'),
                 documentType,
                 contentHash,
                 body.slice(0, 100000), // Limit text size
+                metadata.language || 'auto',
             ]);
 
             imported++;

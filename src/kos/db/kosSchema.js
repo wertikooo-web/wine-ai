@@ -613,6 +613,46 @@ const MIGRATIONS = [
             await client.query('CREATE INDEX IF NOT EXISTS idx_kos_source_docs_type ON kos_source_documents(document_type);');
         },
     },
+    {
+        version: 6,
+        name: 'v6_entity_facts_provenance_and_doc_enrichment',
+        up: async (client) => {
+            // 1. Entity Facts Provenance — tracks source URLs, extraction method, and verification per fact
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS entity_facts_provenance (
+                    id TEXT PRIMARY KEY,
+                    fact_id TEXT NOT NULL REFERENCES entity_facts(id) ON DELETE CASCADE,
+                    source_url TEXT,
+                    source_type TEXT NOT NULL DEFAULT 'general_web',
+                    source_domain TEXT,
+                    evidence TEXT,
+                    extraction_method TEXT DEFAULT 'unknown',
+                    extractor_version TEXT DEFAULT 'v1',
+                    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    verified_at TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_fact_provenance_fact ON entity_facts_provenance(fact_id);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_fact_provenance_source ON entity_facts_provenance(source_type, source_domain);');
+
+            // 2. Add title, language, status, fetched_at to kos_source_documents
+            await client.query(`
+                ALTER TABLE kos_source_documents
+                    ADD COLUMN IF NOT EXISTS title TEXT,
+                    ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'auto',
+                    ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'archived', 'failed')),
+                    ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ;
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_kos_source_docs_status ON kos_source_documents(status);');
+
+            // 3. Add fetched_at to kos_crawl_run_items for resume tracking
+            await client.query(`
+                ALTER TABLE kos_crawl_run_items
+                    ADD COLUMN IF NOT EXISTS fetched_at TIMESTAMPTZ;
+            `);
+        },
+    },
 ];
 
 const crypto = require('crypto');
