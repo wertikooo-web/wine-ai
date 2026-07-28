@@ -17,6 +17,7 @@ const { parseRobotsTxt } = require('./robotsPolicy');
 const { extractHtmlLinks } = require('./htmlLinkExtractor');
 const { normalizeUrlSyntactic } = require('./ssrfProtection');
 const { renderPage } = require('./headlessBrowser');
+const { classifyWineMdUrl } = require('./wineMdUrlClassifier');
 
 const DEFAULT_POLICY = {
     scope: 'same-origin',
@@ -87,6 +88,7 @@ async function crawlWebsite({
     const fetchFn = dependencies.safeFetchResource || safeFetchResource;
     const renderFn = dependencies.renderPage || renderPage;
     const sleepFn = dependencies.sleeper || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const urlClassifier = dependencies.urlClassifier || null;
 
     const startedAt = new Date().toISOString();
     const sourceId = source.id || 'src_unknown';
@@ -151,22 +153,32 @@ async function crawlWebsite({
                     const xmlText = smRes.rawBody.toString('utf8');
                     // Extract <loc> tags from sitemap XML
                     const locMatches = xmlText.match(/<loc>(.*?)<\/loc>/gi) || [];
-                    for (const locTag of locMatches) {
-                        const extractedUrl = locTag.replace(/<\/?loc>/gi, '').trim();
-                        if (
-                            isSameOrigin(extractedUrl, origin, effectivePolicy.includeSubdomains) &&
-                            !visitedUrls.has(extractedUrl)
-                        ) {
-                            const normalized = normalizeUrlSyntactic(extractedUrl).canonicalUrl;
-                            discoveredUrlsSet.add(normalized);
-                            queue.push({
-                                url: normalized,
-                                depth: 1,
-                                parentUrl: smUrl,
-                                discoverySource: 'sitemap',
-                            });
+                for (const locTag of locMatches) {
+                    const extractedUrl = locTag.replace(/<\/?loc>/gi, '').trim();
+                    if (
+                        isSameOrigin(extractedUrl, origin, effectivePolicy.includeSubdomains) &&
+                        !visitedUrls.has(extractedUrl)
+                    ) {
+                        const normalized = normalizeUrlSyntactic(extractedUrl).canonicalUrl;
+
+                        // Apply URL classifier if available
+                        if (urlClassifier) {
+                            const classification = urlClassifier(normalized);
+                            if (classification.skip_reason) {
+                                skippedCount++;
+                                continue;
+                            }
                         }
+
+                        discoveredUrlsSet.add(normalized);
+                        queue.push({
+                            url: normalized,
+                            depth: 1,
+                            parentUrl: smUrl,
+                            discoverySource: 'sitemap',
+                        });
                     }
+                }
                 }
             } catch {
                 /* Ignore sitemap fetch failures */
@@ -257,6 +269,15 @@ async function crawlWebsite({
                         !visitedUrls.has(linkUrl) &&
                         isSameOrigin(linkUrl, origin, effectivePolicy.includeSubdomains)
                     ) {
+                        // Apply URL classifier if available
+                        if (urlClassifier) {
+                            const classification = urlClassifier(linkUrl);
+                            if (classification.skip_reason) {
+                                skippedCount++;
+                                continue;
+                            }
+                        }
+
                         queue.push({
                             url: linkUrl,
                             depth: currentItem.depth + 1,
