@@ -4,7 +4,7 @@ language: ru
 doc_type: general
 source: https://wine.md/serviciul-clienti/politica-de-livrare
 confidence: unverified
-updated_at: 2026-07-28T18:22:56.651Z
+updated_at: 2026-07-28T18:27:38.880Z
 ---
 
 Livrarea produselor se va face oriunde în Republica Moldova, prin intermediul unei firme de curierat rapid. Livrarea pe teritoriul mun. Chişinău se efectuiază de către curierii comerciantului. Comerciantul își rezervă dreptul de a confirma comenzile, prin contactarea clienților, înainte de a le onora. Livrarea produselor se va face exclusiv printr-o firmă de curierat rapid, tarifele fiind cele precizate.
