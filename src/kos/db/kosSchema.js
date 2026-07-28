@@ -653,6 +653,37 @@ const MIGRATIONS = [
             `);
         },
     },
+
+    // v7: Add priority, active, and primary_partner_source to kos_sources
+    {
+        version: 7,
+        name: 'v7_source_priority_and_partner_type',
+        up: async (client) => {
+            // 1. Add priority column (default 50, higher = more important)
+            await client.query(`
+                ALTER TABLE kos_sources
+                    ADD COLUMN IF NOT EXISTS priority INT NOT NULL DEFAULT 50;
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_kos_sources_priority ON kos_sources(priority DESC);');
+
+            // 2. Add active column (default true)
+            await client.query(`
+                ALTER TABLE kos_sources
+                    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true;
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_kos_sources_active ON kos_sources(active);');
+
+            // 3. Update source_type CHECK constraint to include primary_partner_source and upload
+            // PostgreSQL doesn't support ALTER CHECK, so we drop and recreate
+            await client.query(`
+                ALTER TABLE kos_sources DROP CONSTRAINT IF EXISTS kos_sources_source_type_check;
+            `);
+            await client.query(`
+                ALTER TABLE kos_sources ADD CONSTRAINT kos_sources_source_type_check
+                    CHECK (source_type IN ('official_website', 'industry_portal', 'government', 'contest', 'media', 'catalog', 'other', 'primary_partner_source', 'upload'));
+            `);
+        },
+    },
 ];
 
 const crypto = require('crypto');

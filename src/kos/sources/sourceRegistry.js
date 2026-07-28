@@ -19,9 +19,21 @@ const VALID_SOURCE_TYPES = [
     'media',
     'catalog',
     'other',
+    'primary_partner_source',
+    'upload',
 ];
 
 const VALID_TRUST_LEVELS = ['A', 'B', 'C', 'D'];
+
+// Source priority levels (higher = more important)
+const SOURCE_PRIORITY = {
+    PRIMARY_PARTNER: 100,
+    OFFICIAL_WEBSITE: 80,
+    INDUSTRY_REGISTRY: 60,
+    MAPS_DIRECTORIES: 40,
+    GENERAL_WEB: 20,
+    DEFAULT: 50,
+};
 
 function generateSourceId() {
     return `src_${crypto.randomBytes(8).toString('hex')}`;
@@ -34,6 +46,8 @@ async function createSource({
     trustLevel = 'C',
     publisher = null,
     wineryId = null,
+    priority = 50,
+    active = true,
 }, clientOverride = null) {
     if (!name || typeof name !== 'string' || !name.trim()) {
         throw Object.assign(new Error('KOS_SOURCE_NAME_REQUIRED'), { code: 'KOS_SOURCE_NAME_REQUIRED' });
@@ -61,11 +75,11 @@ async function createSource({
     if (queryClient) {
         const sql = `
             INSERT INTO kos_sources (
-                id, name, seed_url, normalized_origin, source_type, trust_level, publisher, winery_id, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+                id, name, seed_url, normalized_origin, source_type, trust_level, publisher, winery_id, priority, active, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
             RETURNING *;
         `;
-        const params = [sourceId, name.trim(), seedUrl, normalizedOrigin, sourceType, trustLevel, publisher, wineryId];
+        const params = [sourceId, name.trim(), seedUrl, normalizedOrigin, sourceType, trustLevel, publisher, wineryId, priority, active];
         const { rows } = await queryClient.query(sql, params);
         return rows[0] || null;
     }
@@ -80,6 +94,8 @@ async function createSource({
         trust_level: trustLevel,
         publisher,
         winery_id: wineryId,
+        priority,
+        active,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
     };
@@ -135,4 +151,5 @@ module.exports = {
     listSources,
     VALID_SOURCE_TYPES,
     VALID_TRUST_LEVELS,
+    SOURCE_PRIORITY,
 };
