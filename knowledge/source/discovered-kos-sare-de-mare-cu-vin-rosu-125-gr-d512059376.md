@@ -1,0 +1,480 @@
+---
+title: Sare de mare cu vin rosu / 125 gr
+language: ru
+doc_type: general
+source: https://wine.md/catalog/produse-gourmet/sare-de-mare-cu-vin-rosu-/-125-gr
+confidence: unverified
+updated_at: 2026-07-28T18:22:56.651Z
+---
+
+Catalog vinuri
+
+Vinuri spumante
+
+Spirtoase
+
+Gourmet
+
+Accesorii
+
+Cadouri
+
+Sala de Degustare
+
+Turism vinarii
+
+Vinoteca
+
+Contacte
+
+Branduri
+
+Promoții
+
+Acasa
+
+Catalog
+
+Produse gourmet
+
+Sare de mare cu vin rosu / 125 gr
+
+Sare de mare cu vin rosu / 125 gr
+
+Țara:
+ Moldova
+
+Cele mai bune vinuri roșii din 2026
+
+Cele mai bune vinuri albe din 2026
+
+Cele mai bune spumante 2026
+
+Cele mai bune vinuri de autor din Moldova
+
+Top cadouri
+
+Anul Nou și Crăciunul
+
+Ziua de naștere a șefului
+
+Ziua de naștere a colegului
+
+Nuntă / Aniversare
+
+Întâlnire cu prietenii
+
+Botez
+
+Picnic de primăvară
+
+Vară
+
+Toamnă
+
+Iarnă
+
+Vinul ca amintire a călătoriei
+
+Cuvinte calde și vin cald
+
+Cină romantică
+
+Întâlnirea cu părinții
+
+Ca semn de recunoștință față de partenerii noștri
+
+Cu ocazia succesului sau a unei înțelegeri
+
+Petrecere corporativă de Anul Nou
+
+Vin + dulciuri
+
+Platou de vinuri și brânzeturi
+
+Vin + carte
+
+Eco-set
+
+Vin + Flori
+
+Vinuri Rosii
+ 
+ 
+ Cabernet Sauvignon
+ 
+
+ 
+ Carmenere
+ 
+
+ 
+ Bastardo
+ 
+
+ 
+ Feteasca Neagra
+ 
+
+ 
+ Saperavi
+ 
+
+ 
+ Rara Neagra
+ 
+
+ 
+ Pinot Noir
+ 
+
+ 
+ Malbec
+ 
+
+ 
+ Merlot
+ 
+
+ 
+ Tempranillo
+ 
+
+ 
+ Codrinschii
+ 
+
+ 
+ Pinot Franc
+ 
+
+ 
+ Shiraz
+
+Cabernet Sauvignon
+
+Carmenere
+
+Bastardo
+
+Feteasca Neagra
+
+Saperavi
+
+Rara Neagra
+
+Pinot Noir
+
+Malbec
+
+Merlot
+
+Tempranillo
+
+Codrinschii
+
+Pinot Franc
+
+Shiraz
+
+Vinuri Albe
+ 
+ 
+ Muscat
+ 
+
+ 
+ Feteasca Regala
+ 
+
+ 
+ Feteasca Alba
+ 
+
+ 
+ Chardonnay
+ 
+
+ 
+ Sauvignon Blanc
+ 
+
+ 
+ Traminer
+ 
+
+ 
+ Riesling de Rhein
+ 
+
+ 
+ Pinot Gris
+ 
+
+ 
+ Rkatsiteli
+ 
+
+ 
+ Viorica
+ 
+
+ 
+ Alb de Onitcani
+ 
+
+ 
+ Riton
+ 
+
+ 
+ Aligote
+ 
+
+ 
+ Viogner
+ 
+
+ 
+ Albarino
+ 
+
+ 
+ Blanc de Noir
+ 
+
+ 
+ Pinot Blanc
+ 
+
+ 
+ Floricica
+
+Muscat
+
+Feteasca Regala
+
+Feteasca Alba
+
+Chardonnay
+
+Sauvignon Blanc
+
+Traminer
+
+Riesling de Rhein
+
+Pinot Gris
+
+Rkatsiteli
+
+Viorica
+
+Alb de Onitcani
+
+Riton
+
+Aligote
+
+Viogner
+
+Albarino
+
+Blanc de Noir
+
+Pinot Blanc
+
+Floricica
+
+Vinuri roze
+ 
+ 
+ Cabernet Sauvignon
+ 
+
+ 
+ Rara Neagra
+ 
+
+ 
+ Saperavi
+ 
+
+ 
+ Shiraz
+ 
+
+ 
+ Merlot
+ 
+
+ 
+ Pinot Noir
+ 
+
+ 
+ Legenda
+ 
+
+ 
+ Malbec
+
+Cabernet Sauvignon
+
+Rara Neagra
+
+Saperavi
+
+Shiraz
+
+Merlot
+
+Pinot Noir
+
+Legenda
+
+Malbec
+
+Vinuri dulci
+ 
+ 
+ Heres
+ 
+
+ 
+ Cagor/Pastoral
+ 
+
+ 
+ Vin pastoral
+ 
+
+ 
+ Ice Wine
+ 
+
+ 
+ Traminer
+ 
+
+ 
+ Cabernet Sauvignon
+ 
+
+ 
+ Riesling de Rhein
+ 
+
+ 
+ Muscat
+ 
+
+ 
+ Botrytis
+ 
+
+ 
+ Marsala
+ 
+
+ 
+ Portwein
+ 
+
+ 
+ Late harvest
+ 
+
+ 
+ De fructe
+ 
+
+ 
+ Vin aromatizat
+ 
+
+ 
+ Fara Alcool
+
+Heres
+
+Cagor/Pastoral
+
+Vin pastoral
+
+Ice Wine
+
+Traminer
+
+Cabernet Sauvignon
+
+Riesling de Rhein
+
+Muscat
+
+Botrytis
+
+Marsala
+
+Portwein
+
+Late harvest
+
+De fructe
+
+Vin aromatizat
+
+Fara Alcool
+
+Vinuri de Colectie
+ 
+ 
+ Portvein
+ 
+
+ 
+ Heres
+ 
+
+ 
+ Auriu
+ 
+
+ 
+ Trandafirul Moldovei
+ 
+
+ 
+ Portwein
+ 
+
+ 
+ Cagor
+ 
+
+ 
+ Codru
+ 
+
+ 
+ Gratiesti
+
+Portvein
+
+Heres
+
+Auriu
+
+Trandafirul Moldovei
+
+Portwein
+
+Cagor
+
+Codru
+
+Gratiesti
+
+Logare
+
+Înregistrare
