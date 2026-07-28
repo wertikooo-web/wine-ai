@@ -90,6 +90,10 @@ function normalizeUrlSyntactic(rawUrl) {
         throw new SsrfValidationError('KOS_SSRF_CREDENTIALS_REJECTED', 'URLs with embedded credentials are strictly rejected.');
     }
 
+    // Extract raw hostname BEFORE URL parsing (which normalizes decimal IPs like
+    // 2130706433 → 127.0.0.1, bypassing alternative notation detection).
+    const rawHostname = (rawUrl.match(/^https?:\/\/([^/:]+)/i) || [])[1];
+
     let parsed;
     try {
         parsed = new url.URL(rawUrl);
@@ -115,9 +119,11 @@ function normalizeUrlSyntactic(rawUrl) {
         throw new SsrfValidationError('KOS_SSRF_BLOCKED_HOST', `Blocked hostname or internal domain suffix: ${hostname}`);
     }
 
-    // Check alternative IP encodings
-    if (detectAlternativeIpNotation(hostname)) {
-        throw new SsrfValidationError('KOS_SSRF_ALTERNATIVE_IP_REJECTED', `Alternative IP notation rejected: ${hostname}`);
+    // Check alternative IP encodings on the RAW hostname (before URL normalization).
+    // URL.parse() silently normalizes decimal (2130706433→127.0.0.1), hex (0x7f000001),
+    // and octal (0177.0.0.1) IPs — so we must detect them on the original string.
+    if (rawHostname && detectAlternativeIpNotation(rawHostname)) {
+        throw new SsrfValidationError('KOS_SSRF_ALTERNATIVE_IP_REJECTED', `Alternative IP notation rejected: ${rawHostname}`);
     }
 
     // Normalized origin
@@ -132,7 +138,7 @@ function normalizeUrlSyntactic(rawUrl) {
     };
 }
 
-async function validateUrlSsrf(rawUrl) {
+async function validateUrlSsrf(rawUrl, dependencies = {}) {
     const { parsed, hostname, port, normalizedOrigin, canonicalUrl } = normalizeUrlSyntactic(rawUrl);
 
     // If direct IP address is specified
@@ -141,10 +147,12 @@ async function validateUrlSsrf(rawUrl) {
             throw new SsrfValidationError('KOS_SSRF_PRIVATE_IP', `Direct private/loopback IP rejected: ${hostname}`);
         }
         return {
+            valid: true,
             canonicalUrl,
             normalizedOrigin,
             hostname,
             port,
+            resolvedIps: [hostname],
             verifiedIps: [hostname],
             primaryIp: hostname,
         };
@@ -153,18 +161,32 @@ async function validateUrlSsrf(rawUrl) {
     // DNS A / AAAA resolution
     let resolvedIps = [];
     try {
-        const [aRecords, aaaaRecords] = await Promise.allSettled([
-            dns.resolve4(hostname),
-            dns.resolve6(hostname),
-        ]);
-
-        if (aRecords.status === 'fulfilled') resolvedIps.push(...aRecords.value);
-        if (aaaaRecords.status === 'fulfilled') resolvedIps.push(...aaaaRecords.value);
-    } catch (err) {
-        if (process.env.NODE_ENV === 'test' || process.env.KOS_TEST_MODE === 'true') {
-            resolvedIps = ['93.184.216.34'];
+        if (dependencies.dnsResolver) {
+            resolvedIps = await dependencies.dnsResolver(hostname);
         } else {
-            throw new SsrfValidationError('KOS_SSRF_DNS_FAILED', `DNS resolution failed for hostname: ${hostname} (${err.message})`);
+            const [aRecords, aaaaRecords] = await Promise.allSettled([
+                dns.resolve4(hostname),
+                dns.resolve6(hostname),
+            ]);
+
+            if (aRecords.status === 'fulfilled') resolvedIps.push(...aRecords.value);
+            if (aaaaRecords.status === 'fulfilled') resolvedIps.push(...aaaaRecords.value);
+        }
+    } catch (err) {
+        // Fallback to dns.lookup below
+    }
+
+    // Fallback to dns.lookup (OS getaddrinfo resolver) if resolve4/resolve6 failed (common on Windows/VPN environments)
+    if (resolvedIps.length === 0) {
+        try {
+            const lookupResults = await dns.lookup(hostname, { all: true });
+            resolvedIps = lookupResults.map(r => r.address);
+        } catch (err) {
+            if (process.env.NODE_ENV === 'test' || process.env.KOS_TEST_MODE === 'true') {
+                resolvedIps = ['93.184.216.34'];
+            } else {
+                throw new SsrfValidationError('KOS_SSRF_DNS_FAILED', `DNS resolution failed for hostname: ${hostname} (${err.message})`);
+            }
         }
     }
 
@@ -182,6 +204,24 @@ async function validateUrlSsrf(rawUrl) {
         }
     }
 
+    // Check ALL resolved IPs for mixed public/private
+    let hasPrivate = false;
+    let hasPublic = false;
+    for (const resolvedIp of resolvedIps) {
+        if (isPrivateIp(resolvedIp)) {
+            hasPrivate = true;
+        } else {
+            hasPublic = true;
+        }
+    }
+
+    if (hasPrivate && hasPublic) {
+        return {
+            valid: false,
+            error: 'KOS_SSRF_MIXED_PUBLIC_PRIVATE_IPS',
+        };
+    }
+
     // Check ALL resolved IPs
     for (const resolvedIp of resolvedIps) {
         if (isPrivateIp(resolvedIp)) {
@@ -190,10 +230,12 @@ async function validateUrlSsrf(rawUrl) {
     }
 
     return {
+        valid: true,
         canonicalUrl,
         normalizedOrigin,
         hostname,
         port,
+        resolvedIps,
         verifiedIps: resolvedIps,
         primaryIp: resolvedIps[0],
     };

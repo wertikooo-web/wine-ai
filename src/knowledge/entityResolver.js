@@ -7,6 +7,7 @@ const ALIASES_FILE = path.join(__dirname, '..', '..', 'knowledge', 'entity-alias
 
 const MIN_FUZZY_INPUT_LENGTH = 4;
 const FUZZY_MATCH_THRESHOLD = 0.7;
+const FUZZY_SUGGEST_THRESHOLD = 0.55;
 const FUZZY_AMBIGUITY_GAP = 0.05;
 
 const _aliasCacheByPath = new Map();
@@ -143,8 +144,11 @@ function _extractEntityMentions(input, entities) {
 }
 
 // Resolve ALL entities mentioned in the input. Returns array of matches.
+// Options:
+//   - includeSuggestions: if true, also returns medium-confidence fuzzy matches
+//     as `suggestions` (requires_confirmation: true).
 function resolveEntities(input, options = {}) {
-  const { aliasesFile } = options;
+  const { aliasesFile, includeSuggestions = false } = options;
   const { original, normalized, variants } = normalizeEntityName(input);
   if (!original) return [];
 
@@ -152,11 +156,15 @@ function resolveEntities(input, options = {}) {
   const normalizedVariants = new Set(variants.map(_normalizeForCompare));
 
   const matches = [];
+  // Track best fuzzy candidate per entity for suggestions
+  const bestFuzzyByEntity = new Map();
 
   for (const entity of entities) {
     let bestAlias = null;
     let bestConfidence = 0;
     let bestMatchType = null;
+    let bestSuggestionAlias = null;
+    let bestSuggestionConfidence = 0;
 
     for (const { alias } of entity.aliases) {
       const aliasNorm = _normalizeForCompare(alias);
@@ -183,15 +191,23 @@ function resolveEntities(input, options = {}) {
         const dice = diceCoefficient(aliasNorm, normalized);
         if (dice >= FUZZY_MATCH_THRESHOLD && dice > bestConfidence) {
           bestAlias = alias; bestConfidence = Math.round(dice * 100) / 100; bestMatchType = 'fuzzy';
+        } else if (includeSuggestions && dice >= FUZZY_SUGGEST_THRESHOLD && dice > bestSuggestionConfidence) {
+          bestSuggestionAlias = alias;
+          bestSuggestionConfidence = Math.round(dice * 100) / 100;
         }
       }
     }
 
-    // NO entity-ID substring fallback — it was too permissive
-    // (e.g. "wine" inside a sentence would match wine-md)
-
     if (bestAlias) {
       matches.push({ entity, alias: bestAlias, confidence: bestConfidence, matchType: bestMatchType });
+    } else if (includeSuggestions && bestSuggestionAlias && bestSuggestionConfidence >= FUZZY_SUGGEST_THRESHOLD) {
+      // Track as suggestion only — not a confirmed match
+      bestFuzzyByEntity.set(entity.entityId, {
+        entity,
+        alias: bestSuggestionAlias,
+        confidence: bestSuggestionConfidence,
+        matchType: 'fuzzy_suggestion',
+      });
     }
   }
 
@@ -208,7 +224,7 @@ function resolveEntities(input, options = {}) {
     }
   }
 
-  return matches.map((m) => ({
+  const resolved = matches.map((m) => ({
     found: true,
     entityId: m.entity.entityId,
     canonicalName: m.entity.canonicalName,
@@ -216,14 +232,38 @@ function resolveEntities(input, options = {}) {
     matchType: m.matchType,
     confidence: m.confidence,
   }));
+
+  // Attach suggestions if requested and no exact/normalized match was found
+  if (includeSuggestions && resolved.length === 0 && bestFuzzyByEntity.size > 0) {
+    const suggestions = [...bestFuzzyByEntity.values()]
+      .sort((a, b) => b.confidence - a.confidence)
+      .map((s) => ({
+        entityId: s.entity.entityId,
+        canonicalName: s.entity.canonicalName,
+        matchedAlias: s.alias,
+        confidence: s.confidence,
+        requires_confirmation: true,
+      }));
+    return [{ found: false, suggestions }];
+  }
+
+  return resolved;
 }
 
 // Backward-compatible: resolve exactly one entity.
 // Returns single match only if unambiguous; otherwise found=false.
+// Options:
+//   - includeSuggestions: if true, includes medium-confidence fuzzy suggestions
+//     when no exact/normalized match is found.
 function resolveEntity(input, options = {}) {
   const all = resolveEntities(input, options);
 
   if (all.length === 0) {
+    // Check if suggestions were returned (found=false with suggestions array)
+    if (all[0] && all[0].suggestions) {
+      return all[0];
+    }
+
     // Try mention extraction as fallback for natural-language queries
     const entities = _loadAliases(options.aliasesFile);
     const mentions = _extractEntityMentions(input, entities);

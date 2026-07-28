@@ -47,9 +47,11 @@ async function impl(args) {
     const index = loadIndex();
     const nameLower = name.toLowerCase();
 
+    // Resolve with suggestions enabled for safe fuzzy matching
+    const primaryResolved = resolveEntity(name, { includeSuggestions: true });
+
     // Multi-entity: resolve all entities mentioned in the query
     const allMentions = [];
-    const primaryResolved = resolveEntity(name);
     if (primaryResolved.found && primaryResolved.allMentions) {
         allMentions.push(...primaryResolved.allMentions);
     } else if (primaryResolved.found) {
@@ -75,58 +77,23 @@ async function impl(args) {
         return { found: false, results: [], reason: 'entity_known_no_chunks', entity: primaryResolved.entityId };
     }
 
-    // No entity match — only search for winery_profile doc_type
-    const direct = index.chunks.filter((chunk) => (
-        chunk.metadata.doc_type === 'winery_profile'
-        && chunk.metadata.winery
-        && chunk.metadata.winery.toLowerCase().includes(nameLower)
-        && (!region || (chunk.metadata.region || '').toLowerCase().includes(region.toLowerCase()))
-    ));
-
-    if (direct.length > 0) {
+    // Entity not found — check for medium-confidence suggestions
+    if (primaryResolved.suggestions && primaryResolved.suggestions.length > 0) {
         return {
-            found: true,
-            winery: direct[0].metadata.winery,
-            region: direct[0].metadata.region,
-            results: direct.slice(0, MAX_RESULTS).map((chunk) => ({
-                text: chunk.text,
-                source: chunk.metadata.source,
-                confidence: chunk.metadata.confidence,
-            })),
+            found: false,
+            results: [],
+            reason: 'entity_suggested',
+            suggestions: primaryResolved.suggestions,
+            // The assistant should ask: "Did you mean <suggestion>?"
         };
     }
 
-    // Last resort: keyword search — but only return found: true if we actually have content
-    const { hits, entityContext } = await search(`${name} ${region}`.trim(), { limit: 3 });
-    if (hits.length === 0) {
-        return { found: false, results: [] };
-    }
-
-    // Only consider results as evidence if they have reasonable scores (not just noise)
-    const evidenceHits = hits.filter((h) => h.score >= 3);
-    if (evidenceHits.length === 0) {
-        return { found: false, results: [] };
-    }
-
-    const results = [];
-    if (entityContext) {
-        results.push({ text: entityContext, source: 'entity_resolver', confidence: 'high' });
-    }
-    for (const { chunk } of evidenceHits) {
-        if (results.length >= MAX_RESULTS) break;
-        results.push({
-            text: chunk.text,
-            source: chunk.metadata.source,
-            confidence: chunk.metadata.confidence,
-        });
-    }
-
-    return {
-        found: true,
-        winery: name,
-        region: region || null,
-        results,
-    };
+    // Unknown entity, no suggestions — fail-closed.
+    // Do NOT fall back to keyword search for brand/winery-specific lookups.
+    // The keyword fallback would return unrelated chunks from other wineries,
+    // which is worse than honestly reporting "not found".
+    // General topic queries should use search_wine_knowledge instead.
+    return { found: false, results: [], reason: 'entity_not_found' };
 }
 
 module.exports = { declaration, impl };
