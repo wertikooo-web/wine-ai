@@ -18,6 +18,7 @@ const defaultDb = require('../../knowledge/db');
 const defaultSourceRegistry = require('./sourceRegistry');
 const defaultCrawlIngestionService = require('./crawlIngestionService');
 const { validateUrlSsrf } = require('./ssrfProtection');
+const { classifyWineMdUrl } = require('./wineMdUrlClassifier');
 
 function createError(code, message, status = 400) {
     const err = new Error(`${code}: ${message}`);
@@ -102,6 +103,12 @@ async function addWebsiteAndStartCrawl({
     // 1. Find existing source by origin
     let source = await registry.findSourceByOrigin(normalizedOrigin, queryClient);
 
+    // Detect wine.md as primary partner source
+    const isWineMd = normalizedOrigin.includes('wine.md');
+    const sourceType = isWineMd ? 'primary_partner_source' : 'official_website';
+    const trustLevel = isWineMd ? 'A' : 'C';
+    const priority = isWineMd ? 100 : 50;
+
     if (source) {
         // Source exists -> Check if crawl is already running
         const latestRun = await getLatestCrawlRun(source.id, queryClient);
@@ -118,9 +125,10 @@ async function addWebsiteAndStartCrawl({
             {
                 name: sourceName,
                 seedUrl: trimmedUrl,
-                sourceType: 'official_website',
-                trustLevel: 'C',
+                sourceType,
+                trustLevel,
                 wineryId: wineryId || null,
+                priority,
             },
             queryClient
         );
@@ -130,11 +138,17 @@ async function addWebsiteAndStartCrawl({
     let crawlResult = null;
     let crawlError = null;
 
+    // Pass URL classifier for wine.md sources
+    const crawlerDependencies = { ...dependencies, queryClient };
+    if (isWineMd) {
+        crawlerDependencies.urlClassifier = classifyWineMdUrl;
+    }
+
     try {
         crawlResult = await crawlService.ingestSource({
             sourceId: source.id,
             policy,
-            dependencies: { ...dependencies, queryClient },
+            dependencies: crawlerDependencies,
         });
     } catch (err) {
         crawlError = err;
@@ -183,13 +197,20 @@ async function triggerCrawlForSource({
         throw err;
     }
 
+    // Detect wine.md source and pass URL classifier
+    const isWineMd = source.normalized_origin && source.normalized_origin.includes('wine.md');
+    const crawlerDependencies = { ...dependencies, queryClient };
+    if (isWineMd) {
+        crawlerDependencies.urlClassifier = classifyWineMdUrl;
+    }
+
     let crawlResult = null;
     let crawlError = null;
     try {
         crawlResult = await crawlService.ingestSource({
             sourceId,
             policy,
-            dependencies: { ...dependencies, queryClient },
+            dependencies: crawlerDependencies,
         });
     } catch (err) {
         crawlError = err;

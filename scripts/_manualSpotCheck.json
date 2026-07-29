@@ -1,0 +1,171 @@
+{
+  "results": [
+    {
+      "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/agrici-wine-aligote-and-chardonnay",
+      "h1_wine_name": "Agrici Wine Aligote & Chardonnay",
+      "jsonLd_brand": "wine.md",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2020",
+      "grape": "Aligote",
+      "verdict": "ambiguous",
+      "note": "Winery \"wine.md\" not in breadcrumbs: [Catalog vinuri, Vinuri spumante, Spirtoase, Gourmet, Accesorii, Cadouri, Branduri, Promoții, Acasa, Catalog, Vinuri Albe, Aligote, Vinuri Rosii, Vinuri Albe, Vinuri roze, Vinuri dulci, Vinuri de Colectie]"
+    },
+    {
+      "url": "https://wine.md/purcari-negru-de-purcari-2707",
+      "h1_wine_name": "Purcari Negru de Purcari",
+      "jsonLd_brand": "Chateau Purcari",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2022",
+      "grape": "Saperavi",
+      "verdict": "ambiguous",
+      "note": "Winery \"Chateau Purcari\" not in breadcrumbs: [Catalog vinuri, Vinuri spumante, Spirtoase, Gourmet, Accesorii, Cadouri, Branduri, Promoții, Acasa, Catalog, Vinuri Rosii, Saperavi, Vinuri Rosii, Vinuri Albe, Vinuri roze, Vinuri dulci, Vinuri de Colectie]"
+    },
+    {
+      "url": "https://wine.md/catalog/wine/vinuri-roze/timbrus-rose",
+      "h1_wine_name": "Timbrus Purcari Estate Rose",
+      "jsonLd_brand": "Timbrus Purcari Estate",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2024",
+      "grape": "Merlot",
+      "verdict": "correct",
+      "note": "Winery \"Timbrus Purcari Estate\" found in h1"
+    },
+    {
+      "url": "https://wine.md/chateau-vartely-select-feteasca-regala-3170",
+      "h1_wine_name": "Chateau Vartely Select Feteasca Regala",
+      "jsonLd_brand": "Chateau Vartely",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2015",
+      "grape": "Feteasca  Regala",
+      "verdict": "correct",
+      "note": "Winery \"Chateau Vartely\" found in h1"
+    },
+    {
+      "url": "https://wine.md/cricova-sauvignon-blanc-prestige-2728",
+      "h1_wine_name": "Cricova Sauvignon Blanc Prestige",
+      "jsonLd_brand": "Cricova",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2015",
+      "grape": "Sauvignon  Blanc",
+      "verdict": "correct",
+      "note": "Winery \"Cricova\" found in h1"
+    },
+    {
+      "url": "https://wine.md/pinot-gris-de-purcari-3333",
+      "h1_wine_name": "Pinot Grigio de Purcari",
+      "jsonLd_brand": "Chateau Purcari",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2025",
+      "grape": "Pinot  Gris",
+      "verdict": "ambiguous",
+      "note": "Winery \"Chateau Purcari\" not in breadcrumbs: [Catalog vinuri, Vinuri spumante, Spirtoase, Gourmet, Accesorii, Cadouri, Branduri, Promoții, Acasa, Catalog, Vinuri Albe, Pinot Gris, Vinuri Rosii, Vinuri Albe, Vinuri roze, Vinuri dulci, Vinuri de Colectie]"
+    },
+    {
+      "url": "https://wine.md/purcari-freedom-blend-3672",
+      "h1_wine_name": "Purcari Freedom Blend",
+      "jsonLd_brand": "Chateau Purcari",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2023",
+      "grape": "Saperavi",
+      "verdict": "ambiguous",
+      "note": "Winery \"Chateau Purcari\" not in breadcrumbs: [Catalog vinuri, Vinuri spumante, Spirtoase, Gourmet, Accesorii, Cadouri, Branduri, Promoții, Acasa, Catalog, Vinuri Rosii, Bastardo, Vinuri Rosii, Vinuri Albe, Vinuri roze, Vinuri dulci, Vinuri de Colectie]"
+    },
+    {
+      "url": "https://wine.md/catalog/wine/vinuri-albe/viorica/salcuta-new-viorica",
+      "h1_wine_name": "Salcuta  Viorica",
+      "jsonLd_brand": "Salcuta",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2018",
+      "grape": "Viorica",
+      "verdict": "correct",
+      "note": "Winery \"Salcuta\" found in h1"
+    },
+    {
+      "url": "https://wine.md/catalog/wine/vinuri-dulci/ice-wine/chateau-vartely-ice-wine-riesling",
+      "h1_wine_name": "Chateau Vartely Ice Wine Riesling",
+      "jsonLd_brand": "Chateau Vartely",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2023",
+      "grape": "Riesling",
+      "verdict": "correct",
+      "note": "Winery \"Chateau Vartely\" found in h1"
+    },
+    {
+      "url": "https://wine.md/catalog/wine/vinuri-rosii/feteasca-neagra/cricova-feteasca-neagra",
+      "h1_wine_name": "Cricova Orasul Subteran Feteasca Neagra",
+      "jsonLd_brand": "Cricova",
+      "breadcrumbs": [
+        "Catalog vinuri",
+        "Vinuri spumante",
+        "Spirtoase",
+        "Gourmet",
+        "Accesorii"
+      ],
+      "vintage": "2023",
+      "grape": "Feteasca  Neagra",
+      "verdict": "correct",
+      "note": "Winery \"Cricova\" found in h1"
+    }
+  ],
+  "summary": {
+    "checked": 10,
+    "correct": 6,
+    "ambiguous": 4,
+    "incorrect": 0,
+    "errors": 0
+  }
+}

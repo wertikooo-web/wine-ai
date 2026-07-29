@@ -26,6 +26,8 @@ const rawResourceStorage = require('./rawResourceStorage');
 const { DEFAULT_SOURCE_DIR } = require('../../knowledge/loader');
 const { buildIndex } = require('../../knowledge/index');
 const { cleanText, isSubstantial } = require('../../knowledge/processor/clean');
+const { extractWineProduct, extractEditorialArticle, extractContactPage } = require('../extraction/wineMdExtractor');
+const { shouldActivateWineMdFact } = require('../extraction/conflictResolver');
 // Git push REMOVED — crawled data is stored in Postgres, not pushed to Git.
 // Manual curated file management (server.js) still uses gitPersist directly.
 
@@ -39,6 +41,47 @@ function createStructuredError(code, message, details = {}, retryable = false) {
     err.details = details;
     err.retryable = retryable;
     return err;
+}
+
+/**
+ * Format extracted data into searchable text.
+ */
+function formatExtractedText(data) {
+    if (!data) return null;
+
+    const parts = [];
+
+    if (data.type === 'wine_product') {
+        if (data.name) parts.push(`Wine: ${data.name}`);
+        if (data.winery) parts.push(`Winery: ${data.winery}`);
+        if (data.vintage) parts.push(`Vintage: ${data.vintage}`);
+        if (data.grape_varieties && data.grape_varieties.length) parts.push(`Grapes: ${data.grape_varieties.join(', ')}`);
+        if (data.wine_type) parts.push(`Type: ${data.wine_type}`);
+        if (data.color) parts.push(`Color: ${data.color}`);
+        if (data.sweetness) parts.push(`Sweetness: ${data.sweetness}`);
+        if (data.region) parts.push(`Region: ${data.region}`);
+        if (data.description) parts.push(`Description: ${data.description}`);
+        if (data.tasting_notes) parts.push(`Tasting notes: ${data.tasting_notes}`);
+        if (data.pairing) parts.push(`Food pairing: ${data.pairing}`);
+        if (data.serving_temperature) parts.push(`Serve at: ${data.serving_temperature}`);
+        // NOTE: price, availability, alcohol, volume excluded from text index
+        // These should be read via structured lookup, not semantic search
+    } else if (data.type === 'editorial_article') {
+        if (data.title) parts.push(`Title: ${data.title}`);
+        if (data.author) parts.push(`Author: ${data.author}`);
+        if (data.description) parts.push(`Summary: ${data.description}`);
+        if (data.content) parts.push(`Content: ${data.content.slice(0, 5000)}`);
+        if (data.tags && data.tags.length) parts.push(`Tags: ${data.tags.join(', ')}`);
+    } else if (data.type === 'contact_page') {
+        if (data.company_name) parts.push(`Company: ${data.company_name}`);
+        if (data.address) parts.push(`Address: ${data.address}`);
+        if (data.phone) parts.push(`Phone: ${data.phone}`);
+        if (data.email) parts.push(`Email: ${data.email}`);
+        if (data.website) parts.push(`Website: ${data.website}`);
+        if (data.working_hours) parts.push(`Hours: ${data.working_hours}`);
+    }
+
+    return parts.length > 0 ? parts.join('\n') : null;
 }
 
 async function ingestSource({
@@ -220,6 +263,39 @@ async function ingestSource({
                 status: itemStatus,
                 detectedContentType: fetchRes.detectedContentType,
             });
+
+            // Wine.md-specific extraction: extract structured data and store in entity_facts
+            if (source.source_type === 'primary_partner_source' && queryClient && rawBuffer) {
+                try {
+                    const html = rawBuffer.toString('utf8');
+                    const urlClassification = dependencies.urlClassifier ? dependencies.urlClassifier(canonicalUrl) : null;
+                    const docType = urlClassification ? urlClassification.type : 'unknown';
+
+                    let extractedData = null;
+                    if (docType === 'wine_product') {
+                        extractedData = extractWineProduct(html, canonicalUrl);
+                    } else if (docType === 'editorial_article') {
+                        extractedData = extractEditorialArticle(html, canonicalUrl);
+                    } else if (docType === 'contact_page') {
+                        extractedData = extractContactPage(html, canonicalUrl);
+                    }
+
+                    if (extractedData && extractedData.name) {
+                        // Store extracted data as normalized_text for search
+                        const normalizedText = formatExtractedText(extractedData);
+                        if (normalizedText) {
+                            await queryClient.query(
+                                `UPDATE kos_source_documents
+                                 SET normalized_text = $1, title = $2, language = 'auto', status = 'active'
+                                 WHERE id = $3`,
+                                [normalizedText.slice(0, 100000), extractedData.name || extractedData.title, documentId]
+                            );
+                        }
+                    }
+                } catch (extractErr) {
+                    console.error('[KOS] wine.md extraction failed for', canonicalUrl, ':', extractErr.message);
+                }
+            }
         }
 
         // 5b. Bridge removed — crawled data is stored in Postgres only.
