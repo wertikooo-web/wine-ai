@@ -36,6 +36,9 @@ const WINE_MD_URL_PATTERNS = [
     // Service pages (shipping, returns, etc.)
     { pattern: /\/serviciul-clienti(?:\/|$|\?)/i, type: 'technical', priority: null, skip_reason: 'service_page' },
 
+    // Known non-wine root pages
+    { pattern: /^\/(?:about(?:-us)?|brand|contacts?|faq|terms|privacy|cookie|shipping|returns|delivery)(?:\/|$|\?)/i, type: 'contact_page', priority: 80, skip_reason: null },
+
     // === PRIORITY 100: Wine products ===
 
     // Wine.md catalog wine pages (actual products with specific wine name)
@@ -59,10 +62,10 @@ const WINE_MD_URL_PATTERNS = [
     // /echinoctius-6492
     { pattern: /^\/[a-z0-9]+-\d+$/i, type: 'wine_product', priority: 100 },
 
-    // Standard wine product pages
-    { pattern: /\/wines?(?:\/|$)/i, type: 'wine_product', priority: 100 },
-    { pattern: /\/vin(?:a|o|y|e|u)?(?:\/|$)/i, type: 'wine_product', priority: 100 },
-    { pattern: /\/product(?:s)?(?:\/|$)/i, type: 'wine_product', priority: 100 },
+    // Standard wine product pages (root-level only, not /catalog/wine/)
+    { pattern: /^\/wines?(?:\/|$)/i, type: 'wine_product', priority: 100 },
+    { pattern: /^\/vin(?:a|o|y|e|u)?(?:\/|$)/i, type: 'wine_product', priority: 100 },
+    { pattern: /^\/product(?:s)?(?:\/|$)/i, type: 'wine_product', priority: 100 },
 
     // === PRIORITY 80: Supporting pages ===
 
@@ -116,7 +119,10 @@ const WINE_MD_URL_PATTERNS = [
     // === SKIP: Low-value catalog pages ===
 
     // Catalog root
-    { pattern: /^https?:\/\/wine\.md\/catalog\/?$/i, type: 'category_page', priority: null, skip_reason: 'catalog_root' },
+    { pattern: /^\/catalog\/?$/i, type: 'category_page', priority: null, skip_reason: 'catalog_root' },
+
+    // Catalog wine root
+    { pattern: /^\/catalog\/wine\/?$/i, type: 'category_page', priority: null, skip_reason: 'catalog_root' },
 
     // Catalog index pages (category navigation, not products)
     { pattern: /\/catalog\/wine\/(?:vinuri-[^/]+|spirtoase|gourmet|cadouri|seturi)(?:\/|$)/i, type: 'category_page', priority: null, skip_reason: 'category_index' },
