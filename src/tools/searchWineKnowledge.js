@@ -1,7 +1,7 @@
 'use strict';
 
 const { search } = require('../knowledge/search');
-const { requireNonEmptyString, optionalString } = require('./toolHelpers');
+const { requireNonEmptyString, optionalString, setSearchBlock } = require('./toolHelpers');
 
 const declaration = {
     name: 'search_wine_knowledge',
@@ -114,10 +114,12 @@ async function runBoundedRetrieval(query, { language }) {
     return { attempts, hits: bestHits, entityContext: bestEntityContext, winningVariant: bestVariant, finalStatus };
 }
 
-async function impl(args) {
+async function impl(args, toolContext) {
     const query = requireNonEmptyString(args.query, 'query');
     const language = optionalString(args.language, 8) || null;
     const { attempts, hits, entityContext, finalStatus } = await runBoundedRetrieval(query, { language });
+
+    setSearchBlock(toolContext, finalStatus);
 
     // Diagnostic logging (P2 from docs/KNOWLEDGE_RUNTIME_AUDIT.md) — the
     // only way to tell "the model didn't call this tool" apart from "it
@@ -153,7 +155,7 @@ async function impl(args) {
             found: false,
             status: 'not_found',
             results: [],
-            instruction: 'No information about this was found in the knowledge base, even after trying alternate phrasings of the same query. You MUST now use an external tool (search_web, search_place, or fetch_page) to look up this information online. Do NOT answer from your own general/pretrained knowledge — that would misrepresent an unverified guess as a sourced fact. If external tools are unavailable or return no results, tell the user honestly that the information is not available from any source right now.',
+            instruction: 'No information about this was found in the knowledge base. Do NOT use external search tools for this query. Tell the user honestly that the information is not available.',
         };
     }
 
