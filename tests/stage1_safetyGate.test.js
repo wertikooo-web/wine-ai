@@ -1,6 +1,6 @@
 'use strict';
 
-const { describe, it, before } = require('node:test');
+const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { bindTool, setSearchBlock } = require('../src/tools/toolHelpers');
 
@@ -141,5 +141,66 @@ describe('Stage 1 safety gate — external tool blocking', () => {
         assert.equal(blockEvent.extra.tool, 'search_web');
         assert.equal(blockEvent.extra.reason, 'entity_not_found');
         assert.equal(blockEvent.extra.generationId, genId);
+    });
+
+    it('rejects any tool call without generationId', async () => {
+        const result = await searchWeb({ args: { query: 'anything' } });
+        assert.equal(result.error, 'missing_generation_id');
+    });
+
+    it('rejects search_wine_knowledge call without generationId (no accidental block)', async () => {
+        const result = await searchWineKnowledge({ args: { query: 'unknown' } });
+        assert.equal(result.error, 'missing_generation_id');
+    });
+
+    describe('integration — real searchWineKnowledge.impl', () => {
+        let searchPath;
+        let winePath;
+        let originalSearchModule;
+        let originalWineModule;
+
+        before(() => {
+            searchPath = require.resolve('../src/knowledge/search');
+            winePath = require.resolve('../src/tools/searchWineKnowledge');
+
+            originalSearchModule = require.cache[searchPath];
+            originalWineModule = require.cache[winePath];
+
+            // Replace the search module with a mock that always returns empty hits
+            delete require.cache[searchPath];
+            require.cache[searchPath] = {
+                exports: {
+                    search: async () => ({ hits: [], tookMs: 0, mode: 'keyword' }),
+                    tokenize: () => [],
+                    getLastSemanticError: () => null,
+                },
+                id: searchPath,
+                loaded: true,
+            };
+            // Force searchWineKnowledge to re-require with mocked search
+            delete require.cache[winePath];
+        });
+
+        after(() => {
+            delete require.cache[searchPath];
+            if (originalSearchModule) require.cache[searchPath] = originalSearchModule;
+            delete require.cache[winePath];
+            if (originalWineModule) require.cache[winePath] = originalWineModule;
+        });
+
+        it('NOT_FOUND through real impl blocks external tools in same generation', async () => {
+            const searchWineKnowledge = require('../src/tools/searchWineKnowledge');
+            const ctx = { log: () => {} };
+            const genId = 'gen-integration';
+
+            const knowledgeHandler = bindTool({ name: 'search_wine_knowledge', impl: searchWineKnowledge.impl }, ctx);
+            const webHandler = bindTool({ name: 'search_web', impl: async () => ({ found: true }) }, ctx);
+
+            const knowledgeResult = await knowledgeHandler({ args: { query: 'this entity does not exist in our knowledge base at all' }, generationId: genId });
+            assert.equal(knowledgeResult.status, 'not_found');
+
+            const webResult = await webHandler({ args: { query: 'anything' }, generationId: genId });
+            assert.equal(webResult.error, 'external_search_blocked');
+        });
     });
 });

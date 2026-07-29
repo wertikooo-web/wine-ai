@@ -48,6 +48,14 @@ function bindTool({ name, impl }, toolContext = {}) {
     return async function toolHandler({ args = {}, generationId, turnId } = {}) {
         const startedAt = Date.now();
 
+        // Stage 1 gate: reject calls without a generationId — undefined
+        // generationId would otherwise create an anonymous generation that
+        // could accidentally match a stale undefined _blockedGeneration.
+        if (!generationId) {
+            log('tool_rejected', { tool: name, turnId: turnId || 'none', reason: 'missing_generation_id' });
+            return { error: 'missing_generation_id', message: 'Tool call requires a generation identifier.' };
+        }
+
         // Stage 1 gate: expose generationId for tools that need it
         toolContext._currentGenerationId = generationId;
 
