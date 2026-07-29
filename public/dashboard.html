@@ -2802,6 +2802,14 @@
   async function startTurn() {
     itrace('startTurn_entered', { wsState: ws ? ws.readyState : null, hasMicStream: !!micStream });
     if (!ws || ws.readyState !== WebSocket.OPEN) { itrace('startTurn_exited_no_ws'); return; }
+    // Set isHolding BEFORE any await so a quick pointerup->endTurn()
+    // correctly detects the hold instead of no-opping. Failure to do this
+    // caused the alternating PTT bug: endTurn() found isHolding===false,
+    // left isHolding leaked to true by the late-resolved startTurn(),
+    // then the next press's endTurn() consumed the leaked flag before
+    // startTurn() could set it, preventing recording from ever starting
+    // on alternating presses.
+    isHolding = true;
     // Stop any currently-playing assistant audio and flip the UI to
     // "listening" IMMEDIATELY on press — this is the client's own
     // AudioContext, so there is no reason to wait for a server round-trip
@@ -2822,10 +2830,12 @@
     // ensureAudioContextRunning() above).
     const audioReady = await ensureAudioContextRunning();
     if (turnInteractionId !== currentInteractionId) {
+      isHolding = false;
       itrace('startTurn_exited_stale_after_audio_context', { turnInteractionId });
       return;
     }
     if (!audioReady) {
+      isHolding = false;
       itrace('startTurn_exited_audio_context_not_running', { state: audioContext ? audioContext.state : 'none' });
       DeviceVisual.setState('ready');
       setText('micState', 'error');
@@ -2842,15 +2852,23 @@
     try {
       await ensureMic();
     } catch (err) {
+      isHolding = false;
       itrace('startTurn_exited_mic_error', { message: err.message });
       sendTelemetry('mic_error', { message: err.message });
       return;
     }
     if (turnInteractionId !== currentInteractionId) {
+      isHolding = false;
       itrace('ensureMic_resolved_stale_interaction', { turnInteractionId });
       return; // user already released/re-pressed — do not start a turn for an abandoned press
     }
-    isHolding = true;
+    // If the user already released during the async gap, endTurn() has
+    // already cleared isHolding and sent input_audio.end. Don't start a
+    // new turn or show recording for a release that already happened.
+    if (!isHolding) {
+      itrace('startTurn_exited_released_during_gap', {});
+      return;
+    }
     setText('micState', 'recording');
     DeviceVisual.setState('listening');
     firstFrameSentForInteraction = null;
