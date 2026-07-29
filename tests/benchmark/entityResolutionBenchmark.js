@@ -105,19 +105,25 @@ add('short', 'MD', 'NOT_FOUND', null, { note: 'too short/ambiguous → NOT_FOUND
 add('short', 'WD', 'NOT_FOUND', null, { note: 'too ambiguous' });
 add('short', 'WM', 'NOT_FOUND', null, { note: 'not a known code' });
 
-// ── 8. OOS — outside Moldova wine scope (10)
+// ── 8. OOS — outside Moldova wine scope (3)
 //     Target state (Stage 2): OUT_OF_SCOPE. Current resolver returns NOT_FOUND.
 //     This gap is acceptable baseline behaviour.
 add('oos', 'Bordeaux', 'OUT_OF_SCOPE', null, { note: 'region outside scope' });
 add('oos', 'Château Margaux', 'OUT_OF_SCOPE', null, { note: 'Bordeaux wine outside scope' });
 add('oos', 'Napa Valley', 'OUT_OF_SCOPE', null, { note: 'region outside scope' });
-add('oos', 'Riesling', 'OUT_OF_SCOPE', null, { note: 'variety outside scope' });
-add('oos', 'Chardonnay', 'OUT_OF_SCOPE', null, { note: 'grape outside scope' });
-add('oos', 'WineXY', 'OUT_OF_SCOPE', null, { note: 'plausible but fake' });
-add('oos', 'MoldovaWin', 'OUT_OF_SCOPE', null, { note: 'plausible but fake' });
-add('oos', 'Vinaria Nobil', 'OUT_OF_SCOPE', null, { note: 'real but not in registry' });
-add('oos', 'Et Cetera winery', 'OUT_OF_SCOPE', null, { note: 'real but not in registry' });
-add('oos', 'Domenii', 'OUT_OF_SCOPE', null, { note: 'real but not in registry' });
+
+// ── 8b. Grapes — in-scope varieties currently missing from registry (2)
+add('unknown-entity', 'Riesling', 'RESOLVED', 'riesling', { note: 'grape variety; add entity in Stage 2' });
+add('unknown-entity', 'Chardonnay', 'RESOLVED', 'chardonnay', { note: 'grape variety; add entity in Stage 2' });
+
+// ── 8c. Unregistered but in-scope wineries (2)
+add('unknown-entity', 'Et Cetera winery', 'RESOLVED', 'et-cetera', { note: 'real Moldovan winery; add entity in Stage 2' });
+add('unknown-entity', 'Vinaria Nobil', 'RESOLVED', 'vinaria-nobil', { note: 'real Moldovan winery; add entity in Stage 2' });
+
+// ── 8d. Fake/ambiguous → NOT_FOUND (2)
+add('oos', 'WineXY', 'NOT_FOUND', null, { note: 'plausible but fake' });
+add('oos', 'MoldovaWin', 'NOT_FOUND', null, { note: 'plausible but fake' });
+add('oos', 'Domenii', 'NOT_FOUND', null, { note: 'too ambiguous for resolution' });
 
 // ── 9. Garbage input (5) — CRITICAL: must NOT resolve ──
 add('garbage', 'Lskdjflk', 'NOT_FOUND', null, { note: 'random letters' });
