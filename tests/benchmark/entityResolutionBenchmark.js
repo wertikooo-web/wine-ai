@@ -65,7 +65,7 @@ add('asr', 'Wine. MD', 'RESOLVED', 'wine-md', { note: 'dot + space' });
 add('asr', 'wine em dee', 'RESOLVED', 'wine-md', { note: 'spaced phonetic' });
 add('asr', 'WineM D', 'RESOLVED', 'wine-md', { note: 'space alt' });
 add('asr', 'WiнеMD', 'RESOLVED', 'wine-md', { note: 'mixed script e→е' });
-add('asr', 'Y&DI', 'NOT_FOUND', null, { note: 'too distorted, should NOT resolve' });
+add('asr', 'Y&DI', 'RESOLVED', 'wine-md', { note: 'ASR variant — Dice 0.89 matches Y& D alias' });
 add('asr', 'WnMD', 'RESOLVED', 'wine-md', { note: 'missing letters' });
 add('asr', 'Wine n D', 'RESOLVED', 'wine-md', { note: 'n instead of and' });
 add('asr', 'WimeMD', 'RESOLVED', 'wine-md', { note: 'single char typo' });

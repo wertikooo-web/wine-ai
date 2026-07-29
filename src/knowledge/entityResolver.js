@@ -10,6 +10,25 @@ const FUZZY_MATCH_THRESHOLD = 0.7;
 const FUZZY_SUGGEST_THRESHOLD = 0.55;
 const FUZZY_AMBIGUITY_GAP = 0.05;
 
+// Stage 2: generic wine/grapes terms that must never fuzzy-match to an entity.
+// Single-word generic terms (e.g. "wine", "vino") share enough bigrams with
+// alias "Wine & D" → "winemd" to cross the Dice threshold — this prevents
+// false positives without raising the threshold for legitimate matches.
+const GENERIC_WINE_TERMS = new Set([
+  'wine', 'wines', 'vino', 'vin', 'вино', 'вина',
+  'winery', 'винодельня', 'винодельни',
+  'red wine', 'white wine', 'rose wine', 'sparkling wine',
+  'redwine', 'whitewine', 'rosewine', 'sparklingwine',
+]);
+
+// Check if the normalized input (space-joined or compact) is or contains
+// a known generic wine term — prevents fuzzy false positives like "red wine" → wine-md.
+function _isGenericWineTerm(input) {
+  if (GENERIC_WINE_TERMS.has(input)) return true;
+  const tokens = input.split(/\s+/);
+  return tokens.some((t) => GENERIC_WINE_TERMS.has(t));
+}
+
 const _aliasCacheByPath = new Map();
 
 function _loadAliases(aliasesFile) {
@@ -187,7 +206,9 @@ function resolveEntities(input, options = {}) {
       }
 
       // Fuzzy match (Dice coefficient) — only if input is long enough
-      if (normalized.length >= MIN_FUZZY_INPUT_LENGTH) {
+      // and not a known generic wine term (prevents false positives like
+      // "wine" → wine-md).
+      if (normalized.length >= MIN_FUZZY_INPUT_LENGTH && !_isGenericWineTerm(normalized)) {
         const dice = diceCoefficient(aliasNorm, normalized);
         if (dice >= FUZZY_MATCH_THRESHOLD && dice > bestConfidence) {
           bestAlias = alias; bestConfidence = Math.round(dice * 100) / 100; bestMatchType = 'fuzzy';
@@ -291,6 +312,24 @@ function resolveEntity(input, options = {}) {
           matchedAlias: m.matchedAlias,
         })),
       };
+    }
+    // Stage 2: if no entity found but activeEntity context is set, resolve
+    // to the context entity for follow-up queries.
+    if (options.contextEntity) {
+      const entities = _loadAliases(options.aliasesFile);
+      const ctxEntity = entities.find((e) => e.entityId === options.contextEntity);
+      if (ctxEntity) {
+        console.log('[entityResolver] context resolve "%s" -> entity=%s',
+          input, ctxEntity.entityId);
+        return {
+          found: true,
+          entityId: ctxEntity.entityId,
+          canonicalName: ctxEntity.canonicalName,
+          matchedAlias: null,
+          matchType: 'context_resolve',
+          confidence: 0.85,
+        };
+      }
     }
     return { found: false, entityId: null, canonicalName: null, matchedAlias: null, matchType: null, confidence: 0 };
   }

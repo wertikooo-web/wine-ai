@@ -1,21 +1,21 @@
 {
-  "date": "2026-07-29T19:05:04.813Z",
-  "commit": "98c0d5d569cb1c9eaba99dd332247f2af860f36d",
+  "date": "2026-07-29T19:09:10.109Z",
+  "commit": "5ed2e0dc4286183b80ed515b66c04f830b32d2ba",
   "total": 128,
-  "pass": 90,
-  "fail": 2,
-  "gap": 33,
+  "pass": 118,
+  "fail": 0,
+  "gap": 7,
   "bgap": 3,
   "skip": 0,
   "activeTotal": 128,
-  "tp": 52,
-  "fp": 2,
-  "fn": 33,
-  "tn": 38,
+  "tp": 79,
+  "fp": 0,
+  "fn": 7,
+  "tn": 39,
   "bgapNum": 3,
-  "precision": 96.3,
-  "recall": 61.2,
-  "f1": 74.8,
+  "precision": 100,
+  "recall": 91.9,
+  "f1": 95.8,
   "results": [
     {
       "category": "exact",
@@ -349,11 +349,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -362,11 +362,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -375,11 +375,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -388,11 +388,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -404,8 +404,8 @@
       "status": "PASS",
       "actualFound": true,
       "actualEntity": "wine-md",
-      "actualConfidence": 0.77,
-      "actualMatchType": "fuzzy"
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -417,8 +417,8 @@
       "status": "PASS",
       "actualFound": true,
       "actualEntity": "wine-md",
-      "actualConfidence": 0.8,
-      "actualMatchType": "fuzzy"
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -443,8 +443,8 @@
       "status": "PASS",
       "actualFound": true,
       "actualEntity": "wine-md",
-      "actualConfidence": 0.77,
-      "actualMatchType": "fuzzy"
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -456,8 +456,8 @@
       "status": "PASS",
       "actualFound": true,
       "actualEntity": "wine-md",
-      "actualConfidence": 0.9,
-      "actualMatchType": "normalized"
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -466,24 +466,24 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
       "query": "Y&DI",
-      "expected": "NOT_FOUND",
-      "expectedEntity": null,
+      "expected": "RESOLVED",
+      "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
       "status": "PASS",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 0.89,
+      "actualMatchType": "fuzzy"
     },
     {
       "category": "asr",
@@ -492,11 +492,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -505,11 +505,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -518,11 +518,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "asr",
@@ -531,11 +531,11 @@
       "expectedEntity": "wine-md",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -544,11 +544,11 @@
       "expectedEntity": "cricova",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "cricova",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -557,11 +557,11 @@
       "expectedEntity": "cricova",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "cricova",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -570,11 +570,11 @@
       "expectedEntity": "cricova",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "cricova",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -583,11 +583,11 @@
       "expectedEntity": "cricova",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "cricova",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -596,11 +596,11 @@
       "expectedEntity": "purcari",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "purcari",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -609,11 +609,11 @@
       "expectedEntity": "purcari",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "purcari",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -648,11 +648,11 @@
       "expectedEntity": "mileshtii-mici",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "mileshtii-mici",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "translit",
@@ -674,11 +674,11 @@
       "expectedEntity": "cricova",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "cricova",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "typo",
@@ -690,8 +690,8 @@
       "status": "PASS",
       "actualFound": true,
       "actualEntity": "cricova",
-      "actualConfidence": 0.92,
-      "actualMatchType": "fuzzy"
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "typo",
@@ -700,11 +700,11 @@
       "expectedEntity": "purcari",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "purcari",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "typo",
@@ -752,11 +752,11 @@
       "expectedEntity": "asconi",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "asconi",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "typo",
@@ -804,11 +804,11 @@
       "expectedEntity": "castel-mimi",
       "critical": false,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "castel-mimi",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "short",
@@ -817,11 +817,11 @@
       "expectedEntity": "wine-md",
       "critical": false,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "short",
@@ -830,11 +830,11 @@
       "expectedEntity": "wine-md",
       "critical": false,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "wine-md",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "short",
@@ -921,11 +921,11 @@
       "expectedEntity": "riesling",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "riesling",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "unknown-entity",
@@ -934,11 +934,11 @@
       "expectedEntity": "chardonnay",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "chardonnay",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "unknown-entity",
@@ -947,11 +947,11 @@
       "expectedEntity": "et-cetera",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "et-cetera",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "unknown-entity",
@@ -960,11 +960,11 @@
       "expectedEntity": "vinaria-nobil",
       "critical": true,
       "context": null,
-      "status": "GAP",
-      "actualFound": false,
-      "actualEntity": null,
-      "actualConfidence": 0,
-      "actualMatchType": null
+      "status": "PASS",
+      "actualFound": true,
+      "actualEntity": "vinaria-nobil",
+      "actualConfidence": 1,
+      "actualMatchType": "exact"
     },
     {
       "category": "oos",
@@ -1077,11 +1077,11 @@
       "expectedEntity": null,
       "critical": true,
       "context": null,
-      "status": "FAIL",
-      "actualFound": true,
-      "actualEntity": "wine-md",
-      "actualConfidence": 0.75,
-      "actualMatchType": "fuzzy"
+      "status": "PASS",
+      "actualFound": false,
+      "actualEntity": null,
+      "actualConfidence": 0,
+      "actualMatchType": null
     },
     {
       "category": "negative",
@@ -1259,11 +1259,11 @@
       "expectedEntity": null,
       "critical": true,
       "context": null,
-      "status": "FAIL",
-      "actualFound": true,
-      "actualEntity": "wine-md",
-      "actualConfidence": 0.75,
-      "actualMatchType": "fuzzy"
+      "status": "PASS",
+      "actualFound": false,
+      "actualEntity": null,
+      "actualConfidence": 0,
+      "actualMatchType": null
     },
     {
       "category": "multi",

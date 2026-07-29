@@ -20,7 +20,22 @@
       { "alias": "Wine.md", "lang": "ru" },
       { "alias": "ВайнМД", "lang": "ru" },
       { "alias": "Вайн МД", "lang": "ru" },
-      { "alias": "Вайн.МД", "lang": "ru" }
+      { "alias": "Вайн.МД", "lang": "ru" },
+      { "alias": "Y and D", "lang": "en" },
+      { "alias": "Wine D", "lang": "en" },
+      { "alias": "Y&D", "lang": "en" },
+      { "alias": "Y& D", "lang": "en" },
+      { "alias": "WiнеMD", "lang": "en" },
+      { "alias": "WnMD", "lang": "en" },
+      { "alias": "Wine n D", "lang": "en" },
+      { "alias": "WimeMD", "lang": "en" },
+      { "alias": "Wyne&Di", "lang": "en" },
+      { "alias": "WMD", "lang": "en" },
+      { "alias": "W&D", "lang": "en" },
+      { "alias": "WineEmDee", "lang": "en" },
+      { "alias": "wine em dee", "lang": "en" },
+      { "alias": "UineMD", "lang": "en" },
+      { "alias": "WineM D", "lang": "en" }
     ]
   },
   {
@@ -35,7 +50,10 @@
       { "alias": "Пуркари", "lang": "ru" },
       { "alias": "Purcari Wineries", "lang": "en" },
       { "alias": "Château Purcari", "lang": "fr" },
-      { "alias": "Пуркэрь", "lang": "ru" }
+      { "alias": "Пуркэрь", "lang": "ru" },
+      { "alias": "Purkari", "lang": "en" },
+      { "alias": "Purkary", "lang": "en" },
+      { "alias": "Purkary Wines", "lang": "en" }
     ]
   },
   {
@@ -48,7 +66,13 @@
       { "alias": "Cricova", "lang": "ru" },
       { "alias": "Cricova", "lang": "en" },
       { "alias": "Крикова", "lang": "ru" },
-      { "alias": "Cricova Prestige", "lang": "en" }
+      { "alias": "Cricova Prestige", "lang": "en" },
+      { "alias": "krikova", "lang": "en" },
+      { "alias": "Krikowa", "lang": "en" },
+      { "alias": "Krıcova", "lang": "en" },
+      { "alias": "Kritsova", "lang": "en" },
+      { "alias": "Crikova", "lang": "en" },
+      { "alias": "Criccova", "lang": "en" }
     ]
   },
   {
@@ -63,7 +87,8 @@
       { "alias": "Милештий Мичь", "lang": "ru" },
       { "alias": "Милештии Мичь", "lang": "ru" },
       { "alias": "Milestii Mici", "lang": "en" },
-      { "alias": "Mileștii Mici Golden Collection", "lang": "en" }
+      { "alias": "Mileștii Mici Golden Collection", "lang": "en" },
+      { "alias": "Milishtii Mici", "lang": "en" }
     ]
   },
   {
@@ -75,7 +100,8 @@
       { "alias": "Castel Mimi", "lang": "ro" },
       { "alias": "Castel Mimi", "lang": "ru" },
       { "alias": "Castel Mimi", "lang": "en" },
-      { "alias": "Кастель Мими", "lang": "ru" }
+      { "alias": "Кастель Мими", "lang": "ru" },
+      { "alias": "Mimi", "lang": "en" }
     ]
   },
   {
@@ -147,7 +173,8 @@
       { "alias": "Asconi", "lang": "ro" },
       { "alias": "Asconi", "lang": "ru" },
       { "alias": "Asconi", "lang": "en" },
-      { "alias": "Asconi Winery", "lang": "en" }
+      { "alias": "Asconi Winery", "lang": "en" },
+      { "alias": "Asonci", "lang": "en" }
     ]
   },
   {
@@ -194,6 +221,55 @@
       { "alias": "Bulgari", "lang": "ro" },
       { "alias": "Bulgari", "lang": "ru" },
       { "alias": "Bulgari", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "riesling",
+    "entityType": "grape",
+    "canonicalName": "Riesling",
+    "description": "Рислинг — технический сорт винограда, распространён в Молдове для белых вин",
+    "aliases": [
+      { "alias": "Riesling", "lang": "ro" },
+      { "alias": "Riesling", "lang": "ru" },
+      { "alias": "Riesling", "lang": "en" },
+      { "alias": "Рислинг", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "chardonnay",
+    "entityType": "grape",
+    "canonicalName": "Chardonnay",
+    "description": "Шардоне — международный технический сорт винограда, широко культивируется в Молдове",
+    "aliases": [
+      { "alias": "Chardonnay", "lang": "ro" },
+      { "alias": "Chardonnay", "lang": "ru" },
+      { "alias": "Chardonnay", "lang": "en" },
+      { "alias": "Шардоне", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "et-cetera",
+    "entityType": "winery",
+    "canonicalName": "Et Cetera",
+    "description": "Et Cetera — молдавская винодельня, производство тихих и игристых вин",
+    "aliases": [
+      { "alias": "Et Cetera", "lang": "ro" },
+      { "alias": "Et Cetera", "lang": "ru" },
+      { "alias": "Et Cetera", "lang": "en" },
+      { "alias": "Et Cetera winery", "lang": "en" },
+      { "alias": "Эт Цетера", "lang": "ru" }
+    ]
+  },
+  {
+    "entityId": "vinaria-nobil",
+    "entityType": "winery",
+    "canonicalName": "Vinaria Nobil",
+    "description": "Vinaria Nobil — молдавская винодельня в регионе Кодру",
+    "aliases": [
+      { "alias": "Vinaria Nobil", "lang": "ro" },
+      { "alias": "Vinaria Nobil", "lang": "ru" },
+      { "alias": "Vinaria Nobil", "lang": "en" },
+      { "alias": "Винария Нобил", "lang": "ru" }
     ]
   }
 ]
