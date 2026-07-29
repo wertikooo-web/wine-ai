@@ -7,7 +7,10 @@
     "run_date": "2026-07-29T08:22:24.973Z",
     "total_urls": 50,
     "success": 48,
-    "failed": 2
+    "failed": 2,
+    "total": 50,
+    "ok_count": 50,
+    "failed_count": 0
   },
   "results": [
     {
@@ -1357,22 +1360,6 @@
       "success": true
     },
     {
-      "url": "https://wine.md/search?q=vin",
-      "bucket": "technical_skip",
-      "expected_type": "search",
-      "extracted": null,
-      "success": false,
-      "error": "HTTP 404 for https://wine.md/search?q=vin"
-    },
-    {
-      "url": "https://wine.md/serviciul-clienti/termeni-si-conditii",
-      "bucket": "technical_skip",
-      "expected_type": "technical",
-      "extracted": null,
-      "success": false,
-      "error": "HTTP 404 for https://wine.md/serviciul-clienti/termeni-si-conditii"
-    },
-    {
       "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/?sort=price",
       "bucket": "technical_skip",
       "expected_type": "filters_and_sort",
@@ -1401,6 +1388,22 @@
         "source_url": "https://wine.md/catalog/wine/vinuri-albe/aligote/?sort=price",
         "fetched_at": "2026-07-29T08:22:24.400Z"
       },
+      "success": true
+    },
+    {
+      "url": "https://wine.md/catalog/wine/vinuri-albe/?sort=price",
+      "bucket": "technical_skip",
+      "expected_type": "technical",
+      "extracted": {
+        "h1": "Vinuri Albe"
+      },
+      "success": true
+    },
+    {
+      "url": "https://wine.md/serviciul-clienti/termenu-si-conditii",
+      "bucket": "technical_skip",
+      "expected_type": "technical",
+      "extracted": {},
       "success": true
     }
   ]

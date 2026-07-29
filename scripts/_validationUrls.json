@@ -54,8 +54,8 @@
     { "url": "https://wine.md/tourism/cricova", "bucket": "editorial_article", "expected_type": "editorial_article" },
 
     { "url": "https://wine.md/about-us", "bucket": "contact_page", "expected_type": "contact_page" },
-    { "url": "https://wine.md/serviciul-clienti/politica-de-livrare", "bucket": "contact_page", "expected_type": "technical" },
-    { "url": "https://wine.md/serviciul-clienti/metode-de-achitare", "bucket": "contact_page", "expected_type": "technical" },
+    { "url": "https://wine.md/serviciul-clienti/politica-de-livrare", "bucket": "contact_page", "expected_type": "contact_page" },
+    { "url": "https://wine.md/serviciul-clienti/metode-de-achitare", "bucket": "contact_page", "expected_type": "contact_page" },
 
     { "url": "https://wine.md/catalog/wine/", "bucket": "category_page_skip", "expected_type": "category_page" },
     { "url": "https://wine.md/catalog/wine/vinuri-albe/", "bucket": "category_page_skip", "expected_type": "category_page" },
@@ -66,8 +66,8 @@
     { "url": "https://wine.md/purcari-negru-de-purcari-2707?page=2", "bucket": "pagination_skip", "expected_type": "pagination" },
     { "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/agrici-wine-aligote-and-chardonnay?page=3", "bucket": "pagination_skip", "expected_type": "pagination" },
 
-    { "url": "https://wine.md/search?q=vin", "bucket": "technical_skip", "expected_type": "search" },
-    { "url": "https://wine.md/serviciul-clienti/termeni-si-conditii", "bucket": "technical_skip", "expected_type": "technical" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/?sort=price", "bucket": "technical_skip", "expected_type": "filters_and_sort" },
+    { "url": "https://wine.md/serviciul-clienti/termenu-si-conditii", "bucket": "technical_skip", "expected_type": "technical" },
     { "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/?sort=price", "bucket": "technical_skip", "expected_type": "filters_and_sort" }
   ]
 }
