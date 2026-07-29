@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "description": "Fixed 50-URL validation list for wine.md extractor comparison",
+    "created": "2026-07-29",
+    "old_extractor_commit": "67fdf4e",
+    "buckets": {
+      "wine_product": 30,
+      "editorial_article": 7,
+      "contact_page": 3,
+      "category_page_skip": 5,
+      "pagination_skip": 2,
+      "technical_skip": 3
+    },
+    "total": 50
+  },
+  "urls": [
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/agrici-wine-aligote-and-chardonnay", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/purcari-negru-de-purcari-2707", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-roze/timbrus-rose", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-dulci/de-fructe/denovie-di-fruct-cherry", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-de-colectie/portwein/cojusna-portvein", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/pinot-gris/salcuta-pinot-gris", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/chateau-vartely-select-feteasca-regala-3170", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-dulci/traminer/bostavan-floare-de-dor", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/orasul-subteran-feteasca-alba-3253", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/spirtoase/cognac-6369/cricova-divin-7", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/spirtoase/cognac-6369/cricova-divin-5-ani", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/cricova-sauvignon-blanc-prestige-2728", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/vinuri-spumante/muscat/vinaria-poiana-muscat-demisec", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/cricova-traminer-2846", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/pinot-gris-de-purcari-3333", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-rosii/shiraz/vinaria-din-vale-shiraz", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/floricica/chateau-cojusna-autentic-sauvignon-blanc-and-floricica", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-rosii/tempranillo/fautor-tempranillo-2015", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/purcari-freedom-blend-3672", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/cricova-limited-edition-shyra-5287", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/viorica/salcuta-new-viorica", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/vinuri-spumante/aligote/cricova-vin-spumant-demisec-alb", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/spirtoase/whiskey/jack-daniels-black-label", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/rkatsiteli/agrici-wine-chardonnay-and-rkatsiteli", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-roze/cabernet-sauvignon/agrici-wine-twenty-18-rose", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-dulci/ice-wine/chateau-vartely-ice-wine-riesling", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-dulci/fara-alcool/cricova-lacrima-dulce-non-alco", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-dulci/ice-wine/castel-mimi-ice-wine-riesling", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-rosii/feteasca-neagra/cricova-feteasca-neagra", "bucket": "wine_product", "expected_type": "wine_product" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/muscat/agrici-wine-moscato", "bucket": "wine_product", "expected_type": "wine_product" },
+
+    { "url": "https://wine.md/content/excursie-cricova", "bucket": "editorial_article", "expected_type": "editorial_article" },
+    { "url": "https://wine.md/collections/top/cele-mai-bune-vinuri-roșii-din-2025/", "bucket": "editorial_article", "expected_type": "editorial_article" },
+    { "url": "https://wine.md/blog/", "bucket": "editorial_article", "expected_type": "editorial_article" },
+    { "url": "https://wine.md/events/", "bucket": "editorial_article", "expected_type": "editorial_article" },
+    { "url": "https://wine.md/content/excursii-milestii-mici/", "bucket": "editorial_article", "expected_type": "editorial_article" },
+    { "url": "https://wine.md/collections/top/cele-mai-bune-vinuri-albe-din-2025/", "bucket": "editorial_article", "expected_type": "editorial_article" },
+    { "url": "https://wine.md/tourism/cricova", "bucket": "editorial_article", "expected_type": "editorial_article" },
+
+    { "url": "https://wine.md/about-us", "bucket": "contact_page", "expected_type": "contact_page" },
+    { "url": "https://wine.md/serviciul-clienti/politica-de-livrare", "bucket": "contact_page", "expected_type": "technical" },
+    { "url": "https://wine.md/serviciul-clienti/metode-de-achitare", "bucket": "contact_page", "expected_type": "technical" },
+
+    { "url": "https://wine.md/catalog/wine/", "bucket": "category_page_skip", "expected_type": "category_page" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/", "bucket": "category_page_skip", "expected_type": "category_page" },
+    { "url": "https://wine.md/catalog/vinuri-spumante/", "bucket": "category_page_skip", "expected_type": "category_page" },
+    { "url": "https://wine.md/catalog/spirtoase/", "bucket": "category_page_skip", "expected_type": "category_page" },
+    { "url": "https://wine.md/catalog/", "bucket": "category_page_skip", "expected_type": "category_page" },
+
+    { "url": "https://wine.md/purcari-negru-de-purcari-2707?page=2", "bucket": "pagination_skip", "expected_type": "pagination" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/agrici-wine-aligote-and-chardonnay?page=3", "bucket": "pagination_skip", "expected_type": "pagination" },
+
+    { "url": "https://wine.md/search?q=vin", "bucket": "technical_skip", "expected_type": "search" },
+    { "url": "https://wine.md/serviciul-clienti/termeni-si-conditii", "bucket": "technical_skip", "expected_type": "technical" },
+    { "url": "https://wine.md/catalog/wine/vinuri-albe/aligote/?sort=price", "bucket": "technical_skip", "expected_type": "filters_and_sort" }
+  ]
+}
