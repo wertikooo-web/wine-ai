@@ -59,15 +59,13 @@ function formatExtractedText(data) {
         if (data.wine_type) parts.push(`Type: ${data.wine_type}`);
         if (data.color) parts.push(`Color: ${data.color}`);
         if (data.sweetness) parts.push(`Sweetness: ${data.sweetness}`);
-        if (data.alcohol) parts.push(`Alcohol: ${data.alcohol}%`);
         if (data.region) parts.push(`Region: ${data.region}`);
-        if (data.volume) parts.push(`Volume: ${data.volume}`);
         if (data.description) parts.push(`Description: ${data.description}`);
         if (data.tasting_notes) parts.push(`Tasting notes: ${data.tasting_notes}`);
         if (data.pairing) parts.push(`Food pairing: ${data.pairing}`);
         if (data.serving_temperature) parts.push(`Serve at: ${data.serving_temperature}`);
-        if (data.price) parts.push(`Price: ${data.price} ${data.currency || 'MDL'}`);
-        if (data.availability) parts.push(`Availability: ${data.availability}`);
+        // NOTE: price, availability, alcohol, volume excluded from text index
+        // These should be read via structured lookup, not semantic search
     } else if (data.type === 'editorial_article') {
         if (data.title) parts.push(`Title: ${data.title}`);
         if (data.author) parts.push(`Author: ${data.author}`);

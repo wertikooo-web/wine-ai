@@ -54,6 +54,10 @@ function extractWineProduct(html, url) {
         }
     });
 
+    // Extract structured data from body text (An: 2022, Culoare: Roșu, etc.)
+    const bodyText = $('body').text();
+    extractFromBodyText(result, bodyText);
+
     // Fallback to HTML parsing
     if (!result.name) {
         extractFromHtml(result, $, url);
@@ -70,6 +74,67 @@ function extractWineProduct(html, url) {
     }
 
     return result;
+}
+
+/**
+ * Extract structured data from body text patterns.
+ * wine.md uses patterns like "An: 2022 Culoare: Roșu Gust: Sec Struguri: ..."
+ */
+function extractFromBodyText(result, bodyText) {
+    if (!bodyText) return;
+
+    // Vintage: "An: 2022"
+    if (!result.vintage) {
+        const vintageMatch = bodyText.match(/(?:An|Anul|Year)\s*:\s*(\d{4})/i);
+        if (vintageMatch) result.vintage = parseInt(vintageMatch[1], 10);
+    }
+
+    // Color: "Culoare: Roșu"
+    if (!result.color) {
+        const colorMatch = bodyText.match(/(?:Culoare|Colour|Color)\s*:\s*([^\n,]+)/i);
+        if (colorMatch) result.color = colorMatch[1].trim();
+    }
+
+    // Sweetness: "Gust: Sec" or "Gust: Dulce"
+    if (!result.sweetness) {
+        const sweetnessMatch = bodyText.match(/(?:Gust|Sweetness|Taste)\s*:\s*([^\n,]+)/i);
+        if (sweetnessMatch) result.sweetness = sweetnessMatch[1].trim();
+    }
+
+    // Grape varieties: "Struguri: Saperavi Cabernet Sauvignon Rara Neagra"
+    if (!result.grape_varieties.length) {
+        const grapeMatch = bodyText.match(/(?:Struguri|Grapes|Grape|Soiul)\s*:\s*([^\n]+)/i);
+        if (grapeMatch) {
+            const grapeText = grapeMatch[1].trim();
+            // Split by common separators
+            const grapes = grapeText.split(/,|\s+(?:и|and|&)\s+|\s{2,}/).filter(g => g.trim().length > 1);
+            result.grape_varieties = grapes.map(g => g.trim());
+        }
+    }
+
+    // Alcohol: "Alcoolul: 13.5%"
+    if (!result.alcohol) {
+        const alcoholMatch = bodyText.match(/(?:Alcoolul?|Alcohol|Alc\.?)\s*:\s*([\d.]+)\s*%?/i);
+        if (alcoholMatch) result.alcohol = parseFloat(alcoholMatch[1]);
+    }
+
+    // Volume: "Volumul: 0.75 l"
+    if (!result.volume) {
+        const volumeMatch = bodyText.match(/(?:Volumul?|Volume|Vol\.?)\s*:\s*([\d.]+\s*(?:l|ml|L|ML))/i);
+        if (volumeMatch) result.volume = volumeMatch[1].trim();
+    }
+
+    // Region: "Țara: Moldova" or "Regiunea: ..."
+    if (!result.region) {
+        const regionMatch = bodyText.match(/(?:Țara|Regiunea?|Region|Country)\s*:\s*([^\n,]+)/i);
+        if (regionMatch) result.region = regionMatch[1].trim();
+    }
+
+    // Serving temperature: "Servind 16-18°С"
+    if (!result.serving_temperature) {
+        const tempMatch = bodyText.match(/(?:Servind|Serving|Serve\s+at)\s*([\d-]+)\s*°/i);
+        if (tempMatch) result.serving_temperature = tempMatch[1].trim() + '°C';
+    }
 }
 
 /**
