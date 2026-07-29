@@ -1,5 +1,5 @@
 'use strict';
-const db = require('./src/knowledge/db');
+const db = require('../src/knowledge/db');
 
 async function main() {
     const pool = db.getPool();
