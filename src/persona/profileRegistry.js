@@ -175,8 +175,8 @@ function resolveProfile(baseProfileId, overrides = {}, mood) {
         name: overrides.name !== undefined ? overrides.name : (base ? base.personaName : null),
         description: overrides.description !== undefined ? overrides.description : (base ? base.description : null),
         sommelierGender: overrides.sommelierGender !== undefined ? overrides.sommelierGender : (base ? base.sommelierGender : 'male'),
-        welcome_message: overrides.welcome_message !== undefined ? overrides.welcome_message : (base ? base.welcomeMessage : null),
-        system_prompt: overrides.system_prompt !== undefined ? overrides.system_prompt : null,
+        welcome_message: overrides.welcomeMessage !== undefined ? overrides.welcomeMessage : (overrides.welcome_message !== undefined ? overrides.welcome_message : (base ? base.welcomeMessage : null)),
+        system_prompt: overrides.systemPrompt !== undefined ? overrides.systemPrompt : (overrides.system_prompt !== undefined ? overrides.system_prompt : null),
         personalityPrompt: overrides.personalityPrompt !== undefined ? overrides.personalityPrompt : (base ? base.personalityPrompt : ''),
         style: {
             ...(base ? base.style : {}),

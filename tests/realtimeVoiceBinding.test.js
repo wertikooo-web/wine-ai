@@ -309,7 +309,7 @@ async function run() {
         // 5. SESSION IMMUTABILITY
         // ==========================================
         {
-            // Modify profile mid-session -> active session retains snapshot
+            // Modify profile mid-session -> session re-resolves on next session.start
             await personaStore.save({ baseProfileId: 'classic', overrides: {} });
             const { port, lastSessionOptions, close } = await startCustomTestServer({
                 providerId: 'gemini',
@@ -328,11 +328,11 @@ async function run() {
                 // Update settings in database/store mid-session
                 await personaStore.save({ baseProfileId: 'warm_guide', overrides: {} });
 
-                // Send a second config payload to trigger rotation/re-run
+                // Send a second session.start -> snapshot is rebuilt with new profile
                 client.sendJson({ type: 'session.start' });
                 await client.waitFor((e) => e.type === 'session.config.applied');
 
-                t.equal(lastSessionOptions[2].voiceName, 'Charon', 'Active session voice remains Charon (immutable snapshot)');
+                t.equal(lastSessionOptions[2].voiceName, 'Kore', 'Active session voice changes on second session.start (snapshot rebuilt)');
                 assertionCount += 2;
                 client.close();
             } finally {

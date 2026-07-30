@@ -1876,7 +1876,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                     promptSource = sanitized.source;
                     cachedLocalDateTime = formatLocalDateTime(DEFAULT_TIMEZONE, new Date());
 
-                    if (!sessionRuntimeSnapshot) {
+                    // Always rebuild snapshot on session.start so profile
+                    // changes (activate, mood, save) take effect without
+                    // requiring a WebSocket reconnect.
+                    {
                         const cachedPersona = personaStore.getCached();
                         const resolvedProfile = resolveProfile(cachedPersona.baseProfileId, cachedPersona.overrides, cachedPersona.mood);
                         const effectivePrompt = buildProfileRuntimePrompt({

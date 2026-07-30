@@ -660,6 +660,21 @@ async function handleRequest(req, res) {
 
             const preview = getEffectivePersonaPrompt(overrides, targetProfileId, mood);
 
+            // Compute which profiles have custom overrides (for client badge display)
+            const profilesOverrides = personaStore.getProfilesOverrides();
+            const customProfileIds = Object.entries(profilesOverrides)
+                .filter(([, data]) => {
+                    const o = data.overrides || {};
+                    return Object.keys(o).some(k => {
+                        if (k === 'mood') return false;
+                        if (k === 'style') return Object.keys(o.style || {}).length > 0;
+                        if (k === 'runtimeByProvider') return Object.keys(o.runtimeByProvider || {}).length > 0;
+                        if (k === 'identity') return Object.keys(o.identity || {}).length > 0;
+                        return o[k] !== undefined && o[k] !== null;
+                    });
+                })
+                .map(([id]) => id);
+
             return sendJson(res, 200, {
                 ok: true,
                 name: resolved.name,
@@ -678,7 +693,8 @@ async function handleRequest(req, res) {
                 tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
                 resolved,
                 effectivePromptPreview: preview,
-                overrides
+                overrides,
+                customProfileIds
             });
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'persona_get_failed', message: error.message });
@@ -746,6 +762,20 @@ async function handleRequest(req, res) {
             const resolved = resolveProfile(profileId, overrides, mood);
             const preview = getEffectivePersonaPrompt(overrides, profileId, mood);
 
+            const profilesOverrides = personaStore.getProfilesOverrides();
+            const customProfileIds = Object.entries(profilesOverrides)
+                .filter(([, data]) => {
+                    const o = data.overrides || {};
+                    return Object.keys(o).some(k => {
+                        if (k === 'mood') return false;
+                        if (k === 'style') return Object.keys(o.style || {}).length > 0;
+                        if (k === 'runtimeByProvider') return Object.keys(o.runtimeByProvider || {}).length > 0;
+                        if (k === 'identity') return Object.keys(o.identity || {}).length > 0;
+                        return o[k] !== undefined && o[k] !== null;
+                    });
+                })
+                .map(([id]) => id);
+
             return sendJson(res, 200, {
                 ok: true,
                 name: resolved.name,
@@ -761,7 +791,8 @@ async function handleRequest(req, res) {
                 mood,
                 resolved,
                 effectivePromptPreview: preview,
-                overrides
+                overrides,
+                customProfileIds
             });
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'failed_to_activate', message: error.message });
@@ -858,6 +889,20 @@ async function handleRequest(req, res) {
                 customizationMode = 'custom';
             }
 
+            const profilesOverridesSave = personaStore.getProfilesOverrides();
+            const customProfileIdsSave = Object.entries(profilesOverridesSave)
+                .filter(([, data]) => {
+                    const o = data.overrides || {};
+                    return Object.keys(o).some(k => {
+                        if (k === 'mood') return false;
+                        if (k === 'style') return Object.keys(o.style || {}).length > 0;
+                        if (k === 'runtimeByProvider') return Object.keys(o.runtimeByProvider || {}).length > 0;
+                        if (k === 'identity') return Object.keys(o.identity || {}).length > 0;
+                        return o[k] !== undefined && o[k] !== null;
+                    });
+                })
+                .map(([id]) => id);
+
             return sendJson(res, 200, {
                 ok: true,
                 name: resolved.name,
@@ -875,7 +920,8 @@ async function handleRequest(req, res) {
                 tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
                 resolved,
                 effectivePromptPreview: preview,
-                overrides
+                overrides,
+                customProfileIds: customProfileIdsSave
             });
         } catch (error) {
             console.error('[WineAI] POST /api/persona failed:', error);

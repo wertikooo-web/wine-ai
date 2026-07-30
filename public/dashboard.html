@@ -3667,18 +3667,28 @@
     });
   }
 
-  function updateProfileButtons(activeId, editorId) {
+  function updateProfileButtons(activeId, editorId, customProfileIds) {
     document.querySelectorAll('[data-profile]').forEach(btn => {
       const pId = btn.dataset.profile;
 
       const existingBadge = btn.querySelector('.profile-badge-active');
       if (existingBadge) existingBadge.remove();
+      const existingCustomBadge = btn.querySelector('.profile-badge-custom');
+      if (existingCustomBadge) existingCustomBadge.remove();
 
       if (pId === activeId) {
         const badge = document.createElement('span');
         badge.className = 'profile-badge-active';
         badge.style = 'font-size: 10px; background: var(--wine); color: white; padding: 2px 6px; border-radius: 10px; margin-top: 4px; display: inline-block; width: fit-content;';
         badge.textContent = 'Активен / Active';
+        btn.querySelector('div').appendChild(badge);
+      }
+
+      if (customProfileIds && customProfileIds.includes(pId)) {
+        const badge = document.createElement('span');
+        badge.className = 'profile-badge-custom';
+        badge.style = 'font-size: 10px; background: var(--muted); color: var(--fg); padding: 2px 6px; border-radius: 10px; margin-top: 2px; display: inline-block; width: fit-content;';
+        badge.textContent = 'Custom';
         btn.querySelector('div').appendChild(badge);
       }
 
@@ -3726,7 +3736,7 @@
 
     lastLoadedData = data;
     activeProfileId = data.activeProfileId;
-    editorProfileId = data.baseProfileId;
+    editorProfileId = data.baseProfileId || pId;
     loadedOverrides = data.overrides || {};
 
     const baseProfileId = data.baseProfileId;
@@ -3750,13 +3760,13 @@
       }
     }
 
-    // Populate advanced fields
+    // Populate advanced fields (normalize snake_case from server ↔ camelCase from client)
     el('pName').value = loadedOverrides.name || '';
     el('pDescription').value = loadedOverrides.description || '';
-    el('pWelcome').value = loadedOverrides.welcome_message || '';
+    el('pWelcome').value = loadedOverrides.welcomeMessage || loadedOverrides.welcome_message || '';
     el('pSommelierGender').value = loadedOverrides.sommelierGender || 'male';
-    el('pPersonalityPrompt').value = loadedOverrides.personalityPrompt || '';
-    el('pPrompt').value = loadedOverrides.system_prompt || '';
+    el('pPersonalityPrompt').value = loadedOverrides.personalityPrompt || loadedOverrides.personality_prompt || '';
+    el('pPrompt').value = loadedOverrides.systemPrompt || loadedOverrides.system_prompt || '';
 
     // Style elements
     const style = loadedOverrides.style || {};
@@ -3847,10 +3857,10 @@
 
     if (norm(draft.name) !== norm(loadedOverrides.name)) return true;
     if (norm(draft.description) !== norm(loadedOverrides.description)) return true;
-    if (norm(draft.welcomeMessage) !== norm(loadedOverrides.welcome_message)) return true;
+    if (norm(draft.welcomeMessage) !== norm(loadedOverrides.welcomeMessage || loadedOverrides.welcome_message || '')) return true;
     if (norm(draft.sommelierGender) !== norm(loadedOverrides.sommelierGender || 'male')) return true;
-    if (norm(draft.personalityPrompt) !== norm(loadedOverrides.personalityPrompt)) return true;
-    if (norm(draft.systemPrompt) !== norm(loadedOverrides.system_prompt)) return true;
+    if (norm(draft.personalityPrompt) !== norm(loadedOverrides.personalityPrompt || loadedOverrides.personality_prompt || '')) return true;
+    if (norm(draft.systemPrompt) !== norm(loadedOverrides.systemPrompt || loadedOverrides.system_prompt || '')) return true;
 
     // Check style
     const style = loadedOverrides.style || {};
@@ -3976,7 +3986,9 @@
       statusEl.textContent = 'Sommelier activated successfully.';
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
 
-      updateProfileButtons(activeProfileId, editorProfileId);
+    updateProfileButtons(activeProfileId, editorProfileId, data.customProfileIds);
+    // Re-apply session with new profile settings
+    sendSessionStart();
     } catch (err) {
       statusEl.textContent = 'Activation failed: ' + err.message;
     }
@@ -4024,6 +4036,34 @@
     pill.addEventListener('click', async () => {
       const moodId = pill.dataset.mood;
       const statusEl = el('personaSaveStatus');
+
+      // If user edited form fields, preserve them by saving mood + full draft
+      if (hasUnsavedChanges()) {
+        const proceed = confirm('У вас есть несохранённые изменения. Настроение будет сохранено вместе с текущими правками.');
+        if (!proceed) return;
+        statusEl.textContent = 'Saving mood & changes…';
+        try {
+          const draft = getDraftOverrides();
+          draft.mood = moodId;
+          const res = await fetch('/api/persona', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              profileId: editorProfileId,
+              overrides: draft
+            }),
+          });
+          const data = await res.json();
+          if (!data.ok) throw new Error(data.error || 'mood_switch_failed');
+          await loadPersona(editorProfileId);
+          sendSessionStart();
+          statusEl.textContent = 'Mood & changes saved.';
+        } catch (err) {
+          statusEl.textContent = 'Mood save failed: ' + err.message;
+        }
+        return;
+      }
+
       statusEl.textContent = 'Updating mood…';
       try {
         const res = await fetch('/api/persona', {
@@ -4036,7 +4076,12 @@
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'mood_switch_failed');
-        await loadPersona(editorProfileId);
+
+        // Update UI locally without full reload — preserves form field state
+        document.querySelectorAll('[data-mood]').forEach(p => {
+          p.classList.toggle('active', p.dataset.mood === moodId);
+        });
+        loadedOverrides.mood = moodId;
         statusEl.textContent = 'Mood updated.';
       } catch (err) {
         statusEl.textContent = 'Mood update failed: ' + err.message;
