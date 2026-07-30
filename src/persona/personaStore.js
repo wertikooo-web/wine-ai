@@ -286,7 +286,8 @@ function getCached() {
     const mood = overrides.mood || builtin?.mood || 'calm';
     delete overrides.mood;
     return {
-        baseProfileId: hasMeaningfulOverrides ? null : activeProfileId,
+        baseProfileId: activeProfileId,
+        customProfile: hasMeaningfulOverrides,
         mood,
         voiceMode: ALLOWED_VOICE_MODES.includes(cache.voiceMode) ? cache.voiceMode : DEFAULT_VOICE_MODE,
         overrides
@@ -462,7 +463,8 @@ function validateAndMergeOverrides(current, patch) {
                         }
                     } else if (providerId === 'grok') {
                         const { GROK_VOICES } = require('../grokVoices');
-                        if (!GROK_VOICES.map(v => v.id).includes(val)) {
+                        const isValid = GROK_VOICES.some(v => v.id === val || v.name === val || v.name.toLowerCase() === val.toLowerCase());
+                        if (!isValid) {
                             const err = new Error('invalid_voice_id');
                             err.statusCode = 400;
                             throw err;

@@ -95,9 +95,10 @@ async function run() {
         await personaStore.load();
 
         state = personaStore.getCached();
-        t.equal(state.baseProfileId, null, 'legacy config must load with baseProfileId as null');
+        t.equal(state.baseProfileId, 'classic', 'legacy config must load with classic baseProfileId');
+        t.equal(state.customProfile, true, 'legacy config must load with customProfile=true');
         t.equal(state.overrides.name, 'Legacy Custom', 'legacy overrides must be preserved');
-        assertionCount += 2;
+        assertionCount += 3;
 
         // Test 4: Switching presets
         await personaStore.save({ baseProfileId: 'warm_guide' });
