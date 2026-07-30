@@ -2946,6 +2946,16 @@
     if (mode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) return; // per-provider gate — see declaration above
     if (mode === voiceMode) return;
 
+    // Clear pending flags from the old mode: stale pendingPttStart (set
+    // when PTT pressed before providerReady) would cause the wrong mode's
+    // turn to start when provider.ready fires later; pendingTapStart /
+    // pendingContextTurnStart would do the same in reverse. The disconnect
+    // below clears them eventually too, but the gap between "mode already
+    // switched" and "disconnect finishes" is the race window.
+    pendingPttStart = false;
+    pendingTapStart = false;
+    pendingContextTurnStart = false;
+
     // Full state snapshot before/after teardown — the requirement this is
     // meant to make verifiable is that teardown (stopConversationOnTap()/
     // disconnect(), both awaited below, never fire-and-forget in parallel

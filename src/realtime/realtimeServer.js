@@ -430,7 +430,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let turnLoudSampleCount = 0;
     let turnTotalSampleCount = 0;
     let sessionInputBytes = 0;
-    let currentMode = 'push_to_talk';
+    let currentMode = personaStore.getVoiceMode() === 'tap_to_start' ? 'tap_to_start' : 'push_to_talk';
     let turnCounter = 0;
     // Set from the client's OWN tap_to_start input_audio.start message (which
     // reports its real track.getSettings(), not requested constraints) —
@@ -1599,6 +1599,15 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 type: 'error',
                 code: 'input_not_started',
                 message: 'input_audio.end received before input_audio.start',
+            });
+            return;
+        }
+        if (inputEndedAt) {
+            log('input_end_ignored_redundant', {
+                turnId: currentTurnId,
+                interactionId: currentInteractionId,
+                generationId: currentGeneration?.generationId || null,
+                end_reason: payload.end_reason || 'unknown',
             });
             return;
         }

@@ -378,3 +378,112 @@ test('realtimeServer: hold_to_talk is unaffected — client input_audio.end stil
         await close();
     }
 });
+
+test('realtimeServer: redundant endInput is safely ignored (no duplicate input_audio.end)', async () => {
+    const personaStore = require('../src/persona/personaStore');
+    const originalGetVoiceMode = personaStore.getVoiceMode;
+    personaStore.getVoiceMode = () => 'tap_to_start';
+
+    const { port, getSession, close } = await startFakeVadServer();
+    try {
+        const client = await connect(port);
+        await client.waitFor((e) => e.type === 'session.ready');
+        client.sendJson({ type: 'session.start', sampleRate: 16000 });
+        await client.waitFor((e) => e.type === 'session.config.applied');
+
+        client.sendJson({ type: 'input_audio.start', mode: 'tap_to_start', micEchoCancellation: true, micTrackId: 'test-track' });
+        await client.waitFor((e) => e.type === 'input_audio.start');
+        client.sendBinary(silenceFrame());
+        await new Promise((resolve) => setTimeout(resolve, 30));
+
+        const session = getSession();
+        session.simulateNativeSpeechStopped();
+        await client.waitFor((e) => e.type === 'input_audio.end', { label: 'first (vad) end' });
+
+        client.sendJson({ type: 'input_audio.end' });
+
+        let hasDuplicate = false;
+        try {
+            const event = await client.nextEvent(200);
+            hasDuplicate = event.type === 'input_audio.end';
+        } catch {
+            // timeout expected
+        }
+        assert.equal(hasDuplicate, false, 'redundant endInput must not emit a second input_audio.end');
+
+        client.close();
+    } finally {
+        personaStore.getVoiceMode = originalGetVoiceMode;
+        await close();
+    }
+});
+
+test('realtimeServer: mode switching lifecycle — tap_to_start then hold_to_talk session is clean', async () => {
+    const personaStore = require('../src/persona/personaStore');
+    const originalGetVoiceMode = personaStore.getVoiceMode;
+
+    try {
+        // Phase 1: tap_to_start session
+        personaStore.getVoiceMode = () => 'tap_to_start';
+        const server1 = await startFakeVadServer();
+        const client1 = await connect(server1.port);
+        await client1.waitFor((e) => e.type === 'session.ready');
+        client1.sendJson({ type: 'session.start', sampleRate: 16000 });
+        await client1.waitFor((e) => e.type === 'session.config.applied');
+
+        client1.sendJson({ type: 'input_audio.start', mode: 'tap_to_start', micEchoCancellation: true, micTrackId: 'test-track' });
+        await client1.waitFor((e) => e.type === 'input_audio.start');
+        client1.sendBinary(silenceFrame());
+        await new Promise((resolve) => setTimeout(resolve, 30));
+
+        const s1 = server1.getSession();
+        s1.simulateNativeSpeechStopped();
+        const end1 = await client1.waitFor((e) => e.type === 'input_audio.end', { label: 'tap_to_start end' });
+        assert.equal(end1.end_reason, 'provider_vad', 'tap_to_start turn must end via provider VAD');
+
+        const bytesAfterTurn1 = s1.sentAudioBytes;
+        client1.sendBinary(silenceFrame());
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        assert.ok(s1.sentAudioBytes > bytesAfterTurn1, 'inter-utterance audio must still flow in tap_to_start');
+
+        s1.simulateNativeSpeechStarted();
+        await client1.waitFor((e) => e.type === 'input_audio.start', { label: 'native triggered start 2' });
+        s1.simulateNativeSpeechStopped();
+        await client1.waitFor((e) => e.type === 'input_audio.end', { label: 'vad end 2' });
+
+        client1.close();
+        await server1.close();
+
+        // Phase 2: switch to hold_to_talk — completely new session
+        personaStore.getVoiceMode = () => 'hold_to_talk';
+        const server2 = await startFakeVadServer();
+        const client2 = await connect(server2.port);
+        await client2.waitFor((e) => e.type === 'session.ready');
+        client2.sendJson({ type: 'session.start', sampleRate: 16000 });
+        await client2.waitFor((e) => e.type === 'session.config.applied');
+
+        client2.sendJson({ type: 'input_audio.start', mode: 'push_to_talk' });
+        await client2.waitFor((e) => e.type === 'input_audio.start');
+        client2.sendBinary(silenceFrame());
+        await new Promise((resolve) => setTimeout(resolve, 30));
+
+        const s2 = server2.getSession();
+        const bytesBeforeVad = s2.sentAudioBytes;
+        s2.simulateNativeSpeechStopped();
+        await new Promise((resolve) => setImmediate(resolve));
+
+        client2.sendJson({ type: 'input_audio.end' });
+        const end2 = await client2.waitFor((e) => e.type === 'input_audio.end', { label: 'hold_to_talk end' });
+        assert.notEqual(end2.end_reason, 'provider_vad', 'hold_to_talk must use client-driven end');
+
+        const bytesAfterTurn2 = s2.sentAudioBytes;
+        client2.sendBinary(silenceFrame());
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(s2.sentAudioBytes, bytesAfterTurn2, 'hold_to_talk must drop audio outside an active turn');
+
+        client2.close();
+        await server2.close();
+    } finally {
+        personaStore.getVoiceMode = originalGetVoiceMode;
+    }
+});
