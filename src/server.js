@@ -15,6 +15,7 @@ const { synthesizeProviderVoicePreview, MAX_PREVIEW_TEXT_CHARS } = require('./vo
 const { TOOL_DECLARATIONS, createToolHandlers } = require('./tools');
 const { createSessionMemory } = require('./memory/sessionMemory');
 const { loadIndex, buildIndex, buildIndexFromPostgres } = require('./knowledge/index');
+const publishService = require('./knowledge/publishService');
 const { getLastSemanticError } = require('./knowledge/search');
 const searchMode = require('./knowledge/searchMode');
 const knowledgeEmbeddings = require('./knowledge/embeddings');
@@ -1366,7 +1367,23 @@ async function handleRequest(req, res) {
                 language,
             ]);
 
-            // Reindex from Postgres
+            // Publish chunks for this document into knowledge_chunks (Stage 3
+            // write path) + compute embeddings when configured. This is the
+            // same shared service the crawler and update/reindex flows use.
+            const publishResult = await publishService.publishDocument({
+                pool,
+                documentId: result.rows[0]?.id,
+                metadata: {
+                    title,
+                    language,
+                    doc_type: documentType,
+                    source: canonicalUrl,
+                },
+                body: extractedText,
+            });
+
+            // Read-back totals for the response contract (document_count /
+            // chunk_count) — read-only, does not write anything.
             const indexResult = await buildIndexFromPostgres(pool);
 
             return {
@@ -1375,7 +1392,16 @@ async function handleRequest(req, res) {
                 document_id: result.rows[0]?.id,
                 document_count: indexResult.documents.length,
                 chunk_count: indexResult.chunks.length,
-                errors: indexResult.errors,
+                publish_status: publishResult.status,
+                publish: {
+                    inserted: publishResult.inserted,
+                    updated: publishResult.updated,
+                    unchanged: publishResult.unchanged,
+                    disabled: publishResult.disabled,
+                    embedded: publishResult.embedded,
+                    embed_failed: publishResult.embedFailed,
+                },
+                errors: publishResult.errors.length ? publishResult.errors : indexResult.errors,
                 language,
             };
         }
@@ -1468,11 +1494,27 @@ async function handleRequest(req, res) {
     if (req.method === 'POST' && pathname === '/api/knowledge/reindex') {
         try {
             const result = buildIndex();
+
+            // Stage 3: also re-publish every active Postgres document into
+            // knowledge_chunks (same shared service the upload/crawl flows
+            // use) so the PG contour stays in sync with the document registry.
+            // Best effort — failures are collected, the file index still wins.
+            let pgResult = null;
+            if (db.isEnabled()) {
+                try {
+                    const pool = db.getPool();
+                    pgResult = await publishService.publishAllFromPostgres({ pool });
+                } catch (pgErr) {
+                    pgResult = { published: 0, documents: 0, disabledInactive: 0, errors: [{ reindex: pgErr.message }] };
+                }
+            }
+
             return sendJson(res, 200, {
                 ok: true,
                 document_count: result.documentCount,
                 chunk_count: result.chunkCount,
                 errors: result.errors,
+                postgres: pgResult,
             });
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'reindex_failed' });
