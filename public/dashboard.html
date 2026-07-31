@@ -1499,6 +1499,57 @@
   let lastPointerdownAt = 0; // diagnostic only — for pointerdown_to_first_frame_ms
   let clientFrameCount = 0; // diagnostic only — reset per turn, reported at endTurn
   let clientByteCount = 0; // diagnostic only — reset per turn, reported at endTurn
+  // DIAGNOSTIC ONLY (temporary): per-press accumulator, one entry per
+  // interactionId, so the client's half of a press cycle (startSent/endSent/
+  // clientFrames/clientBytes) can be merged with the server's own counters
+  // into a single `ptt_summary` line per press (see 'ptt_client_summary' /
+  // logPttSummary() in realtimeServer.js). Never used for control flow.
+  const pttTraces = {}; // interactionId -> trace object
+  function traceForInteraction(interactionId) {
+    if (!interactionId) return null;
+    if (!pttTraces[interactionId]) {
+      pttTraces[interactionId] = {
+        startSent: false,
+        endSent: false,
+        clientFrames: 0,
+        clientBytes: 0,
+        lastFrameBytes: 0,
+        frameDropReasonsLogged: new Set(),
+        summarySent: false,
+        startedAt: performance.now(),
+        inputEndedAt: 0,
+      };
+    }
+    return pttTraces[interactionId];
+  }
+  // DIAGNOSTIC ONLY (temporary): closes a press cycle — logs the last audio
+  // frame, then sends the client half of the merged summary to the server,
+  // which adds serverFrames/providerBytes/transcription/modelEvent at the
+  // turn's terminal state. Idempotent per interactionId.
+  function finishPttInteraction(interactionId, clientEndReason) {
+    const trace = traceForInteraction(interactionId);
+    if (!trace || trace.summarySent) return;
+    trace.summarySent = true;
+    trace.clientEndReason = clientEndReason;
+    sendTelemetry('itrace_last_frame_sent', {
+      interactionId,
+      clientInstanceId,
+      websocketConnectionId,
+      frameIndex: trace.clientFrames,
+      lastFrameBytes: trace.lastFrameBytes,
+    });
+    sendTelemetry('ptt_client_summary', {
+      interactionId,
+      startSent: trace.startSent,
+      endSent: trace.endSent,
+      clientFrames: trace.clientFrames,
+      clientBytes: trace.clientBytes,
+      clientEndReason,
+      inputEndedAt: Math.round(trace.inputEndedAt || performance.now()),
+      holdMs: Math.round(performance.now() - trace.startedAt),
+    });
+    delete pttTraces[interactionId];
+  }
   // DIAGNOSTIC ONLY (temporary): identifies this page load (survives
   // reconnects within the same tab) and the specific WebSocket connection —
   // lets production logs distinguish "two tabs/sessions overlapping" from
@@ -2231,6 +2282,10 @@
   function beginContextualTurn(type, id) {
     const data = screenContextCache[`${type}:${id}`];
     if (!data) { log('screen_context_not_ready', { type, id }); return; }
+    currentInteractionId = newInteractionId();
+    lastPointerdownAt = performance.now();
+    traceForInteraction(currentInteractionId); // start the per-press trace timer at the press
+    itrace('pointerdown', { providerReadyForInput, wsState: ws ? ws.readyState : null, isHolding, hasMicStream: !!micStream });
     stopPlaybackImmediately({ reason: 'user_interrupt_contextual', generationId: acceptedPlaybackGenerationId });
     DeviceVisual.setState('ready');
     const isNewContext = !activeScreenContext || activeScreenContext.type !== type || activeScreenContext.id !== id;
@@ -2370,6 +2425,7 @@
     setConnectionButton('disconnected');
 
     isHolding = false; // stop sending audio frames before the mic itself is torn down
+    finishPttInteraction(currentInteractionId, 'disconnect');
     stopMic();
     sendTelemetry('mic_stopped', {});
 
@@ -2747,8 +2803,34 @@
     // Start it's true for the whole conversation (see resumeTapListening()/
     // stopConversationOnTap() below), not re-toggled per utterance.
     processor.onaudioprocess = (e) => {
-      if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
+      if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) {
+        // DIAGNOSTIC ONLY (temporary): log the FIRST dropped frame per reason
+        // per interaction — a leaked isHolding or a ws that closed mid-press
+        // is a top candidate for "audio captured but never reached the
+        // server", and it is invisible anywhere else. Throttled to one line
+        // per reason per press so a stuck pipeline can't flood the log.
+        const trace = (voiceMode === 'hold_to_talk') ? traceForInteraction(currentInteractionId) : null;
+        if (trace && trace.frameDropReasonsLogged.size < 4) {
+          const reason = !isHolding ? 'not_holding' : 'ws_not_open';
+          if (!trace.frameDropReasonsLogged.has(reason)) {
+            trace.frameDropReasonsLogged.add(reason);
+            sendTelemetry('itrace_audio_frame_dropped', {
+              interactionId: currentInteractionId,
+              clientInstanceId,
+              websocketConnectionId,
+              turnId: currentTurnId,
+              reason,
+              bytes: Math.round(input.length * 4),
+              isHolding,
+              pendingPttStart,
+              wsState: ws ? ws.readyState : null,
+              inputEndedAt: Math.round(inputEndedAt || 0),
+            });
+          }
+        }
+        return;
+      }
       const pcm16 = new Int16Array(input.length);
       let peak = 0;
       for (let i = 0; i < input.length; i++) {
@@ -2771,6 +2853,12 @@
       if (firstNonSilentFrameForInteraction !== currentInteractionId && peak >= 500) {
         firstNonSilentFrameForInteraction = currentInteractionId;
         itrace('first_non_silent_frame', { peak: Math.round(peak) });
+      }
+      const trace = (voiceMode === 'hold_to_talk') ? traceForInteraction(currentInteractionId) : null;
+      if (trace) {
+        trace.clientFrames += 1;
+        trace.clientBytes += pcm16.buffer.byteLength;
+        trace.lastFrameBytes = pcm16.buffer.byteLength;
       }
       clientFrameCount += 1;
       clientByteCount += pcm16.buffer.byteLength;
@@ -2812,7 +2900,11 @@
 
   async function startTurn() {
     itrace('startTurn_entered', { wsState: ws ? ws.readyState : null, hasMicStream: !!micStream });
-    if (!ws || ws.readyState !== WebSocket.OPEN) { itrace('startTurn_exited_no_ws'); return; }
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      itrace('startTurn_exited_no_ws');
+      finishPttInteraction(currentInteractionId, 'early_no_ws');
+      return;
+    }
     // Set isHolding BEFORE any await so a quick pointerup->endTurn()
     // correctly detects the hold instead of no-opping. Failure to do this
     // caused the alternating PTT bug: endTurn() found isHolding===false,
@@ -2840,9 +2932,11 @@
     // AudioContext the browser silently suspended between presses (see
     // ensureAudioContextRunning() above).
     const audioReady = await ensureAudioContextRunning();
+    itrace('startTurn_after_audio_context', { state: audioContext ? audioContext.state : 'none' });
     if (turnInteractionId !== currentInteractionId) {
       isHolding = false;
       itrace('startTurn_exited_stale_after_audio_context', { turnInteractionId });
+      finishPttInteraction(turnInteractionId, 'early_stale_interaction');
       return;
     }
     if (!audioReady) {
@@ -2856,6 +2950,7 @@
         if (caption) caption.textContent = getUiString('pttCaptionAudioError');
       }
       sendTelemetry('mic_error', { message: 'AudioContext failed to resume' });
+      finishPttInteraction(turnInteractionId, 'early_audio_context_not_running');
       return; // do NOT send input_audio.start — nothing would ever be heard
     }
 
@@ -2866,11 +2961,14 @@
       isHolding = false;
       itrace('startTurn_exited_mic_error', { message: err.message });
       sendTelemetry('mic_error', { message: err.message });
+      finishPttInteraction(turnInteractionId, 'early_mic_error');
       return;
     }
+    itrace('startTurn_after_ensureMic', { hasMicStream: !!micStream });
     if (turnInteractionId !== currentInteractionId) {
       isHolding = false;
       itrace('ensureMic_resolved_stale_interaction', { turnInteractionId });
+      finishPttInteraction(turnInteractionId, 'early_stale_interaction');
       return; // user already released/re-pressed — do not start a turn for an abandoned press
     }
     // If the user already released during the async gap, endTurn() has
@@ -2878,6 +2976,7 @@
     // new turn or show recording for a release that already happened.
     if (!isHolding) {
       itrace('startTurn_exited_released_during_gap', {});
+      finishPttInteraction(turnInteractionId, 'early_released_during_gap');
       return;
     }
     setText('micState', 'recording');
@@ -2888,6 +2987,8 @@
     clientByteCount = 0;
     itrace('input_audio_start_sending', {});
     ws.send(JSON.stringify({ type: 'input_audio.start', mode: 'push_to_talk', interaction_id: turnInteractionId }));
+    const trace = traceForInteraction(turnInteractionId);
+    if (trace) trace.startSent = true;
     itrace('startTurn_exited_ok', {});
   }
 
@@ -2900,8 +3001,15 @@
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'input_audio.end', interaction_id: currentInteractionId }));
       itrace('input_audio_end_sent', {});
+      const trace = traceForInteraction(currentInteractionId);
+      if (trace) {
+        trace.endSent = true;
+        trace.inputEndedAt = performance.now();
+      }
+      finishPttInteraction(currentInteractionId, 'endTurn');
     } else {
       itrace('endTurn_exited_no_ws');
+      finishPttInteraction(currentInteractionId, 'endTurn_no_ws');
     }
   }
 
@@ -3611,6 +3719,7 @@
     if (voiceMode !== 'hold_to_talk') return;
     currentInteractionId = newInteractionId();
     lastPointerdownAt = performance.now();
+    traceForInteraction(currentInteractionId); // start the per-press trace timer at the press
     itrace('pointerdown', { providerReadyForInput, wsState: ws ? ws.readyState : null, isHolding, hasMicStream: !!micStream });
     isPttPointerDown = true;
     if (!providerReadyForInput) {
@@ -3637,6 +3746,7 @@
       pendingPttStart = false;
       setPttCaption();
       itrace('pointerup_dropped_pending_never_ready', {});
+      finishPttInteraction(currentInteractionId, 'released_before_ready');
       return;
     }
     endTurn();
@@ -3645,7 +3755,12 @@
     if (voiceMode !== 'hold_to_talk') return;
     itrace('pointerleave', { pendingPttStart, isHolding });
     isPttPointerDown = false;
-    if (pendingPttStart) { pendingPttStart = false; setPttCaption(); return; }
+    if (pendingPttStart) {
+      pendingPttStart = false;
+      setPttCaption();
+      finishPttInteraction(currentInteractionId, 'released_before_ready');
+      return;
+    }
     if (isHolding) endTurn();
   });
   pttBtn.addEventListener('click', () => {
