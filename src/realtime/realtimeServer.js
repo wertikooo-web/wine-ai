@@ -94,11 +94,21 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'itrace_processor_first_callback', 'itrace_first_non_silent_frame',
     'itrace_pointerdown_to_first_frame_ms', 'itrace_server_no_speech_received',
     // DIAGNOSTIC ONLY (temporary): end-to-end two-adjacent-press trace —
-    // see ptt_attempt_summary/logPttAttemptSummary() below.
+    // see ptt_summary/logPttSummary() below.
     'itrace_server_input_audio_start_received', 'itrace_input_audio_end_received',
     'itrace_client_frames_summary', 'itrace_transcript_user_received',
     'itrace_first_model_event_received', 'itrace_first_audio_chunk_received',
     'itrace_playback_started',
+    // DIAGNOSTIC ONLY (temporary): unified per-press PTT trace — the client
+    // reports its own half of one press cycle (startSent/endSent/
+    // clientFrames/clientBytes) via ptt_client_summary, which the server
+    // merges with its own counters into ONE `ptt_summary` line per
+    // interactionId (see logPttSummary() below). The itrace_* additions fill
+    // the remaining gaps in the client timeline: the awaits inside startTurn,
+    // the last audio frame per press, and the first dropped frame per reason.
+    'ptt_client_summary',
+    'itrace_startTurn_after_audio_context', 'itrace_startTurn_after_ensureMic',
+    'itrace_last_frame_sent', 'itrace_audio_frame_dropped',
 ]);
 // Field allowlist by name, not just "any scalar" — a field named `text`,
 // `prompt`, `token`, `apiKey`, etc. must never pass through even if some
@@ -120,6 +130,12 @@ const CLIENT_TELEMETRY_ALLOWED_FIELDS = new Set([
     // DIAGNOSTIC ONLY (temporary) — see itrace_* stage list above.
     'clientInstanceId', 'websocketConnectionId', 'turnId',
     'clientFrameCount', 'clientByteCount', 'eventType',
+    // DIAGNOSTIC ONLY (temporary) — unified per-press ptt_summary (see
+    // 'ptt_client_summary' / logPttSummary() below): the client half of the
+    // merged line.
+    'startSent', 'endSent', 'clientFrames', 'clientBytes', 'clientEndReason',
+    'holdMs', 'frameIndex', 'lastFrameBytes', 'status', 'inputEndedAt',
+    'currentGenerationId',
 ]);
 const CLIENT_TELEMETRY_MAX_STRING_LENGTH = 200;
 const CLIENT_TELEMETRY_MAX_FIELDS = 20;
@@ -354,10 +370,11 @@ function createGeneration({ turnId, mode, interactionId, providerInstanceId }) {
         memoryExtractionStarted: false,
         safetyCheckStarted: false,
         noSpeechChecked: false,
-        // DIAGNOSTIC ONLY (temporary) -- see ptt_attempt_summary below.
+        // DIAGNOSTIC ONLY (temporary) -- see ptt_summary below.
         interactionId: interactionId || null,
         providerInstanceId: providerInstanceId || null,
         serverFramesReceived: 0,
+        lastFrameBytes: 0,
         providerBytesSent: 0,
         summaryLogged: false,
     };
@@ -523,6 +540,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     let providerSessionUsedForTurn = false;
     let lastTurnProviderInstanceId = null;
     let invariantViolationCount = 0;
+    // DIAGNOSTIC ONLY (temporary): the client-reported half of each press
+    // cycle's summary (see 'ptt_client_summary' handling below), keyed by
+    // interactionId, merged into the ONE `ptt_summary` line logged when that
+    // press's generation reaches a terminal state. Deleted once consumed;
+    // summaryLoggedInteractions guarantees exactly one ptt_summary per
+    // interactionId even when the client's telemetry races a fast terminal.
+    const clientPttSummaryByInteraction = new Map();
+    const summaryLoggedInteractions = new Set();
 
     function log(stage, extra = {}) {
         const details = Object.entries(extra)
@@ -991,7 +1016,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             newProviderInstanceId: providerSession?.instanceId || 'unknown',
             elapsedMs: Date.now() - startedAt,
         });
-        logPttAttemptSummary(generation, 'provider_timeout');
+        logPttSummary(generation, 'provider_timeout');
     }
 
     async function recoverFromProviderFailure(generation, reason, payload = {}) {
@@ -1015,7 +1040,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             reason,
             providerInstanceId: providerSession?.instanceId || 'unknown',
         });
-        logPttAttemptSummary(generation, reason);
+        logPttSummary(generation, reason);
         emit({
             ...payload,
             type: 'response.failed',
@@ -1250,7 +1275,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             clearGenerationTimeout(generation);
             rememberTurn('assistant', assistantTranscriptBuffer);
             assistantTranscriptBuffer = '';
-            logPttAttemptSummary(generation, 'completed');
+            logPttSummary(generation, 'completed');
         }
         const emitted = emit({
             ...payload,
@@ -1290,29 +1315,52 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         return emitted;
     }
 
-    // DIAGNOSTIC ONLY (temporary): one summary line per PTT attempt, logged
-    // exactly once when its generation reaches a terminal state, so a single
-    // interactionId's whole story (turn/generation/provider ownership, byte
-    // counts, which milestones it actually reached) is readable without
-    // reconstructing it from dozens of interleaved lines. Restricted to
-    // push_to_talk since interactionId is a Hold-to-Talk-press concept.
-    function logPttAttemptSummary(generation, terminalReason) {
-        if (!generation || generation.mode !== 'push_to_talk' || generation.summaryLogged) return;
-        generation.summaryLogged = true;
-        log('ptt_attempt_summary', {
-            interactionId: generation.interactionId,
+    // DIAGNOSTIC ONLY (temporary): ONE summary line per PTT press, logged
+    // exactly once per interactionId, merging the client-reported half
+    // (startSent/endSent/clientFrames/clientBytes, sent via the
+    // 'ptt_client_summary' telemetry at the end of the press cycle) with the
+    // server-observed half (serverFrames/providerBytes/transcription/
+    // modelEvent, accumulated on the generation). Logged when the press's
+    // generation reaches a terminal state; if no turn was ever created
+    // (early client exit, released before ready), it is logged when the
+    // client's own summary arrives. Restricted to push_to_talk since
+    // interactionId is a Hold-to-Talk-press concept.
+    function isTerminalGeneration(generation) {
+        return !generation
+            || generation.status === 'cancelled'
+            || generation.status === 'completed'
+            || generation.status === 'failed';
+    }
+
+    function logPttSummary(generation, terminalReason, clientSummary) {
+        if (generation && generation.mode !== 'push_to_talk') return;
+        const interactionId = generation ? generation.interactionId : (clientSummary ? clientSummary.interactionId : null);
+        if (!interactionId || summaryLoggedInteractions.has(interactionId)) return;
+        summaryLoggedInteractions.add(interactionId);
+        if (generation) generation.summaryLogged = true;
+        const cs = clientSummary || clientPttSummaryByInteraction.get(interactionId) || null;
+        if (cs) clientPttSummaryByInteraction.delete(interactionId);
+        log('ptt_summary', {
+            interactionId,
             sessionId,
-            turnId: generation.turnId,
-            generationId: generation.generationId,
-            providerInstanceId: generation.providerInstanceId,
+            turnId: generation?.turnId || null,
+            generationId: generation?.generationId || null,
+            providerInstanceId: generation?.providerInstanceId || null,
             clientInstanceId: sessionClientInstanceId,
             websocketConnectionId: sessionWebsocketConnectionId,
-            serverFramesReceived: generation.serverFramesReceived,
-            providerBytesSent: generation.providerBytesSent,
-            transcriptionReceived: Boolean(generation.firstInputTranscriptionAt),
-            modelEventReceived: Boolean(generation.firstModelEventAt),
-            validAudioReceived: Boolean(generation.firstValidAudioAt),
-            terminalReason,
+            startSent: cs ? cs.startSent : 'unknown',
+            endSent: cs ? cs.endSent : 'unknown',
+            clientFrames: cs ? cs.clientFrames : 'unknown',
+            clientBytes: cs ? cs.clientBytes : 'unknown',
+            clientEndReason: cs ? cs.clientEndReason : 'unknown',
+            serverFrames: generation ? generation.serverFramesReceived : 0,
+            providerBytes: generation ? generation.providerBytesSent : 0,
+            transcription: Boolean(generation?.firstInputTranscriptionAt),
+            modelEvent: Boolean(generation?.firstModelEventAt),
+            validAudio: Boolean(generation?.firstValidAudioAt),
+            status: generation ? generation.status : 'no_turn',
+            inputEndedAt: generation ? generation.inputEndedAt : (cs ? cs.inputEndedAt : 0),
+            terminalReason: generation ? terminalReason : `client_${cs?.clientEndReason || 'no_turn'}`,
         });
     }
 
@@ -1351,7 +1399,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             reason,
             cancelLatencyMs,
         });
-        logPttAttemptSummary(currentGeneration, reason);
+        logPttSummary(currentGeneration, reason);
         return true;
     }
 
@@ -1649,6 +1697,16 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         if (!currentGeneration) {
             currentGeneration = createGeneration({ turnId: currentTurnId, mode: currentMode });
         }
+        if (currentGeneration.serverFramesReceived > 0) {
+            log('input_audio_last_frame', {
+                turnId: currentTurnId,
+                interactionId: currentInteractionId,
+                generationId: currentGeneration.generationId,
+                frameIndex: currentGeneration.serverFramesReceived,
+                bytes: currentGeneration.lastFrameBytes,
+                providerInstanceId: providerSession?.instanceId || 'unknown',
+            });
+        }
 
         emit({
             type: 'input_audio.end',
@@ -1829,7 +1887,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 });
                 return;
             }
-            // DIAGNOSTIC ONLY (temporary) — see ptt_attempt_summary below.
+            // DIAGNOSTIC ONLY (temporary) — see ptt_summary below.
             if (payload.client_instance_id) sessionClientInstanceId = String(payload.client_instance_id).slice(0, 64);
             if (payload.websocket_connection_id) sessionWebsocketConnectionId = String(payload.websocket_connection_id).slice(0, 64);
             log('session_client_identity', {
@@ -2060,9 +2118,31 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 log('client_telemetry_rejected', { reason: 'payload_too_large', stage, approxBytes });
                 return;
             }
+            const sanitized = sanitizeClientTelemetryData(payload.data);
+            // DIAGNOSTIC ONLY (temporary): the client half of one press
+            // cycle's summary. Buffered until that press's generation
+            // terminates, then merged into a single `ptt_summary` line (see
+            // logPttSummary() above). If no turn is (or ever was) live for
+            // this interactionId — early client exit, released before
+            // provider.ready, no ws — the client-only summary is logged
+            // immediately so a press that never reached the server still
+            // produces exactly one summary line.
+            if (stage === 'ptt_client_summary') {
+                const interactionId = typeof sanitized.interactionId === 'string' ? sanitized.interactionId : null;
+                if (!interactionId) return;
+                const liveGeneration = currentGeneration
+                    && currentGeneration.interactionId === interactionId
+                    && !isTerminalGeneration(currentGeneration);
+                if (liveGeneration) {
+                    clientPttSummaryByInteraction.set(interactionId, sanitized);
+                    return;
+                }
+                logPttSummary(null, 'client_no_turn', sanitized);
+                return;
+            }
             log('client_telemetry', {
                 stage,
-                ...sanitizeClientTelemetryData(payload.data),
+                ...sanitized,
             });
         } else if (payload.type === 'ping') {
             emit({
@@ -2103,12 +2183,15 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             // an explicitly active turn, exactly as before.
             const continuousTapListening = currentMode === 'tap_to_start' && turnCounter > 0;
             if (!isActiveTurn && !continuousTapListening) {
-                log('dropped_input_audio_frame', {
+                log('audio_frame_dropped', {
                     reason: 'no_active_input',
                     bytes: payload.length,
                     turnId: currentTurnId || 'none',
                     interactionId: currentInteractionId || 'none',
                     generationId: currentGeneration?.generationId || 'none',
+                    currentGenerationId: currentGeneration?.generationId || 'none',
+                    status: currentGeneration?.status || 'none',
+                    inputEndedAt: inputEndedAt || 0,
                     providerInstanceId: providerSession?.instanceId || 'unknown',
                 });
                 return;
@@ -2149,7 +2232,17 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 inputBytes += resampled.length;
                 if (currentGeneration) {
                     currentGeneration.serverFramesReceived += 1;
+                    currentGeneration.lastFrameBytes = resampled.length;
                     currentGeneration.providerBytesSent += resampled.length;
+                    if (currentGeneration.serverFramesReceived === 1) {
+                        log('input_audio_first_frame', {
+                            turnId: currentTurnId,
+                            interactionId: currentInteractionId,
+                            generationId: currentGeneration.generationId,
+                            bytes: resampled.length,
+                            providerInstanceId: providerSession?.instanceId || 'unknown',
+                        });
+                    }
                 }
                 if (currentMode === 'push_to_talk') {
                     countLoudSamples(resampled);

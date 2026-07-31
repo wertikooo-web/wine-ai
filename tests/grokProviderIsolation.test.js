@@ -60,6 +60,14 @@ class FakeGrokSocket extends EventEmitter {
 
 function startGrokTestServer() {
     const sockets = [];
+    // Parallel array to `sockets`: the GrokVoiceProviderSession that owns
+    // each socket, so a test can look up "which providerInstanceId does
+    // socketA belong to" -- needed because a legitimate reused-instance log
+    // line for turn3's OWN completion can share the same `reason` string
+    // (e.g. reason=response.done) as the late event under test; only the
+    // providerInstanceId distinguishes "turn3's own instance" from "turn2's
+    // interrupted instance".
+    const sessions = [];
     const grokProvider = new GrokVoiceProvider({
         apiKey: 'test-key',
         webSocketFactory: () => {
@@ -82,7 +90,11 @@ function startGrokTestServer() {
             res.end();
         });
         attachRealtimeServer(server, {
-            providerFactory: (sessionOptions = {}) => grokProvider.createSession(sessionOptions),
+            providerFactory: (sessionOptions = {}) => {
+                const session = grokProvider.createSession(sessionOptions);
+                sessions.push(session);
+                return session;
+            },
             providerMetadata: {
                 provider: 'grok',
                 model: 'grok-voice-test',
@@ -93,6 +105,7 @@ function startGrokTestServer() {
             resolve({
                 port: server.address().port,
                 sockets,
+                sessions,
                 logLines,
                 close: () => {
                     console.log = originalConsoleLog;
@@ -131,7 +144,7 @@ for (const lateEventType of [
     'input_audio_buffer.speech_stopped',
 ]) {
     test(`late ${lateEventType} from an interrupted turn's old Grok socket does not affect the next turn`, async () => {
-        const { port, sockets, logLines, close } = await startGrokTestServer();
+        const { port, sockets, sessions, logLines, close } = await startGrokTestServer();
         try {
             const client = await connect(port);
             await client.waitFor((e) => e.type === 'session.ready', { label: 'session.ready' });
@@ -143,6 +156,11 @@ for (const lateEventType of [
             const turn2TurnId = await startTurn(client, 'ix_turn2');
             client.sendBinary(Buffer.alloc(320));
             client.sendJson({ type: 'input_audio.end' });
+            // realtimeServer.js's no-speech gate cancels a push_to_talk
+            // generation as soon as a model-output event arrives without a
+            // prior non-empty transcript.user -- so, like a real Grok turn,
+            // the user transcription must land before any model output.
+            socketA.emitServerMessage({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'what wine goes with fish' });
             socketA.emitServerMessage({ type: 'response.output_audio_transcript.delta', delta: 'hello' });
             const turn2ModelEvent = await client.waitFor(
                 (e) => e.type === 'transcript.model' && e.turn_id === turn2TurnId,
@@ -200,24 +218,25 @@ for (const lateEventType of [
             } catch { /* expected: nothing arrives yet */ }
             assert.equal(sawTurn3AudioEnd, false, 'turn3 must not be completed by turn2\'s late event');
             assert.equal(
-                logLines.some((line) => line.includes('stage=ptt_attempt_summary') && line.includes(`turnId=${turn3TurnId}`)),
+                logLines.some((line) => line.includes('stage=ptt_summary') && line.includes(`turnId=${turn3TurnId}`)),
                 false,
-                'turn3 must not have a ptt_attempt_summary line yet -- it has not terminated',
+                'turn3 must not have a ptt_summary line yet -- it has not terminated',
             );
 
             // (ii) turn3 can still receive/produce its own real completion,
             // proving it was never marked completed/failed by the late event.
-            // Verified via server-side logs (ptt_attempt_summary) rather than
+            // Verified via server-side logs (ptt_summary) rather than
             // chained client WS events, which is the same signal used to
             // originally diagnose this bug from production.
+            socketB.emitServerMessage({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'and a red one' });
             socketB.emitServerMessage({ type: 'response.output_audio.delta', delta: Buffer.alloc(8).toString('base64') });
             socketB.emitServerMessage({ type: 'response.done' });
             await new Promise((r) => setTimeout(r, 300));
-            const turn3Summary = logLines.find((line) => line.includes('stage=ptt_attempt_summary')
+            const turn3Summary = logLines.find((line) => line.includes('stage=ptt_summary')
                 && line.includes(`turnId=${turn3TurnId}`));
-            assert.ok(turn3Summary, 'expected turn3 to reach a ptt_attempt_summary line');
+            assert.ok(turn3Summary, 'expected turn3 to reach a ptt_summary line');
             assert.ok(turn3Summary.includes('terminalReason=completed'), `turn3 must complete normally, got: ${turn3Summary}`);
-            assert.ok(turn3Summary.includes('modelEventReceived=true'), `turn3 must have received model output from its OWN provider, got: ${turn3Summary}`);
+            assert.ok(turn3Summary.includes('modelEvent=true'), `turn3 must have received model output from its OWN provider, got: ${turn3Summary}`);
 
             // (iii) log evidence: the late event was logged as ignored on the
             // OLD instance, and no provider_session_reused fired because of it.
@@ -225,9 +244,17 @@ for (const lateEventType of [
                 && line.includes(`lateEventType=${lateEventType}`));
             assert.ok(hasLateEventLog, `expected a provider_late_event_ignored log line for ${lateEventType}`);
 
+            // Distinguish "turn3 legitimately reused/completed its OWN
+            // instance" (expected, unrelated to the late event, and can
+            // share the exact same `reason` text) from "the late event
+            // itself caused a reuse log" -- only the providerInstanceId of
+            // the OLD (interrupted) instance tells them apart.
+            const socketAIndex = sockets.indexOf(socketA);
+            const oldProviderInstanceId = sessions[socketAIndex]?.instanceId;
+            assert.ok(oldProviderInstanceId, 'test setup: could not resolve socketA\'s providerInstanceId');
             const spuriousReuseLog = logLines.some((line) => line.includes('provider_session_reused')
-                && line.includes(`reason=${lateEventType}`));
-            assert.equal(spuriousReuseLog, false, 'must not log provider_session_reused for the late event');
+                && line.includes(`providerInstanceId=${oldProviderInstanceId}`));
+            assert.equal(spuriousReuseLog, false, 'must not log provider_session_reused for the interrupted (old) instance');
 
             const rotationLog = logLines.find((line) => line.includes('provider_session_rotated')
                 && line.includes('reason=new_input_after_cancel'));
@@ -254,6 +281,7 @@ test('normal, non-interrupted Grok turns continue reusing the same provider inst
         const turn1TurnId = await startTurn(client, 'ix_turn1');
         client.sendBinary(Buffer.alloc(320));
         client.sendJson({ type: 'input_audio.end' });
+        socketA.emitServerMessage({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'what wine goes with fish' });
         socketA.emitServerMessage({ type: 'response.output_audio.delta', delta: Buffer.alloc(8).toString('base64') });
         await client.waitFor((e) => e.type === 'audio.start' && e.turn_id === turn1TurnId, { timeoutMs: 2000 });
         socketA.emitServerMessage({ type: 'response.done' });

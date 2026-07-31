@@ -401,13 +401,20 @@ class GrokVoiceProviderSession {
         this.connectPromise = null;
     }
 
-    // Public API used by realtimeServer.js's rotateProviderSession(). An
-    // instance with nothing in flight (this.active already null -- e.g.
-    // rotation triggered by something other than an interrupt) has nothing
-    // to drain and can close immediately; one with a response in flight
-    // drains first (see interrupt()/markDraining()) so a late terminal
-    // event still gets logged instead of silently vanishing mid-close.
+    // Public API used by realtimeServer.js's rotateProviderSession(). Called
+    // in two distinct situations that must be told apart by lifecycleState,
+    // not by this.active (interrupt() already nulls this.active as PART of
+    // starting the drain, so checking this.active here would see "nothing
+    // active" for an instance that is mid-drain and wrongly hard-close it,
+    // killing the drain window before a late terminal event can be logged):
+    //   - already draining (interrupt() ran first, e.g. new_input_after_cancel)
+    //     -> leave the existing drain in progress alone.
+    //   - still active, nothing draining yet (e.g. provider_timeout/error
+    //     rotation with no interrupt() call first) -> start draining now if a
+    //     response was in flight, else there is nothing to drain and it can
+    //     close immediately.
     destroySession(reason = 'destroy_session') {
+        if (this.lifecycleState !== 'active') return;
         if (this.active) {
             this.markDraining(reason);
             return;
