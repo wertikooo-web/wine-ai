@@ -145,12 +145,20 @@ async function init() {
                     chunk_index INT NOT NULL DEFAULT 0,
                     text TEXT NOT NULL,
                     content_hash TEXT NOT NULL,
+                    document_id TEXT,
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 );
             `);
+            // Stage 3 (write path): whole-document replace / idempotent re-upload
+            // needs a document-level key. Existing tables (created before this
+            // column) get it via ADD COLUMN IF NOT EXISTS; new tables get it from
+            // the CREATE TABLE above. Migration-imported file chunks keep
+            // document_id NULL — only pipeline-published documents set it.
+            await p.query('ALTER TABLE knowledge_chunks ADD COLUMN IF NOT EXISTS document_id TEXT;');
             await p.query('CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_file ON knowledge_chunks(source_file);');
             await p.query('CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_entity_id ON knowledge_chunks(entity_id);');
+            await p.query('CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_document_id ON knowledge_chunks(document_id);');
 
             return p;
         })();
