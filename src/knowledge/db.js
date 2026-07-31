@@ -118,6 +118,40 @@ async function init() {
                 console.error('[knowledge db] pgvector setup failed — semantic search will stay disabled:', err.message);
             }
 
+            // Chunk storage (Stage 1 of the PG-as-source-of-truth migration,
+            // see docs/audits/PG_MIGRATION_PLAN.md). The chunk's full text and
+            // metadata mirror the shape of a chunk in knowledge/index/index.json,
+            // so the runtime search can consume it without format conversion.
+            // chunk_id uses the exact id scheme from chunkDocument()/stableId()
+            // (src/knowledge/loader.js), which is what knowledge_chunk_embeddings
+            // already keys on — a 1:1 join. This table is the destination of the
+            // one-time filesystem import (scripts/knowledge-chunks-sync.js); it is
+            // NOT yet read by the runtime search path (that is Stage 2).
+            await p.query(`
+                CREATE TABLE IF NOT EXISTS knowledge_chunks (
+                    chunk_id TEXT PRIMARY KEY,
+                    source_file TEXT NOT NULL,
+                    title TEXT,
+                    doc_type TEXT,
+                    language TEXT,
+                    source TEXT,
+                    confidence TEXT,
+                    entity_id TEXT,
+                    winery TEXT,
+                    region TEXT,
+                    grape TEXT,
+                    date TEXT,
+                    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                    chunk_index INT NOT NULL DEFAULT 0,
+                    text TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await p.query('CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_file ON knowledge_chunks(source_file);');
+            await p.query('CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_entity_id ON knowledge_chunks(entity_id);');
+
             return p;
         })();
     }

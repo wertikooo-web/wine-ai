@@ -1,6 +1,6 @@
 'use strict';
 
-const { loadIndex } = require('./index');
+const { loadIndex, loadChunks, CHUNK_SOURCES, CHUNK_SOURCE_ENV } = require('./index');
 const searchMode = require('./searchMode');
 const db = require('./db');
 const embeddings = require('./embeddings');
@@ -114,7 +114,7 @@ function scoreChunk(queryTokens, chunk, idf, { skipStopwords } = {}) {
     return score;
 }
 
-function keywordSearch(query, { limit, language, indexFile } = {}) {
+function keywordSearch(query, { limit, language, indexFile, index: providedIndex } = {}) {
     const startedAt = Date.now();
     const entityQuery = resolveEntity(query).found;
     const queryTokens = entityQuery ? tokenizeEntity(query) : tokenize(query);
@@ -122,7 +122,7 @@ function keywordSearch(query, { limit, language, indexFile } = {}) {
         return { hits: [], tookMs: Date.now() - startedAt, index: null, entityQuery };
     }
 
-    const index = loadIndex(indexFile);
+    const index = providedIndex || loadIndex(indexFile);
     const candidates = index.chunks.filter((chunk) => chunk.metadata.enabled !== false);
 
     const idf = buildIdfIndex(index);
@@ -288,6 +288,8 @@ function _buildDiagnostics() {
         semanticError: null,
         fallbackReason: null,
         rerankCandidateCount: null,
+        chunkSource: null,
+        chunkFallback: null,
     };
 }
 
@@ -316,9 +318,11 @@ function _hitDiagnostic(chunk, { kwScore = 0, semWeight = 0, entityBonus = 0, fr
 // preventing a more popular entity from dominating all top-k slots.
 // Options:
 //   - perEntityQuota: minimum number of results per entity (default: 2)
-async function _multiEntitySearch(query, allMentions, { limit, language, indexFile }) {
+async function _multiEntitySearch(query, allMentions, { limit, language, indexFile, index: providedIndex }) {
     const perEntityQuota = Math.max(2, Math.ceil(limit / allMentions.length));
     const entityResults = [];
+
+    const index = providedIndex || loadIndex(indexFile);
 
     // Search each entity independently
     for (const mention of allMentions) {
@@ -329,7 +333,6 @@ async function _multiEntitySearch(query, allMentions, { limit, language, indexFi
             matchedAlias: mention.matchedAlias,
         };
 
-        const index = loadIndex(indexFile);
         const aliasHits = aliasTextSearch(query, { index, resolved, limit: perEntityQuota + 2 });
         const entityHits = entityIdSearch(query, { index, resolved, limit: perEntityQuota + 2 });
 
@@ -399,7 +402,28 @@ async function _multiEntitySearch(query, allMentions, { limit, language, indexFi
     };
 }
 
-async function search(query, { limit = 4, language = null, indexFile, diagnostics: enableDiagnostics = false } = {}) {
+// Build an index-like object ({built_at, chunks}) from a chunk array so the
+// existing keyword/entity/hybrid algorithms can operate on it unchanged.
+// built_at is a stable fingerprint of the chunk set so the module-level IDF
+// cache (buildIdfIndex) never serves stale statistics across different loads.
+function _indexFromChunks(chunks) {
+    const fingerprint = chunks.slice(0, 50).map((c) => c.id).join('|');
+    return { built_at: `runtime:${chunks.length}:${fingerprint}`, chunk_count: chunks.length, chunks };
+}
+
+// Resolve the chunk source for this search. When chunkSource is explicitly
+// requested (option or KNOWLEDGE_CHUNK_SOURCE env flag) the chunk set is
+// loaded through loadChunks() (postgres|file|auto); otherwise search() keeps
+// its historical file-only behavior byte-for-byte.
+async function _resolveIndex({ chunkSource, indexFile }) {
+    if (!chunkSource || !CHUNK_SOURCES.has(chunkSource)) {
+        return { index: loadIndex(indexFile), loaded: null };
+    }
+    const loaded = await loadChunks({ source: chunkSource, indexFile });
+    return { index: _indexFromChunks(loaded.chunks), loaded };
+}
+
+async function search(query, { limit = 4, language = null, indexFile, chunkSource, diagnostics: enableDiagnostics = false } = {}) {
     const startedAt = Date.now();
     const diag = _buildDiagnostics();
 
@@ -408,7 +432,14 @@ async function search(query, { limit = 4, language = null, indexFile, diagnostic
         return { hits: [], tookMs: Date.now() - startedAt, mode: 'disabled', diagnostics: diag };
     }
 
-    const index = loadIndex(indexFile);
+    const effectiveChunkSource = chunkSource || (typeof process !== 'undefined' ? process.env[CHUNK_SOURCE_ENV] : null);
+    const chunkResolution = await _resolveIndex({ chunkSource: effectiveChunkSource, indexFile });
+    const index = chunkResolution.index;
+    if (chunkResolution.loaded) {
+        diag.chunkSource = chunkResolution.loaded.source;
+        diag.chunkFallback = chunkResolution.loaded.fallback;
+    }
+
     if (!index.chunks || index.chunks.length === 0) {
         diag.actualMode = 'keyword';
         return { hits: [], tookMs: Date.now() - startedAt, mode: 'keyword', diagnostics: diag };
@@ -420,7 +451,7 @@ async function search(query, { limit = 4, language = null, indexFile, diagnostic
 
     // Multi-entity path: if allMentions is present, search each entity separately
     if (resolved.found && resolved.allMentions && resolved.allMentions.length > 1) {
-        const multiResult = await _multiEntitySearch(query, resolved.allMentions, { limit, language, indexFile });
+        const multiResult = await _multiEntitySearch(query, resolved.allMentions, { limit, language, indexFile, index });
         diag.actualMode = 'multi_entity';
         return {
             hits: multiResult.hits,
@@ -462,7 +493,7 @@ async function search(query, { limit = 4, language = null, indexFile, diagnostic
         diag.fallbackReason = 'entity_evidence_insufficient';
     }
 
-    const keyword = keywordSearch(query, { limit, language, indexFile });
+    const keyword = keywordSearch(query, { limit, language, indexFile, index });
     diag.keywordTookMs = Date.now() - startedAt;
 
     const wantsHybrid = searchMode.getMode() === 'hybrid';
