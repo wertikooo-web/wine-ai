@@ -1,204 +1,42 @@
-# AGENTS.md - wine-ai-realtime
+# AGENTS.md — WINE AI
 
-## Scope
+## Назначение
 
-These rules apply to this repository. Follow direct user constraints first, then these project rules, then narrower instructions in subdirectories.
+WINE AI — независимый realtime-продукт: голосовой цифровой эксперт по винам Молдовы для устройства, сайта и виджета.
 
-This repository is an independent product: a realtime voice digital expert on Moldovan wine. It reuses a realtime transport/session core that was originally proven in a separate, unrelated project (a children's voice toy lab). That origin is implementation history only — this repository must never import from, run inside, or depend on the runtime state of that other project.
-
-## Independence boundary (hard rule)
-
-- No `require`/`import` pointing outside this repository's own `src/`.
-- No npm workspace, git submodule, or symlink back to any sibling project.
-- This project must start, run, and be tested with only this directory checked out.
-- Do not add child-toy domain concepts (parental controls, child profiles, learning games, riddles/stories) here. If a feature resembles one, stop and ask — it is very likely scope creep from the wrong product.
-
-## Safety boundaries
-
-- Start in read-only mode when the user requests analysis, audit, planning, or investigation.
-- Change only files explicitly required by the task.
-- Stop before production actions or external mutations unless the user explicitly approves them.
-- External mutations include deploys, GitHub writes beyond the approved task, database writes, MCP or OAuth changes, access changes, package publishing, and remote configuration.
-- Never use approval or sandbox bypass modes unless the user explicitly requests them for a proven isolated environment.
-- Do not read, print, copy, summarize, or store secret values. Never print full `.env` files, tokens, passwords, private keys, cookies, OAuth stores, credentials, or authorization headers.
-- Do not store real user audio or personal data without explicit configuration (`SAVE_AUDIO`, see `.env.example`) — off by default.
-
-## Repository boundaries
-
-Before editing:
-
-- Confirm the repository root and current branch.
-- Run `git status --short`.
-- Preserve unrelated tracked and untracked work.
-- Do not reset, clean, stash, move, delete, stage, or commit unrelated files without explicit permission.
-
-## Architecture
-
-Target flow:
+Основной голосовой контур — native realtime:
 
 ```text
-Browser dashboard / avatar client
-  -> audio frames over WebSocket
-  -> realtime session router (turn/generation state machine)
-  -> provider adapter (Gemini Live / mock)
-  -> streaming audio response
-  -> playback, avatar, latency metrics
+microphone → WebSocket session → realtime provider → streaming audio response
+                                      ↘ tools / knowledge retrieval when needed
 ```
 
-Maintain clear boundaries between:
+Не описывай основной режим как обязательную цепочку `STT → LLM → TTS`. Каскадный STT/TTS может существовать только как отдельный дополнительный или экспериментальный режим.
 
-- WebSocket protocol and frame parsing (`src/realtime/wsProtocol.js`);
-- session and turn lifecycle (`src/realtime/realtimeServer.js`);
-- provider adapters (`src/realtime/geminiLiveProvider.js`, `mockRealtimeProvider.js`);
-- audio conversion and buffering (`src/realtime/pcm16Resampler.js`, `inputAudioResampling.js`);
-- persona and prompt assembly (`src/persona/`, `src/realtime/realtimePrompt.js`);
-- knowledge retrieval (`src/knowledge/`);
-- wine tools / function-calling (`src/tools/`);
-- session memory (`src/memory/sessionMemory.js`);
-- avatar (`src/avatar/`);
-- dashboard client (`public/`).
+## Перед работой
 
-Provider-specific behavior belongs behind explicit adapters. Do not spread provider assumptions through unrelated code.
+1. Прочитай `docs/agent-context/PROJECT.md`.
+2. Выбери маршрут задачи в `docs/agent-context/CONTEXT_MAP.md`.
+3. Загрузи только относящиеся к задаче доменные документы, контракты, код и тесты.
+4. Перед изменением lifecycle-кода прочитай `docs/architecture/STATE_OWNERSHIP.md` и назови владельцев затрагиваемого состояния.
+5. Перед завершением примени `docs/agent-context/VERIFICATION.md` и `docs/agent-context/DEFINITION_OF_DONE.md`.
 
-**2D character / Rive avatar work**: use the `winemd-rive` skill (`.claude/skills/winemd-rive/SKILL.md`) for anything touching the WineMD character — PSD prep, Rive rigging/State Machine, animations, or wiring a `.riv` into the app. It governs `tools/WineMD-Character-SDK/` and how it maps onto the real `src/visual/*` event system.
+## Обязательные инварианты
 
-## Turn and session lifecycle
+- Репозиторий не зависит от соседних проектов и не импортирует файлы за своими границами.
+- Один пользовательский ход и одна generation имеют одного авторитетного владельца lifecycle.
+- Устаревшие provider, playback и visual events не влияют на новую generation.
+- Provider-specific поведение остаётся внутри адаптеров.
+- Knowledge retrieval вызывается как tool при необходимости и не заменяет realtime-канал.
+- PTT и Tap-to-Start являются отдельными поддерживаемыми режимами ввода; не смешивай их state и правила завершения.
+- Не добавляй таймерные костыли и параллельные источники истины вместо явных переходов состояния.
+- Не печатай и не сохраняй секреты или реальное аудио без явной настройки.
+- Не выдумывай вина, производителей, цены, награды и винтажи.
 
-- A user turn must have one authoritative lifecycle (see `generation` object in `realtimeServer.js`).
-- Local tools and provider events must not independently finalize the same turn.
-- Completion, cancellation, timeout, interruption, and retry paths must be idempotent.
-- Treat late provider events, duplicate completion signals, and stale callbacks as expected failure cases — a stale `generationId` must never affect a newer turn.
-- Every exit path must leave session state in a known, inspectable state.
-- Preserve correlation identifiers for sessions, turns, generations, responses, and provider events in every log line.
-- Do not fix lifecycle problems with arbitrary delays when an explicit state transition or guard is possible.
+Полный набор правил: `docs/agent-context/INVARIANTS.md`.
 
-## Audio pipeline
+## Работа и проверка
 
-- Input mode is push-to-talk (PTT) with explicit activity markers, matching Gemini Live's `automaticActivityDetection: disabled`. Do not silently switch to automatic VAD — that is a distinct, unproven-in-this-codebase integration path and requires an explicit decision.
-- Keep the accepted sample rate, channel count, sample format, and frame size explicit.
-- Perform sample-rate conversion at the visible boundary where audio enters the pipeline (`onBinary` in `realtimeServer.js`), never via a hidden preload/monkey-patch.
-- Do not introduce `node -r` runtime injection, monkey patches, or hidden bootstrap modules — an explicit in-code integration is always preferred here.
-- Prevent silent double resampling. Reset/flush per-turn resampler state on the correct lifecycle events (new turn, interrupt, decode error).
-- Measure latency for audio changes.
+Делай минимальное изменение, устраняющее доказанную причину. Код, тесты и наблюдаемое runtime-поведение имеют приоритет над Markdown-пересказом.
 
-## Multilingual behavior
-
-- Supported languages: Russian, Romanian, English. Auto-detect; reply in the language of the last clearly understood utterance; do not flap on a single foreign word or name.
-- Winery/grape/region proper nouns (e.g. Fetească Neagră, Crama, Purcari) must not be treated as language-switch signals.
-
-## Working style
-
-- Prefer the smallest clear change that solves the demonstrated problem.
-- Prefer readable control flow over hidden runtime behavior.
-- Do not change providers, transport, persona, knowledge, and audio architecture in one change unless the task requires the combination.
-- Record assumptions when behavior cannot be proven from code or tests.
-
-## Required verification
-
-- **Во время разработки**: запускать только тесты тех файлов/модулей, которые вы изменяли (релевантные тесты).
-- **Перед закрытием этапа**: выполнить полный тестовый сюит и smoke один раз:
-```text
-npm test
-npm run test:smoke
-```
-
-Choose checks based on the changed surface during iteration. Report commands run, passed checks, skipped checks, failures, files changed, and remaining uncertainty.
-
-## Completion bar
-
-A task is complete only when:
-
-- the approved scope is satisfied;
-- unrelated work remains untouched;
-- this repository still runs with zero dependency on any sibling project;
-- syntax and relevant smoke checks pass;
-- the final diff is reviewed;
-- limitations and unverified assumptions are stated honestly.
-
-## Deployment gate
-
-Before merging or deploying any commit, all of the following must pass:
-
-1. `npm run check:missing-imports` — no local `require`/`import` references an untracked file.
-2. `node --test tests/startupNoAdminAuth.test.js` — server starts without the admin auth module.
-3. `npm run test:smoke` — all smoke tests pass against the freshly started server.
-4. The CI workflow (`startup-smoke`) is green.
-
-These are the minimum gates. The commit that broke production (b8b8748) would have been caught by check #1 alone. Do not skip or disable these checks.
-
-## Unfinished feature policy
-
-If a feature branch or commit introduces a `require` or `import` of a file that does not yet exist (i.e. the implementation is incomplete), that commit must **never be merged to `main`** or deployed to production. The correct approach is:
-
-1. Complete the feature in the same branch (all required files committed).
-2. Run `npm run check:missing-imports` to verify.
-3. Only then merge/deploy.
-
-Never commit a "skeleton" import that relies on a developer having the file locally but untracked — this is exactly the class of bug that caused the 2026-07-26 production outage.
-
-## Integration Testing & Runtime Validation (Strict Rules)
-
-- **No Blind Mocking**: Avoid mocking internal utility files (e.g., DNS, parsers, schema helpers) in unit tests unless they make remote network requests or perform database changes. Run real files to catch boundary type mismatches.
-- **Defensive Type Checking**: Add explicit type guards on API/module boundaries. Throw explicit errors (like `TypeError`) instead of silently ignoring parameter mismatches inside try-catch blocks.
-- **Mandatory Live Reload Check**: After editing any file affecting API routes or frontend scripts, the server process must be restarted and verified with a real HTTP check (e.g., `/health` or UI action) to ensure the code loads and runs correctly in memory.
-- **No Unnecessary Test Execution**: Do NOT run the entire test suite or launch multiple parallel/unnecessary test runs during development unless explicitly requested. Only execute the specific, highly-targeted unit tests directly relevant to the changes being made.
-
-## Mandatory architecture rules
-
-Before changing realtime, voice, session, provider, playback, visual, or knowledge lifecycle code, read:
-
-- `docs/architecture/STATE_OWNERSHIP.md`
-
-The rules in that document are mandatory.
-
-Any implementation that introduces duplicate lifecycle paths, competing state owners, speculative boolean flags, or timer-based synchronization must be rejected unless explicitly justified and tested.
-
-## Engineering Principles
-
-The architecture must become simpler over time.
-
-When implementing new functionality:
-
-- extend existing abstractions instead of creating parallel implementations;
-- preserve a single source of truth and clear state ownership;
-- minimize mutable state;
-- keep provider-specific logic isolated;
-- remove obsolete code and unnecessary workarounds whenever practical;
-- leave the code cleaner than you found it.
-
-Priority:
-
-1. Correctness
-2. Simplicity
-3. Maintainability
-4. Extensibility
-5. Performance
-
-## Prompt Control Tokens
-
-Architecture compliance is always mandatory.
-
-`+A`  
-Perform an explicit architecture review before implementation.
-
-`+F`  
-Perform an explicit architecture review after implementation, including validation results and architecture compliance.
-
-`+A` and `+F` may be combined.
-
-## Mandatory Architecture Documents
-
-Before changing architecture, follow:
-
-- ARCHITECTURE.md
-- docs/architecture/STATE_OWNERSHIP.md
-- docs/architecture/ARCHITECTURAL_DECISIONS.md
-
-Additional guidance may exist in subdirectories.
-
-## КПД command
-
-When the user writes `КПД` or `кпд` on a separate line, treat it as explicit authorization to run the project’s standard validation, then commit, push, and deploy without asking for additional approval.  
-Do not include unrelated changes, secrets, or bypass failing checks.  
-Do not use force push, destructive Git commands, or history rewriting.  
-If blocked, stop at the failed stage and report the exact reason.
+Не выполняй deploy, merge, production DB write, изменение доступов или публикацию пакета без отдельного явного запроса.
