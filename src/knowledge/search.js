@@ -158,10 +158,13 @@ async function semanticCandidateIds(query, { limit }) {
     const queryVector = await embeddings.embedText(query, { taskType: 'RETRIEVAL_QUERY' });
     const vectorLiteral = `[${queryVector.join(',')}]`;
     const { rows } = await pool.query(
-        `SELECT chunk_id, embedding <=> $1 AS distance
-         FROM knowledge_chunk_embeddings
-         WHERE embedding IS NOT NULL AND embedding <=> $1 < $3
-         ORDER BY embedding <=> $1
+        `SELECT e.chunk_id, e.embedding <=> $1 AS distance
+         FROM knowledge_chunk_embeddings e
+         JOIN knowledge_chunks k ON k.chunk_id = e.chunk_id
+         WHERE e.embedding IS NOT NULL
+           AND (k.enabled IS NOT FALSE)
+           AND e.embedding <=> $1 < $3
+         ORDER BY e.embedding <=> $1
          LIMIT $2;`,
         [vectorLiteral, limit, SEMANTIC_MAX_DISTANCE]
     );

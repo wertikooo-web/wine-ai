@@ -735,6 +735,7 @@
                 </div>
                 <div class="voice-mode-hint" id="voiceModeHint"></div>
                 <div class="voice-mode-unavailable" id="voiceModeTapUnavailable" hidden></div>
+                <div class="voice-mode-unavailable" id="voiceModeError" hidden></div>
               </div>
 
               <button class="ptt" id="pttBtn" disabled>
@@ -1634,6 +1635,8 @@
       voiceModeHoldHint: 'Hold to Talk: the mic only works while the button is pressed.',
       voiceModeTapHint: 'Free Conversation: one tap starts a conversation with no need to press again.',
       voiceModeTapUnavailable: 'Temporarily unavailable',
+      voiceModeSwitchBlocked: 'Finish the conversation first, then switch mode.',
+      voiceModeSwitchError: 'Could not save the new mode — please try again.',
       pttCaptionHold: 'Hold and speak',
       pttCaptionConnecting: 'Connecting…',
       pttCaptionAudioError: 'Mic unavailable — tap to retry',
@@ -1677,6 +1680,8 @@
       voiceModeHoldHint: 'Удерживать и говорить: микрофон работает только пока кнопка нажата.',
       voiceModeTapHint: 'Свободный разговор: одно нажатие запускает разговор без повторных нажатий.',
       voiceModeTapUnavailable: 'Временно недоступно',
+      voiceModeSwitchBlocked: 'Сначала завершите разговор, затем меняйте режим.',
+      voiceModeSwitchError: 'Не удалось сохранить новый режим — попробуйте ещё раз.',
       pttCaptionHold: 'Удерживайте и говорите',
       pttCaptionConnecting: 'Подключаюсь…',
       pttCaptionAudioError: 'Микрофон недоступен — нажмите ещё раз',
@@ -2356,7 +2361,13 @@
     });
 
     stopPlaybackImmediately({ reason: 'user_disconnect', generationId: acceptedPlaybackGenerationId });
-    DeviceVisual.setState('ready');
+    // Set the final UI state directly here rather than relying solely on the
+    // WebSocket 'close' listener to fix it up later — ws.close() is not
+    // guaranteed to fire a fresh 'close' event in every case (e.g. a socket
+    // that never fully reached OPEN), which previously left the status dot
+    // and Connect/Disconnect button stuck showing "Connected" indefinitely.
+    DeviceVisual.setState('disconnected');
+    setConnectionButton('disconnected');
 
     isHolding = false; // stop sending audio frames before the mic itself is torn down
     stopMic();
@@ -2937,74 +2948,92 @@
     }
   }
 
-  // Switching mode: if a session/turn from the OLD mode is active, tear it
-  // down completely first (per the task's explicit "don't try to continue
-  // the same active session after switching modes" requirement) rather
-  // than trying to carry any state into the new mode.
+  // Disables (or re-enables) the Connect button and both mode buttons while
+  // a mode switch's persist POST is in flight, so a reconnect can never race
+  // ahead of it (the server reads the persisted mode fresh from
+  // personaStore at session.start -- if Connect fires before that POST
+  // lands, the new session silently uses the OLD mode until the next full
+  // page reload). See setVoiceMode() below.
+  function setVoiceModeSwitching(disabled) {
+    const connectBtnEl = el('connectBtn');
+    if (connectBtnEl) connectBtnEl.disabled = disabled;
+    const holdBtn = el('voiceModeHoldBtn');
+    const tapBtn = el('voiceModeTapBtn');
+    if (holdBtn) holdBtn.disabled = disabled;
+    if (tapBtn) tapBtn.disabled = disabled || (!disabled && !isTapToStartSupportedForCurrentProvider());
+  }
+
+  function setVoiceModeError(message) {
+    const box = el('voiceModeError');
+    if (!box) return;
+    if (message) {
+      box.textContent = message;
+      box.hidden = false;
+    } else {
+      box.textContent = '';
+      box.hidden = true;
+    }
+  }
+
+  // Switching mode is only allowed between conversations, never mid-call --
+  // this is what makes the "no F5 needed" guarantee below possible: there is
+  // no live session state to tear down or carry over, so applying the new
+  // mode is just "save it, then let the next Connect use it."
   async function setVoiceMode(mode, { persist = true } = {}) {
     if (mode !== 'hold_to_talk' && mode !== 'tap_to_start') return;
     if (mode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) return; // per-provider gate — see declaration above
     if (mode === voiceMode) return;
 
-    // Clear pending flags from the old mode: stale pendingPttStart (set
-    // when PTT pressed before providerReady) would cause the wrong mode's
-    // turn to start when provider.ready fires later; pendingTapStart /
-    // pendingContextTurnStart would do the same in reverse. The disconnect
-    // below clears them eventually too, but the gap between "mode already
-    // switched" and "disconnect finishes" is the race window.
-    pendingPttStart = false;
-    pendingTapStart = false;
-    pendingContextTurnStart = false;
-
-    // Full state snapshot before/after teardown — the requirement this is
-    // meant to make verifiable is that teardown (stopConversationOnTap()/
-    // disconnect(), both awaited below, never fire-and-forget in parallel
-    // with the new mode starting up) actually completes before the new mode
-    // takes over the mic/ws.
-    sendTelemetry('mode_switch_started', {
-      from: voiceMode,
-      to: mode,
-      tapToStartActive,
-      pendingTapStart,
-      isHolding,
-      wsReadyState: ws ? ws.readyState : null,
-      micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
-      processorLive: Boolean(processor),
-    });
-
-    if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
-      await stopConversationOnTap();
-    } else if (voiceMode === 'hold_to_talk' && isHolding) {
-      endTurn();
-    }
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-      disconnect();
+      setVoiceModeError(getUiString('voiceModeSwitchBlocked'));
+      return;
     }
+    if (tapToStartActive || pendingTapStart || isHolding) {
+      setVoiceModeError(getUiString('voiceModeSwitchBlocked'));
+      return;
+    }
+
+    setVoiceModeError('');
+    const previousMode = voiceMode;
+
+    sendTelemetry('mode_switch_started', {
+      from: previousMode,
+      to: mode,
+      wsReadyState: ws ? ws.readyState : null,
+    });
 
     voiceMode = mode;
     applyVoiceModeUI();
+    // Applied last so it wins over applyVoiceModeUI()'s own tapBtn.disabled
+    // computation (which only reflects provider support, not an in-flight
+    // save) -- this is what actually keeps both mode buttons locked for the
+    // duration of the persist call.
+    setVoiceModeSwitching(true);
 
     if (persist) {
       try {
-        await fetch('/api/persona', {
+        const res = await fetch('/api/persona', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ voiceMode: mode }),
         });
+        if (!res.ok) throw new Error('save_failed_status_' + res.status);
       } catch (err) {
         log('voice_mode_save_error', { message: err.message });
+        // Do not leave the UI claiming a mode that was never actually
+        // persisted -- revert to what the server still has, so a reconnect
+        // cannot silently use a different mode than what's shown.
+        voiceMode = previousMode;
+        applyVoiceModeUI();
+        setVoiceModeError(getUiString('voiceModeSwitchError'));
+        setVoiceModeSwitching(false);
+        sendTelemetry('mode_switch_failed', { attempted: mode, message: err.message });
+        return;
       }
     }
 
-    sendTelemetry('mode_switch_completed', {
-      to: voiceMode,
-      tapToStartActive,
-      pendingTapStart,
-      isHolding,
-      wsReadyState: ws ? ws.readyState : null,
-      micStreamLive: Boolean(micStream),
-      processorLive: Boolean(processor),
-    });
+    setVoiceModeSwitching(false);
+    sendTelemetry('mode_switch_completed', { to: voiceMode });
   }
 
   async function startConversationOnTap() {

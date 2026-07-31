@@ -17,8 +17,14 @@
 // pre-Stage-3 backfill pruned against index.json alone and would have wiped
 // uploaded/crawled embeddings.
 //
-// Usage: node scripts/knowledge-embed-backfill.js
+// Usage: node scripts/knowledge-embed-backfill.js [--no-prune]
 // Requires DATABASE_URL and GEMINI_API_KEY.
+//
+// --no-prune: embed new/changed chunks but DO NOT delete embeddings whose
+// chunk is no longer in the set. Safe for a controlled two-phase migration on
+// a live database — lets operators embed against the current chunk set, verify
+// coverage and retrieval, and only later run prune (a separate explicit step)
+// after confirming the rows are not used by runtime search.
 const { loadDocuments, chunkDocument, DEFAULT_SOURCE_DIR } = require('../src/knowledge/loader');
 const db = require('../src/knowledge/db');
 const embeddings = require('../src/knowledge/embeddings');
@@ -55,10 +61,11 @@ async function loadChunkUnion(pool) {
  * @param {object} opts.pool pg Pool
  * @param {Array} opts.chunks chunk set to embed against / prune by
  * @param {object} [opts.embeddingsClient] DI (default: src/knowledge/embeddings)
+ * @param {boolean} [opts.prune=true] delete embeddings whose chunk is no longer in the set
  * @param {function} [opts.log]
  * @returns {Promise<{embedded:number,failed:number,pruned:number,total:number,toEmbed:number}>}
  */
-async function syncEmbeddings({ pool, chunks, embeddingsClient = null, log = console.log } = {}) {
+async function syncEmbeddings({ pool, chunks, embeddingsClient = null, prune = true, log = console.log } = {}) {
     if (!pool) throw new TypeError('syncEmbeddings: pool is required');
     if (!Array.isArray(chunks)) throw new TypeError('syncEmbeddings: chunks must be an array');
     const embedClient = embeddingsClient || embeddings;
@@ -103,9 +110,11 @@ async function syncEmbeddings({ pool, chunks, embeddingsClient = null, log = con
     // PG-only chunks — so PG-only embeddings always survive a backfill run.
     const currentChunkIds = new Set(chunks.map((c) => c.id));
     const staleIds = existingRows.map((r) => r.chunk_id).filter((id) => !currentChunkIds.has(id));
-    if (staleIds.length) {
+    if (prune && staleIds.length) {
         await pool.query('DELETE FROM knowledge_chunk_embeddings WHERE chunk_id = ANY($1)', [staleIds]);
         log(`Pruned ${staleIds.length} stale row(s) for chunks no longer in the index.`);
+    } else if (!prune && staleIds.length) {
+        log(`Prune skipped (--no-prune): ${staleIds.length} stale row(s) left in place.`);
     }
 
     return { embedded, failed, pruned: staleIds.length, total: chunks.length, toEmbed: toEmbed.length };
@@ -136,7 +145,7 @@ async function main() {
     }
     console.log(`Chunk set: ${union.chunks.length} total (${union.fileChunks} from knowledge/source, ${union.pgChunks} from Postgres).`);
 
-    const result = await syncEmbeddings({ pool, chunks: union.chunks });
+    const result = await syncEmbeddings({ pool, chunks: union.chunks, prune: !process.argv.includes('--no-prune') });
     console.log(`Done. Embedded: ${result.embedded}, failed: ${result.failed}, pruned: ${result.pruned}.`);
     await pool.end();
 }
