@@ -20,6 +20,7 @@ microphone → WebSocket session → realtime provider → streaming audio respo
 3. Загрузи только относящиеся к задаче доменные документы, контракты, код и тесты.
 4. Перед изменением lifecycle-кода прочитай `docs/architecture/STATE_OWNERSHIP.md` и назови владельцев затрагиваемого состояния.
 5. Перед завершением примени `docs/agent-context/VERIFICATION.md` и `docs/agent-context/DEFINITION_OF_DONE.md`.
+6. Прочитай `docs/agent-context/WORKFLOW_EFFICIENCY.md` и соблюдай ограничения по scope, чтению файлов, тестам, checkpoints и production safety.
 
 ## Обязательные инварианты
 
@@ -40,3 +41,19 @@ microphone → WebSocket session → realtime provider → streaming audio respo
 Делай минимальное изменение, устраняющее доказанную причину. Код, тесты и наблюдаемое runtime-поведение имеют приоритет над Markdown-пересказом.
 
 Не выполняй deploy, merge, production DB write, изменение доступов или публикацию пакета без отдельного явного запроса.
+
+## Экономная работа агента
+
+Правила экономии контекста, поэтапной работы и безопасных production-операций находятся в:
+
+`docs/agent-context/WORKFLOW_EFFICIENCY.md`
+
+Ключевые требования:
+
+- одна узкая задача за этап;
+- короткий план до изменения кода;
+- только релевантные файлы;
+- узкие тесты во время работы;
+- полный suite перед commit/PR/merge/deploy;
+- остановка после указанного checkpoint;
+- production write, deploy, merge и destructive operations только после отдельного разрешения.
