@@ -40,11 +40,11 @@ function queryTokens(query) {
 // boundaries around Cyrillic/Romanian letters. These patterns deliberately
 // match stems inside normalized Unicode text instead.
 function isFreshnessQuery(query) {
-    return /(сейчас|сегодня|актуальн|цена|стоим|налич|купить|где купить|расписан|открыт|час|новост|событ|event|today|current|price|stock|availability|opening|schedule|acum|astăzi|preț|stoc|program|eveniment)/iu.test(normalize(query));
+    return /(сейчас|сегодня|актуальн|цена|стоим|стоит|налич|купить|где купить|расписан|открыт|час|новост|событ|event|today|current|price|stock|availability|opening|schedule|acum|astăzi|preț|stoc|program|eveniment)/iu.test(normalize(query));
 }
 
 function isCatalogQuery(query) {
-    return /(цена|стоим|налич|купить|где купить|заказать|фото|бутылк|price|stock|availability|buy|order|image|preț|stoc|cumpăr|comand)/iu.test(normalize(query));
+    return /(цена|стоим|стоит|налич|купить|где купить|заказать|фото|бутылк|price|stock|availability|buy|order|image|preț|stoc|cumpăr|comand)/iu.test(normalize(query));
 }
 
 function confidenceRank(value) {
