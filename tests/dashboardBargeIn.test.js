@@ -392,6 +392,168 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_B', 'a late audio.start for a cancelled generation must not clobber the current acceptance');
     }
 
+    // ================= "Завершить разговор" (stopConversationOnTap/disconnect) =================
+    // Production report: user clicks the button (disconnect_clicked +
+    // disconnect_started telemetry both fire), but the conversation does not
+    // visibly end. Exercises the REAL dashboard.html disconnect()/
+    // stopConversationOnTap() code (not a reimplementation) with a full
+    // active session — open mic, open WebSocket, in-flight playback — and
+    // asserts every piece of local cleanup happens synchronously, WITHOUT
+    // ever dispatching the WebSocket 'close' event (disconnect() must not
+    // depend on the server, or the socket, ever confirming the close).
+
+    console.log('Testing "Завершить разговор": full local cleanup on click, with no socket close event ever firing...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_A');
+
+        vm.runInContext(`
+            // Active playback (Free Conversation's assistant response, mid-speech).
+            const src = testResults.audioContext.createBufferSource();
+            src.buffer = testResults.audioContext.createBuffer(1, 100, 16000);
+            const gainNode = testResults.audioContext.createGain();
+            src.connect(gainNode);
+            sourceGainNodes.set(src, gainNode);
+            activeSources.add(src);
+            testResults.srcA = src;
+
+            // Open mic (as if Free Conversation is actively listening).
+            testResults.micTracks = [
+                { id: 'track1', kind: 'audio', readyState: 'live', stop() { this.readyState = 'ended'; testResults.micTrackStopped = true; } },
+            ];
+            micStream = { getTracks: () => testResults.micTracks, getAudioTracks: () => testResults.micTracks };
+
+            // Open WebSocket — close() is a spy so the test can assert it was
+            // called; deliberately NEVER fires a 'close' event afterward, to
+            // prove cleanup does not wait for one.
+            ws = {
+                readyState: WebSocket.OPEN,
+                send: (msg) => { testResults.sentMessages.push(msg); },
+                close: () => { testResults.wsCloseCalled = true; },
+            };
+
+            DeviceVisual.setState('speaking');
+        `, sandbox);
+
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'setup: conversation must be active before the click');
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 1, 'setup: assistant must be actively playing before the click');
+
+        // The button's click handler: tapToStartActive === true -> stopConversationOnTap().
+        await sandbox.stopConversationOnTap();
+
+        assert.strictEqual(sandbox.testResults.wsCloseCalled, true, 'WebSocket.close() must be called');
+        assert.strictEqual(sandbox.testResults.micTrackStopped, true, 'the mic track must be stopped');
+        assert.strictEqual(getLexical(sandbox, 'micStream'), null, 'micStream must be torn down');
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, 'playback must be cleared (no lingering assistant audio)');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'accepted playback generation must be cleared');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'tapToStartActive must be false after ending the conversation');
+        assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'DeviceVisual must reflect the disconnected state');
+        const idleCaption = getLexical(sandbox, "getUiString('pttCaptionTapIdle')");
+        assert.strictEqual(getLexical(sandbox, "el('pttCaption').textContent"), idleCaption, 'the button caption must revert to "Начать разговор" / "Start conversation"');
+
+        // No WebSocket 'close' event was ever dispatched in this test -- all
+        // of the above must already hold true from the synchronous/local
+        // cleanup alone, proving disconnect() does not depend on the socket
+        // (or the server) ever confirming the close.
+    }
+
+    // A real WebSocket's 'close' event still fires (immediately, or after a
+    // delay) in the normal case -- dashboard.html's own 'close' listener
+    // (wired in connect(), not exercised via a full connect() cycle here)
+    // re-runs the same idempotent reset (setConnectionButton('disconnected')
+    // among others). Modeled here as a second disconnect() call, which is
+    // exactly what happens if the button is clicked again, or any other
+    // path re-triggers teardown after the socket is already gone -- must
+    // not throw and must not flip any state away from disconnected.
+    console.log('Testing "Завершить разговор": a second/delayed cleanup call (simulating a late socket close) is idempotent...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_A');
+        vm.runInContext(`
+            testResults.micTracks = [
+                { id: 'track1', kind: 'audio', readyState: 'live', stop() { this.readyState = 'ended'; } },
+            ];
+            micStream = { getTracks: () => testResults.micTracks, getAudioTracks: () => testResults.micTracks };
+            testResults.wsCloseCallCount = 0;
+            ws = {
+                readyState: WebSocket.OPEN,
+                send: (msg) => { testResults.sentMessages.push(msg); },
+                close: () => { testResults.wsCloseCallCount += 1; },
+            };
+        `, sandbox);
+
+        await sandbox.stopConversationOnTap();
+        assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'first cleanup: state is disconnected');
+
+        // Simulate the delayed/duplicate cleanup trigger (e.g. a real 'close'
+        // event finally arriving, or a stray second click) -- must not throw.
+        assert.doesNotThrow(() => { sandbox.disconnect(); }, 'a second disconnect() call must not throw');
+
+        assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'state remains disconnected after the second cleanup call');
+        const idleCaption = getLexical(sandbox, "getUiString('pttCaptionTapIdle')");
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'the connect button must still read as disconnected/idle');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'tapToStartActive remains false');
+        assert.strictEqual(getLexical(sandbox, 'micStream'), null, 'micStream remains torn down (no double-teardown error)');
+    }
+
+    // After the conversation has fully ended (UI in 'disconnected'), tapping
+    // "Начать разговор" again must open a genuinely fresh session -- the
+    // previous (now-stale) generation/playback must never resurface.
+    console.log('Testing restart after "Завершить разговор": a fresh session starts, the old generation/playback never returns...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_A');
+        vm.runInContext(`
+            const src = testResults.audioContext.createBufferSource();
+            src.buffer = testResults.audioContext.createBuffer(1, 100, 16000);
+            const gainNode = testResults.audioContext.createGain();
+            src.connect(gainNode);
+            sourceGainNodes.set(src, gainNode);
+            activeSources.add(src);
+            micStream = { getTracks: () => [{ id: 'track1', stop() {} }], getAudioTracks: () => [{ id: 'track1', stop() {} }] };
+            // A real WebSocket.close() transitions readyState away from OPEN
+            // (immediately to CLOSING, then CLOSED) -- without this, the mock
+            // would still read as OPEN after disconnect(), and
+            // startConversationOnTap() would wrongly take its "already
+            // connected" branch (resumeTapListening()) instead of opening a
+            // fresh session via connect().
+            ws = { readyState: WebSocket.OPEN, send: () => {}, close() { this.readyState = WebSocket.CLOSED; } };
+        `, sandbox);
+
+        await sandbox.stopConversationOnTap();
+        assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'setup: conversation fully ended before restart');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'setup: old generation A must be cleared before restart');
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, 'setup: old playback must be cleared before restart');
+
+        // startConversationOnTap()'s "not connected at all" branch calls
+        // connect() to open a genuinely new session; connect() itself opens
+        // a real WebSocket/mic pipeline that needs more network/DOM mocking
+        // than this sandbox provides, so it's replaced with a spy here --
+        // what this test verifies is that startConversationOnTap() actually
+        // reaches that branch (a fresh session is attempted) rather than
+        // silently no-op'ing, and that nothing from the ended conversation
+        // (A's generation id, its playback sources) is still sitting in
+        // module state when it does.
+        let connectCalled = false;
+        sandbox.connect = () => { connectCalled = true; };
+
+        await sandbox.startConversationOnTap();
+
+        assert.strictEqual(connectCalled, true, 'restarting after a full disconnect must attempt a fresh connect(), not no-op');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'the new conversation is marked active');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, "the OLD generation ('generation_A') must not have resurfaced");
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, "the OLD playback source must not have resurfaced");
+    }
+
     console.log('ALL DASHBOARD BARGE-IN TESTS PASSED!');
     if (require.main === module) {
         process.exit(0);

@@ -2367,7 +2367,15 @@
     });
 
     stopPlaybackImmediately({ reason: 'user_disconnect', generationId: acceptedPlaybackGenerationId });
-    DeviceVisual.setState('ready');
+    // Must be 'disconnected', not 'ready' — 'ready' is the "connected and
+    // listening" state and left the UI looking like the conversation was
+    // still active after the user explicitly ended it.
+    DeviceVisual.setState('disconnected');
+    // Set directly here too, not only from the WebSocket 'close' listener —
+    // ws.close() firing 'close' is not instant/guaranteed in every case.
+    // Idempotent: the 'close' listener calls this again when/if it does
+    // fire, which is harmless (same state, same button text).
+    setConnectionButton('disconnected');
 
     isHolding = false; // stop sending audio frames before the mic itself is torn down
     stopMic();
