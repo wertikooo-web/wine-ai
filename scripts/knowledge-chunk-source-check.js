@@ -66,7 +66,8 @@ async function runWriteChecks(pool) {
     const documentId = `check_${crypto.randomBytes(4).toString('hex')}`;
     const sourceFile = publishService.sourceFileForDocument(documentId);
     const metadata = { title: 'Write Path Check', language: 'ru', doc_type: 'check', source: 'https://check.local' };
-    const body = `# Write check fixture\n\nПроверка записи о винодельне Cricova и сорте Fetească Neagră.\n\nВторой абзац о регионе Codru и выдержке в погребах.`;
+    const probe = `checkprobe${crypto.randomBytes(6).toString('hex')}`;
+    const body = `# Write check fixture\n\nПроверка записи о винодельне Cricova и сорте Fetească Neagră.\n\nВторой абзац о регионе Codru и выдержке в погребах. Unique probe ${probe}.`;
 
     // 1. Publish persists every chunk.
     const r1 = await publishService.publishDocument({ pool, documentId, metadata, body, embed: false });
@@ -91,8 +92,10 @@ async function runWriteChecks(pool) {
     console.log(`publish#3 (update): chunks=${r3.chunkCount} enabled=${enabled3.length} disabled=${r3.disabled}`);
     if (enabled3.length !== r3.chunkCount) throw new Error('stale chunks not disabled after update');
 
-    // 4. search(chunkSource=postgres) finds the published content.
-    const searchResult = await search('Cricova', { language: 'ru', limit: 3, chunkSource: 'postgres' });
+    // 4. search(chunkSource=postgres) finds the published content. The probe
+    //    token is unique to the fixture, so keyword search ranks it top even
+    //    against a large real corpus (score-based top-N is corpus-dependent).
+    const searchResult = await search(probe, { language: 'ru', limit: 3, chunkSource: 'postgres' });
     if (searchResult.diagnostics.chunkSource !== 'postgres') throw new Error(`search chunkSource not postgres (${searchResult.diagnostics.chunkSource})`);
     if (!searchResult.hits.some((h) => h.chunk.metadata.source_file === sourceFile)) {
         throw new Error('published document not found by search(chunkSource=postgres)');

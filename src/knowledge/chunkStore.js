@@ -45,7 +45,7 @@ function upsertChunkRow(poolOrClient, row) {
     const values = CHUNK_COLUMNS.map((_, i) => `$${i + 1}`).join(', ');
     const updates = CHUNK_COLUMNS.filter((c) => c !== 'chunk_id').map((c) => `${c} = EXCLUDED.${c}`).join(',\n    ');
     const sql = `INSERT INTO knowledge_chunks (
-            ${CHUNK_COLUMNS.join(', ')}
+            ${CHUNK_COLUMNS.join(', ')}, created_at, updated_at
         ) VALUES (${values}, NOW(), NOW())
         ON CONFLICT (chunk_id) DO UPDATE SET
             ${updates},
