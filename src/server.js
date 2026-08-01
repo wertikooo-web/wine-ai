@@ -423,6 +423,13 @@ async function handleRequest(req, res) {
             filePath: path.join(publicDir, 'woman avatar 1.png'),
             contentType: 'image/png',
         },
+        // dashboard.html's persona-select card (Александр / classic profile)
+        // has always referenced this path, but no route for it ever existed
+        // here -- a genuine 404 unrelated to any deploy-tooling issue.
+        '/visual-assets/avatar-man-1.png': {
+            filePath: path.join(publicDir, 'avatar wine ai.png'),
+            contentType: 'image/png',
+        },
         '/visual-assets/sample-1.png': {
             filePath: path.join(publicDir, 'Sample 1 .png'),
             contentType: 'image/png',
