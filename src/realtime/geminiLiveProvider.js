@@ -1401,8 +1401,16 @@ class GeminiLiveProviderSession {
         // generationComplete/turnComplete reaching here (real model output
         // actually finished) is the practical, already-real signal that
         // this turn is genuinely done -- not a synthetic event.
+        //
+        // Pass this generation's own id through: this call can arrive LATE
+        // (Gemini's completion event for an already barge-in-cancelled
+        // generation, reaching us after a fresh generation has already
+        // opened) -- realtimeServer.js's handleNativeSpeechStopped() uses
+        // this id to verify it's still talking about the CURRENT turn
+        // before touching any shared input-turn state, so a stale call here
+        // can never wrongly close a newer turn it knows nothing about.
         if (this.voiceMode === 'tap_to_start') {
-            this.onUserSpeechStopped?.();
+            this.onUserSpeechStopped?.(this.active.generationId);
         }
         this.active = null;
         this.inputBytes = 0;
