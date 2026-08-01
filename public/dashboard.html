@@ -287,6 +287,7 @@
   }
   button.ptt .ptt-icon { font-size: 30px; line-height: 1; }
   button.ptt .ptt-caption { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; max-width: 74px; line-height: 1.15; }
+  .voice-session-timer { margin-top: 4px; font-size: 10px; font-weight: 600; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
   button.ptt:active:not(:disabled) { transform: scale(0.96); }
   button.ptt:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
   /* State-driven look — color/icon/animation carry the meaning, not text
@@ -741,6 +742,7 @@
                 <span class="ptt-icon" id="pttIcon">🎤</span>
                 <span class="ptt-caption" id="pttCaption"></span>
               </button>
+              <div class="voice-session-timer" id="voiceSessionTimer" hidden></div>
 
               <div class="app-input-row">
                 <input type="text" id="textInput" placeholder="Напишите вопрос… / Type your question…" disabled>
@@ -1403,6 +1405,19 @@
           <label class="persona-field-label">Compiled system prompt preview (Read-only)</label>
           <textarea id="pEffectivePromptPreview" class="preview-textarea" readonly></textarea>
 
+          <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+            <label class="persona-field-label">Free Conversation session limit</label>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <select id="pSessionLimitMinutes" class="persona-input" style="width:auto; min-width:100px;"></select>
+              <span style="font-size:11px; color:var(--muted);">Default cap for a Free Conversation session, in minutes.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px;">
+              <label style="font-size:12px; display:flex; align-items:center; gap:6px;">Kiosk: <select id="pSessionLimitMinutesKiosk" class="persona-input" style="width:auto; min-width:110px;"></select></label>
+              <label style="font-size:12px; display:flex; align-items:center; gap:6px;">Mobile QR: <select id="pSessionLimitMinutesMobileQr" class="persona-input" style="width:auto; min-width:110px;"></select></label>
+              <span style="font-size:11px; color:var(--muted);">Leave "Default" to use the general limit above for that context.</span>
+            </div>
+          </div>
+
           <div style="display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;">
             <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
             <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
@@ -1457,6 +1472,11 @@
   function isTapToStartSupportedForCurrentProvider() {
     return TAP_TO_START_SUPPORTED_PROVIDERS.has(selectedRealtimeProvider);
   }
+  // Deployment context (?context=kiosk or ?context=mobile_qr in the URL) --
+  // lets the session-duration cap differ per deployment type; read once at
+  // load, never changes for the life of the page. Empty string (the
+  // ordinary browser case) means "use the general default" server-side.
+  const sessionContext = new URLSearchParams(location.search).get('context') || '';
   let voiceMode = 'hold_to_talk';
   let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
   // Never actually declared anywhere despite being assigned in disconnect()
@@ -2346,6 +2366,7 @@
     ws.addEventListener('error', () => {
       DeviceVisual.setState('error');
       log('ws_error', {});
+      reportSessionEndAnalytics('technical_error');
     });
 
     ws.addEventListener('message', (event) => {
@@ -2376,6 +2397,11 @@
       micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
       processorLive: Boolean(processor),
     });
+    // performAutoEnd() already reported its own (more specific) reason and
+    // set this before calling disconnect() -- otherwise this genuinely IS a
+    // manual disconnect (main button, mode switch while connected, etc).
+    reportSessionEndAnalytics(pendingTerminationReason || 'user_disconnect');
+    pendingTerminationReason = null;
 
     stopPlaybackImmediately({ reason: 'user_disconnect', generationId: acceptedPlaybackGenerationId });
     // Must be 'disconnected', not 'ready' — 'ready' is the "connected and
@@ -2404,6 +2430,7 @@
     cancelTapIdleTimer();
     clearInactivityTimers();
     clearSessionLimitTimers();
+    stopVoiceSessionTimerDisplay();
     pendingAutoEnd = null;
     tapSilenceStartedAt = null;
     pendingTapStart = false;
@@ -3158,6 +3185,7 @@
     cancelTapIdleTimer();
     clearInactivityTimers();
     clearSessionLimitTimers();
+    stopVoiceSessionTimerDisplay();
     pendingAutoEnd = null;
     tapSilenceStartedAt = null;
     pendingTapStart = false;
@@ -3212,6 +3240,7 @@
     // conversation, not per-utterance.
     armInactivityWarnTimer();
     armSessionLimitTimers();
+    startVoiceSessionTimerDisplay();
     // Report the mic pipeline actually backing this conversation (not the
     // requested constraints — track.getSettings() reflects what the browser
     // actually granted) so the server can gate barge-in on a confirmed,
@@ -3563,6 +3592,45 @@
   const FREE_CONV_SESSION_LIMIT_TEXT = 'Мне пора немного отдохнуть. Если захотите продолжить, начните новый разговор.';
   let sessionLimitWarnTimer = null;
   let sessionLimitEndTimer = null;
+  let freeConversationStartedAt = null; // set once per conversation, in resumeTapListening()
+  let voiceSessionTickInterval = null;
+
+  // Small always-visible countdown under the Free Conversation button --
+  // remaining time before the absolute session cap (not the inactivity
+  // clock, which is silent until its own spoken warning).
+  function formatRemainingMmSs(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function updateVoiceSessionTimerDisplay() {
+    const el2 = el('voiceSessionTimer');
+    if (!el2) return;
+    if (!(voiceMode === 'tap_to_start' && tapToStartActive && freeConversationStartedAt)) {
+      el2.hidden = true;
+      return;
+    }
+    const elapsed = Date.now() - freeConversationStartedAt;
+    const remaining = freeConversationSessionLimitMs - elapsed;
+    el2.hidden = false;
+    el2.textContent = formatRemainingMmSs(remaining);
+  }
+
+  function startVoiceSessionTimerDisplay() {
+    stopVoiceSessionTimerDisplay();
+    freeConversationStartedAt = Date.now();
+    updateVoiceSessionTimerDisplay();
+    voiceSessionTickInterval = setInterval(updateVoiceSessionTimerDisplay, 1000);
+  }
+
+  function stopVoiceSessionTimerDisplay() {
+    if (voiceSessionTickInterval) { clearInterval(voiceSessionTickInterval); voiceSessionTickInterval = null; }
+    freeConversationStartedAt = null;
+    const el2 = el('voiceSessionTimer');
+    if (el2) el2.hidden = true;
+  }
 
   // Two-phase closing sequence shared by both auto-end paths: `await_drain`
   // means "wait for whatever the assistant is currently saying to finish,
@@ -3571,6 +3639,30 @@
   // disconnect". Both phases resolve through maybeFinishSpeaking()'s
   // existing playback-drained hook -- see there and performAutoEnd() below.
   let pendingAutoEnd = null; // { reason, closingText, phase }
+
+  // Set by performAutoEnd()/the ws 'error' listener right before disconnect()
+  // runs, so disconnect() itself knows the real reason instead of always
+  // assuming a manual click. Read-and-cleared by disconnect() -- defaults to
+  // 'user_disconnect' when nothing more specific was set, since that IS the
+  // main button's own meaning.
+  let pendingTerminationReason = null;
+
+  function reportSessionEndAnalytics(reason) {
+    if (!tapToStartActive && reason !== 'user_disconnect') return; // only meaningful for an actual Free Conversation
+    try {
+      fetch('/api/analytics/session-end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason,
+          sessionId: websocketConnectionId || null,
+          voiceMode,
+          context: sessionContext,
+          durationMs: freeConversationStartedAt ? Date.now() - freeConversationStartedAt : null,
+        }),
+      }).catch(() => { /* best-effort */ });
+    } catch { /* best-effort */ }
+  }
 
   function clearInactivityTimers() {
     if (inactivityWarnTimer) { clearTimeout(inactivityWarnTimer); inactivityWarnTimer = null; }
@@ -3662,6 +3754,8 @@
 
   function performAutoEnd(reason) {
     sendTelemetry('auto_end_completed', { reason });
+    reportSessionEndAnalytics(reason);
+    pendingTerminationReason = reason;
     clearInactivityTimers();
     clearSessionLimitTimers();
     disconnect();
@@ -4161,7 +4255,8 @@
 
   async function loadPersona(profileId) {
     const pId = profileId || editorProfileId;
-    const res = await fetch(`/api/persona?profileId=${pId}`);
+    const contextParam = sessionContext ? `&context=${encodeURIComponent(sessionContext)}` : '';
+    const res = await fetch(`/api/persona?profileId=${pId}${contextParam}`);
     const data = await res.json();
 
     lastLoadedData = data;
@@ -4234,7 +4329,34 @@
     // Render new voice selectors
     await renderVoiceSelectors(data);
 
+    populateSessionLimitSelects(data);
+
     return data;
+  }
+
+  // Populates the three session-length selects from the server's own
+  // allowed-values list -- never hardcoded client-side, so the admin panel
+  // and the server that enforces the value can never silently disagree.
+  function populateSessionLimitSelects(data) {
+    const allowed = Array.isArray(data.allowedSessionLimitMinutes) ? data.allowedSessionLimitMinutes : [2.5, 3, 5, 10];
+    const formatMinutes = (m) => (m === Math.floor(m) ? String(m) : String(m).replace('.', ','));
+
+    const generalSelect = el('pSessionLimitMinutes');
+    if (generalSelect) {
+      generalSelect.innerHTML = allowed.map((m) => `<option value="${m}">${formatMinutes(m)} мин</option>`).join('');
+      generalSelect.value = String(data.sessionLimitMinutes ?? 3);
+    }
+    const byContext = data.sessionLimitMinutesByContext || {};
+    for (const [context, selectId] of [['kiosk', 'pSessionLimitMinutesKiosk'], ['mobile_qr', 'pSessionLimitMinutesMobileQr']]) {
+      const sel = el(selectId);
+      if (!sel) continue;
+      const options = ['<option value="">По умолчанию</option>'].concat(
+        allowed.map((m) => `<option value="${m}">${formatMinutes(m)} мин</option>`)
+      );
+      sel.innerHTML = options.join('');
+      const override = byContext[context];
+      sel.value = override === null || override === undefined ? '' : String(override);
+    }
   }
 
   function getDraftOverrides() {
@@ -4341,12 +4463,23 @@
     statusEl.textContent = 'Saving…';
     try {
       const draft = getDraftOverrides();
+      const sessionLimitSelect = el('pSessionLimitMinutes');
+      const kioskSelect = el('pSessionLimitMinutesKiosk');
+      const mobileQrSelect = el('pSessionLimitMinutesMobileQr');
+      const parseOverride = (sel) => (sel && sel.value !== '' ? Number(sel.value) : null);
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profileId: editorProfileId,
-          overrides: draft
+          overrides: draft,
+          ...(sessionLimitSelect && sessionLimitSelect.value !== '' ? { sessionLimitMinutes: Number(sessionLimitSelect.value) } : {}),
+          ...(kioskSelect || mobileQrSelect ? {
+            sessionLimitMinutesByContext: {
+              kiosk: parseOverride(kioskSelect),
+              mobile_qr: parseOverride(mobileQrSelect),
+            },
+          } : {}),
         }),
       });
       const data = await res.json();

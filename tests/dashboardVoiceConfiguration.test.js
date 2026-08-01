@@ -235,6 +235,8 @@ async function run() {
             clearInterval() {},
             localStorage: mockLocalStorage,
             URL: global.URL,
+            URLSearchParams: global.URLSearchParams,
+            location: { protocol: 'https:', host: 'test.local', search: '' },
             AudioContext: function() {
                 return {
                     createAnalyser() { return {}; },

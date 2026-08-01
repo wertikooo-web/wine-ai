@@ -184,6 +184,7 @@ async function run() {
             clearInterval() {},
             localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
             URL: global.URL,
+            URLSearchParams: global.URLSearchParams,
             atob: (b64) => Buffer.from(b64, 'base64').toString('binary'),
             AudioContext: function () { return audioContext; },
             // A working fake stream (not just {}) -- needed by tests that
@@ -209,7 +210,7 @@ async function run() {
             },
             WebSocket: WebSocketMock,
             performance: { now: () => Date.now() },
-            location: { protocol: 'https:', host: 'test.local' },
+            location: { protocol: 'https:', host: 'test.local', search: '' },
             testResults: { listeners, elements, sentMessages, timers, audioContext },
         };
 
