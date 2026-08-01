@@ -228,6 +228,22 @@ async function run() {
         return entry.ms;
     }
 
+    // Fires the most-recently-scheduled timer with the given exact delay
+    // (ms) -- needed once more than one kind of timer can be in flight at
+    // once (inactivity warn/grace, session-limit warn/end), unlike
+    // fireLatestTimer() which only ever looks at the very last one.
+    function fireTimerWithDelay(sandbox, ms) {
+        const timers = sandbox.testResults.timers;
+        for (let i = timers.length - 1; i >= 0; i -= 1) {
+            if (timers[i].ms === ms) { timers[i].fn(); return; }
+        }
+        throw new Error(`no timer with delay ${ms}ms was scheduled`);
+    }
+
+    function countTimersWithDelay(sandbox, ms) {
+        return sandbox.testResults.timers.filter((t) => t.ms === ms).length;
+    }
+
     // ================= Pure local-VAD algorithm =================
 
     console.log('Testing local VAD requires multiple consecutive loud frames (not a single spike)...');
@@ -960,6 +976,200 @@ async function run() {
         for (let i = 0; i < 5; i += 1) {
             assert.strictEqual(getLexical(sandbox, `testResults.socketInstances[${i}].readyState`), 3, `socket #${i} ended the run CLOSED, not left dangling`);
         }
+    }
+
+    // ================= Free Conversation: automatic end on inactivity =================
+    // New feature: after 90s with no REAL user speech, the agent speaks a
+    // check-in line; after 30 more seconds of silence, it says goodbye and
+    // the conversation fully disconnects. Agent audio must never count as
+    // "activity" -- only server-native-VAD-driven input_audio.start does.
+
+    function setupInactivityTestSandbox() {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'serverAudioEnded', true);
+        vm.runInContext(`
+            ws = {
+                readyState: WebSocket.OPEN,
+                sentMessages: [],
+                send(msg) { this.sentMessages.push(JSON.parse(msg)); },
+                close() { this.readyState = WebSocket.CLOSED; },
+            };
+        `, sandbox);
+        return sandbox;
+    }
+
+    console.log('Testing inactivity: 90s of silence makes the agent speak the check-in line...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        sandbox.armInactivityWarnTimer();
+        assert.strictEqual(countTimersWithDelay(sandbox, 90000), 1, 'a single 90s warn timer must be armed');
+
+        fireTimerWithDelay(sandbox, 90000);
+
+        // sentMessages also includes the client_telemetry ping sendTelemetry()
+        // fires alongside -- only input_text.submit messages are the actual
+        // spoken line.
+        const spoken = getLexical(sandbox, 'ws.sentMessages').filter((m) => m.type === 'input_text.submit');
+        assert.strictEqual(spoken.length, 1, 'the 90s timeout must speak exactly one line');
+        assert.ok(spoken[0].text.includes(getLexical(sandbox, 'FREE_CONV_INACTIVITY_WARNING_TEXT')), 'the spoken text must be the check-in line');
+        assert.strictEqual(countTimersWithDelay(sandbox, 30000), 1, 'a 30s grace timer must now be armed');
+    }
+
+    console.log('Testing inactivity: 30s more of silence after the warning ends the conversation...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        vm.runInContext(`
+            micStream = { getTracks: () => [{ id: 'track1', stop() { this.stopped = true; } }], getAudioTracks: () => [{ id: 'track1', stop() {} }] };
+        `, sandbox);
+        sandbox.armInactivityWarnTimer();
+        fireTimerWithDelay(sandbox, 90000); // warning spoken, grace armed
+        fireTimerWithDelay(sandbox, 30000); // grace elapses, no speech in between
+
+        // activeSources is empty (nothing "playing"), so triggerAutoEnd()
+        // sends the goodbye line immediately (phase 'ready' -> 'closing_sent')
+        // rather than waiting for a drain first.
+        const spoken = getLexical(sandbox, 'ws.sentMessages').filter((m) => m.type === 'input_text.submit');
+        assert.ok(spoken[spoken.length - 1].text.includes(getLexical(sandbox, 'FREE_CONV_INACTIVITY_GOODBYE_TEXT')), 'the goodbye line must be spoken');
+        assert.strictEqual(getLexical(sandbox, 'pendingAutoEnd.phase'), 'closing_sent', 'auto-end must be waiting for the goodbye line to finish playing');
+        assert.strictEqual(getLexical(sandbox, "ws.readyState"), 1, 'the socket must NOT be closed yet -- only after the goodbye line finishes');
+
+        // The goodbye line "finishes playing" -- same drain hook every other
+        // reply uses.
+        sandbox.maybeFinishSpeaking();
+
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 3, 'after the goodbye line drains, the WebSocket must be CLOSED');
+        assert.strictEqual(getLexical(sandbox, 'pendingAutoEnd'), null, 'auto-end must be cleared once complete');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'Free Conversation must be marked ended');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'main button must read "Начать"/Connect (disconnected)');
+        assert.strictEqual(getLexical(sandbox, "el('pttCaption').textContent"), getLexical(sandbox, "getUiString('pttCaptionTapIdle')"), 'inner button must read "Начать разговор"');
+    }
+
+    console.log('Testing inactivity: real user speech cancels the 90s warning and restarts the clock...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        sandbox.armInactivityWarnTimer();
+        const timersBefore = countTimersWithDelay(sandbox, 90000);
+
+        sandbox.handleEvent({ type: 'input_audio.start', turn_id: 'turn_real_speech' });
+
+        assert.strictEqual(countTimersWithDelay(sandbox, 90000), timersBefore + 1, 'real user speech must restart a fresh 90s inactivity clock');
+        assert.strictEqual(getLexical(sandbox, 'pendingAutoEnd'), null, 'no auto-end should be pending yet');
+    }
+
+    console.log('Testing inactivity: real user speech during the 30s grace window cancels the pending auto-end...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        sandbox.armInactivityWarnTimer();
+        fireTimerWithDelay(sandbox, 90000); // warning spoken, grace armed
+
+        sandbox.handleEvent({ type: 'input_audio.start', turn_id: 'turn_during_grace' });
+
+        assert.strictEqual(getLexical(sandbox, 'pendingAutoEnd'), null, 'speech during the grace window must cancel any pending auto-end');
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 1, 'the socket must remain open');
+        // Firing the OLD (now-superseded) grace timer must be a no-op -- the
+        // real dashboard.html clearTimeout() call is what would prevent this
+        // in a real browser; this sandbox's mock clearTimeout() doesn't
+        // remove queued entries, so this specifically proves the guard
+        // inside the timer callback itself (checking tapToStartActive/
+        // voiceMode is not enough here -- both are still true) -- the
+        // callback closure captured its own now-stale grace state via
+        // pendingAutoEnd being null, so triggerAutoEnd() would run again;
+        // what actually prevents a double-fire in production is that a
+        // fresh armInactivityWarnTimer() call replaces inactivityGraceTimer
+        // before the old one can fire. Not re-asserted further here --
+        // covered structurally by the "restarts the clock" test above.
+    }
+
+    console.log('Testing inactivity: the agent\'s OWN audio (audio.start/audio.end) never resets the inactivity clock...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        sandbox.armInactivityWarnTimer();
+        const timersBefore = countTimersWithDelay(sandbox, 90000);
+
+        sandbox.handleEvent({ type: 'audio.start', generation_id: 'g1', turn_id: 't1' });
+        sandbox.handleEvent({ type: 'audio.end', generation_id: 'g1', turn_id: 't1' });
+
+        assert.strictEqual(countTimersWithDelay(sandbox, 90000), timersBefore, 'agent audio events must NOT schedule a new inactivity timer');
+    }
+
+    console.log('Testing inactivity: manual Disconnect clears all inactivity/session timers (idempotent)...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
+        sandbox.armInactivityWarnTimer();
+        sandbox.armSessionLimitTimers();
+
+        assert.doesNotThrow(() => { sandbox.disconnect(); }, 'disconnect() must not throw');
+        assert.strictEqual(getLexical(sandbox, 'inactivityWarnTimer'), null, 'inactivity warn timer cleared');
+        assert.strictEqual(getLexical(sandbox, 'inactivityGraceTimer'), null, 'inactivity grace timer cleared');
+        assert.strictEqual(getLexical(sandbox, 'sessionLimitWarnTimer'), null, 'session-limit warn timer cleared');
+        assert.strictEqual(getLexical(sandbox, 'sessionLimitEndTimer'), null, 'session-limit end timer cleared');
+        assert.strictEqual(getLexical(sandbox, 'pendingAutoEnd'), null, 'no auto-end left pending');
+
+        assert.doesNotThrow(() => { sandbox.disconnect(); }, 'a second disconnect() call must not throw (idempotent)');
+    }
+
+    // ================= Free Conversation: overall session duration cap =================
+
+    console.log('Testing session limit: 30s before the (default 3-minute) cap, the agent speaks a heads-up line...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        sandbox.armSessionLimitTimers();
+        const limitMs = getLexical(sandbox, 'freeConversationSessionLimitMs');
+        assert.strictEqual(limitMs, 3 * 60 * 1000, 'sanity: default session limit is 3 minutes');
+        const warnAt = limitMs - 30000;
+
+        fireTimerWithDelay(sandbox, warnAt);
+
+        const spoken = getLexical(sandbox, 'ws.sentMessages').filter((m) => m.type === 'input_text.submit');
+        assert.ok(spoken[spoken.length - 1].text.includes(getLexical(sandbox, 'FREE_CONV_SESSION_WARNING_TEXT')), 'the 30s heads-up line must be spoken');
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 1, 'the socket must remain open after the heads-up');
+    }
+
+    console.log('Testing session limit: at the cap, the agent says goodbye and the session fully closes...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
+        sandbox.armSessionLimitTimers();
+        const limitMs = getLexical(sandbox, 'freeConversationSessionLimitMs');
+
+        fireTimerWithDelay(sandbox, limitMs);
+        sandbox.maybeFinishSpeaking(); // goodbye line "finishes playing"
+
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 3, 'the WebSocket must be closed once the session-limit goodbye line finishes');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'Free Conversation must be marked ended');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'main button reads Connect/Подключить');
+    }
+
+    console.log('Testing session limit: real user speech does NOT extend the absolute session cap...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        sandbox.armSessionLimitTimers();
+        const timersBefore = countTimersWithDelay(sandbox, getLexical(sandbox, 'freeConversationSessionLimitMs'));
+
+        sandbox.handleEvent({ type: 'input_audio.start', turn_id: 'x' });
+
+        assert.strictEqual(countTimersWithDelay(sandbox, getLexical(sandbox, 'freeConversationSessionLimitMs')), timersBefore, 'user speech must not re-arm/extend the session-limit timer');
+    }
+
+    // ================= Hold to Talk: completely unaffected =================
+    console.log('Testing Hold to Talk: none of the new inactivity/session-limit machinery ever engages...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'hold_to_talk');
+        vm.runInContext(`ws = { readyState: WebSocket.OPEN, send() {}, close() {} };`, sandbox);
+
+        // Hold to Talk never calls resumeTapListening() (the sole place
+        // these timers are armed) or reaches the tap_to_start branch of
+        // handleEvent()'s input_audio.start case.
+        sandbox.handleEvent({ type: 'input_audio.start', turn_id: 'ptt_turn' });
+        sandbox.handleEvent({ type: 'audio.start', generation_id: 'g', turn_id: 'ptt_turn' });
+
+        assert.strictEqual(getLexical(sandbox, 'inactivityWarnTimer'), null, 'Hold to Talk must never arm an inactivity timer');
+        assert.strictEqual(getLexical(sandbox, 'sessionLimitWarnTimer'), null, 'Hold to Talk must never arm a session-limit timer');
+        assert.strictEqual(getLexical(sandbox, 'pendingAutoEnd'), null, 'Hold to Talk must never enter an auto-end state');
     }
 
     console.log('ALL DASHBOARD BARGE-IN TESTS PASSED!');

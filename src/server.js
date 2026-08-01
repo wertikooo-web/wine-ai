@@ -57,6 +57,13 @@ function envFlag(name, fallback) {
 // the client via GET /api/persona so both stay in sync from one source.
 const TAP_TO_START_IDLE_TIMEOUT_MS = Number(process.env.TAP_TO_START_IDLE_TIMEOUT_MS || 5000);
 
+// Free Conversation's overall session duration cap -- server-controlled the
+// same way as TAP_TO_START_IDLE_TIMEOUT_MS above, so the client can never
+// silently extend its own session by ignoring the value. Default 3 minutes
+// per product decision; 2.5/3/5/10-minute presets and a per-context
+// (kiosk/mobile) override are a follow-up, not built here.
+const FREE_CONVERSATION_SESSION_LIMIT_MS = Number(process.env.FREE_CONVERSATION_SESSION_LIMIT_MS || 3 * 60 * 1000);
+
 function getAvatarClientConfig() {
     return {
         enabled: envFlag('AVATAR_3D_ENABLED', process.env.NODE_ENV !== 'production'),
@@ -699,6 +706,7 @@ async function handleRequest(req, res) {
                 mood,
                 voiceMode: personaStore.getVoiceMode(),
                 tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
+                freeConversationSessionLimitMs: FREE_CONVERSATION_SESSION_LIMIT_MS,
                 resolved,
                 effectivePromptPreview: preview,
                 overrides,
@@ -926,6 +934,7 @@ async function handleRequest(req, res) {
                 mood,
                 voiceMode: personaStore.getVoiceMode(),
                 tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
+                freeConversationSessionLimitMs: FREE_CONVERSATION_SESSION_LIMIT_MS,
                 resolved,
                 effectivePromptPreview: preview,
                 overrides,

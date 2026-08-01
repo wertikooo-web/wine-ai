@@ -2402,6 +2402,9 @@
     // attempt to start a conversation — looked exactly like "the button
     // doesn't react."
     cancelTapIdleTimer();
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    pendingAutoEnd = null;
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
@@ -2576,7 +2579,22 @@
         // src/realtime/realtimeServer.js's handleNativeSpeechStarted()) —
         // that is the "provider-native event of speech starting" the idle
         // timer must be cancelled by, not local RMS.
-        if (voiceMode === 'tap_to_start') cancelTapIdleTimer();
+        if (voiceMode === 'tap_to_start') {
+          cancelTapIdleTimer();
+          // Real user speech (this event is provider-native-VAD-driven, per
+          // the comment above -- never fired for the agent's own audio
+          // playback) cancels any inactivity auto-end in progress and
+          // restarts the 90s inactivity clock. Session-limit timers are
+          // deliberately untouched here -- that cap is absolute, not
+          // activity-based.
+          if (tapToStartActive) {
+            if (pendingAutoEnd && pendingAutoEnd.reason === 'inactivity_timeout') {
+              pendingAutoEnd = null;
+              sendTelemetry('inactivity_auto_end_cancelled_by_speech', {});
+            }
+            armInactivityWarnTimer();
+          }
+        }
         break;
       case 'input_audio.end':
         inputEndedAt = performance.now();
@@ -3138,6 +3156,9 @@
   // instead of forcing a full reconnect for every conversation.
   async function stopFreeConversation() {
     cancelTapIdleTimer();
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    pendingAutoEnd = null;
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
@@ -3185,6 +3206,12 @@
     isHolding = true;
     setText('micState', 'recording');
     DeviceVisual.setState('listening');
+    // Called exactly once per Free Conversation start (see this function's
+    // own header comment) -- the right single place to start both the
+    // inactivity clock and the overall session-duration cap for this
+    // conversation, not per-utterance.
+    armInactivityWarnTimer();
+    armSessionLimitTimers();
     // Report the mic pipeline actually backing this conversation (not the
     // requested constraints — track.getSettings() reflects what the browser
     // actually granted) so the server can gate barge-in on a confirmed,
@@ -3512,6 +3539,134 @@
   const LOCAL_VAD_CONFIRM_FRAMES = 3; // ~3 x 2048-sample callbacks (~384ms @16kHz)
   const localVadState = createLocalVadState();
   let localBargeInEpisodeId = 0;
+
+  // ---- Free Conversation: automatic end on user inactivity ----
+  // Keyed strictly on real user speech (server-native-VAD-driven
+  // input_audio.start, see handleEvent() below) -- the agent's own audio
+  // playback (audio.start/audio.end) must never count as activity, or a
+  // long assistant reply would silently keep resetting the clock.
+  const FREE_CONV_INACTIVITY_WARNING_MS = 90000;
+  const FREE_CONV_INACTIVITY_GRACE_MS = 30000;
+  const FREE_CONV_INACTIVITY_WARNING_TEXT = 'Вы ещё здесь? Если хотите продолжить, просто скажите что-нибудь или нажмите кнопку.';
+  const FREE_CONV_INACTIVITY_GOODBYE_TEXT = 'Похоже, мы сделали небольшую паузу. Я завершу разговор. Возвращайтесь, когда захотите продолжить.';
+  let inactivityWarnTimer = null;
+  let inactivityGraceTimer = null;
+
+  // ---- Free Conversation: overall session duration cap ----
+  // Server-controlled (see /api/persona's freeConversationSessionLimitMs,
+  // src/server.js's FREE_CONVERSATION_SESSION_LIMIT_MS) so the client can
+  // never silently extend its own session -- only the value loaded from the
+  // server at startup is ever used.
+  let freeConversationSessionLimitMs = 3 * 60 * 1000; // default; overwritten from /api/persona on load
+  const FREE_CONV_SESSION_WARNING_LEAD_MS = 30000;
+  const FREE_CONV_SESSION_WARNING_TEXT = 'У нас осталось полминуты. Давайте успеем разобрать последний вопрос.';
+  const FREE_CONV_SESSION_LIMIT_TEXT = 'Мне пора немного отдохнуть. Если захотите продолжить, начните новый разговор.';
+  let sessionLimitWarnTimer = null;
+  let sessionLimitEndTimer = null;
+
+  // Two-phase closing sequence shared by both auto-end paths: `await_drain`
+  // means "wait for whatever the assistant is currently saying to finish,
+  // THEN speak the closing line"; `closing_sent` means "the closing line has
+  // been submitted, wait for IT to finish playing, THEN actually
+  // disconnect". Both phases resolve through maybeFinishSpeaking()'s
+  // existing playback-drained hook -- see there and performAutoEnd() below.
+  let pendingAutoEnd = null; // { reason, closingText, phase }
+
+  function clearInactivityTimers() {
+    if (inactivityWarnTimer) { clearTimeout(inactivityWarnTimer); inactivityWarnTimer = null; }
+    if (inactivityGraceTimer) { clearTimeout(inactivityGraceTimer); inactivityGraceTimer = null; }
+  }
+
+  function clearSessionLimitTimers() {
+    if (sessionLimitWarnTimer) { clearTimeout(sessionLimitWarnTimer); sessionLimitWarnTimer = null; }
+    if (sessionLimitEndTimer) { clearTimeout(sessionLimitEndTimer); sessionLimitEndTimer = null; }
+  }
+
+  // Best-effort: asks the model (via the same text-turn channel typing a
+  // question uses) to speak this exact line. The transcript panel that used
+  // to echo input_text.submit was removed per an earlier request, so this
+  // never becomes visible UI text -- it only reaches the model.
+  function speakScriptedLine(text) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: 'input_text.submit', text: `[system instruction, speak this exact sentence verbatim and nothing else] ${text}` }));
+  }
+
+  function armInactivityWarnTimer() {
+    clearInactivityTimers();
+    inactivityWarnTimer = setTimeout(() => {
+      inactivityWarnTimer = null;
+      if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      speakScriptedLine(FREE_CONV_INACTIVITY_WARNING_TEXT);
+      sendTelemetry('inactivity_warning_spoken', {});
+      inactivityGraceTimer = setTimeout(() => {
+        inactivityGraceTimer = null;
+        if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+        triggerAutoEnd('inactivity_timeout', FREE_CONV_INACTIVITY_GOODBYE_TEXT);
+      }, FREE_CONV_INACTIVITY_GRACE_MS);
+    }, FREE_CONV_INACTIVITY_WARNING_MS);
+  }
+
+  function armSessionLimitTimers() {
+    clearSessionLimitTimers();
+    const limitMs = freeConversationSessionLimitMs;
+    const warnAt = Math.max(0, limitMs - FREE_CONV_SESSION_WARNING_LEAD_MS);
+    sessionLimitWarnTimer = setTimeout(() => {
+      sessionLimitWarnTimer = null;
+      if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      speakScriptedLine(FREE_CONV_SESSION_WARNING_TEXT);
+      sendTelemetry('session_limit_warning_spoken', {});
+    }, warnAt);
+    sessionLimitEndTimer = setTimeout(() => {
+      sessionLimitEndTimer = null;
+      if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT);
+    }, limitMs);
+  }
+
+  // reason is one of: session_timeout, inactivity_timeout (user_disconnect
+  // and technical_error are reported directly at their own call sites, not
+  // through here) -- surfaced via telemetry as a first step toward a real
+  // termination-reason analytics field.
+  function triggerAutoEnd(reason, closingText) {
+    if (pendingAutoEnd) return; // already ending
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    pendingAutoEnd = { reason, closingText, phase: activeSources.size > 0 ? 'await_drain' : 'ready' };
+    sendTelemetry('auto_end_triggered', { reason, phase: pendingAutoEnd.phase });
+    if (pendingAutoEnd.phase === 'ready') {
+      speakScriptedLine(pendingAutoEnd.closingText);
+      pendingAutoEnd.phase = 'closing_sent';
+    }
+  }
+
+  // Called from maybeFinishSpeaking() once the assistant has genuinely
+  // drained (not just audio.end) -- returns true if it consumed this drain
+  // event as part of an auto-end in progress, so the caller must not also
+  // run its normal post-reply behavior (e.g. re-arming the short
+  // resume-listening idle timer).
+  function handleAutoEndDrain() {
+    if (!pendingAutoEnd) return false;
+    if (pendingAutoEnd.phase === 'await_drain') {
+      speakScriptedLine(pendingAutoEnd.closingText);
+      pendingAutoEnd.phase = 'closing_sent';
+      return true;
+    }
+    if (pendingAutoEnd.phase === 'closing_sent') {
+      const reason = pendingAutoEnd.reason;
+      pendingAutoEnd = null;
+      performAutoEnd(reason);
+      return true;
+    }
+    return false;
+  }
+
+  function performAutoEnd(reason) {
+    sendTelemetry('auto_end_completed', { reason });
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    disconnect();
+    setPttCaption();
+  }
   function triggerLocalBargeIn(peak) {
     localBargeInEpisodeId += 1;
     const supersededGenerationId = acceptedPlaybackGenerationId;
@@ -3584,6 +3739,11 @@
     sendTelemetry('playback_stopped', { reason: 'drained' });
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
+    // An auto-end (inactivity or session-limit) in progress takes over this
+    // drain event entirely -- see handleAutoEndDrain(). Must run BEFORE the
+    // normal startTapIdleTimer() call below, and skip it when it does: the
+    // closing line itself, once spoken, must not re-arm anything.
+    if (handleAutoEndDrain()) return;
     // Tap to Start: the assistant has FULLY finished (playback drained, not
     // just audio.end received) — start the 5s idle-close timer now, exactly
     // per the requirement that it must only run once the response is truly
@@ -5553,6 +5713,11 @@
     }
     if (data && typeof data.tapToStartIdleTimeoutMs === 'number' && data.tapToStartIdleTimeoutMs > 0) {
       tapToStartIdleTimeoutMs = data.tapToStartIdleTimeoutMs;
+    }
+    // Server-controlled Free Conversation session cap -- never widened by
+    // anything client-side; only ever set from this response.
+    if (data && typeof data.freeConversationSessionLimitMs === 'number' && data.freeConversationSessionLimitMs > 0) {
+      freeConversationSessionLimitMs = data.freeConversationSessionLimitMs;
     }
     applyVoiceModeUI();
   })().catch((err) => log('persona_load_error', { message: err.message }));
