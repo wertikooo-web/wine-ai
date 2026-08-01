@@ -1,0 +1,69 @@
+name: Railway Production Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: railway-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for Railway deployment and verify health
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          HEALTH_FILE="$(mktemp)"
+          READY=0
+
+          for attempt in $(seq 1 60); do
+            code="$(curl -sS -L --max-time 20 -o "$HEALTH_FILE" -w '%{http_code}' "$BASE_URL/health" || true)"
+            echo "health attempt=$attempt http=$code"
+            if [ "$code" = "200" ]; then
+              cat "$HEALTH_FILE"
+              READY=1
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "$READY" != "1" ]; then
+            echo "Railway production did not become healthy within 10 minutes"
+            cat "$HEALTH_FILE" || true
+            exit 1
+          fi
+
+      - name: Verify knowledge status
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          STATUS_FILE="$(mktemp)"
+          code="$(curl -sS -L --max-time 30 -o "$STATUS_FILE" -w '%{http_code}' "$BASE_URL/api/knowledge/status")"
+          echo "knowledge status http=$code"
+          cat "$STATUS_FILE"
+          test "$code" = "200"
+          node - "$STATUS_FILE" <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (body.ok !== true) throw new Error('knowledge status ok != true');
+          const chunks = Number(body.chunk_count ?? body.chunks ?? 0);
+          if (!Number.isFinite(chunks) || chunks <= 0) throw new Error('knowledge chunk count is empty');
+          console.log(`knowledge status verified; chunks=${chunks}`);
+          NODE
+
+      - name: Verify public dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          code="$(curl -sS -L --max-time 30 -o /tmp/dashboard.html -w '%{http_code}' "$BASE_URL/dashboard")"
+          echo "dashboard http=$code bytes=$(wc -c < /tmp/dashboard.html)"
+          test "$code" = "200"
+          test "$(wc -c < /tmp/dashboard.html)" -gt 1000
