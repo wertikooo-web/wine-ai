@@ -1,38 +1,151 @@
 'use strict';
 
-// P0 backfill: compute embeddings for every chunk currently in
-// knowledge/index/index.json and upsert into Postgres's
-// knowledge_chunk_embeddings table (see src/knowledge/db.js for schema).
-// Idempotent and incremental: skips a chunk whose content_hash already
-// matches what's stored, so re-running after adding a handful of new
-// documents only pays for the new/changed chunks, not the whole corpus.
-// Usage: node scripts/knowledge-embed-backfill.js
-const crypto = require('crypto');
+// Embedding sync (P0 semantic search + Stage 3 write path): compute embeddings
+// for every chunk currently in the knowledge base and upsert them into
+// Postgres's knowledge_chunk_embeddings table (see src/knowledge/db.js for
+// schema). Idempotent and incremental: skips a chunk whose content_hash already
+// matches what's stored, so re-running after adding documents only pays for the
+// new/changed chunks, not the whole corpus.
+//
+// Stage 3 (PG-as-source-of-truth migration): the chunk set is the UNION of
+//   - the filesystem knowledge (knowledge/source/*.md, chunked fresh — the
+//     legacy/curated contour and the default read source), and
+//   - knowledge_chunks in Postgres (Dashboard uploads and crawled documents,
+//     published via src/knowledge/publishService.js).
+// The embeddings PRUNE is keyed to this union, so embeddings for PG-only
+// chunks (which never appear in index.json) are NEVER deleted here — the
+// pre-Stage-3 backfill pruned against index.json alone and would have wiped
+// uploaded/crawled embeddings.
+//
+// Usage: node scripts/knowledge-embed-backfill.js [--no-prune] [--dry-run]
+// Requires DATABASE_URL and GEMINI_API_KEY.
+//
+// --no-prune: embed new/changed chunks but DO NOT delete embeddings whose
+// chunk is no longer in the set. Safe for a controlled two-phase migration on
+// a live database — lets operators embed against the current chunk set, verify
+// coverage and retrieval, and only later run prune (a separate explicit step)
+// after confirming the rows are not used by runtime search.
+//
+// --dry-run: compute what would change but write NOTHING — no embedding
+// upserts and no DELETE. Guarantees prune can never fire in a dry run.
+//
+// Safety invariants (enforced in syncEmbeddings, unit-tested):
+//   - prune is skipped entirely when any embedding batch failed, so a
+//     partially-embedded run can never delete embeddings for a stale set;
+//   - dryRun skips all writes, including the DELETE;
 const { loadDocuments, chunkDocument, DEFAULT_SOURCE_DIR } = require('../src/knowledge/loader');
 const db = require('../src/knowledge/db');
 const embeddings = require('../src/knowledge/embeddings');
+const { loadChunksFromPostgres } = require('../src/knowledge/chunkStore');
 
 const BATCH_SIZE = 20; // Gemini embedContent accepts a batch of contents per call
 
-const PAYLOAD_VERSION = 'v2';
+/**
+ * Load the current chunk set as the union of the filesystem knowledge and the
+ * published Postgres chunks. On an id collision the Postgres chunk wins (PG is
+ * the future source of truth; uploaded/crawled content takes precedence over a
+ * same-id legacy file chunk).
+ *
+ * @returns {Promise<{chunks:Array, fileChunks:number, pgChunks:number, errors:Array}>}
+ */
+async function loadChunkUnion(pool) {
+    const { documents, errors } = loadDocuments(DEFAULT_SOURCE_DIR);
+    const fileChunks = documents.flatMap(chunkDocument);
+    const pgResult = await loadChunksFromPostgres(pool);
 
-function contentHash(text) {
-    return crypto.createHash('sha256').update(PAYLOAD_VERSION + '\n', 'utf8').update(text, 'utf8').digest('hex');
+    const byId = new Map(fileChunks.map((c) => [c.id, c]));
+    for (const chunk of pgResult.chunks) byId.set(chunk.id, chunk);
+
+    return { chunks: [...byId.values()], fileChunks: fileChunks.length, pgChunks: pgResult.chunks.length, errors };
 }
 
-function buildEmbeddingText(chunk) {
-    const meta = chunk.metadata;
-    const parts = [];
-    if (meta.title) parts.push(`Title: ${meta.title}`);
-    if (meta.entity_id) parts.push(`Entity ID: ${meta.entity_id}`);
-    if (meta.winery) parts.push(`Winery: ${meta.winery}`);
-    if (meta.region) parts.push(`Region: ${meta.region}`);
-    if (meta.grape) parts.push(`Grape: ${meta.grape}`);
-    if (meta.doc_type) parts.push(`Type: ${meta.doc_type}`);
-    if (meta.language) parts.push(`Language: ${meta.language}`);
-    parts.push('');
-    parts.push(chunk.text);
-    return parts.join('\n');
+/**
+ * Embed the given chunks (skipping ones already up to date) and prune
+ * embeddings whose chunk is no longer in the set. Shared by the CLI and the
+ * Stage 3 tests — the embeddings client is injectable so tests never hit the
+ * Gemini API.
+ *
+ * @param {object} opts
+ * @param {object} opts.pool pg Pool
+ * @param {Array} opts.chunks chunk set to embed against / prune by
+ * @param {object} [opts.embeddingsClient] DI (default: src/knowledge/embeddings)
+ * @param {boolean} [opts.prune=true] delete embeddings whose chunk is no longer in the set
+ * @param {boolean} [opts.dryRun=false] never write anything (no upserts, no DELETE)
+ * @param {function} [opts.log]
+ * @returns {Promise<{embedded:number,failed:number,pruned:number,total:number,toEmbed:number,pruneSkippedReason:string|null}>}
+ */
+async function syncEmbeddings({ pool, chunks, embeddingsClient = null, prune = true, dryRun = false, log = console.log } = {}) {
+    if (!pool) throw new TypeError('syncEmbeddings: pool is required');
+    if (!Array.isArray(chunks)) throw new TypeError('syncEmbeddings: chunks must be an array');
+    const embedClient = embeddingsClient || embeddings;
+
+    const { rows: existingRows } = await pool.query('SELECT chunk_id, content_hash FROM knowledge_chunk_embeddings');
+    const existingHashByChunkId = new Map(existingRows.map((r) => [r.chunk_id, r.content_hash]));
+
+    const toEmbed = chunks.filter((chunk) => existingHashByChunkId.get(chunk.id) !== embedClient.embeddingContentHash(chunk));
+    const currentChunkIds = new Set(chunks.map((c) => c.id));
+    const staleIds = existingRows.map((r) => r.chunk_id).filter((id) => !currentChunkIds.has(id));
+    log(`prune=${prune} dryRun=${dryRun}; ${toEmbed.length} chunk(s) need (re-)embedding, ${staleIds.length} stale embedding row(s) would be removed.`);
+
+    let embedded = 0;
+    let failed = 0;
+    if (dryRun) {
+        embedded = toEmbed.length;
+        log(`  dry-run: ${toEmbed.length} chunk(s) would be embedded, API not called, nothing written.`);
+    } else {
+        for (let i = 0; i < toEmbed.length; i += BATCH_SIZE) {
+            const batch = toEmbed.slice(i, i + BATCH_SIZE);
+            try {
+                const vectors = await embedClient.embedTexts(batch.map((c) => embedClient.buildEmbeddingText(c)), { taskType: 'RETRIEVAL_DOCUMENT' });
+                for (let j = 0; j < batch.length; j += 1) {
+                    const chunk = batch[j];
+                    const vectorLiteral = `[${vectors[j].join(',')}]`;
+                    await pool.query(
+                        `INSERT INTO knowledge_chunk_embeddings (chunk_id, source_file, model, embedding, content_hash, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, NOW())
+                         ON CONFLICT (chunk_id) DO UPDATE SET
+                            source_file = EXCLUDED.source_file,
+                            model = EXCLUDED.model,
+                            embedding = EXCLUDED.embedding,
+                            content_hash = EXCLUDED.content_hash,
+                            updated_at = NOW();`,
+                        [chunk.id, chunk.metadata.source_file, embedClient.EMBEDDING_MODEL, vectorLiteral, embedClient.embeddingContentHash(chunk)]
+                    );
+                    embedded += 1;
+                }
+                log(`  embedded ${embedded}/${toEmbed.length}...`);
+            } catch (err) {
+                failed += batch.length;
+                log(`  batch starting at index ${i} failed (skipping ${batch.length} chunk(s)): ${err.message}`);
+            }
+        }
+    }
+
+    // Prune rows for chunks that no longer exist (deleted/renamed source files,
+    // removed documents). Keyed to the CURRENT chunk set — which includes the
+    // PG-only chunks — so PG-only embeddings always survive a backfill run.
+    // Safety: prune is suppressed after any embedding failure or in a dry run,
+    // so a partially-embedded pass can never delete embeddings for a stale set.
+    let pruneSkippedReason = null;
+    let pruned = 0;
+    if (!staleIds.length) {
+        pruneSkippedReason = null;
+    } else if (!prune) {
+        pruneSkippedReason = 'no_prune_flag';
+        log(`Prune skipped (--no-prune): ${staleIds.length} stale row(s) left in place.`);
+    } else if (dryRun) {
+        pruneSkippedReason = 'dry_run';
+        log(`Prune skipped (--dry-run): ${staleIds.length} stale row(s) would be removed, nothing written.`);
+    } else if (failed > 0) {
+        pruneSkippedReason = 'embedding_failures';
+        log(`Prune skipped (${failed} embedding batch failure(s)): stale rows NOT deleted — re-run after the embed errors are resolved.`);
+    } else {
+        await pool.query('DELETE FROM knowledge_chunk_embeddings WHERE chunk_id = ANY($1)', [staleIds]);
+        pruned = staleIds.length;
+        log(`Pruned ${pruned} stale row(s) for chunks no longer in the index.`);
+    }
+
+    return { embedded, failed, pruned, total: chunks.length, toEmbed: toEmbed.length, pruneSkippedReason };
 }
 
 async function main() {
@@ -54,63 +167,27 @@ async function main() {
         return;
     }
 
-    const { documents, errors } = loadDocuments(DEFAULT_SOURCE_DIR);
-    if (errors.length) {
-        console.error(`loadDocuments() reported ${errors.length} error(s) (continuing with the rest):`, errors.slice(0, 5));
+    const union = await loadChunkUnion(pool);
+    if (union.errors.length) {
+        console.error(`loadDocuments() reported ${union.errors.length} error(s) (continuing with the rest):`, union.errors.slice(0, 5));
     }
-    const chunks = documents.flatMap(chunkDocument);
-    console.log(`Loaded ${documents.length} documents, ${chunks.length} chunks.`);
+    console.log(`Chunk set: ${union.chunks.length} total (${union.fileChunks} from knowledge/source, ${union.pgChunks} from Postgres).`);
 
-    const { rows: existingRows } = await pool.query('SELECT chunk_id, content_hash FROM knowledge_chunk_embeddings');
-    const existingHashByChunkId = new Map(existingRows.map((r) => [r.chunk_id, r.content_hash]));
-
-    const toEmbed = chunks.filter((chunk) => existingHashByChunkId.get(chunk.id) !== contentHash(buildEmbeddingText(chunk)));
-    console.log(`${toEmbed.length} chunk(s) need (re-)embedding; ${chunks.length - toEmbed.length} already up to date.`);
-
-    let embedded = 0;
-    let failed = 0;
-    for (let i = 0; i < toEmbed.length; i += BATCH_SIZE) {
-        const batch = toEmbed.slice(i, i + BATCH_SIZE);
-        try {
-            const vectors = await embeddings.embedTexts(batch.map((c) => buildEmbeddingText(c)), { taskType: 'RETRIEVAL_DOCUMENT' });
-            for (let j = 0; j < batch.length; j += 1) {
-                const chunk = batch[j];
-                const vector = vectors[j];
-                const vectorLiteral = `[${vector.join(',')}]`;
-                await pool.query(
-                    `INSERT INTO knowledge_chunk_embeddings (chunk_id, source_file, model, embedding, content_hash, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, NOW())
-                     ON CONFLICT (chunk_id) DO UPDATE SET
-                        source_file = EXCLUDED.source_file,
-                        model = EXCLUDED.model,
-                        embedding = EXCLUDED.embedding,
-                        content_hash = EXCLUDED.content_hash,
-                        updated_at = NOW();`,
-                    [chunk.id, chunk.metadata.source_file, embeddings.EMBEDDING_MODEL, vectorLiteral, contentHash(buildEmbeddingText(chunk))]
-                );
-                embedded += 1;
-            }
-            console.log(`  embedded ${embedded}/${toEmbed.length}...`);
-        } catch (err) {
-            failed += batch.length;
-            console.error(`  batch starting at index ${i} failed (skipping ${batch.length} chunk(s)):`, err.message);
-        }
-    }
-
-    // Prune rows for chunks that no longer exist (deleted/renamed source files).
-    const currentChunkIds = new Set(chunks.map((c) => c.id));
-    const { rows: allRows } = await pool.query('SELECT chunk_id FROM knowledge_chunk_embeddings');
-    const staleIds = allRows.map((r) => r.chunk_id).filter((id) => !currentChunkIds.has(id));
-    if (staleIds.length) {
-        await pool.query('DELETE FROM knowledge_chunk_embeddings WHERE chunk_id = ANY($1)', [staleIds]);
-        console.log(`Pruned ${staleIds.length} stale row(s) for chunks no longer in the index.`);
-    }
-
-    console.log(`Done. Embedded: ${embedded}, failed: ${failed}, pruned: ${staleIds.length}.`);
+    const result = await syncEmbeddings({
+        pool,
+        chunks: union.chunks,
+        prune: !process.argv.includes('--no-prune'),
+        dryRun: process.argv.includes('--dry-run'),
+    });
+    console.log(`Done. Embedded: ${result.embedded}, failed: ${result.failed}, pruned: ${result.pruned}, pruneSkippedReason: ${result.pruneSkippedReason}.`);
     await pool.end();
 }
 
-main().catch((err) => {
-    console.error('Backfill failed:', err);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('Backfill failed:', err);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { loadChunkUnion, syncEmbeddings };

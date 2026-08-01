@@ -786,6 +786,76 @@ class MemoryPgEngine {
             return { rows: [] };
         }
 
+        // SELECT FROM knowledge_chunks by document_id (Stage 3 per-document reads)
+        if (/^SELECT .* FROM knowledge_chunks WHERE document_id = \$1/i.test(sql)) {
+            const table = this.tables.get('knowledge_chunks');
+            return { rows: table ? table.rows.filter((r) => r.document_id === params[0]) : [] };
+        }
+
+        // UPDATE knowledge_chunks SET enabled = FALSE (Stage 3 disable-stale /
+        // prune-inactive) — handles both whole-document (document_id = ANY) and
+        // per-chunk (document_id = $1 AND chunk_id = ANY($2)) forms.
+        if (/^UPDATE knowledge_chunks SET enabled = FALSE/i.test(sql)) {
+            const table = this.tables.get('knowledge_chunks');
+            if (!table) return { rows: [] };
+            let matches = [];
+            if (/document_id = \$1 AND chunk_id = ANY\(\$2\)/i.test(sql)) {
+                const docId = params[0];
+                const chunkIds = params[1] || [];
+                matches = table.rows.filter((r) => r.document_id === docId && chunkIds.includes(r.chunk_id));
+            } else if (/document_id = ANY\(\$1\)/i.test(sql)) {
+                const docIds = params[0] || [];
+                matches = table.rows.filter((r) => r.document_id !== null && r.document_id !== undefined && docIds.includes(r.document_id));
+            }
+            for (const row of matches) {
+                row.enabled = false;
+                row.updated_at = new Date();
+            }
+            return { rows: matches };
+        }
+
+        // INSERT INTO knowledge_chunk_embeddings (idempotent upsert by chunk_id) —
+        // mirrors src/knowledge/embeddings.js-backed upsert SQL used by
+        // scripts/knowledge-embed-backfill.js and publishService.js.
+        if (/^INSERT INTO knowledge_chunk_embeddings/i.test(sql)) {
+            const table = this.tables.get('knowledge_chunk_embeddings') || { name: 'knowledge_chunk_embeddings', rows: [] };
+            this.tables.set('knowledge_chunk_embeddings', table);
+
+            const colsMatch = sql.match(/INSERT INTO knowledge_chunk_embeddings\s*\(([^)]+)\)/i);
+            const cols = colsMatch ? colsMatch[1].split(',').map((c) => c.trim()).filter(Boolean) : [];
+            const valueCols = cols.filter((c) => !/NOW\(\)/.test(c));
+            const row = {};
+            valueCols.forEach((col, i) => { row[col] = params[i]; });
+            row.created_at = row.created_at || new Date();
+            row.updated_at = new Date();
+
+            let existing = table.rows.find((r) => r.chunk_id === row.chunk_id);
+            if (existing) {
+                for (const col of valueCols) existing[col] = row[col];
+                existing.updated_at = new Date();
+                return { rows: [existing] };
+            }
+            table.rows.push(row);
+            return { rows: [row] };
+        }
+
+        // SELECT FROM knowledge_chunk_embeddings by chunk_id set
+        if (/^SELECT .* FROM knowledge_chunk_embeddings WHERE chunk_id = ANY\(\$1\)/i.test(sql)) {
+            const table = this.tables.get('knowledge_chunk_embeddings');
+            const ids = params[0] || [];
+            return { rows: table ? table.rows.filter((r) => ids.includes(r.chunk_id)) : [] };
+        }
+
+        // DELETE FROM knowledge_chunk_embeddings by chunk_id set (prune)
+        if (/^DELETE FROM knowledge_chunk_embeddings/i.test(sql)) {
+            const table = this.tables.get('knowledge_chunk_embeddings');
+            if (!table) return { rows: [] };
+            const ids = params[0] || [];
+            const removed = table.rows.filter((r) => ids.includes(r.chunk_id));
+            table.rows = table.rows.filter((r) => !ids.includes(r.chunk_id));
+            return { rows: removed };
+        }
+
         // INSERT INTO knowledge_chunks (idempotent upsert by chunk_id) —
         // mirrors src/knowledge/chunkStore.js's importChunksToPostgres SQL.
         if (/^INSERT INTO knowledge_chunks/i.test(sql)) {

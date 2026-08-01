@@ -20,6 +20,8 @@ const { cleanText, contentHash, isSubstantial } = require('./processor/clean');
 const store = require('./discovered/store');
 const { promote } = require('./discovered/promote');
 const { buildIndex } = require('./index');
+const publishService = require('./publishService');
+const db = require('./db');
 
 const REPORTS_DIR = path.resolve(__dirname, '..', '..', 'knowledge', 'reports');
 const REPORT_FILE = path.join(REPORTS_DIR, 'latest.json');
@@ -183,9 +185,25 @@ async function runUpdateCycle({ force = false, log = console.log, warn = console
     report.approvedDocumentsPublished = republished;
 
     const indexResult = buildIndex();
+
+    // Stage 3: keep knowledge_chunks in sync with the promoted documents
+    // through the shared publish service (best effort — a publish failure must
+    // never block the rest of the cycle; the next run or a reindex retries).
+    let pgResult = null;
+    if (db.isEnabled()) {
+        try {
+            pgResult = await publishService.publishAllFromPostgres({ pool: db.getPool() });
+        } catch (pgErr) {
+            warn(`[knowledge:update] postgres publish failed: ${pgErr.message}`);
+            pgResult = { published: 0, documents: 0, disabledInactive: 0, errors: [{ updateCycle: pgErr.message }] };
+        }
+    }
+
     report.completedAt = new Date().toISOString();
     report.indexedDocumentCount = indexResult.documentCount;
     report.indexedChunkCount = indexResult.chunkCount;
+    report.postgresChunksPublished = pgResult ? pgResult.published : 0;
+    report.postgresPublishErrors = pgResult ? pgResult.errors.length : 0;
     writeReport(report);
 
     log(`[knowledge:update] sources=${report.sourcesChecked} new=${report.newDocuments} duplicates=${report.duplicates} auto_approved=${report.autoApproved} pending=${report.pendingReview} errors=${report.errors.length}`);

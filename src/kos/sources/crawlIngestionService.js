@@ -26,6 +26,7 @@ const rawResourceStorage = require('./rawResourceStorage');
 const { DEFAULT_SOURCE_DIR } = require('../../knowledge/loader');
 const { buildIndex } = require('../../knowledge/index');
 const { cleanText, isSubstantial } = require('../../knowledge/processor/clean');
+const publishService = require('../../knowledge/publishService');
 const { extractWineProduct, extractEditorialArticle, extractContactPage } = require('../extraction/wineMdExtractor');
 const { shouldActivateWineMdFact } = require('../extraction/conflictResolver');
 // Git push REMOVED — crawled data is stored in Postgres, not pushed to Git.
@@ -284,12 +285,34 @@ async function ingestSource({
                         // Store extracted data as normalized_text for search
                         const normalizedText = formatExtractedText(extractedData);
                         if (normalizedText) {
+                            const normalizedBody = normalizedText.slice(0, 100000);
                             await queryClient.query(
                                 `UPDATE kos_source_documents
                                  SET normalized_text = $1, title = $2, language = 'auto', status = 'active'
                                  WHERE id = $3`,
-                                [normalizedText.slice(0, 100000), extractedData.name || extractedData.title, documentId]
+                                [normalizedBody, extractedData.name || extractedData.title, documentId]
                             );
+
+                            // Stage 3: publish the document's chunks into
+                            // knowledge_chunks through the shared publish service
+                            // (the same path Dashboard uploads use). A chunk-publish
+                            // failure must not fail the crawl — the document is
+                            // already persisted, and the next reindex will retry.
+                            try {
+                                await publishService.publishDocument({
+                                    pool: queryClient,
+                                    documentId,
+                                    metadata: {
+                                        title: extractedData.name || extractedData.title,
+                                        language: 'auto',
+                                        doc_type: docType,
+                                        source: canonicalUrl,
+                                    },
+                                    body: normalizedBody,
+                                });
+                            } catch (publishErr) {
+                                console.error('[KOS] chunk publish failed for', canonicalUrl, ':', publishErr.message);
+                            }
                         }
                     }
                 } catch (extractErr) {

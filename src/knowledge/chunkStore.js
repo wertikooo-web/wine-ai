@@ -23,6 +23,37 @@ const crypto = require('crypto');
 
 const CHUNK_HASH_VERSION = 'v1';
 
+// Single upsert column set for knowledge_chunks, shared by the migration
+// import (document_id stays NULL) and the Stage 3 publish path (document_id
+// set). Keeps one SQL implementation instead of two drifting copies.
+const CHUNK_COLUMNS = [
+    'chunk_id', 'source_file', 'title', 'doc_type', 'language', 'source', 'confidence',
+    'entity_id', 'winery', 'region', 'grape', 'date', 'enabled', 'chunk_index', 'text',
+    'content_hash', 'document_id',
+];
+
+/**
+ * Upsert one knowledge_chunks row (idempotent by chunk_id). Accepts either a
+ * pool or a transaction client (pool.connect()) so the publish path can run it
+ * inside BEGIN/COMMIT/ROLLBACK.
+ *
+ * @param {object} poolOrClient pg Pool or connected client
+ * @param {object} row chunkToRow() shape (document_id optional)
+ * @returns {Promise<{rows:Array}>}
+ */
+function upsertChunkRow(poolOrClient, row) {
+    const values = CHUNK_COLUMNS.map((_, i) => `$${i + 1}`).join(', ');
+    const updates = CHUNK_COLUMNS.filter((c) => c !== 'chunk_id').map((c) => `${c} = EXCLUDED.${c}`).join(',\n    ');
+    const sql = `INSERT INTO knowledge_chunks (
+            ${CHUNK_COLUMNS.join(', ')}, created_at, updated_at
+        ) VALUES (${values}, NOW(), NOW())
+        ON CONFLICT (chunk_id) DO UPDATE SET
+            ${updates},
+            updated_at = NOW();`;
+    const params = CHUNK_COLUMNS.map((c) => (row[c] === undefined ? null : row[c]));
+    return poolOrClient.query(sql, params);
+}
+
 function computeChunkHash(chunk) {
     const m = chunk.metadata || {};
     return crypto.createHash('sha256')
@@ -145,35 +176,7 @@ async function importChunksToPostgres({ pool, chunks, dryRun = false } = {}) {
     }
 
     for (const row of rows) {
-        await pool.query(
-            `INSERT INTO knowledge_chunks (
-                chunk_id, source_file, title, doc_type, language, source, confidence,
-                entity_id, winery, region, grape, date, enabled, chunk_index, text,
-                content_hash, created_at, updated_at
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW(), NOW())
-             ON CONFLICT (chunk_id) DO UPDATE SET
-                source_file = EXCLUDED.source_file,
-                title = EXCLUDED.title,
-                doc_type = EXCLUDED.doc_type,
-                language = EXCLUDED.language,
-                source = EXCLUDED.source,
-                confidence = EXCLUDED.confidence,
-                entity_id = EXCLUDED.entity_id,
-                winery = EXCLUDED.winery,
-                region = EXCLUDED.region,
-                grape = EXCLUDED.grape,
-                date = EXCLUDED.date,
-                enabled = EXCLUDED.enabled,
-                chunk_index = EXCLUDED.chunk_index,
-                text = EXCLUDED.text,
-                content_hash = EXCLUDED.content_hash,
-                updated_at = NOW();`,
-            [
-                row.chunk_id, row.source_file, row.title, row.doc_type, row.language,
-                row.source, row.confidence, row.entity_id, row.winery, row.region,
-                row.grape, row.date, row.enabled, row.chunk_index, row.text, row.content_hash,
-            ]
-        );
+        await upsertChunkRow(pool, row);
     }
 
     return { dryRun: false, inserted, updated, unchanged, total: rows.length, existingRows: existingRows.length };
@@ -200,4 +203,5 @@ module.exports = {
     verifyChunkIdStability,
     importChunksToPostgres,
     loadChunksFromPostgres,
+    upsertChunkRow,
 };
