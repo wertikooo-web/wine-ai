@@ -2474,6 +2474,16 @@
   function setConnectionButton(state) {
     lastConnectionState = state;
     const btn = el('connectBtn');
+    // Defensive consistency guard: the top status indicator (DeviceVisual's
+    // avatarStatus/dot, "Подключено"/"Отключено" etc.) and this button MUST
+    // never show contradicting states -- confirmed live in production that
+    // they can otherwise drift apart (button read "Подключить" while the
+    // status indicator still read "Подключено"). Whatever code path got
+    // here believing the connection is disconnected, force the status
+    // indicator to agree -- idempotent and harmless if it already does.
+    if (state === 'disconnected' && DeviceVisual.getState() !== 'disconnected') {
+      DeviceVisual.setState('disconnected');
+    }
     if (!btn) return;
     btn.textContent = getUiString(CONNECTION_BUTTON_KEY[state] || 'connect');
     btn.disabled = state === 'connecting';
@@ -3834,20 +3844,22 @@
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
     // An auto-end (inactivity or session-limit) in progress takes over this
-    // drain event entirely -- see handleAutoEndDrain(). Must run BEFORE the
-    // normal startTapIdleTimer() call below, and skip it when it does: the
-    // closing line itself, once spoken, must not re-arm anything.
+    // drain event entirely -- see handleAutoEndDrain().
     if (handleAutoEndDrain()) return;
-    // Tap to Start: the assistant has FULLY finished (playback drained, not
-    // just audio.end received) — start the 5s idle-close timer now, exactly
-    // per the requirement that it must only run once the response is truly
-    // over. The mic itself was never stopped between utterances (see
-    // resumeTapListening()'s header comment), so there is nothing to
-    // "re-arm" here anymore — the provider's own native VAD is already
-    // listening for the next utterance.
-    if (voiceMode === 'tap_to_start' && tapToStartActive) {
-      startTapIdleTimer();
-    }
+    // The legacy 5s "silent idle-close" (startTapIdleTimer()/
+    // onTapIdleTimeout(), armed here in every earlier version of this
+    // function) is DELIBERATELY no longer called. Confirmed live in
+    // production: when the new 90s inactivity check-in line itself
+    // finishes playing, THIS same drain event fires -- at that point
+    // pendingAutoEnd is still null (only the 30s grace timer is armed, the
+    // grace period itself hasn't elapsed yet), so handleAutoEndDrain()
+    // above returns false and execution reaches here. The old code then
+    // armed a 5-SECOND timer that silently ended the conversation almost
+    // immediately after the check-in line -- completely ignoring the
+    // mandated 30s grace window. The new armInactivityWarnTimer()/
+    // triggerAutoEnd() system (see resumeTapListening()) now fully owns
+    // "how long to wait before ending an idle Free Conversation"; this
+    // function must not independently race it with a much shorter timer.
   }
 
   // generationId must match isGenerationAccepted() at call time — checked

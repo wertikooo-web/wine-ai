@@ -607,6 +607,32 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, 'micStream'), null, 'micStream remains torn down (no double-teardown error)');
     }
 
+    // Found live in production: the top status indicator (DeviceVisual's
+    // "Подключено"/"Отключено" label+dot) and the main button can show
+    // contradicting states if something sets the button to disconnected
+    // without DeviceVisual agreeing. setConnectionButton() itself now
+    // enforces this can never happen, independent of which caller reached
+    // it or what DeviceVisual's state happened to be beforehand.
+    console.log('Testing setConnectionButton("disconnected") always forces the status indicator to agree, regardless of prior state...');
+    {
+        const sandbox = createTestSandbox();
+        for (const staleState of ['ready', 'listening', 'thinking', 'speaking', 'connecting', 'error']) {
+            vm.runInContext(`DeviceVisual.setState('${staleState}');`, sandbox);
+            assert.strictEqual(getLexical(sandbox, 'DeviceVisual.getState()'), staleState, `setup: DeviceVisual is ${staleState} before the call`);
+
+            sandbox.setConnectionButton('disconnected');
+
+            assert.strictEqual(getLexical(sandbox, 'DeviceVisual.getState()'), 'disconnected', `setConnectionButton('disconnected') must force DeviceVisual out of a stale '${staleState}' state`);
+            assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'the button itself must still read Connect/Подключить');
+        }
+
+        // Calling it with any OTHER state must not force a disconnected
+        // status -- only ever forces agreement toward 'disconnected'.
+        vm.runInContext(`DeviceVisual.setState('ready');`, sandbox);
+        sandbox.setConnectionButton('connected');
+        assert.strictEqual(getLexical(sandbox, 'DeviceVisual.getState()'), 'ready', "setConnectionButton('connected') must not touch DeviceVisual's state");
+    }
+
     // After a FULL disconnect (not just End), restarting must open a
     // genuinely new WebSocket -- the previous (now-stale) generation/
     // playback must never resurface.
@@ -1016,6 +1042,40 @@ async function run() {
         assert.strictEqual(spoken.length, 1, 'the 90s timeout must speak exactly one line');
         assert.ok(spoken[0].text.includes(getLexical(sandbox, 'FREE_CONV_INACTIVITY_WARNING_TEXT')), 'the spoken text must be the check-in line');
         assert.strictEqual(countTimersWithDelay(sandbox, 30000), 1, 'a 30s grace timer must now be armed');
+    }
+
+    // Found via a real production test (not by any fake-timer test): the
+    // check-in line the agent speaks is itself a real reply that plays and
+    // drains locally, firing maybeFinishSpeaking() -- at that exact moment
+    // pendingAutoEnd is still null (only the 30s grace timer is armed, the
+    // grace period itself hasn't elapsed), so this drain event must NOT end
+    // the conversation. A stale legacy 5s idle-close timer used to be armed
+    // by this exact code path and did end it almost immediately, ignoring
+    // the mandated 30s grace window entirely.
+    console.log('Testing inactivity: the check-in line finishing playback (draining) must NOT end the conversation early...');
+    {
+        const sandbox = setupInactivityTestSandbox();
+        vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
+        sandbox.setPttCaption(); // reflect the already-active conversation, as resumeTapListening() would have
+        sandbox.armInactivityWarnTimer();
+        fireTimerWithDelay(sandbox, 90000); // check-in line spoken, 30s grace armed
+
+        // The check-in line itself finishes playing -- same drain hook
+        // every reply uses. Must be a pure no-op here (no legacy fallback).
+        assert.doesNotThrow(() => { sandbox.maybeFinishSpeaking(); }, 'the check-in line draining must not throw');
+
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'the conversation must still be active -- the 30s grace window has not elapsed yet');
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 1, 'the socket must remain open');
+        assert.strictEqual(getLexical(sandbox, "el('pttCaption').textContent"), getLexical(sandbox, "getUiString('pttCaptionTapActive')"), 'the button must still read "Завершить разговор", not reset to idle');
+        assert.strictEqual(countTimersWithDelay(sandbox, 30000), 1, 'the 30s grace timer must still be the one armed by the warning -- untouched by this drain event');
+
+        // The grace period elapsing afterward must still correctly end the
+        // conversation (the fix must not have broken the real end path).
+        fireTimerWithDelay(sandbox, 30000);
+        const spoken = getLexical(sandbox, 'ws.sentMessages').filter((m) => m.type === 'input_text.submit');
+        assert.ok(spoken[spoken.length - 1].text.includes(getLexical(sandbox, 'FREE_CONV_INACTIVITY_GOODBYE_TEXT')), 'once the grace period genuinely elapses, the goodbye line must still be spoken');
+        sandbox.maybeFinishSpeaking(); // goodbye line drains
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 3, 'once the goodbye line (not the check-in line) drains, the socket must close');
     }
 
     console.log('Testing inactivity: 30s more of silence after the warning ends the conversation...');
