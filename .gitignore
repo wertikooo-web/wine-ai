@@ -26,8 +26,8 @@ knowledge/source/discovered-*.md
 # Keep curated fixtures only.
 knowledge/entity-facts/*.json
 !knowledge/entity-facts/.gitkeep
-# Large binary assets — never commit to Git, use object storage instead.
-*.png
+# Large local binary assets belong in object storage. Runtime PNG assets used
+# by the dashboard stay tracked so Railway CLI uploads include them.
 *.jpg
 *.jpeg
 *.gif
