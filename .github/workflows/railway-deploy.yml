@@ -3,14 +3,40 @@ name: Deploy Railway Production
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: railway-production-deploy
+  group: railway-production-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  railway-auth-diagnostic:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+
+      - name: Validate Railway token and project visibility
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$RAILWAY_TOKEN" || { echo "RAILWAY_TOKEN secret is missing"; exit 1; }
+          railway whoami
+          railway status --service wine-ai-realtime --environment production
+
   deploy:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
@@ -34,6 +60,7 @@ jobs:
           set -euo pipefail
           test -n "$RAILWAY_TOKEN" || { echo "RAILWAY_TOKEN secret is missing"; exit 1; }
           railway whoami
+          railway status --service wine-ai-realtime --environment production
 
       - name: Deploy wine-ai-realtime
         env:
