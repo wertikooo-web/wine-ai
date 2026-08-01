@@ -61,6 +61,8 @@ async function run() {
     assert.strictEqual(isCatalogQuery('Сколько стоит Cricova Brut и есть ли в наличии?'), true);
     assert.strictEqual(isCatalogQuery('Расскажи историю винодельни Cricova'), false);
     assert.strictEqual(isFreshnessQuery('Какое сейчас расписание экскурсий?'), true);
+    assert.strictEqual(isFreshnessQuery('Care este prețul acum?'), true);
+    assert.strictEqual(isFreshnessQuery('What is the current stock?'), true);
     assert.strictEqual(isFreshnessQuery('Из какого сорта делают это вино?'), false);
     assert.deepStrictEqual(queryTokens('Что известно о Cricova Brut?'), ['что', 'известно', 'cricova', 'brut']);
 
@@ -99,34 +101,36 @@ async function run() {
         assert.strictEqual(result.web_used, true);
     }
 
-    // Web can be explicitly disabled.
+    // allowWeb=false keeps the request fully internal.
     {
-        const stub = adapters({ documentItems: [] });
-        const result = await routeKnowledge('Новое неизвестное вино', { adapters: stub.value, allowWeb: false });
+        const stub = adapters({ documentItems: [document(0.1)], webItems: [web()] });
+        const result = await routeKnowledge('Неизвестное вино', { adapters: stub.value, allowWeb: false });
         assert.deepStrictEqual(stub.calls, ['canonical', 'documents']);
-        assert.strictEqual(result.found, false);
         assert.strictEqual(result.web_attempted, false);
+        assert.strictEqual(result.web_used, false);
     }
 
-    // A level failure is isolated and recorded instead of crashing the route.
+    // One level failing never crashes the whole route.
     {
-        const result = await routeKnowledge('Cricova', {
-            adapters: {
-                searchCanonical: async () => { throw new Error('db down'); },
-                searchDocuments: async () => [document()],
-                searchInternet: async () => [],
-            },
-        });
+        const stub = adapters({ documentItems: [document()] });
+        stub.value.searchCanonical = async () => { stub.calls.push('canonical'); throw new Error('db down'); };
+        const result = await routeKnowledge('История Cricova', { adapters: stub.value });
         assert.strictEqual(result.found, true);
         assert.ok(result.attempts.some((item) => item.level === LEVELS.CANONICAL && item.status === 'error'));
     }
 
-    const conflicts = detectConflicts([
-        catalog(),
-        { ...catalog(), catalog: { ...catalog().catalog, price: 220 } },
-    ]);
-    assert.strictEqual(conflicts.length, 1);
-    assert.ok(conflicts[0].key.endsWith(':price'));
+    // Concrete conflicts are surfaced rather than silently merged.
+    {
+        const conflicts = detectConflicts([
+            canonical('address: Strada A'),
+            canonical('address: Strada B'),
+            { ...catalog(), catalog: { ...catalog().catalog, price: 199 } },
+            { ...catalog(), catalog: { ...catalog().catalog, price: 220 } },
+        ]);
+        assert.strictEqual(conflicts.length, 2);
+        assert.ok(conflicts.some((item) => item.key === 'cricova:address'));
+        assert.ok(conflicts.some((item) => item.key === 'cricova-brut:price'));
+    }
 
     console.log('layeredKnowledgeRouter: all assertions passed');
 }
