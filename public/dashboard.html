@@ -1583,6 +1583,17 @@
   // resurrect audio that was supposed to be dead.
   let acceptedPlaybackGenerationId = null;
   let cancelledGenerationIds = new Set();
+  // Bumped by every stop (hard or fade-out). An async operation that will
+  // eventually try to touch the AudioContext (decodeAudioData callbacks)
+  // captures the epoch at the moment it started and compares before acting —
+  // a stale epoch means a stop ran in between and the result must be
+  // discarded, not scheduled/resurrected.
+  let playbackEpoch = 0;
+  // AudioBufferSourceNode -> GainNode, so a barge-in can fade a source's
+  // volume down instead of hard-cutting it (avoids an audible click) while
+  // still letting stopPlaybackImmediately() reach in and hard-stop instantly
+  // when a click is acceptable (disconnect/error/server-cancel paths).
+  let sourceGainNodes = new WeakMap();
   let avatar3d = null;
   let avatarOutputAnalyser = null;
   let avatarOutputAnalyserContext = null;
@@ -2501,7 +2512,23 @@
     // Checked before the log()/visual.* routing below on purpose: nothing
     // about silencing local playback should wait on those.
     if (payload.type === 'response.interrupted') {
-      stopPlaybackImmediately({ reason: payload.reason || 'provider_interrupted', generationId: payload.generation_id });
+      // Guard against a LATE interrupt for an already-superseded generation
+      // (A) clobbering playback that has already moved on to a newer one
+      // (B) -- only act if the interrupt targets what the client is
+      // CURRENTLY playing/accepting. A stale interrupt for A must not stop
+      // B's already-started playback.
+      if (
+        payload.generation_id &&
+        acceptedPlaybackGenerationId &&
+        payload.generation_id !== acceptedPlaybackGenerationId
+      ) {
+        sendTelemetry('stale_interrupt_ignored', {
+          interruptedGenerationId: payload.generation_id,
+          currentGenerationId: acceptedPlaybackGenerationId,
+        });
+      } else {
+        stopPlaybackImmediately({ reason: payload.reason || 'provider_interrupted', generationId: payload.generation_id });
+      }
     }
     log(payload.type, { turn: payload.turn_id, gen: payload.generation_id });
     setText('dSession', payload.session_id || '—');
@@ -2619,6 +2646,17 @@
         setText('langState', payload.to_language || '—');
         break;
       case 'audio.start':
+        // A late/reordered audio.start for a generation already cancelled
+        // must NOT re-arm playback acceptance -- it would silently resurrect
+        // a dead generation and, worse, clobber acceptedPlaybackGenerationId
+        // back off of whatever newer generation the client has already moved
+        // on to. Every other handler that touches acceptedPlaybackGenerationId
+        // is guarded by isGenerationAccepted()/cancelledGenerationIds; this
+        // was the one unguarded assignment.
+        if (payload.generation_id && cancelledGenerationIds.has(payload.generation_id)) {
+          sendTelemetry('audio_start_for_cancelled_generation_ignored', { generationId: payload.generation_id });
+          break;
+        }
         if (!modelEventSeenForTurn[payload.turn_id]) {
           modelEventSeenForTurn[payload.turn_id] = true;
           itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'audio.start' });
@@ -2802,6 +2840,18 @@
     // for Hold to Talk that's true only while the button is held; for Tap to
     // Start it's true for the whole conversation (see resumeTapListening()/
     // stopConversationOnTap() below), not re-toggled per utterance.
+    // ---- Local barge-in VAD (Free Conversation / tap_to_start only) ----
+    // Pure, hardware-independent so it can be unit-tested directly (see
+    // tests/dashboardBargeIn.test.js) without a real microphone/AudioContext.
+    // Threshold reuses the SAME amplitude value already established elsewhere
+    // in this file as "genuine speech, not silence" — see
+    // first_non_silent_frame above and the server's NO_SPEECH_AMPLITUDE_THRESHOLD
+    // (realtimeServer.js), not a newly-invented number. Hysteresis (low <
+    // high) plus a multi-frame confirmation window is defense-in-depth on
+    // top of the WebRTC echoCancellation already enabled for tap_to_start in
+    // acquireMic() — AEC is what actually cancels the assistant's own voice
+    // out of the mic signal; this only prevents a single loud transient
+    // (a click, a cough) from firing a barge-in before AEC has settled.
     processor.onaudioprocess = (e) => {
       const input = e.inputBuffer.getChannelData(0);
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) {
@@ -2845,6 +2895,17 @@
         itrace('processor_first_callback', { peak: Math.round(peak) });
         itrace('first_frame_sent', { bytes: pcm16.buffer.byteLength });
         itrace('pointerdown_to_first_frame_ms', { ms: Math.round(performance.now() - lastPointerdownAt) });
+      }
+      // Local barge-in: only while Free Conversation is open AND the
+      // assistant is actually the one making sound right now. Hold to Talk's
+      // interrupt path is pointerdown-driven (startTurn()), not this.
+      if (voiceMode === 'tap_to_start' && tapToStartActive && DeviceVisual.getState() === 'speaking') {
+        const confirmed = evaluateLocalVadFrame(localVadState, peak, {
+          highThreshold: LOCAL_VAD_HIGH_PEAK,
+          lowThreshold: LOCAL_VAD_LOW_PEAK,
+          confirmFrames: LOCAL_VAD_CONFIRM_FRAMES,
+        });
+        if (confirmed) triggerLocalBargeIn(peak);
       }
       // Diagnostic only — same amplitude threshold as the server's
       // no-speech gate (NO_SPEECH_AMPLITUDE_THRESHOLD), so a client trace
@@ -2916,14 +2977,21 @@
     // Stop any currently-playing assistant audio and flip the UI to
     // "listening" IMMEDIATELY on press — this is the client's own
     // AudioContext, so there is no reason to wait for a server round-trip
-    // (session.interrupt -> response.cancelled) before silencing it. The
-    // server-side cancellation (see realtimeServer.js's cancelCurrent(),
-    // triggered automatically by the input_audio.start sent below) still
-    // happens and stops new audio.chunk events from arriving; this just
-    // makes the *local* stop instant instead of network-latency-bound.
-    stopPlaybackImmediately({ reason: 'user_interrupt_ptt', generationId: acceptedPlaybackGenerationId });
+    // (session.interrupt -> response.cancelled) before silencing it. A short
+    // gain fade-out (not a hard cut) avoids an audible click; the fade
+    // itself is fire-and-forget -- it must never delay recording start
+    // below. The explicit client_barge_in sent right after is NOT delayed
+    // behind ensureAudioContextRunning()/ensureMic()'s async gaps the way
+    // input_audio.start (sent later in this function) is -- the server needs
+    // to cancel the old generation as early as possible, independent of how
+    // long mic/AudioContext setup takes.
+    const bargeInGenerationId = acceptedPlaybackGenerationId;
+    stopPlaybackWithFadeOut({ reason: 'user_interrupt_ptt', generationId: bargeInGenerationId, fadeMs: 120 });
     DeviceVisual.setState('ready');
     setText('speakerState', 'you');
+    if (ws && ws.readyState === WebSocket.OPEN && bargeInGenerationId) {
+      ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'client_barge_in_ptt' }));
+    }
     const turnInteractionId = currentInteractionId;
 
     // Must run BEFORE ensureMic() and must not be skipped on a "already
@@ -3481,6 +3549,68 @@
   // cancelled — checked once on arrival (playAudioChunk) and again right
   // before scheduling (schedulePlayback), since decodeAudioData is async and
   // a cancel can land in the gap between the two.
+  // ---- Local barge-in VAD (Free Conversation / tap_to_start) ----
+  // Pure, hardware-independent -- unit-tested directly (tests/dashboardBargeIn.test.js)
+  // without a real microphone/AudioContext. Threshold reuses the SAME
+  // amplitude value already established elsewhere in this file as "genuine
+  // speech, not silence" — see first_non_silent_frame and the server's
+  // NO_SPEECH_AMPLITUDE_THRESHOLD (realtimeServer.js), not a newly-invented
+  // number. Hysteresis (low < high) plus a multi-frame confirmation window
+  // is defense-in-depth on top of the WebRTC echoCancellation already
+  // enabled for tap_to_start in acquireMic() — AEC is what actually cancels
+  // the assistant's own voice out of the mic signal; this only prevents a
+  // single loud transient (a click, a cough) from firing a barge-in before
+  // AEC has settled.
+  function createLocalVadState() {
+    return { consecutiveLoud: 0, armed: true };
+  }
+  // Returns true exactly once per continuous loud episode -- re-arms only
+  // after the level drops back below the LOW threshold, so a sustained
+  // barge-in utterance can never send more than one client_barge_in.
+  function evaluateLocalVadFrame(state, peak, opts) {
+    const high = opts.highThreshold;
+    const low = opts.lowThreshold;
+    const confirmFrames = opts.confirmFrames;
+    if (peak >= high) {
+      if (state.armed) {
+        state.consecutiveLoud += 1;
+        if (state.consecutiveLoud >= confirmFrames) {
+          state.armed = false;
+          return true;
+        }
+      }
+    } else if (peak < low) {
+      state.consecutiveLoud = 0;
+      state.armed = true;
+    }
+    return false;
+  }
+
+  const LOCAL_VAD_HIGH_PEAK = 500;
+  const LOCAL_VAD_LOW_PEAK = 250;
+  const LOCAL_VAD_CONFIRM_FRAMES = 3; // ~3 x 2048-sample callbacks (~384ms @16kHz)
+  const localVadState = createLocalVadState();
+  let localBargeInEpisodeId = 0;
+  function triggerLocalBargeIn(peak) {
+    localBargeInEpisodeId += 1;
+    const supersededGenerationId = acceptedPlaybackGenerationId;
+    sendTelemetry('local_barge_in_detected', {
+      peak: Math.round(peak),
+      supersededGenerationId,
+      episodeId: localBargeInEpisodeId,
+    });
+    stopPlaybackWithFadeOut({ reason: 'local_vad_barge_in', generationId: supersededGenerationId, fadeMs: 120 });
+    // Sent immediately, not after the fade-out completes -- the server must
+    // cancel the old generation as soon as possible regardless of how long
+    // the local fade takes. Reuses the existing session.interrupt message
+    // (realtimeServer.js -> cancelCurrent()), which is naturally idempotent
+    // (no-ops once the generation is already terminal), so a duplicate send
+    // for the same episode is harmless.
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'client_barge_in' }));
+    }
+  }
+
   function isGenerationAccepted(generationId) {
     return Boolean(acceptedPlaybackGenerationId)
       && generationId === acceptedPlaybackGenerationId
@@ -3560,7 +3690,13 @@
     }
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
-    src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
+    // Per-source gain node so a barge-in can fade this source out smoothly
+    // (see stopPlaybackWithFadeOut()) instead of only ever hard-stopping it.
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 1;
+    src.connect(gainNode);
+    gainNode.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
+    sourceGainNodes.set(src, gainNode);
     const now = audioContext.currentTime;
     const startAt = Math.max(now, playbackQueueTime);
     src.start(startAt);
@@ -3568,6 +3704,7 @@
     activeSources.add(src);
     src.onended = () => {
       activeSources.delete(src);
+      sourceGainNodes.delete(src);
       maybeFinishSpeaking();
     };
   }
@@ -3583,6 +3720,7 @@
     const stopOperationId = nextStopOperationId();
     const startedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     sendTelemetry('playback_stop_started', { stopOperationId, reason, generationId, acceptedPlaybackGenerationId });
+    playbackEpoch += 1;
 
     const activeSourcesBefore = activeSources.size;
     // No separate "not yet scheduled" queue exists in this pipeline — every
@@ -3605,6 +3743,8 @@
     for (const src of activeSources) {
       try { src.onended = null; src.stop(0); } catch { /* already stopped */ }
       try { src.disconnect(); } catch { /* already disconnected */ }
+      const gainNode = sourceGainNodes.get(src);
+      if (gainNode) { try { gainNode.disconnect(); } catch { /* already disconnected */ } sourceGainNodes.delete(src); }
     }
     activeSources.clear();
 
@@ -3640,6 +3780,63 @@
     sendTelemetry('local_playback_stopped', { stopOperationId, reason });
   }
 
+  // Barge-in-specific stop: gates new chunks/generation acceptance and
+  // invalidates pending decodes IMMEDIATELY (same as stopPlaybackImmediately),
+  // but instead of hard-cutting currently-playing sources it ramps their gain
+  // to ~0 over `fadeMs` first, then stops/disconnects them -- avoids an
+  // audible click on every PTT press / voice barge-in. Neither provider
+  // (Gemini, Grok) currently exposes word-boundary timestamps in this
+  // codebase, so there is no "stop exactly at the word boundary" data to use;
+  // this always falls back to the fixed fade, per spec capped well under the
+  // 200ms ceiling that would apply if such data existed.
+  function stopPlaybackWithFadeOut({ reason, generationId, fadeMs = 120 }) {
+    const stopOperationId = nextStopOperationId();
+    sendTelemetry('playback_stop_started', { stopOperationId, reason, generationId, acceptedPlaybackGenerationId, fadeMs });
+    playbackEpoch += 1;
+
+    if (generationId) cancelledGenerationIds.add(generationId);
+    if (acceptedPlaybackGenerationId) cancelledGenerationIds.add(acceptedPlaybackGenerationId);
+    acceptedPlaybackGenerationId = null;
+    sendTelemetry('accepted_generation_cleared', { stopOperationId });
+
+    const sourcesToFade = Array.from(activeSources);
+    const now = audioContext ? audioContext.currentTime : 0;
+    const fadeSeconds = fadeMs / 1000;
+    for (const src of sourcesToFade) {
+      const gainNode = sourceGainNodes.get(src);
+      if (!gainNode || !audioContext) continue;
+      try {
+        const currentGain = gainNode.gain.value;
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(currentGain, now);
+        // Never ramp to literal 0 -- linearRampToValueAtTime treats 0 as
+        // "already there" on some engines and can skip the ramp entirely.
+        gainNode.gain.linearRampToValueAtTime(0.0001, now + fadeSeconds);
+      } catch { /* best-effort fade; hard-stop below still applies on timeout */ }
+    }
+    setTimeout(() => {
+      for (const src of sourcesToFade) {
+        try { src.onended = null; src.stop(0); } catch { /* already stopped */ }
+        try { src.disconnect(); } catch { /* already disconnected */ }
+        const gainNode = sourceGainNodes.get(src);
+        if (gainNode) { try { gainNode.disconnect(); } catch { /* already disconnected */ } sourceGainNodes.delete(src); }
+        activeSources.delete(src);
+      }
+      sendTelemetry('barge_in_fade_out_completed', { stopOperationId, reason, fadeMs, sourcesFaded: sourcesToFade.length });
+      maybeFinishSpeaking();
+    }, fadeMs);
+
+    // playbackQueueTime/serverAudioEnded/DeviceVisual flip to "listening"
+    // happen immediately, same as stopPlaybackImmediately() -- only the
+    // ACTUAL AudioBufferSourceNode.stop() is deferred to let the fade play
+    // out. New chunks/generation acceptance are already blocked above.
+    playbackQueueTime = audioContext ? audioContext.currentTime : 0;
+    serverAudioEnded = true;
+    if (avatar3d) avatar3d.resetAudio();
+    DeviceVisual.setState('listening');
+    sendTelemetry('local_playback_stopped', { stopOperationId, reason });
+  }
+
   function playAudioChunk(payload) {
     const generationId = payload.generation_id;
     if (!isGenerationAccepted(generationId)) {
@@ -3650,8 +3847,13 @@
     if (payload.mime_type === 'audio/wav') {
       audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
       pendingDecodeCount += 1;
+      const epochAtDecodeStart = playbackEpoch;
       audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), (buf) => {
         pendingDecodeCount = Math.max(0, pendingDecodeCount - 1);
+        if (epochAtDecodeStart !== playbackEpoch) {
+          sendTelemetry('stale_decode_discarded', { generationId, epochAtDecodeStart, currentEpoch: playbackEpoch });
+          return; // a stop ran while this decode was in flight
+        }
         if (!isGenerationAccepted(generationId)) {
           sendTelemetry('pending_decode_dropped', { generationId, acceptedPlaybackGenerationId });
           return;

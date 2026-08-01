@@ -657,11 +657,25 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         const hasOpenTurn = Boolean(currentGeneration && inputStartedAt && !inputEndedAt);
         // The client's own initial input_audio.start (the tap) already
         // opened this turn — a native "speech started" for that SAME
-        // utterance is just confirmation, not a new-turn signal. Only a
-        // native start arriving with no open turn (every utterance after
-        // the first, or a genuine barge-in over the assistant's own
-        // response) should open a new one.
+        // utterance is just confirmation, not a new-turn signal, and
+        // currentGeneration here IS that freshly-opened turn's own
+        // generation, not stale residue -- cancelling it here would kill
+        // the user's own turn before it even starts. Only a native start
+        // arriving with no open turn (every utterance after the first, or a
+        // genuine barge-in over the assistant's own response) should cancel
+        // anything / open a new one.
         if (hasOpenTurn) return;
+        // Cancel whatever generation is still active/streaming BEFORE the
+        // micPipelineConfirmed check below -- a genuine barge-in over an
+        // assistant response must still stop the OLD generation even on the
+        // rare turn where the client's mic-pipeline confirmation hasn't
+        // landed yet. Previously this only ever happened indirectly via
+        // startInput(), further below, which requires micPipelineConfirmed
+        // too — leaving a real barge-in's active generation uncancelled
+        // whenever that one check failed. cancelCurrent() is a no-op once
+        // the generation is already terminal, so calling it here is safe
+        // even when there is nothing to cancel.
+        cancelCurrent('native_speech_started');
         // Belt-and-suspenders on top of client-side AEC (which is the actual
         // fix): don't trust a native "speech started" into opening a new
         // turn/cancelling the active response unless the client has told us
