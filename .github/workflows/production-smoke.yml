@@ -3,10 +3,12 @@ name: Railway Production Smoke
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: railway-production-smoke
+  group: railway-production-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
