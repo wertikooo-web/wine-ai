@@ -27,6 +27,12 @@ jobs:
       - name: Check for untracked local imports
         run: node scripts/check-missing-local-imports.js
 
+      - name: Layered knowledge tests
+        run: |
+          node tests/layeredKnowledgeRouter.test.js
+          node tests/layeredKnowledgeToolContract.test.js
+          node tests/wineMdCatalogStore.test.js
+
       - name: Server startup (no env vars required)
         run: |
           PORT=8787
