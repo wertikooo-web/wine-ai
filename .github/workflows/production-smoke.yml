@@ -41,7 +41,7 @@ jobs:
             exit 1
           fi
 
-      - name: Verify knowledge status
+      - name: Verify knowledge status and deployed build time
         shell: bash
         run: |
           set -euo pipefail
@@ -57,7 +57,13 @@ jobs:
           if (body.ok !== true) throw new Error('knowledge status ok != true');
           const chunks = Number(body.chunk_count ?? body.chunks ?? 0);
           if (!Number.isFinite(chunks) || chunks <= 0) throw new Error('knowledge chunk count is empty');
-          console.log(`knowledge status verified; chunks=${chunks}`);
+          const builtAt = Date.parse(body.built_at || '');
+          const routingMergeAt = Date.parse('2026-08-01T23:08:56Z');
+          if (!Number.isFinite(builtAt)) throw new Error('built_at is missing or invalid');
+          if (builtAt <= routingMergeAt) {
+            throw new Error(`production is stale: built_at=${body.built_at}`);
+          }
+          console.log(`knowledge status verified; chunks=${chunks}; built_at=${body.built_at}`);
           NODE
 
       - name: Verify public dashboard
