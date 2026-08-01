@@ -1,8 +1,7 @@
 'use strict';
 
 const { bindTool } = require('./toolHelpers');
-const searchLayeredKnowledge = require('./searchLayeredKnowledge');
-const searchWineKnowledge = require('./searchWineKnowledge');
+const searchWineKnowledge = require('./searchLayeredKnowledge');
 const searchWinery = require('./searchWinery');
 const compareGrapeVarieties = require('./compareGrapeVarieties');
 const recommendWinePairing = require('./recommendWinePairing');
@@ -14,7 +13,6 @@ const searchPlace = require('./searchPlace');
 const fetchPage = require('./fetchPage');
 
 const TOOLS = [
-    searchLayeredKnowledge,
     searchWineKnowledge,
     searchWinery,
     compareGrapeVarieties,
