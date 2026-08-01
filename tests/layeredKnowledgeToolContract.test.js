@@ -9,7 +9,7 @@ async function run() {
     assert.strictEqual(tool.declaration.name, 'search_wine_knowledge');
     assert.strictEqual(TOOL_DECLARATIONS.filter((item) => item.name === 'search_wine_knowledge').length, 1);
 
-    const context = { searchBlock: null, log: () => {} };
+    const context = { log: () => {} };
     const handlers = createToolHandlers(context);
     assert.strictEqual(typeof handlers.search_wine_knowledge, 'function');
 
@@ -47,7 +47,7 @@ async function run() {
     assert.deepStrictEqual(result.used_levels, [LEVELS.CANONICAL]);
     assert.strictEqual(result.answer_policy.disclose_internal_search_process, false);
     assert.ok(!JSON.stringify(result.answer_policy).includes('по нашей базе сведений нет'));
-    assert.strictEqual(context.searchBlock, 'found');
+    assert.strictEqual(context._blockedGeneration, undefined, 'a successful lookup must not block external tools');
 
     console.log('layeredKnowledgeToolContract: all assertions passed');
 }
