@@ -1314,7 +1314,7 @@ async function handleRequest(req, res) {
             if (existing.rows.length > 0) return 'uploaded';
             await pool.query(
                 `INSERT INTO kos_sources (id, name, seed_url, normalized_origin, source_type, trust_level, created_at, updated_at)
-                 VALUES ('uploaded', 'Dashboard Uploads', 'https://uploaded.local', 'uploaded.local', 'upload', 'unverified', NOW(), NOW())`
+                 VALUES ('uploaded', 'Dashboard Uploads', 'https://uploaded.local', 'uploaded.local', 'upload', 'C', NOW(), NOW())`
             );
             return 'uploaded';
         }
