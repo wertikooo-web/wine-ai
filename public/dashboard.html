@@ -2383,7 +2383,7 @@
 
     // disconnect() is the one low-level teardown point called from several
     // places (the main Connect/Disconnect button's toggleConnection(),
-    // stopConversationOnTap(), mode/provider switches) — it must always leave
+    // stopFreeConversation(), mode/provider switches) — it must always leave
     // Tap to Start bookkeeping consistent, not just whichever caller happened
     // to invoke it. Without this, disconnecting via the main button left
     // tapToStartActive stuck true, so startConversationOnTap()'s
@@ -2394,6 +2394,12 @@
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
+    // Full session-scoped reset for the next CONNECT (any mode) -- without
+    // this a local barge-in that armed/disarmed the VAD mid-conversation
+    // would leave stale consecutiveLoud/armed state carried into whatever
+    // conversation opens next, in either voice mode.
+    localVadState.consecutiveLoud = 0;
+    localVadState.armed = true;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
@@ -2780,7 +2786,7 @@
     // Stopped(). isHolding simply gates "is the mic pipeline armed at all" —
     // for Hold to Talk that's true only while the button is held; for Tap to
     // Start it's true for the whole conversation (see resumeTapListening()/
-    // stopConversationOnTap() below), not re-toggled per utterance.
+    // stopFreeConversation() below), not re-toggled per utterance.
     // ---- Local barge-in VAD (Free Conversation / tap_to_start only) ----
     // Pure, hardware-independent so it can be unit-tested directly (see
     // tests/dashboardBargeIn.test.js) without a real microphone/AudioContext.
@@ -3033,7 +3039,7 @@
     pendingContextTurnStart = false;
 
     // Full state snapshot before/after teardown — the requirement this is
-    // meant to make verifiable is that teardown (stopConversationOnTap()/
+    // meant to make verifiable is that teardown (stopFreeConversation()/
     // disconnect(), both awaited below, never fire-and-forget in parallel
     // with the new mode starting up) actually completes before the new mode
     // takes over the mic/ws.
@@ -3049,7 +3055,7 @@
     });
 
     if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
-      await stopConversationOnTap();
+      await stopFreeConversation();
     } else if (voiceMode === 'hold_to_talk' && isHolding) {
       endTurn();
     }
@@ -3088,6 +3094,15 @@
     tapToStartActive = true;
     setPttCaption();
     if (ws && ws.readyState === WebSocket.OPEN) {
+      // Starting a new Free Conversation over an already-open socket
+      // (stopFreeConversation() left ws connected but stopped the mic) --
+      // the mic must be re-acquired fresh; resumeTapListening() only sends
+      // the confirmation and does not itself acquire a stream.
+      try {
+        await ensureMic();
+      } catch (err) {
+        sendTelemetry('mic_prewarm_error', { message: err.message });
+      }
       resumeTapListening();
       return;
     }
@@ -3105,7 +3120,12 @@
     connect();
   }
 
-  async function stopConversationOnTap() {
+  // Ends the active Free Conversation turn WITHOUT closing the WebSocket --
+  // disconnect() (below) remains the only thing that closes the socket and
+  // resets the overall connection status. Splitting these is what lets
+  // "ЗАВЕРШИТЬ РАЗГОВОР" -> "НАЧАТЬ РАЗГОВОР" reuse the same connection
+  // instead of forcing a full reconnect for every conversation.
+  async function stopFreeConversation() {
     cancelTapIdleTimer();
     tapSilenceStartedAt = null;
     pendingTapStart = false;
@@ -3116,7 +3136,26 @@
         ws.send(JSON.stringify({ type: 'input_audio.end' }));
       }
     }
-    disconnect();
+    // Cancel whatever generation the provider still has in flight -- the
+    // same session.interrupt message barge-in already uses, sent
+    // immediately rather than waiting on a round-trip;
+    // realtimeServer.js's cancelCurrent() is a no-op if nothing is
+    // actually active.
+    const cancelledGenerationId = acceptedPlaybackGenerationId;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_stop_free_conversation' })); } catch { /* best-effort */ }
+    }
+    stopPlaybackImmediately({ reason: 'user_stop_free_conversation', generationId: cancelledGenerationId });
+    stopMic();
+    // Re-arm the local VAD for the NEXT Free Conversation exactly like a
+    // fresh createLocalVadState() would -- must not carry over
+    // consecutiveLoud/armed from the ended conversation.
+    localVadState.consecutiveLoud = 0;
+    localVadState.armed = true;
+    // Socket and overall connection status are deliberately left untouched
+    // -- ws stays OPEN, the Connect/Disconnect button stays showing
+    // "Disconnect" (still CONNECTED). Only disconnect() closes the channel.
+    DeviceVisual.setState('ready');
     setPttCaption();
   }
 
@@ -3164,7 +3203,7 @@
   }
   function onTapIdleTimeout() {
     tapIdleTimer = null;
-    stopConversationOnTap();
+    stopFreeConversation();
   }
 
   function sendTextTurn() {
@@ -3377,7 +3416,7 @@
     // doesn't support it, don't leave voiceMode stuck on a mode the mic
     // button can no longer act on.
     if (voiceMode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) {
-      if (tapToStartActive || pendingTapStart) await stopConversationOnTap();
+      if (tapToStartActive || pendingTapStart) await stopFreeConversation();
       if (ws) disconnect();
       voiceMode = 'hold_to_talk';
     }
@@ -3785,7 +3824,7 @@
   //
   // Hold to Talk keeps this exact press/release behavior unchanged. Tap to
   // Start reuses the SAME button as a single-tap toggle instead (see
-  // startConversationOnTap()/stopConversationOnTap()) — each wiring style
+  // startConversationOnTap()/stopFreeConversation()) — each wiring style
   // is gated on the current voiceMode so only one is ever active.
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', () => {
@@ -3832,8 +3871,8 @@
   pttBtn.addEventListener('click', () => {
     if (voiceMode !== 'tap_to_start') return;
     if (tapToStartActive) {
-      sendTelemetry('disconnect_clicked', {});
-      stopConversationOnTap();
+      sendTelemetry('stop_free_conversation_clicked', {});
+      stopFreeConversation();
     } else startConversationOnTap();
   });
 

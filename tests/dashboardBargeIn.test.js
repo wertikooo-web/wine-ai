@@ -155,7 +155,27 @@ async function run() {
             URL: global.URL,
             atob: (b64) => Buffer.from(b64, 'base64').toString('binary'),
             AudioContext: function () { return audioContext; },
-            navigator: { mediaDevices: { getUserMedia: () => Promise.resolve({}) } },
+            // A working fake stream (not just {}) -- needed by tests that
+            // exercise the real ensureMic()/acquireMic() path (e.g.
+            // restarting Free Conversation over an already-open socket,
+            // which re-acquires the mic after stopFreeConversation() tore
+            // it down). track.stop() flips readyState so stopMic()'s own
+            // teardown is observably real, not a no-op mock.
+            navigator: {
+                mediaDevices: {
+                    getUserMedia: () => {
+                        const track = {
+                            id: `mock-track-${Math.random().toString(36).slice(2, 8)}`,
+                            kind: 'audio',
+                            readyState: 'live',
+                            getSettings: () => ({ echoCancellation: true }),
+                            addEventListener() {},
+                            stop() { track.readyState = 'ended'; },
+                        };
+                        return Promise.resolve({ getAudioTracks: () => [track], getTracks: () => [track] });
+                    },
+                },
+            },
             WebSocket: WebSocketMock,
             performance: { now: () => Date.now() },
             testResults: { listeners, elements, sentMessages, timers, audioContext },
@@ -392,17 +412,14 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_B', 'a late audio.start for a cancelled generation must not clobber the current acceptance');
     }
 
-    // ================= "Завершить разговор" (stopConversationOnTap/disconnect) =================
-    // Production report: user clicks the button (disconnect_clicked +
-    // disconnect_started telemetry both fire), but the conversation does not
-    // visibly end. Exercises the REAL dashboard.html disconnect()/
-    // stopConversationOnTap() code (not a reimplementation) with a full
-    // active session — open mic, open WebSocket, in-flight playback — and
-    // asserts every piece of local cleanup happens synchronously, WITHOUT
-    // ever dispatching the WebSocket 'close' event (disconnect() must not
-    // depend on the server, or the socket, ever confirming the close).
+    // ================= "Завершить разговор" (stopFreeConversation) =================
+    // Correction to the earlier fix: ending Free Conversation must NOT close
+    // the WebSocket or the overall connection -- only stop the mic, the
+    // provider generation, and local playback/VAD, and flip the button back
+    // to "Начать разговор". disconnect() (the main Connect/Disconnect
+    // button) remains the only thing that closes the socket.
 
-    console.log('Testing "Завершить разговор": full local cleanup on click, with no socket close event ever firing...');
+    console.log('Testing "Завершить разговор": local cleanup on End, WebSocket stays OPEN and CONNECTED...');
     {
         const sandbox = createTestSandbox();
         setLexical(sandbox, 'voiceMode', 'tap_to_start');
@@ -427,8 +444,7 @@ async function run() {
             micStream = { getTracks: () => testResults.micTracks, getAudioTracks: () => testResults.micTracks };
 
             // Open WebSocket — close() is a spy so the test can assert it was
-            // called; deliberately NEVER fires a 'close' event afterward, to
-            // prove cleanup does not wait for one.
+            // NEVER called.
             ws = {
                 readyState: WebSocket.OPEN,
                 send: (msg) => { testResults.sentMessages.push(msg); },
@@ -436,39 +452,79 @@ async function run() {
             };
 
             DeviceVisual.setState('speaking');
+            setConnectionButton('connected');
         `, sandbox);
 
-        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'setup: conversation must be active before the click');
-        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 1, 'setup: assistant must be actively playing before the click');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'setup: conversation must be active before End');
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 1, 'setup: assistant must be actively playing before End');
 
-        // The button's click handler: tapToStartActive === true -> stopConversationOnTap().
-        await sandbox.stopConversationOnTap();
+        // The button's click handler: tapToStartActive === true -> stopFreeConversation().
+        await sandbox.stopFreeConversation();
 
-        assert.strictEqual(sandbox.testResults.wsCloseCalled, true, 'WebSocket.close() must be called');
-        assert.strictEqual(sandbox.testResults.micTrackStopped, true, 'the mic track must be stopped');
+        assert.strictEqual(sandbox.testResults.wsCloseCalled, undefined, 'WebSocket.close() must NOT be called by ending Free Conversation');
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 1 /* WebSocket.OPEN */, 'the WebSocket must remain OPEN');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('disconnect')"), 'the Connect/Disconnect button must still read CONNECTED ("Disconnect"), untouched by ending the conversation');
+        assert.strictEqual(sandbox.testResults.micTrackStopped, true, 'mic capture/transmission must be stopped');
         assert.strictEqual(getLexical(sandbox, 'micStream'), null, 'micStream must be torn down');
-        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, 'playback must be cleared (no lingering assistant audio)');
-        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'accepted playback generation must be cleared');
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, 'playback must be stopped immediately');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'the in-flight provider generation must be treated as cancelled locally');
+        const sentTypes = sandbox.testResults.sentMessages.map((m) => JSON.parse(m).type);
+        assert.ok(sentTypes.includes('session.interrupt'), 'the still-active provider generation must be cancelled (session.interrupt sent) since the socket is still open');
         assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'tapToStartActive must be false after ending the conversation');
-        assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'DeviceVisual must reflect the disconnected state');
+        assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'ready', 'DeviceVisual must reflect connected-but-idle, not disconnected');
         const idleCaption = getLexical(sandbox, "getUiString('pttCaptionTapIdle')");
         assert.strictEqual(getLexical(sandbox, "el('pttCaption').textContent"), idleCaption, 'the button caption must revert to "Начать разговор" / "Start conversation"');
-
-        // No WebSocket 'close' event was ever dispatched in this test -- all
-        // of the above must already hold true from the synchronous/local
-        // cleanup alone, proving disconnect() does not depend on the socket
-        // (or the server) ever confirming the close.
+        assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, 'the local VAD must be re-armed for the next conversation');
+        assert.strictEqual(getLexical(sandbox, 'localVadState.consecutiveLoud'), 0, 'the local VAD loud-frame counter must be reset');
     }
 
-    // A real WebSocket's 'close' event still fires (immediately, or after a
-    // delay) in the normal case -- dashboard.html's own 'close' listener
-    // (wired in connect(), not exercised via a full connect() cycle here)
-    // re-runs the same idempotent reset (setConnectionButton('disconnected')
-    // among others). Modeled here as a second disconnect() call, which is
-    // exactly what happens if the button is clicked again, or any other
-    // path re-triggers teardown after the socket is already gone -- must
-    // not throw and must not flip any state away from disconnected.
-    console.log('Testing "Завершить разговор": a second/delayed cleanup call (simulating a late socket close) is idempotent...');
+    // Repeat Start after End must reuse the SAME (still open) WebSocket --
+    // no new connect() call, just a fresh mic acquisition + resumeTapListening().
+    console.log('Testing repeat "Начать разговор" after End reuses the existing WebSocket (no new connect())...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_A');
+        vm.runInContext(`
+            const src = testResults.audioContext.createBufferSource();
+            src.buffer = testResults.audioContext.createBuffer(1, 100, 16000);
+            const gainNode = testResults.audioContext.createGain();
+            src.connect(gainNode);
+            sourceGainNodes.set(src, gainNode);
+            activeSources.add(src);
+            micStream = { getTracks: () => [{ id: 'old-track', stop() {} }], getAudioTracks: () => [{ id: 'old-track', stop() {} }] };
+            ws = { readyState: WebSocket.OPEN, send: (msg) => testResults.sentMessages.push(msg), close: () => { testResults.wsCloseCalled = true; } };
+        `, sandbox);
+
+        await sandbox.stopFreeConversation();
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 1, 'setup: socket is still OPEN after End');
+        assert.strictEqual(getLexical(sandbox, 'micStream'), null, 'setup: mic was released by End');
+
+        let connectCalled = false;
+        sandbox.connect = () => { connectCalled = true; };
+
+        await sandbox.startConversationOnTap();
+
+        assert.strictEqual(connectCalled, false, 'starting again over an already-open socket must NOT call connect()');
+        assert.strictEqual(sandbox.testResults.wsCloseCalled, undefined, 'the existing WebSocket must never have been closed across End -> Start');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'the new conversation is marked active');
+        assert.notEqual(getLexical(sandbox, 'micStream'), null, 'a fresh mic stream must have been acquired for the new conversation');
+        assert.strictEqual(getLexical(sandbox, "micStream.getAudioTracks()[0].id !== 'old-track'"), true, 'the re-acquired mic track must be a genuinely new one, not the old torn-down track');
+        // input_audio.start (sent by resumeTapListening()) must reflect the
+        // freshly re-acquired track, not stale/null mic info.
+        const startMsg = sandbox.testResults.sentMessages.map((m) => JSON.parse(m)).find((m) => m.type === 'input_audio.start');
+        assert.ok(startMsg, 'resumeTapListening() must send input_audio.start over the existing socket');
+        assert.strictEqual(startMsg.micEchoCancellation, true, 'the re-acquired mic pipeline must report echoCancellation, confirming a real re-acquisition happened (not a stale/null mic)');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, "the OLD generation ('generation_A') must not have resurfaced");
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, "the OLD playback source must not have resurfaced");
+    }
+
+    // The main Connect/Disconnect button remains the only thing that
+    // actually closes the socket -- unchanged full-teardown behavior,
+    // still idempotent against a delayed/duplicate 'close' event.
+    console.log('Testing the main Disconnect button (disconnect()) still fully closes the socket and is idempotent...');
     {
         const sandbox = createTestSandbox();
         setLexical(sandbox, 'voiceMode', 'tap_to_start');
@@ -488,7 +544,8 @@ async function run() {
             };
         `, sandbox);
 
-        await sandbox.stopConversationOnTap();
+        sandbox.disconnect();
+        assert.strictEqual(sandbox.testResults.wsCloseCallCount, 1, 'the main Disconnect button must close the socket');
         assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'first cleanup: state is disconnected');
 
         // Simulate the delayed/duplicate cleanup trigger (e.g. a real 'close'
@@ -496,16 +553,15 @@ async function run() {
         assert.doesNotThrow(() => { sandbox.disconnect(); }, 'a second disconnect() call must not throw');
 
         assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'state remains disconnected after the second cleanup call');
-        const idleCaption = getLexical(sandbox, "getUiString('pttCaptionTapIdle')");
         assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'the connect button must still read as disconnected/idle');
         assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'tapToStartActive remains false');
         assert.strictEqual(getLexical(sandbox, 'micStream'), null, 'micStream remains torn down (no double-teardown error)');
     }
 
-    // After the conversation has fully ended (UI in 'disconnected'), tapping
-    // "Начать разговор" again must open a genuinely fresh session -- the
-    // previous (now-stale) generation/playback must never resurface.
-    console.log('Testing restart after "Завершить разговор": a fresh session starts, the old generation/playback never returns...');
+    // After a FULL disconnect (not just End), restarting must open a
+    // genuinely new WebSocket -- the previous (now-stale) generation/
+    // playback must never resurface.
+    console.log('Testing restart after a full Disconnect opens a fresh session, old generation/playback never returns...');
     {
         const sandbox = createTestSandbox();
         setLexical(sandbox, 'voiceMode', 'tap_to_start');
@@ -529,7 +585,7 @@ async function run() {
             ws = { readyState: WebSocket.OPEN, send: () => {}, close() { this.readyState = WebSocket.CLOSED; } };
         `, sandbox);
 
-        await sandbox.stopConversationOnTap();
+        sandbox.disconnect();
         assert.strictEqual(getLexical(sandbox, "DeviceVisual.getState()"), 'disconnected', 'setup: conversation fully ended before restart');
         assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'setup: old generation A must be cleared before restart');
         assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, 'setup: old playback must be cleared before restart');
@@ -552,6 +608,129 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, 'the new conversation is marked active');
         assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, "the OLD generation ('generation_A') must not have resurfaced");
         assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, "the OLD playback source must not have resurfaced");
+    }
+
+    // ================= Voice mode switching without a page reload =================
+    // Disconnect -> switch mode -> Connect must open the NEW session in the
+    // newly selected mode, with every session-scoped flag from the old mode
+    // fully reset -- not read once at page load / left over in stale state.
+
+    console.log('Testing mode switch: Free Conversation -> Disconnect -> Hold to Talk -> Connect uses hold_to_talk, no leftover state...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_A');
+        vm.runInContext(`
+            const src = testResults.audioContext.createBufferSource();
+            src.buffer = testResults.audioContext.createBuffer(1, 100, 16000);
+            src.connect(testResults.audioContext.createGain());
+            activeSources.add(src);
+            micStream = { getTracks: () => [{ id: 'fc-track', stop() {} }], getAudioTracks: () => [{ id: 'fc-track', stop() {} }] };
+            // Leave the local VAD mid-episode (armed=false, some loud frames
+            // counted) -- exactly the kind of stale state a leftover-state
+            // bug would carry into the next mode/session.
+            localVadState.armed = false;
+            localVadState.consecutiveLoud = 2;
+            ws = { readyState: WebSocket.OPEN, send: () => {}, close() { this.readyState = WebSocket.CLOSED; } };
+        `, sandbox);
+
+        // User clicks the main Disconnect button.
+        sandbox.disconnect();
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'Disconnect must clear tapToStartActive');
+        assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, 'Disconnect must re-arm the local VAD');
+        assert.strictEqual(getLexical(sandbox, 'localVadState.consecutiveLoud'), 0, 'Disconnect must reset the local VAD loud-frame counter');
+
+        // User switches the mode toggle. persist:false -- this sandbox has
+        // no real backing /api/persona endpoint; the mode-persistence POST
+        // itself is exercised for real (fetch resolves via the sandbox's
+        // fetch stub), only skipping is not needed since the stub always
+        // succeeds -- kept explicit to document that persistence is a
+        // separate concern from the reset behavior under test here.
+        await sandbox.setVoiceMode('hold_to_talk');
+        assert.strictEqual(getLexical(sandbox, 'voiceMode'), 'hold_to_talk', 'voiceMode must reflect the newly selected mode immediately');
+
+        // User clicks Connect. connect() itself needs more network mocking
+        // than this sandbox provides; replaced with a spy that captures
+        // what mode was live the instant connect() was invoked -- this is
+        // exactly the "read once at page load" failure mode: if voiceMode
+        // were captured in a stale closure, this would still read
+        // 'tap_to_start' here.
+        let connectSeenMode = null;
+        sandbox.connect = () => { connectSeenMode = getLexical(sandbox, 'voiceMode'); };
+        await sandbox.toggleConnection();
+
+        assert.strictEqual(connectSeenMode, 'hold_to_talk', 'the new session must be opened with the freshly selected hold_to_talk mode, not a stale captured value');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'no leftover tapToStartActive from the previous Free Conversation session');
+        assert.strictEqual(getLexical(sandbox, 'isHolding'), false, 'no leftover isHolding from the previous session');
+        assert.strictEqual(getLexical(sandbox, 'pendingTapStart'), false, 'no leftover pendingTapStart from the previous mode');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'no leftover generation from the previous session');
+        assert.strictEqual(getLexical(sandbox, 'activeSources.size'), 0, 'no leftover playback from the previous session');
+    }
+
+    console.log('Testing mode switch: Hold to Talk -> Disconnect -> Free Conversation -> Connect uses tap_to_start, no leftover state...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'hold_to_talk');
+        setLexical(sandbox, 'isHolding', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_H');
+        // isTapToStartSupportedForCurrentProvider() gates switching INTO
+        // tap_to_start on the currently selected provider -- must be one of
+        // the supported providers or setVoiceMode('tap_to_start') below
+        // would silently no-op.
+        setLexical(sandbox, 'selectedRealtimeProvider', 'gemini');
+        vm.runInContext(`
+            micStream = { getTracks: () => [{ id: 'hold-track', stop() {} }], getAudioTracks: () => [{ id: 'hold-track', stop() {} }] };
+            ws = { readyState: WebSocket.OPEN, send: () => {}, close() { this.readyState = WebSocket.CLOSED; } };
+        `, sandbox);
+
+        sandbox.disconnect();
+        assert.strictEqual(getLexical(sandbox, 'isHolding'), false, 'Disconnect must clear isHolding from Hold to Talk');
+
+        await sandbox.setVoiceMode('tap_to_start');
+        assert.strictEqual(getLexical(sandbox, 'voiceMode'), 'tap_to_start', 'voiceMode must reflect the newly selected mode immediately');
+
+        let connectSeenMode = null;
+        sandbox.connect = () => { connectSeenMode = getLexical(sandbox, 'voiceMode'); };
+        await sandbox.toggleConnection();
+
+        assert.strictEqual(connectSeenMode, 'tap_to_start', 'the new session must be opened with the freshly selected tap_to_start mode');
+        assert.strictEqual(getLexical(sandbox, 'isHolding'), false, 'no leftover isHolding from the previous Hold to Talk session');
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'no leftover generation from the previous session');
+    }
+
+    // Several consecutive switches must not accumulate stale handlers/mic
+    // tracks -- each disconnect() fully tears down the mic pipeline
+    // (stopMic() nulls processor/micSource/micStream every time), so a
+    // fresh acquireMic() on the next connect always starts from a clean
+    // slate. Asserted here by checking module state stays fully reset
+    // after each cycle, not just the last one.
+    console.log('Testing several consecutive mode switches do not accumulate stale mic/session state...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'hold_to_talk');
+        setLexical(sandbox, 'selectedRealtimeProvider', 'gemini');
+        sandbox.connect = () => {};
+
+        const cycle = ['tap_to_start', 'hold_to_talk', 'tap_to_start', 'hold_to_talk'];
+        for (const mode of cycle) {
+            vm.runInContext(`
+                ws = { readyState: WebSocket.OPEN, send: () => {}, close() { this.readyState = WebSocket.CLOSED; } };
+                micStream = { getTracks: () => [{ id: 'cycle-track', stop() {} }], getAudioTracks: () => [{ id: 'cycle-track', stop() {} }] };
+            `, sandbox);
+            sandbox.disconnect();
+            await sandbox.setVoiceMode(mode);
+            await sandbox.toggleConnection();
+
+            assert.strictEqual(getLexical(sandbox, 'voiceMode'), mode, `after switching to ${mode}, voiceMode must reflect it`);
+            assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, `after switching to ${mode}, tapToStartActive must not carry over`);
+            assert.strictEqual(getLexical(sandbox, 'isHolding'), false, `after switching to ${mode}, isHolding must not carry over`);
+            assert.strictEqual(getLexical(sandbox, 'pendingTapStart'), false, `after switching to ${mode}, pendingTapStart must not carry over`);
+            assert.strictEqual(getLexical(sandbox, 'pendingPttStart'), false, `after switching to ${mode}, pendingPttStart must not carry over`);
+            assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, `after switching to ${mode}, the local VAD must be armed, not left mid-episode`);
+        }
     }
 
     console.log('ALL DASHBOARD BARGE-IN TESTS PASSED!');
