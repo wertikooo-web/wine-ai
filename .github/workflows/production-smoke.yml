@@ -41,7 +41,7 @@ jobs:
             exit 1
           fi
 
-      - name: Verify knowledge status and current deployment
+      - name: Verify knowledge status and layered-routing deployment
         shell: bash
         run: |
           set -euo pipefail
@@ -58,10 +58,10 @@ jobs:
           const chunks = Number(body.chunk_count ?? body.chunks ?? 0);
           if (!Number.isFinite(chunks) || chunks <= 0) throw new Error('knowledge chunk count is empty');
           const builtAt = Date.parse(body.built_at || '');
-          const triggerAt = Date.parse('2026-08-01T23:33:00Z');
+          const routingMergeAt = Date.parse('2026-08-01T23:08:56Z');
           if (!Number.isFinite(builtAt)) throw new Error('built_at is missing or invalid');
-          if (builtAt <= triggerAt) throw new Error(`production is stale: built_at=${body.built_at}`);
-          console.log(`knowledge status verified; chunks=${chunks}; built_at=${body.built_at}`);
+          if (builtAt <= routingMergeAt) throw new Error(`production predates layered routing: built_at=${body.built_at}`);
+          console.log(`layered routing deployment verified; chunks=${chunks}; built_at=${body.built_at}`);
           NODE
 
       - name: Verify public dashboard
