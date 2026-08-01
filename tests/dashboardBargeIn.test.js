@@ -31,7 +31,14 @@ async function run() {
 
     let cleanText = scriptText;
     cleanText = cleanText.replace('(function () {', '');
-    cleanText = cleanText.replace("'use strict';", '');
+    // 'use strict' is deliberately KEPT (not stripped) -- the real
+    // dashboard.html IIFE runs in strict mode, and stripping it here made
+    // every sandbox test run in sloppy mode instead. That silently masked a
+    // real bug: an assignment to an undeclared variable (tapSilenceStartedAt)
+    // in disconnect()/stopFreeConversation() is a strict-mode ReferenceError
+    // in production but a harmless implicit-global creation in sloppy mode --
+    // found only via a real browser reproducing it, not by any test in this
+    // file, until this line was fixed to match production's actual semantics.
     const lastIndex = cleanText.lastIndexOf('})();');
     if (lastIndex !== -1) {
         cleanText = cleanText.substring(0, lastIndex) + cleanText.substring(lastIndex + 5);
@@ -146,7 +153,31 @@ async function run() {
             window: mockWindow,
             document: mockDocument,
             console: { log() {}, error() {}, warn() {} },
-            fetch: async () => ({ status: 200, ok: true, json: async () => ({ ok: true }) }),
+            // /api/voices gets a realistic shape (gemini configured) --
+            // loadVoices() (called from connect()'s flow) otherwise
+            // "correctly" falls back away from selectedRealtimeProvider when
+            // it finds no configured providers in the response, silently
+            // resetting it to undefined and breaking any test that relies
+            // on selectedRealtimeProvider staying 'gemini' across a connect
+            // cycle. Real production always returns a real providers list.
+            fetch: async (url) => {
+                if (typeof url === 'string' && url.startsWith('/api/voices')) {
+                    return {
+                        status: 200, ok: true,
+                        json: async () => ({
+                            ok: true,
+                            provider: 'gemini',
+                            default_provider: 'gemini',
+                            providers: [
+                                { id: 'gemini', configured: true },
+                                { id: 'grok', configured: true },
+                            ],
+                            voices: [],
+                        }),
+                    };
+                }
+                return { status: 200, ok: true, json: async () => ({ ok: true }) };
+            },
             setTimeout(fn, ms) { const entry = { fn, ms }; timers.push(entry); return entry; },
             setInterval() {},
             clearTimeout() {},
@@ -178,6 +209,7 @@ async function run() {
             },
             WebSocket: WebSocketMock,
             performance: { now: () => Date.now() },
+            location: { protocol: 'https:', host: 'test.local' },
             testResults: { listeners, elements, sentMessages, timers, audioContext },
         };
 
@@ -730,6 +762,203 @@ async function run() {
             assert.strictEqual(getLexical(sandbox, 'pendingTapStart'), false, `after switching to ${mode}, pendingTapStart must not carry over`);
             assert.strictEqual(getLexical(sandbox, 'pendingPttStart'), false, `after switching to ${mode}, pendingPttStart must not carry over`);
             assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, `after switching to ${mode}, the local VAD must be armed, not left mid-episode`);
+        }
+    }
+
+    // ================= Main Connect/Disconnect button: real DOM click =================
+    // Production report: the button never actually flips from "Подключить"
+    // to "Отключить"/back, and mode switching (Disconnect -> pick mode ->
+    // Connect) doesn't work. Root cause (found via a real browser, not by
+    // reading code): tapSilenceStartedAt is assigned in disconnect() and
+    // stopFreeConversation() but was NEVER DECLARED anywhere -- under
+    // 'use strict' that assignment throws a ReferenceError, silently
+    // aborting both functions immediately AFTER the button's text/state
+    // already flipped but BEFORE ws.close()/stopMic() ever ran. The socket
+    // never actually closed, so the next click re-entered disconnect()
+    // instead of opening a fresh connection -- exactly the reported symptom.
+    //
+    // This test drives the REAL #connectBtn DOM element's real click
+    // listener (`el('connectBtn').addEventListener('click', toggleConnection)`
+    // in dashboard.html) via the mock element's own captured handler --
+    // never calling connect()/disconnect()/setConnectionButton() directly --
+    // so it exercises exactly what a real click does, including the
+    // 'use strict' semantics restored above.
+    console.log('Testing the main Connect/Disconnect button via a REAL click on #connectBtn drives the full state machine...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'selectedRealtimeProvider', 'gemini');
+
+        // A WebSocket mock with real addEventListener/readyState semantics
+        // (not a plain object literal) -- lets the test fire 'open'/'close'
+        // on demand, exercising connect()'s REAL listener wiring.
+        vm.runInContext(`
+            testResults.socketInstances = [];
+            WebSocket = function (url) {
+                const sock = {
+                    url, readyState: 0,
+                    listenersByType: {},
+                    addEventListener(type, handler) {
+                        (this.listenersByType[type] = this.listenersByType[type] || []).push(handler);
+                    },
+                    send() {},
+                    close() {
+                        if (this.readyState === 3) return;
+                        this.readyState = 3;
+                        (this.listenersByType.close || []).forEach((h) => h());
+                    },
+                    _fireOpen() {
+                        this.readyState = 1;
+                        (this.listenersByType.open || []).forEach((h) => h());
+                    },
+                };
+                testResults.socketInstances.push(sock);
+                return sock;
+            };
+            WebSocket.CONNECTING = 0; WebSocket.OPEN = 1; WebSocket.CLOSING = 2; WebSocket.CLOSED = 3;
+        `, sandbox);
+
+        const clickConnectBtn = getLexical(sandbox, "el('connectBtn').listeners.click");
+        assert.strictEqual(typeof clickConnectBtn, 'function', 'sanity: the real click listener must be registered on #connectBtn');
+
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'initial DISCONNECTED state: button reads Connect/Подключить');
+
+        // ---- Click 1: DISCONNECTED -> CONNECTING -> (open) -> CONNECTED ----
+        clickConnectBtn();
+        assert.strictEqual(sandbox.testResults.socketInstances.length, 1, 'the first click must create a WebSocket');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connecting')"), 'while connecting, the button reads Connecting/Подключение…');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').disabled"), true, 'the button must be disabled while connecting');
+
+        getLexical(sandbox, 'testResults.socketInstances[0]')._fireOpen();
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('disconnect')"), 'after the socket actually opens, the button must read Disconnect/Отключить');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').disabled"), false, 'the button must be enabled once connected');
+
+        // ---- Click 2: CONNECTED -> DISCONNECTED (full close) ----
+        clickConnectBtn();
+        assert.strictEqual(getLexical(sandbox, 'testResults.socketInstances[0].readyState'), 3, 'the second click must actually call ws.close() (this is exactly what silently failed before the fix)');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'immediately after local cleanup, the button must already read Connect/Подключить (not wait for the close event)');
+        assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'Free Conversation state must be torn down by the same click');
+
+        // ---- A delayed/duplicate native 'close' event must not corrupt state ----
+        assert.doesNotThrow(() => {
+            getLexical(sandbox, 'testResults.socketInstances[0]').listenersByType.close.forEach((h) => h());
+        }, 'a delayed native close event firing again must not throw');
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'state remains Connect/Подключить after the delayed close event');
+
+        // ---- Switch mode, then click again: a NEW WebSocket, new mode ----
+        await sandbox.setVoiceMode('hold_to_talk');
+        assert.strictEqual(getLexical(sandbox, 'voiceMode'), 'hold_to_talk', 'the mode switch must take effect while disconnected');
+
+        clickConnectBtn();
+        assert.strictEqual(sandbox.testResults.socketInstances.length, 2, 'clicking Connect again after a mode switch must open a genuinely NEW WebSocket, not reuse the old (closed) one');
+        assert.notEqual(sandbox.testResults.socketInstances[1], sandbox.testResults.socketInstances[0], 'the new WebSocket instance must be different from the first');
+        // voiceMode itself (read fresh by every relevant check, and by
+        // personaStore.getVoiceMode() server-side on this NEW connection --
+        // see realtimeServer.js line ~450, covered by
+        // voiceModeTurnDetection.test.js) is what the server actually keys
+        // the session's mode off of; the client-visible confirmation is that
+        // the value is still 'hold_to_talk' at the moment this second
+        // WebSocket was opened, not silently reverted to the old mode.
+        assert.strictEqual(getLexical(sandbox, 'voiceMode'), 'hold_to_talk', 'the new session must open with the freshly selected hold_to_talk mode');
+
+        getLexical(sandbox, 'testResults.socketInstances[1]')._fireOpen();
+        assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('disconnect')"), 'the button correctly reflects CONNECTED again after the second real connect/open cycle');
+
+        // ---- The inner Free Conversation button remains entirely separate ----
+        // (voiceMode is now hold_to_talk, so pttBtn's click handler routes
+        // through the Hold to Talk press/release wiring, not
+        // startConversationOnTap()/stopFreeConversation() at all -- proving
+        // the two buttons/handlers are genuinely independent, not the same
+        // element under a different label.)
+        assert.notEqual(getLexical(sandbox, "el('pttBtn')"), getLexical(sandbox, "el('connectBtn')"), 'the Free Conversation button and the main Connect/Disconnect button must be different DOM elements');
+
+        // tapSilenceStartedAt must be a proper lexical `let`, not an
+        // implicit global -- a plain assignment to an undeclared name (the
+        // original bug, in sloppy mode) or an accidental `var`/window write
+        // would show up as an own property of the sandbox's global object;
+        // a correctly scoped `let` never does, in strict OR sloppy mode.
+        assert.strictEqual(Object.prototype.hasOwnProperty.call(sandbox, 'tapSilenceStartedAt'), false, 'tapSilenceStartedAt must not leak onto the global object (window/globalThis)');
+    }
+
+    // ================= Five consecutive full cycles, no reload =================
+    // Free Conversation -> Connect -> Disconnect -> Hold to Talk -> Connect ->
+    // Disconnect -> Free Conversation -> ... repeated 5x, driven entirely
+    // through real #connectBtn clicks. Guards against exactly the class of
+    // bug just fixed (a crash mid-cleanup that leaves state/sockets half
+    // torn down) recurring silently on the 2nd, 3rd, ... cycle even though
+    // the 1st looks fine.
+    console.log('Testing 5 consecutive real-click Connect/Disconnect + mode-switch cycles accumulate nothing...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'selectedRealtimeProvider', 'gemini');
+        vm.runInContext(`
+            testResults.socketInstances = [];
+            WebSocket = function (url) {
+                const sock = {
+                    url, readyState: 0,
+                    listenersByType: {},
+                    addEventListener(type, handler) {
+                        (this.listenersByType[type] = this.listenersByType[type] || []).push(handler);
+                    },
+                    send() {},
+                    close() {
+                        if (this.readyState === 3) return;
+                        this.readyState = 3;
+                        (this.listenersByType.close || []).forEach((h) => h());
+                    },
+                    _fireOpen() {
+                        this.readyState = 1;
+                        (this.listenersByType.open || []).forEach((h) => h());
+                    },
+                };
+                testResults.socketInstances.push(sock);
+                return sock;
+            };
+            WebSocket.CONNECTING = 0; WebSocket.OPEN = 1; WebSocket.CLOSING = 2; WebSocket.CLOSED = 3;
+        `, sandbox);
+        const clickConnectBtn = getLexical(sandbox, "el('connectBtn').listeners.click");
+
+        const modes = ['tap_to_start', 'hold_to_talk'];
+        for (let cycle = 0; cycle < 5; cycle += 1) {
+            const mode = modes[cycle % 2];
+            if (getLexical(sandbox, 'voiceMode') !== mode) {
+                await sandbox.setVoiceMode(mode);
+            }
+            assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), `cycle ${cycle} (${mode}): must start DISCONNECTED`);
+
+            const socketsBefore = getLexical(sandbox, 'testResults.socketInstances.length');
+            clickConnectBtn();
+            assert.strictEqual(getLexical(sandbox, 'testResults.socketInstances.length'), socketsBefore + 1, `cycle ${cycle}: exactly one new WebSocket must be created`);
+            const sockExpr = `testResults.socketInstances[${socketsBefore}]`;
+            getLexical(sandbox, sockExpr)._fireOpen();
+            assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('disconnect')"), `cycle ${cycle}: must read CONNECTED after open`);
+            assert.strictEqual(getLexical(sandbox, 'voiceMode'), mode, `cycle ${cycle}: the session opened with the currently selected mode`);
+
+            if (mode === 'tap_to_start') {
+                // Exercise the inner Free Conversation button too, within
+                // this cycle's connection -- Start, then End, must not
+                // touch the main connection at all.
+                await sandbox.startConversationOnTap();
+                assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), true, `cycle ${cycle}: Free Conversation started`);
+                await sandbox.stopFreeConversation();
+                assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, `cycle ${cycle}: Free Conversation ended`);
+                assert.strictEqual(getLexical(sandbox, sockExpr + '.readyState'), 1, `cycle ${cycle}: ending Free Conversation must NOT close the main WebSocket`);
+                assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('disconnect')"), `cycle ${cycle}: main button still reads CONNECTED after ending Free Conversation`);
+            }
+
+            clickConnectBtn();
+            assert.strictEqual(getLexical(sandbox, sockExpr + '.readyState'), 3, `cycle ${cycle}: Disconnect must close this cycle's WebSocket`);
+            assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), `cycle ${cycle}: must read DISCONNECTED immediately after Disconnect`);
+            assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, `cycle ${cycle}: no leftover tapToStartActive`);
+            assert.strictEqual(getLexical(sandbox, 'isHolding'), false, `cycle ${cycle}: no leftover isHolding`);
+            assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, `cycle ${cycle}: local VAD re-armed, not leaked into the next cycle`);
+            assert.strictEqual(getLexical(sandbox, 'micStream'), null, `cycle ${cycle}: mic released, not leaked into the next cycle`);
+        }
+
+        assert.strictEqual(getLexical(sandbox, 'testResults.socketInstances.length'), 5, 'exactly 5 WebSockets total were created across the 5 cycles -- none reused, none leaked extra');
+        for (let i = 0; i < 5; i += 1) {
+            assert.strictEqual(getLexical(sandbox, `testResults.socketInstances[${i}].readyState`), 3, `socket #${i} ended the run CLOSED, not left dangling`);
         }
     }
 

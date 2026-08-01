@@ -1459,6 +1459,17 @@
   }
   let voiceMode = 'hold_to_talk';
   let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
+  // Never actually declared anywhere despite being assigned in disconnect()
+  // and stopFreeConversation() -- under 'use strict' that assignment threw
+  // "tapSilenceStartedAt is not defined", silently aborting BOTH functions
+  // partway through every single time (after the button's text/state was
+  // already updated, but before ws.close()/stopMic() ran) -- reproduced
+  // live: the Connect/Disconnect button visually flips but the WebSocket
+  // never actually closes, so the very next click re-enters disconnect()
+  // instead of opening a fresh connection. Confirmed dead otherwise (only
+  // ever assigned, never read) -- declared here to match its sibling
+  // tap-state variables rather than removed, in case a future caller reads it.
+  let tapSilenceStartedAt = null;
   let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
   let tapToStartIdleTimeoutMs = 5000; // overwritten from /api/persona's config on load
   let pendingTapStart = false;    // Tap to Start pressed before the ws connection finished opening
