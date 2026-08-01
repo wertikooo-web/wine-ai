@@ -84,7 +84,7 @@ function createImpl(routeImpl = routeKnowledge) {
                 ...result.answer_policy,
                 final_instruction: result.conflicts.length
                     ? 'Answer from the strongest and freshest evidence. Mention the specific uncertainty where sources conflict. Do not narrate the search process.'
-                    : 'Answer directly and confidently from the evidence. Do not say “по нашей базе сведений нет”, “я нашёл в интернете”, or otherwise narrate the search process. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful.',
+                    : 'Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful.',
             },
         };
     };
