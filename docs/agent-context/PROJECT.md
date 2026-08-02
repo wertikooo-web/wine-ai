@@ -23,6 +23,26 @@ The native realtime provider owns speech understanding and speech generation ins
 - The project must remain independent from any sibling repository.
 - Knowledge retrieval augments realtime conversation through tools; it does not replace the realtime transport.
 
+## Deferred strategic initiative: layered knowledge, provenance, and Knowledge Graph
+
+The approved full analysis and roadmap is stored in:
+
+`docs/architecture/WINE_KNOWLEDGE_STRATEGY_AND_ROADMAP.md`
+
+It covers:
+
+- four knowledge levels: canonical facts, Wine.md catalog, documents, controlled internet fallback;
+- natural answer policy;
+- answer modes;
+- claim-level provenance;
+- Answer Audit;
+- PostgreSQL Knowledge Graph direction;
+- Knowledge Studio;
+- benchmark and implementation phases;
+- lessons and reusable patterns from the parallel `wineMD-widget` project.
+
+Status: intentionally paused on 2026-08-02. Do not start implementation from the roadmap without a new explicit task. When resumed, begin with Phase 0 repository and production reconciliation.
+
 ## Source-of-truth order
 
 1. Runtime code and tests.
