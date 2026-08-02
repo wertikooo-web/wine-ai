@@ -26,6 +26,12 @@ Read:
 - `docs/agent-context/contracts/knowledge-search.md`
 - relevant `src/knowledge/`, `src/tools/`, `src/kos/`, schema, and tests
 
+For work on layered knowledge routing, answer modes, claim provenance, Answer Audit, Wine.md catalog architecture, Knowledge Graph, Knowledge Studio, or Wine Intelligence, also read:
+
+- `docs/architecture/WINE_KNOWLEDGE_STRATEGY_AND_ROADMAP.md`
+
+That initiative is currently paused. Resume it only through an explicit task and start with Phase 0 reconciliation.
+
 ## Playback, avatar, visual events
 
 Read:
