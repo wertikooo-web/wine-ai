@@ -22,13 +22,41 @@ const { chunkDocument } = require('../src/knowledge/loader');
 
 const OUT_DIR = path.resolve(__dirname, '..', 'docs', 'audits', 'corpus-manifest');
 const SOURCE_DIR = path.resolve(__dirname, '..', 'knowledge', 'source');
-const RECONCILE = require('../reconcile-production.json');
+
+const USAGE = [
+    'corpus-manifest-audit: a snapshot file is required.',
+    '',
+    'Usage:',
+    '  node scripts/corpus-manifest-audit.js --snapshot <path>',
+    '',
+    'Example:',
+    '  node scripts/corpus-manifest-audit.js --snapshot ./reconcile-production.json',
+    '',
+    'The snapshot is a read-only reconcile-production.json (FS+PG corpus summary).',
+].join('\n');
 
 const DERIVED_PREFIXES = ['discovered-'];
 const GENERATED_FILES = new Set(['index.json', 'index.json.bak']);
 
 function sha256(str) {
     return crypto.createHash('sha256').update(String(str)).digest('hex');
+}
+
+function parseArgs(argv) {
+    const args = Array.isArray(argv) ? argv : (typeof process !== 'undefined' ? process.argv.slice(2) : []);
+    const idx = args.indexOf('--snapshot');
+    if (idx === -1) return { snapshot: null };
+    if (idx + 1 >= args.length || args[idx + 1].startsWith('--')) return { error: '--snapshot requires a file path' };
+    return { snapshot: args[idx + 1] };
+}
+
+function loadSnapshot(snapshotPath) {
+    const resolved = path.resolve(snapshotPath);
+    const raw = fs.readFileSync(resolved, 'utf8');
+    if (!raw.trim()) throw new Error(`snapshot file is empty: ${resolved}`);
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.fileSummaries)) throw new Error(`snapshot must contain a fileSummaries array: ${resolved}`);
+    return data;
 }
 
 function estimateChunks(body) {
@@ -48,7 +76,27 @@ function classifyCurated(file) {
     return 'curated-other';
 }
 
-async function main() {
+async function main(argv) {
+    const { snapshot: snapshotPath, error } = parseArgs(argv);
+    if (error) {
+        console.error(error);
+        console.error(USAGE);
+        process.exit(2);
+    }
+    if (!snapshotPath) {
+        console.error(USAGE);
+        process.exit(2);
+    }
+
+    let RECONCILE;
+    try {
+        RECONCILE = loadSnapshot(snapshotPath);
+    } catch (err) {
+        console.error(`failed to load snapshot: ${err.message}`);
+        console.error(USAGE);
+        process.exit(2);
+    }
+
     const db = require('../src/knowledge/db');
     if (!db.isEnabled()) {
         console.error('DATABASE_URL not set — aborting (manifest audit needs production PG read access).');
@@ -426,4 +474,8 @@ async function main() {
     await pool.end();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+module.exports = { parseArgs, loadSnapshot };
+
+if (require.main === module) {
+    main(process.argv.slice(2)).catch((e) => { console.error(e); process.exit(1); });
+}
