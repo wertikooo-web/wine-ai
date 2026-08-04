@@ -550,6 +550,17 @@ async function run() {
         }, 'POST body must be a sparse update and not touch other provider overrides');
     }
 
+    // 8. Active profile badge keeps readable text on the wine background
+    console.log('Testing active profile badge contrast...');
+    {
+        const sandbox = createTestSandbox();
+        sandbox.updateProfileButtons('classic', 'classic', []);
+        const activeBadge = sandbox.document.getElementById('activeProfileBadge');
+        assert.strictEqual(activeBadge.textContent, 'Active Sommelier');
+        assert.strictEqual(activeBadge.style.background, 'var(--wine)');
+        assert.strictEqual(activeBadge.style.color, 'white', 'Active profile badge text must remain readable on the wine background');
+    }
+
     console.log('ALL DASHBOARD VOICE CONFIGURATION UNIT TESTS PASSED!');
     if (require.main === module) {
         process.exit(0);
