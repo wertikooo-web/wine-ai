@@ -1,6 +1,6 @@
 {
   "name": "wine-ai-realtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Independent realtime voice lab for a Moldovan wine digital expert, built on a reusable realtime core.",
   "main": "src/server.js",

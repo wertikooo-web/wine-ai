@@ -1,7 +1,7 @@
 'use strict';
 
 const { bindTool } = require('./toolHelpers');
-const searchWineKnowledge = require('./searchWineKnowledge');
+const searchWineKnowledge = require('./searchLayeredKnowledge');
 const searchWinery = require('./searchWinery');
 const compareGrapeVarieties = require('./compareGrapeVarieties');
 const recommendWinePairing = require('./recommendWinePairing');
@@ -25,14 +25,8 @@ const TOOLS = [
     fetchPage,
 ];
 
-// Static schema list for Gemini Live's `tools: [{ functionDeclarations }]`
-// — safe to share across sessions (see src/realtime/geminiLiveProvider.js's
-// buildLiveTools()).
 const TOOL_DECLARATIONS = TOOLS.map((tool) => tool.declaration);
 
-// Per-session handler map — bound to that session's own sessionMemory/log,
-// matching the factory contract src/realtime/realtimeServer.js expects
-// (providerMetadata.createToolHandlers({ sessionMemory, log })).
 function createToolHandlers(toolContext) {
     const handlers = {};
     for (const tool of TOOLS) {

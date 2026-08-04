@@ -1,0 +1,61 @@
+name: Deploy Railway Production
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: railway-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli
+
+      - name: Validate Railway credentials
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$RAILWAY_TOKEN" || { echo "RAILWAY_TOKEN secret is missing"; exit 1; }
+          railway whoami
+
+      - name: Deploy wine-ai-realtime
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -euo pipefail
+          railway up \
+            --service wine-ai-realtime \
+            --environment production \
+            --detach \
+            --no-gitignore
+
+      - name: Wait for deployed service
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          for attempt in $(seq 1 90); do
+            code="$(curl -sS -L --max-time 20 -o /tmp/health.json -w '%{http_code}' "$BASE_URL/health" || true)"
+            echo "attempt=$attempt http=$code"
+            if [ "$code" = "200" ]; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Production did not become healthy after deploy"
+          exit 1

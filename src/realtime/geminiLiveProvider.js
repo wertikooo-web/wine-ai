@@ -893,17 +893,44 @@ class GeminiLiveProviderSession {
         const emit = this.active?.onSessionEvent || interrupt?.onSessionEvent || this.onProviderEvent;
 
         if (!effectiveGenerationId) {
-            // Two cases land here, both correctly dropped:
-            //  - no active generation and no pending interrupt at all
-            //    (reason: no_generation_context);
+            // Two cases, handled differently on purpose:
+            //
+            //  - no active generation at all (reason: no_generation_context):
+            //    there is nothing "fresher" this event could wrongly clobber
+            //    -- Gemini's own interrupted signal is authoritative that IT
+            //    stopped generating, and this.active being null does NOT
+            //    mean the CLIENT has nothing playing (its generation may
+            //    already be `completed` server-side while its audio is
+            //    still in the browser's playback queue). Safe to forward a
+            //    fallback stop here, using the last generation we know the
+            //    client was actually told to play.
+            //
             //  - an active generation exists but hasn't produced any output
-            //    yet, so this stale event cannot genuinely be about it
-            //    (reason: active_generation_has_not_started_output).
+            //    yet (reason: active_generation_has_not_started_output):
+            //    this is exactly the "stale event from finished A arrives
+            //    after fresh B has already opened" case (regression-tested
+            //    in tests/geminiProviderInterrupt.test.js) -- forwarding
+            //    ANYTHING here risks telling the client to stop B based on
+            //    residue from A. Must stay a silent drop.
+            const isNoActiveGeneration = !currentActiveGenerationId;
+            let forwardedFallback = false;
+            if (isNoActiveGeneration) {
+                const fallbackGenerationId = interrupt?.interrupted_generation_id || this.lastEmittedGenerationId || null;
+                if (fallbackGenerationId && emit) {
+                    emit({
+                        type: 'response.interrupted',
+                        generation_id: fallbackGenerationId,
+                        reason: 'provider_interrupted_fallback',
+                    });
+                    forwardedFallback = true;
+                }
+            }
             log('dropped_provider_event', {
                 providerInstanceId: this.instanceId,
                 eventType: 'provider_interrupted',
-                reason: currentActiveGenerationId ? 'active_generation_has_not_started_output' : 'no_generation_context',
+                reason: isNoActiveGeneration ? 'no_generation_context' : 'active_generation_has_not_started_output',
                 currentActiveGenerationId: currentActiveGenerationId || 'none',
+                forwardedFallback,
             });
             return;
         }
@@ -1198,6 +1225,13 @@ class GeminiLiveProviderSession {
             if (!this.active.audioStarted) {
                 this.active.audioStarted = true;
                 this.active.modelOutputStarted = true;
+                // Last generation we actually told the CLIENT to expect
+                // audio for -- used by handleProviderInterrupted()'s
+                // fallback below when our own generation-attribution can't
+                // pin an interrupted signal to a specific generation, so the
+                // client still gets a stop instead of the event being
+                // silently dropped.
+                this.lastEmittedGenerationId = this.active.generationId;
                 this.active.onEvent({
                     type: 'audio.start',
                     response_id: this.active.responseId,
@@ -1367,8 +1401,16 @@ class GeminiLiveProviderSession {
         // generationComplete/turnComplete reaching here (real model output
         // actually finished) is the practical, already-real signal that
         // this turn is genuinely done -- not a synthetic event.
+        //
+        // Pass this generation's own id through: this call can arrive LATE
+        // (Gemini's completion event for an already barge-in-cancelled
+        // generation, reaching us after a fresh generation has already
+        // opened) -- realtimeServer.js's handleNativeSpeechStopped() uses
+        // this id to verify it's still talking about the CURRENT turn
+        // before touching any shared input-turn state, so a stale call here
+        // can never wrongly close a newer turn it knows nothing about.
         if (this.voiceMode === 'tap_to_start') {
-            this.onUserSpeechStopped?.();
+            this.onUserSpeechStopped?.(this.active.generationId);
         }
         this.active = null;
         this.inputBytes = 0;

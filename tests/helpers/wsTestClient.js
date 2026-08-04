@@ -55,8 +55,19 @@ function connect(port, path = '/realtime') {
                 nextEvent(timeoutMs = 3000) {
                     if (buffered.length) return Promise.resolve(buffered.shift());
                     return new Promise((res, rej) => {
-                        const timer = setTimeout(() => rej(new Error('timeout waiting for event')), timeoutMs);
-                        waiters.push((event) => { clearTimeout(timer); res(event); });
+                        const waiter = (event) => { clearTimeout(timer); res(event); };
+                        // On timeout the waiter MUST be removed from the queue —
+                        // otherwise a later real event (delivered via push())
+                        // shifts and calls this already-rejected waiter instead
+                        // of buffering itself for the next caller, silently
+                        // losing that event (found via a test that expects a
+                        // timeout and then waits for a subsequent real event).
+                        const timer = setTimeout(() => {
+                            const index = waiters.indexOf(waiter);
+                            if (index !== -1) waiters.splice(index, 1);
+                            rej(new Error('timeout waiting for event'));
+                        }, timeoutMs);
+                        waiters.push(waiter);
                     });
                 },
                 async waitFor(predicate, { timeoutMs = 5000, label = 'event' } = {}) {

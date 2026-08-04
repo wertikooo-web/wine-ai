@@ -12,6 +12,19 @@ const DEFAULT_SOMMELIER_GENDER = 'male';
 const ALLOWED_VOICE_MODES = ['hold_to_talk', 'tap_to_start'];
 const DEFAULT_VOICE_MODE = 'hold_to_talk';
 
+// Free Conversation's overall session duration cap, in minutes -- a small
+// fixed preset list (not a free-form number) so an operator can't
+// accidentally type a value that starves the inactivity-warning timing
+// (see dashboard.html's FREE_CONV_SESSION_WARNING_LEAD_MS=30s -- anything
+// below that would fire the cap before its own warning could).
+const ALLOWED_SESSION_LIMIT_MINUTES = [2.5, 3, 5, 10];
+const DEFAULT_SESSION_LIMIT_MINUTES = 3;
+// Deployment contexts that may need a shorter/longer cap than the general
+// default -- e.g. a kiosk in a tasting room vs. a customer's own phone via
+// a table QR code. null in the override map means "use the general
+// default", not "use 0".
+const SESSION_LIMIT_CONTEXTS = ['kiosk', 'mobile_qr'];
+
 // Scoped in-memory cache
 let cache = {
     activeProfileId: 'classic',
@@ -20,6 +33,8 @@ let cache = {
     // in persona_active_state (or the file's top level), not inside a
     // profile's `overrides` (which is persona content, not device UX).
     voiceMode: DEFAULT_VOICE_MODE,
+    sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
+    sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
     profiles: {
         classic: { overrides: {} },
         warm_guide: { overrides: {} }
@@ -59,6 +74,9 @@ async function load() {
                 );
             `);
             await client.query('ALTER TABLE persona_active_state ADD COLUMN IF NOT EXISTS voice_mode TEXT;');
+            await client.query('ALTER TABLE persona_active_state ADD COLUMN IF NOT EXISTS session_limit_minutes NUMERIC;');
+            await client.query('ALTER TABLE persona_active_state ADD COLUMN IF NOT EXISTS session_limit_minutes_kiosk NUMERIC;');
+            await client.query('ALTER TABLE persona_active_state ADD COLUMN IF NOT EXISTS session_limit_minutes_mobile_qr NUMERIC;');
 
             // 2. Check if active state exists
             const activeRes = await client.query("SELECT active_profile_id FROM persona_active_state WHERE state_key = 'default'");
@@ -135,13 +153,22 @@ async function load() {
             }
 
             // 3. Load active state and settings
-            const activeState = (await client.query("SELECT active_profile_id, voice_mode FROM persona_active_state WHERE state_key = 'default'")).rows[0];
+            const activeState = (await client.query(
+                "SELECT active_profile_id, voice_mode, session_limit_minutes, session_limit_minutes_kiosk, session_limit_minutes_mobile_qr FROM persona_active_state WHERE state_key = 'default'"
+            )).rows[0];
             const profilesRows = (await client.query("SELECT profile_id, overrides_json FROM persona_profile_settings")).rows;
 
             await client.query('COMMIT');
 
             const activeProfileId = activeState ? activeState.active_profile_id : 'classic';
             const voiceMode = ALLOWED_VOICE_MODES.includes(activeState?.voice_mode) ? activeState.voice_mode : DEFAULT_VOICE_MODE;
+            const sessionLimitMinutes = ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes))
+                ? Number(activeState.session_limit_minutes)
+                : DEFAULT_SESSION_LIMIT_MINUTES;
+            const sessionLimitMinutesByContext = {
+                kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes_kiosk)) ? Number(activeState.session_limit_minutes_kiosk) : null,
+                mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes_mobile_qr)) ? Number(activeState.session_limit_minutes_mobile_qr) : null,
+            };
 
             const profiles = {};
             for (const row of profilesRows) {
@@ -165,6 +192,8 @@ async function load() {
             cache = {
                 activeProfileId,
                 voiceMode,
+                sessionLimitMinutes,
+                sessionLimitMinutesByContext,
                 profiles
             };
         } catch (err) {
@@ -180,6 +209,13 @@ async function load() {
         try {
             if (fs.existsSync(FILE_PATH)) {
                 const raw = JSON.parse(fs.readFileSync(FILE_PATH, 'utf8')) || {};
+                const sessionLimitMinutes = ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutes))
+                    ? Number(raw.sessionLimitMinutes)
+                    : DEFAULT_SESSION_LIMIT_MINUTES;
+                const sessionLimitMinutesByContext = {
+                    kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutesByContext?.kiosk)) ? Number(raw.sessionLimitMinutesByContext.kiosk) : null,
+                    mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutesByContext?.mobile_qr)) ? Number(raw.sessionLimitMinutesByContext.mobile_qr) : null,
+                };
                 if (raw.profiles === undefined && (raw.baseProfileId !== undefined || raw.overrides !== undefined)) {
                     console.log('[WineAI] Performing legacy JSON to profile-scoped settings migration...');
                     const activeProfileId = raw.baseProfileId || 'classic';
@@ -199,6 +235,8 @@ async function load() {
                     cache = {
                         activeProfileId,
                         voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
+                        sessionLimitMinutes,
+                        sessionLimitMinutesByContext,
                         profiles: {
                             classic: activeProfileId === 'classic' ? { overrides: oldOverrides } : { overrides: {} },
                             warm_guide: activeProfileId === 'warm_guide' ? { overrides: oldOverrides } : { overrides: {} }
@@ -221,6 +259,8 @@ async function load() {
                     cache = {
                         activeProfileId: raw.activeProfileId || 'classic',
                         voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
+                        sessionLimitMinutes,
+                        sessionLimitMinutesByContext,
                         profiles: {
                             classic: { overrides: classicOverrides },
                             warm_guide: { overrides: warmOverrides }
@@ -231,6 +271,8 @@ async function load() {
                 cache = {
                     activeProfileId: 'classic',
                     voiceMode: DEFAULT_VOICE_MODE,
+                    sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
+                    sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
                     profiles: {
                         classic: { overrides: {} },
                         warm_guide: { overrides: {} }
@@ -290,6 +332,11 @@ function getCached() {
         customProfile: hasMeaningfulOverrides,
         mood,
         voiceMode: ALLOWED_VOICE_MODES.includes(cache.voiceMode) ? cache.voiceMode : DEFAULT_VOICE_MODE,
+        sessionLimitMinutes: ALLOWED_SESSION_LIMIT_MINUTES.includes(cache.sessionLimitMinutes) ? cache.sessionLimitMinutes : DEFAULT_SESSION_LIMIT_MINUTES,
+        sessionLimitMinutesByContext: {
+            kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(cache.sessionLimitMinutesByContext?.kiosk) ? cache.sessionLimitMinutesByContext.kiosk : null,
+            mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(cache.sessionLimitMinutesByContext?.mobile_qr) ? cache.sessionLimitMinutesByContext.mobile_qr : null,
+        },
         overrides
     };
 }
@@ -720,6 +767,79 @@ async function setVoiceMode(mode) {
     return getCached();
 }
 
+// Effective per-connection minutes: a context-specific override (kiosk /
+// mobile_qr) if one is set, otherwise the general default. context is
+// whatever the client declares itself as (see server.js's persona routes
+// and realtimeServer.js's session options) -- an unrecognized/missing
+// context always falls through to the general default, never throws.
+function getSessionLimitMinutes(context) {
+    const general = ALLOWED_SESSION_LIMIT_MINUTES.includes(cache.sessionLimitMinutes) ? cache.sessionLimitMinutes : DEFAULT_SESSION_LIMIT_MINUTES;
+    if (context && SESSION_LIMIT_CONTEXTS.includes(context)) {
+        const override = cache.sessionLimitMinutesByContext?.[context];
+        if (ALLOWED_SESSION_LIMIT_MINUTES.includes(override)) return override;
+    }
+    return general;
+}
+
+async function setSessionLimitMinutes(minutes) {
+    const value = Number(minutes);
+    if (!ALLOWED_SESSION_LIMIT_MINUTES.includes(value)) {
+        const err = new Error('invalid_session_limit_minutes');
+        err.statusCode = 400;
+        throw err;
+    }
+    if (db.isEnabled()) {
+        const pool = db.getPool();
+        await pool.query(
+            `INSERT INTO persona_active_state (state_key, active_profile_id, session_limit_minutes, updated_at)
+             VALUES ('default', $1, $2, $3)
+             ON CONFLICT (state_key) DO UPDATE SET session_limit_minutes = EXCLUDED.session_limit_minutes, updated_at = EXCLUDED.updated_at`,
+            [cache.activeProfileId, value, new Date().toISOString()]
+        );
+    }
+    cache.sessionLimitMinutes = value;
+    if (!db.isEnabled()) {
+        fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
+        const tmpPath = FILE_PATH + '.tmp';
+        fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
+        fs.renameSync(tmpPath, FILE_PATH);
+    }
+    return getCached();
+}
+
+// value of null clears the override (falls back to the general default).
+async function setSessionLimitMinutesForContext(context, value) {
+    if (!SESSION_LIMIT_CONTEXTS.includes(context)) {
+        const err = new Error('invalid_session_limit_context');
+        err.statusCode = 400;
+        throw err;
+    }
+    const normalized = value === null || value === undefined ? null : Number(value);
+    if (normalized !== null && !ALLOWED_SESSION_LIMIT_MINUTES.includes(normalized)) {
+        const err = new Error('invalid_session_limit_minutes');
+        err.statusCode = 400;
+        throw err;
+    }
+    const column = context === 'kiosk' ? 'session_limit_minutes_kiosk' : 'session_limit_minutes_mobile_qr';
+    if (db.isEnabled()) {
+        const pool = db.getPool();
+        await pool.query(
+            `INSERT INTO persona_active_state (state_key, active_profile_id, ${column}, updated_at)
+             VALUES ('default', $1, $2, $3)
+             ON CONFLICT (state_key) DO UPDATE SET ${column} = EXCLUDED.${column}, updated_at = EXCLUDED.updated_at`,
+            [cache.activeProfileId, normalized, new Date().toISOString()]
+        );
+    }
+    cache.sessionLimitMinutesByContext = { ...cache.sessionLimitMinutesByContext, [context]: normalized };
+    if (!db.isEnabled()) {
+        fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
+        const tmpPath = FILE_PATH + '.tmp';
+        fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
+        fs.renameSync(tmpPath, FILE_PATH);
+    }
+    return getCached();
+}
+
 let legacyCustomProfile = false;
 
 function setLegacyCustomProfile(val) {
@@ -733,6 +853,17 @@ function isLegacyCustomProfile() {
 async function save(body = {}) {
     if (body.voiceMode !== undefined) {
         await setVoiceMode(body.voiceMode);
+    }
+
+    if (body.sessionLimitMinutes !== undefined) {
+        await setSessionLimitMinutes(body.sessionLimitMinutes);
+    }
+    if (body.sessionLimitMinutesByContext !== undefined && typeof body.sessionLimitMinutesByContext === 'object') {
+        for (const context of SESSION_LIMIT_CONTEXTS) {
+            if (Object.prototype.hasOwnProperty.call(body.sessionLimitMinutesByContext, context)) {
+                await setSessionLimitMinutesForContext(context, body.sessionLimitMinutesByContext[context]);
+            }
+        }
     }
 
     if (body.baseProfileId === null) {
@@ -799,8 +930,14 @@ module.exports = {
     setLegacyCustomProfile,
     getVoiceMode,
     setVoiceMode,
+    getSessionLimitMinutes,
+    setSessionLimitMinutes,
+    setSessionLimitMinutesForContext,
     DEFAULT_SOMMELIER_GENDER,
     DEFAULT_VOICE_MODE,
     ALLOWED_GENDERS,
-    ALLOWED_VOICE_MODES
+    ALLOWED_VOICE_MODES,
+    ALLOWED_SESSION_LIMIT_MINUTES,
+    DEFAULT_SESSION_LIMIT_MINUTES,
+    SESSION_LIMIT_CONTEXTS
 };
