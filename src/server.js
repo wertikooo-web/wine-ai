@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 20907)
-Total output lines: 1744
-
 'use strict';
 
 const fs = require('fs');
@@ -830,7 +827,75 @@ async function handleRequest(req, res) {
         }
 
         const allowedRootKeys = [
-            'profileId', 'baseProfileId', 'mood', 'voice…907 tokens truncated…onst overrides = { ...rawOverrides };
+            'profileId', 'baseProfileId', 'mood', 'voiceMode', 'overrides', 'reset',
+            'customizationMode', 'effectivePromptPreview', 'resolved', 'languages', 'activeProfileId', 'ok',
+            'name', 'description', 'welcomeMessage', 'welcome_message',
+            'sommelierGender', 'sommelier_gender', 'personalityPrompt', 'personality_prompt',
+            'systemPrompt', 'system_prompt',
+            'sessionLimitMinutes', 'sessionLimitMinutesByContext'
+        ];
+        const requestContext = requestUrl.searchParams.get('context') || null;
+        for (const key of Object.keys(body)) {
+            if (!allowedRootKeys.includes(key)) {
+                return sendJson(res, 400, { ok: false, error: 'unknown_root_field' });
+            }
+        }
+
+        const targetProfileId = body.profileId || body.baseProfileId || personaStore.getActiveProfileId();
+
+        try {
+            // Device-wide UX preference, not persona content — handled
+            // separately from the overrides/updateProfile() path below.
+            if (body.voiceMode !== undefined) {
+                await personaStore.setVoiceMode(body.voiceMode);
+            }
+
+            if (body.sessionLimitMinutes !== undefined) {
+                await personaStore.setSessionLimitMinutes(body.sessionLimitMinutes);
+            }
+            if (body.sessionLimitMinutesByContext !== undefined && typeof body.sessionLimitMinutesByContext === 'object') {
+                for (const context of personaStore.SESSION_LIMIT_CONTEXTS) {
+                    if (Object.prototype.hasOwnProperty.call(body.sessionLimitMinutesByContext, context)) {
+                        await personaStore.setSessionLimitMinutesForContext(context, body.sessionLimitMinutesByContext[context]);
+                    }
+                }
+            }
+
+            if (body.baseProfileId === null) {
+                personaStore.setLegacyCustomProfile(true);
+            } else if (body.baseProfileId !== undefined) {
+                personaStore.setLegacyCustomProfile(false);
+                const currentActiveId = personaStore.getActiveProfileId();
+                const currentActiveOverrides = (personaStore.getProfilesOverrides()[currentActiveId] || {}).overrides || {};
+                const activeMood = currentActiveOverrides.mood || 'calm';
+
+                await personaStore.activateProfile(body.baseProfileId);
+                await personaStore.resetProfile(body.baseProfileId);
+                if (activeMood && activeMood !== 'calm') {
+                    await personaStore.updateProfile(body.baseProfileId, { mood: activeMood });
+                }
+            }
+
+            if (body.reset) {
+                if (personaStore.isLegacyCustomProfile()) {
+                    return sendJson(res, 400, { ok: false, error: 'Cannot reset a custom profile' });
+                }
+                await personaStore.resetProfile(targetProfileId);
+            } else {
+                const patch = body.overrides ? { ...body.overrides } : {};
+                const flatKeys = ['name', 'description', 'welcomeMessage', 'sommelierGender', 'personalityPrompt', 'systemPrompt', 'mood', 'style', 'runtimeByProvider', 'identity'];
+                for (const key of Object.keys(body)) {
+                    if (flatKeys.includes(key)) {
+                        patch[key] = body[key];
+                    }
+                }
+                if (Object.keys(patch).length > 0) {
+                    await personaStore.updateProfile(targetProfileId, patch);
+                }
+            }
+
+            const rawOverrides = (personaStore.getProfilesOverrides()[targetProfileId] || {}).overrides || {};
+            const overrides = { ...rawOverrides };
             const mood = overrides.mood || 'calm';
             delete overrides.mood;
             const resolved = resolveProfile(targetProfileId, overrides, mood);
