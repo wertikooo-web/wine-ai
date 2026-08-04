@@ -1217,6 +1217,7 @@
           </div>
           <span class="mode-badge" id="activeProfileBadge">Preset Mode</span>
         </div>
+        <p id="activeProfileStatusLine" class="active-profile-status-line" style="font-size:12px; color:var(--muted); margin: 4px 0 0;"></p>
         <div id="activeProfileStylePreview" class="voice-style-preview">
           «Превосходный выбор! Фетяска Нягрэ — это гордость молдавского виноделия. В аромате вы почувствуете ноты дикой вишни и чернослива с легким оттенком специй... Хотите узнать больше о терруар этого винограда?»
         </div>
@@ -1419,9 +1420,9 @@
           </div>
 
           <div style="display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;">
-            <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
+            <button class="btn-icon primary" id="personaSaveBtn">Сохранить черновик</button>
             <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
-            <button class="secondary" id="personaActivateBtn" style="margin:0; background: var(--wine); color: white; border: none;">Activate Sommelier</button>
+            <button class="secondary" id="personaActivateBtn" style="margin:0; background: var(--wine); color: white; border: none;">Сохранить и включить</button>
             <span id="personaSaveStatus" style="font-size:12px; color:var(--muted);"></span>
           </div>
         </div>
@@ -4251,6 +4252,38 @@
     activeBadge.style.background = (editorId === activeId) ? 'var(--wine)' : 'var(--muted)';
   }
 
+  // Shows which sommelier is actually live (name, voice, grammatical
+  // gender) independent of whichever profile is currently open in the
+  // editor as a draft -- fetches the ACTIVE profile's own data so editing a
+  // draft of the other persona never makes this line lie about what's live.
+  async function refreshActiveProfileStatus() {
+    const statusEl = el('activeProfileStatusLine');
+    if (!statusEl) return;
+    try {
+      const res = await fetch(`/api/persona?profileId=${encodeURIComponent(activeProfileId)}`);
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const name = (data.resolved && data.resolved.name) || (activeProfileId === 'classic' ? 'Александр' : 'Мария');
+      const genderLabel = data.sommelierGender === 'female' ? 'женский' : 'мужской';
+
+      const providerId = (typeof selectedRealtimeProvider !== 'undefined' && selectedRealtimeProvider)
+        || (globalProvidersConfig || []).find((p) => p.configured)?.id
+        || 'gemini';
+      const runtimeOverride = data.overrides?.runtimeByProvider?.[providerId]?.voiceId;
+      const defaultVoiceId = (typeof PROFILE_DEFAULTS !== 'undefined' && PROFILE_DEFAULTS[activeProfileId]?.[providerId]) || '';
+      const voiceId = runtimeOverride || defaultVoiceId;
+      const voiceMeta = (globalProvidersConfig || [])
+        .find((p) => p.id === providerId)?.models?.flatMap((m) => m.voices || [])
+        .find((v) => v.id === voiceId);
+      const voiceLabel = (voiceMeta && (voiceMeta.displayName || voiceMeta.name)) || voiceId || '—';
+
+      statusEl.textContent = `Активный сомелье: ${name} · Голос: ${voiceLabel} · Род: ${genderLabel}`;
+    } catch (err) {
+      console.warn('[WineAI] Failed to refresh active profile status:', err);
+    }
+  }
+
   function getDefaultStyleValue(key) {
     if (['askFollowUpQuestions', 'useHumor', 'talkAboutSelf', 'supportSmallTalk', 'softlyReturnToWine'].includes(key)) return true;
     if (key === 'useFictionalBiography') return false;
@@ -4301,7 +4334,11 @@
     el('pName').value = loadedOverrides.name || '';
     el('pDescription').value = loadedOverrides.description || '';
     el('pWelcome').value = loadedOverrides.welcomeMessage || loadedOverrides.welcome_message || '';
-    el('pSommelierGender').value = loadedOverrides.sommelierGender || 'male';
+    // Fall back to the server-resolved gender (which already accounts for
+    // the base profile's own default, e.g. warm_guide/Maria -> female) --
+    // never a hardcoded 'male', which previously leaked Alexander's gender
+    // onto a fresh Maria profile with no explicit override.
+    el('pSommelierGender').value = loadedOverrides.sommelierGender || data.sommelierGender || 'male';
     el('pPersonalityPrompt').value = loadedOverrides.personalityPrompt || loadedOverrides.personality_prompt || '';
     el('pPrompt').value = loadedOverrides.systemPrompt || loadedOverrides.system_prompt || '';
 
@@ -4342,6 +4379,7 @@
     await renderVoiceSelectors(data);
 
     populateSessionLimitSelects(data);
+    await refreshActiveProfileStatus();
 
     return data;
   }
@@ -4467,46 +4505,55 @@
     }
   }
 
+  // Core persist step shared by "Сохранить черновик" (save only) and
+  // "Сохранить и включить" (save, then activate) -- a single source of
+  // truth for what gets sent to POST /api/persona so the two actions can
+  // never drift apart on what "save" means.
+  async function persistPersonaOverrides() {
+    const draft = getDraftOverrides();
+    const sessionLimitSelect = el('pSessionLimitMinutes');
+    const kioskSelect = el('pSessionLimitMinutesKiosk');
+    const mobileQrSelect = el('pSessionLimitMinutesMobileQr');
+    const parseOverride = (sel) => (sel && sel.value !== '' ? Number(sel.value) : null);
+    const res = await fetch('/api/persona', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profileId: editorProfileId,
+        overrides: draft,
+        ...(sessionLimitSelect && sessionLimitSelect.value !== '' ? { sessionLimitMinutes: Number(sessionLimitSelect.value) } : {}),
+        ...(kioskSelect || mobileQrSelect ? {
+          sessionLimitMinutesByContext: {
+            kiosk: parseOverride(kioskSelect),
+            mobile_qr: parseOverride(mobileQrSelect),
+          },
+        } : {}),
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'save_failed');
+    loadedOverrides = data.overrides || {};
+    return data;
+  }
+
   async function savePersona() {
     const statusEl = el('personaSaveStatus');
     const saveBtn = el('personaSaveBtn');
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving…';
-    statusEl.textContent = 'Saving…';
+    saveBtn.textContent = 'Сохранение…';
+    statusEl.textContent = 'Сохранение…';
     try {
-      const draft = getDraftOverrides();
-      const sessionLimitSelect = el('pSessionLimitMinutes');
-      const kioskSelect = el('pSessionLimitMinutesKiosk');
-      const mobileQrSelect = el('pSessionLimitMinutesMobileQr');
-      const parseOverride = (sel) => (sel && sel.value !== '' ? Number(sel.value) : null);
-      const res = await fetch('/api/persona', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profileId: editorProfileId,
-          overrides: draft,
-          ...(sessionLimitSelect && sessionLimitSelect.value !== '' ? { sessionLimitMinutes: Number(sessionLimitSelect.value) } : {}),
-          ...(kioskSelect || mobileQrSelect ? {
-            sessionLimitMinutesByContext: {
-              kiosk: parseOverride(kioskSelect),
-              mobile_qr: parseOverride(mobileQrSelect),
-            },
-          } : {}),
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'save_failed');
+      await persistPersonaOverrides();
 
-      loadedOverrides = data.overrides || {};
-      saveBtn.textContent = 'Saved';
-      statusEl.textContent = 'Saved — applies to new conversations.';
+      saveBtn.textContent = 'Сохранено';
+      statusEl.textContent = 'Черновик сохранён — применится к новым разговорам после активации.';
       log('persona_saved', {});
       await loadPersona(editorProfileId);
       setTimeout(() => {
-        saveBtn.textContent = 'Save changes';
+        saveBtn.textContent = 'Сохранить черновик';
       }, 3000);
     } catch (err) {
-      saveBtn.textContent = 'Save changes';
+      saveBtn.textContent = 'Сохранить черновик';
       statusEl.textContent = 'Save failed: ' + err.message;
       log('persona_save_error', { message: err.message });
     } finally {
@@ -4538,15 +4585,22 @@
     }
   }
 
-  async function activatePersona() {
+  // "Сохранить и включить": always persists the current draft first, THEN
+  // activates it -- unlike the old activatePersona(), which could silently
+  // activate stale server-saved settings while discarding unsaved draft
+  // edits (it only ever warned, never actually saved). Draft-only saving
+  // stays available separately via savePersona()/"Сохранить черновик".
+  async function saveAndActivatePersona() {
     const statusEl = el('personaSaveStatus');
-    statusEl.textContent = 'Activating…';
+    const activateBtn = el('personaActivateBtn');
+    activateBtn.disabled = true;
+    activateBtn.textContent = 'Сохранение…';
+    statusEl.textContent = 'Сохранение…';
     try {
-      if (hasUnsavedChanges()) {
-        const confirmAct = confirm('У вас есть несохраненные изменения. Активировать сомелье с текущими сохраненными на сервере настройками?');
-        if (!confirmAct) return;
-      }
+      await persistPersonaOverrides();
 
+      activateBtn.textContent = 'Включение…';
+      statusEl.textContent = 'Включение…';
       const res = await fetch('/api/persona/activate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4558,14 +4612,18 @@
       if (!data.ok) throw new Error(data.error || 'activation_failed');
 
       activeProfileId = data.activeProfileId;
-      statusEl.textContent = 'Sommelier activated successfully.';
+      statusEl.textContent = 'Сомелье сохранён и включён.';
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
 
-    updateProfileButtons(activeProfileId, editorProfileId, data.customProfileIds);
-    // Re-apply session with new profile settings
-    sendSessionStart();
+      updateProfileButtons(activeProfileId, editorProfileId, data.customProfileIds);
+      await refreshActiveProfileStatus();
+      // Re-apply session with new profile settings
+      sendSessionStart();
     } catch (err) {
-      statusEl.textContent = 'Activation failed: ' + err.message;
+      statusEl.textContent = 'Save & activate failed: ' + err.message;
+    } finally {
+      activateBtn.disabled = false;
+      activateBtn.textContent = 'Сохранить и включить';
     }
   }
 
@@ -5837,7 +5895,7 @@
 
   el('personaSaveBtn').addEventListener('click', savePersona);
   el('personaResetBtn').addEventListener('click', resetPersona);
-  el('personaActivateBtn').addEventListener('click', activatePersona);
+  el('personaActivateBtn').addEventListener('click', saveAndActivatePersona);
 
   (async function() {
     await initProvidersConfig();
