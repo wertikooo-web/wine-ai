@@ -74,6 +74,28 @@
     .test-copy strong { display: block; margin-bottom: 4px; color: #d4a45f; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
     audio { width: 100%; height: 38px; margin: 0 0 12px; }
     .status { padding: 12px; min-height: 45px; border-radius: 10px; background: #10070a; color: #d5c7bf; font-family: ui-monospace, monospace; font-size: 12px; }
+    .response-demo { position: absolute; z-index: 8; inset: 56px 18px 18px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+    .heard-question { align-self: center; max-width: 88%; padding: 9px 14px; border: 1px solid #ffffff25; border-radius: 999px; background: #12070bcc; color: #eadfd7; font-size: 12px; opacity: 0; transform: translateY(-8px); transition: .28s ease; backdrop-filter: blur(12px); }
+    .response-demo.is-visible .heard-question { opacity: 1; transform: translateY(0); }
+    .response-bottom { display: grid; gap: 10px; }
+    .fact-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; opacity: 0; transform: translateY(10px); transition: .32s ease; }
+    .response-demo.has-cards .fact-cards { opacity: 1; transform: translateY(0); }
+    .fact-card { min-width: 0; padding: 10px 11px; border: 1px solid #e9c47c38; border-radius: 13px; background: #18090ee8; box-shadow: 0 10px 30px #0006; backdrop-filter: blur(14px); }
+    .fact-card small { display: block; margin-bottom: 3px; color: #d4a45f; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .fact-card strong { display: block; overflow: hidden; color: #fff5e9; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .live-caption { padding: 14px 15px 13px; border: 1px solid #ffffff2b; border-radius: 16px; background: linear-gradient(135deg, #13080deb, #2d0d17e8); box-shadow: 0 14px 38px #0008; opacity: 0; transform: translateY(12px); transition: .28s ease; backdrop-filter: blur(16px); pointer-events: auto; }
+    .response-demo.is-visible .live-caption { opacity: 1; transform: translateY(0); }
+    .caption-kicker { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: #d4a45f; font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .caption-live-dot { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #66d898; box-shadow: 0 0 10px #66d898; }
+    .caption-text { min-height: 44px; color: #fff9f1; font-size: clamp(14px, 2.1vw, 18px); font-weight: 650; line-height: 1.35; }
+    .caption-actions { display: flex; justify-content: flex-end; margin-top: 7px; }
+    .caption-actions button { padding: 6px 10px; border-color: #ffffff25; background: #ffffff0d; font-size: 10px; pointer-events: auto; }
+    .full-answer { display: none; margin-top: 8px; max-height: 138px; overflow: auto; padding-top: 10px; border-top: 1px solid #ffffff1f; color: #dbcfc7; font-size: 12px; line-height: 1.5; }
+    .live-caption.is-expanded .full-answer { display: block; }
+    .demo-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+    .demo-controls button { border-radius: 13px; }
+    .demo-controls .primary-demo { background: #7e263a; border-color: #bd6577; }
+    @media (max-width: 520px) { .fact-cards { grid-template-columns: 1fr; } .fact-card:nth-child(2) { display: none; } .response-demo { inset-inline: 12px; } }
     .note { color: #ad9ba2; font-size: 12px; line-height: 1.5; }
     .lab-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
     .back-link { color: #e1bd80; text-decoration: none; font-size: 13px; font-weight: 700; }
@@ -154,6 +176,21 @@
     <div class="stage" id="avatarStage" data-lab-state="ready">
       <div class="badge">Orus · Gemini voice</div>
       <div class="state-label" id="stateLabel">IDLE</div>
+      <div class="response-demo" id="responseDemo" aria-live="polite">
+        <div class="heard-question"><strong>Вы спросили:</strong> Какое вино подойдёт к ужину?</div>
+        <div class="response-bottom">
+          <div class="fact-cards">
+            <div class="fact-card"><small>Вино</small><strong>Fetească Neagră</strong></div>
+            <div class="fact-card"><small>Регион</small><strong>Codru · Молдова</strong></div>
+          </div>
+          <div class="live-caption" id="liveCaption">
+            <div class="caption-kicker"><span><i class="caption-live-dot"></i>Живые субтитры</span><span id="captionProgress">1 / 3</span></div>
+            <div class="caption-text" id="captionText"></div>
+            <div class="caption-actions"><button id="toggleFullAnswer" type="button">Показать весь ответ</button></div>
+            <div class="full-answer">Для ужина можно рассмотреть Fetească Neagră из региона Codru. У неё выразительный ягодный профиль и мягкая структура. На реальном экране здесь появится ответ ассистента, а проверяемые названия, адреса, цены и даты будут вынесены в отдельные карточки.</div>
+          </div>
+        </div>
+      </div>
       <img class="uploaded-avatar" id="uploadedAvatar" alt="Загруженный тестовый аватар">
       <div class="model-placeholder" id="modelPlaceholder"><div><strong>3D-файл добавлен в каталог</strong><span id="modelPlaceholderText"></span><br>GLB/VRM сохранён локально. Просмотр конкретной модели подключается после проверки её рига и morph targets.</div></div>
       <svg class="cartoon-avatar" viewBox="0 0 500 600" role="img" aria-label="Мультипликационный цифровой сомелье">
@@ -206,6 +243,12 @@
     </div>
 
     <section class="panel">
+      <h2>Демо ответа на большом экране</h2>
+      <div class="demo-controls">
+        <button class="primary-demo" id="startResponseDemo" type="button">▶ Показать ответ</button>
+        <button id="clearResponseDemo" type="button">Очистить экран</button>
+      </div>
+
       <h2>Все состояния</h2>
       <div class="buttons" id="stateButtons">
         <button data-state="ready" class="active">Idle</button>
@@ -247,6 +290,17 @@
     const selectedAvatarInfo = document.getElementById('selectedAvatarInfo');
     const deleteAvatarButton = document.getElementById('deleteAvatar');
     const candidateButton = document.getElementById('candidateAvatar');
+    const responseDemo = document.getElementById('responseDemo');
+    const liveCaption = document.getElementById('liveCaption');
+    const captionText = document.getElementById('captionText');
+    const captionProgress = document.getElementById('captionProgress');
+    const toggleFullAnswer = document.getElementById('toggleFullAnswer');
+    const responseLines = [
+      'Для ужина я бы предложил Fetească Neagră.',
+      'Обратите внимание на варианты из региона Codru.',
+      'Главные сведения я вынес в карточки, а полный ответ можно раскрыть.'
+    ];
+    let responseDemoTimers = [];
     const stateExpression = {
       ready: 'neutral', greeting: 'warm', listening: 'focused', thinking: 'focused',
       speaking: 'warm', presenting: 'confident', error: 'concerned', unavailable: 'neutral',
@@ -427,6 +481,31 @@
       }
     }
 
+    function clearResponseDemo(message = 'Демонстрационный ответ очищен. Экран готов к следующей сессии.') {
+      responseDemoTimers.forEach(clearTimeout);
+      responseDemoTimers = [];
+      responseDemo.classList.remove('is-visible', 'has-cards');
+      liveCaption.classList.remove('is-expanded');
+      toggleFullAnswer.textContent = 'Показать весь ответ';
+      captionText.textContent = '';
+      captionProgress.textContent = '1 / 3';
+      if (message) status.textContent = message;
+    }
+
+    function startResponseDemo() {
+      clearResponseDemo('');
+      markState('speaking', 'Демо: ответ появляется синхронно с речью и важными карточками.');
+      responseDemo.classList.add('is-visible');
+      responseLines.forEach((line, index) => {
+        responseDemoTimers.push(setTimeout(() => {
+          captionText.textContent = line;
+          captionProgress.textContent = `${index + 1} / ${responseLines.length}`;
+          if (index === 1) responseDemo.classList.add('has-cards');
+          if (index === responseLines.length - 1) markState('presenting', 'Ответ показан. Можно раскрыть полный текст или очистить экран.');
+        }, index * 1900));
+      });
+    }
+
     function stopAudio(message = 'Воспроизведение остановлено. Возврат в idle.') {
       playbackActive = false;
       audio.pause();
@@ -556,6 +635,15 @@
       } catch (error) {
         markState('error', `Не удалось удалить файл: ${error.message}`);
       }
+    });
+    document.getElementById('startResponseDemo').addEventListener('click', startResponseDemo);
+    document.getElementById('clearResponseDemo').addEventListener('click', () => {
+      clearResponseDemo();
+      markState('ready');
+    });
+    toggleFullAnswer.addEventListener('click', () => {
+      const expanded = liveCaption.classList.toggle('is-expanded');
+      toggleFullAnswer.textContent = expanded ? 'Скрыть полный ответ' : 'Показать весь ответ';
     });
     document.getElementById('speechDemo').addEventListener('click', loadGeminiSample);
     document.getElementById('localFallback').addEventListener('click', loadLocalFallback);

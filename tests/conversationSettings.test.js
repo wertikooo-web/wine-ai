@@ -314,6 +314,9 @@ async function run() {
             error: () => {}
         },
         setTimeout: (fn) => fn(),
+        URL: global.URL,
+        URLSearchParams: global.URLSearchParams,
+        location: { protocol: 'https:', host: 'test.local', search: '' },
         log: () => {},
         initProvidersConfig: async () => {},
         handleLegacyMigration: async () => {},

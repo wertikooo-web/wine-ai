@@ -287,6 +287,7 @@
   }
   button.ptt .ptt-icon { font-size: 30px; line-height: 1; }
   button.ptt .ptt-caption { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; max-width: 74px; line-height: 1.15; }
+  .voice-session-timer { margin-top: 4px; font-size: 10px; font-weight: 600; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
   button.ptt:active:not(:disabled) { transform: scale(0.96); }
   button.ptt:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
   /* State-driven look — color/icon/animation carry the meaning, not text
@@ -741,6 +742,7 @@
                 <span class="ptt-icon" id="pttIcon">🎤</span>
                 <span class="ptt-caption" id="pttCaption"></span>
               </button>
+              <div class="voice-session-timer" id="voiceSessionTimer" hidden></div>
 
               <div class="app-input-row">
                 <input type="text" id="textInput" placeholder="Напишите вопрос… / Type your question…" disabled>
@@ -1403,6 +1405,19 @@
           <label class="persona-field-label">Compiled system prompt preview (Read-only)</label>
           <textarea id="pEffectivePromptPreview" class="preview-textarea" readonly></textarea>
 
+          <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+            <label class="persona-field-label">Free Conversation session limit</label>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <select id="pSessionLimitMinutes" class="persona-input" style="width:auto; min-width:100px;"></select>
+              <span style="font-size:11px; color:var(--muted);">Default cap for a Free Conversation session, in minutes.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px;">
+              <label style="font-size:12px; display:flex; align-items:center; gap:6px;">Kiosk: <select id="pSessionLimitMinutesKiosk" class="persona-input" style="width:auto; min-width:110px;"></select></label>
+              <label style="font-size:12px; display:flex; align-items:center; gap:6px;">Mobile QR: <select id="pSessionLimitMinutesMobileQr" class="persona-input" style="width:auto; min-width:110px;"></select></label>
+              <span style="font-size:11px; color:var(--muted);">Leave "Default" to use the general limit above for that context.</span>
+            </div>
+          </div>
+
           <div style="display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;">
             <button class="btn-icon primary" id="personaSaveBtn">Save changes</button>
             <button class="secondary" id="personaResetBtn" style="margin:0;">Reset to defaults</button>
@@ -1457,8 +1472,24 @@
   function isTapToStartSupportedForCurrentProvider() {
     return TAP_TO_START_SUPPORTED_PROVIDERS.has(selectedRealtimeProvider);
   }
+  // Deployment context (?context=kiosk or ?context=mobile_qr in the URL) --
+  // lets the session-duration cap differ per deployment type; read once at
+  // load, never changes for the life of the page. Empty string (the
+  // ordinary browser case) means "use the general default" server-side.
+  const sessionContext = new URLSearchParams(location.search).get('context') || '';
   let voiceMode = 'hold_to_talk';
   let tapToStartActive = false;   // a Tap to Start conversation is open (mic+session live)
+  // Never actually declared anywhere despite being assigned in disconnect()
+  // and stopFreeConversation() -- under 'use strict' that assignment threw
+  // "tapSilenceStartedAt is not defined", silently aborting BOTH functions
+  // partway through every single time (after the button's text/state was
+  // already updated, but before ws.close()/stopMic() ran) -- reproduced
+  // live: the Connect/Disconnect button visually flips but the WebSocket
+  // never actually closes, so the very next click re-enters disconnect()
+  // instead of opening a fresh connection. Confirmed dead otherwise (only
+  // ever assigned, never read) -- declared here to match its sibling
+  // tap-state variables rather than removed, in case a future caller reads it.
+  let tapSilenceStartedAt = null;
   let tapIdleTimer = null;        // 5s auto-close timer, armed only once the assistant has fully finished speaking
   let tapToStartIdleTimeoutMs = 5000; // overwritten from /api/persona's config on load
   let pendingTapStart = false;    // Tap to Start pressed before the ws connection finished opening
@@ -1531,6 +1562,17 @@
   // resurrect audio that was supposed to be dead.
   let acceptedPlaybackGenerationId = null;
   let cancelledGenerationIds = new Set();
+  // Bumped by every stop (hard or fade-out). An async operation that will
+  // eventually try to touch the AudioContext (decodeAudioData callbacks)
+  // captures the epoch at the moment it started and compares before acting —
+  // a stale epoch means a stop ran in between and the result must be
+  // discarded, not scheduled/resurrected.
+  let playbackEpoch = 0;
+  // AudioBufferSourceNode -> GainNode, so a barge-in can fade a source's
+  // volume down instead of hard-cutting it (avoids an audible click) while
+  // still letting stopPlaybackImmediately() reach in and hard-stop instantly
+  // when a click is acceptable (disconnect/error/server-cancel paths).
+  let sourceGainNodes = new WeakMap();
   let avatar3d = null;
   let avatarOutputAnalyser = null;
   let avatarOutputAnalyserContext = null;
@@ -2324,6 +2366,7 @@
     ws.addEventListener('error', () => {
       DeviceVisual.setState('error');
       log('ws_error', {});
+      reportSessionEndAnalytics('technical_error');
     });
 
     ws.addEventListener('message', (event) => {
@@ -2354,9 +2397,22 @@
       micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
       processorLive: Boolean(processor),
     });
+    // performAutoEnd() already reported its own (more specific) reason and
+    // set this before calling disconnect() -- otherwise this genuinely IS a
+    // manual disconnect (main button, mode switch while connected, etc).
+    reportSessionEndAnalytics(pendingTerminationReason || 'user_disconnect');
+    pendingTerminationReason = null;
 
     stopPlaybackImmediately({ reason: 'user_disconnect', generationId: acceptedPlaybackGenerationId });
-    DeviceVisual.setState('ready');
+    // Must be 'disconnected', not 'ready' — 'ready' is the "connected and
+    // listening" state and left the UI looking like the conversation was
+    // still active after the user explicitly ended it.
+    DeviceVisual.setState('disconnected');
+    // Set directly here too, not only from the WebSocket 'close' listener —
+    // ws.close() firing 'close' is not instant/guaranteed in every case.
+    // Idempotent: the 'close' listener calls this again when/if it does
+    // fire, which is harmless (same state, same button text).
+    setConnectionButton('disconnected');
 
     isHolding = false; // stop sending audio frames before the mic itself is torn down
     stopMic();
@@ -2364,7 +2420,7 @@
 
     // disconnect() is the one low-level teardown point called from several
     // places (the main Connect/Disconnect button's toggleConnection(),
-    // stopConversationOnTap(), mode/provider switches) — it must always leave
+    // stopFreeConversation(), mode/provider switches) — it must always leave
     // Tap to Start bookkeeping consistent, not just whichever caller happened
     // to invoke it. Without this, disconnecting via the main button left
     // tapToStartActive stuck true, so startConversationOnTap()'s
@@ -2372,9 +2428,19 @@
     // attempt to start a conversation — looked exactly like "the button
     // doesn't react."
     cancelTapIdleTimer();
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    stopVoiceSessionTimerDisplay();
+    pendingAutoEnd = null;
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
+    // Full session-scoped reset for the next CONNECT (any mode) -- without
+    // this a local barge-in that armed/disarmed the VAD mid-conversation
+    // would leave stale consecutiveLoud/armed state carried into whatever
+    // conversation opens next, in either voice mode.
+    localVadState.consecutiveLoud = 0;
+    localVadState.armed = true;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
@@ -2408,6 +2474,16 @@
   function setConnectionButton(state) {
     lastConnectionState = state;
     const btn = el('connectBtn');
+    // Defensive consistency guard: the top status indicator (DeviceVisual's
+    // avatarStatus/dot, "Подключено"/"Отключено" etc.) and this button MUST
+    // never show contradicting states -- confirmed live in production that
+    // they can otherwise drift apart (button read "Подключить" while the
+    // status indicator still read "Подключено"). Whatever code path got
+    // here believing the connection is disconnected, force the status
+    // indicator to agree -- idempotent and harmless if it already does.
+    if (state === 'disconnected' && DeviceVisual.getState() !== 'disconnected') {
+      DeviceVisual.setState('disconnected');
+    }
     if (!btn) return;
     btn.textContent = getUiString(CONNECTION_BUTTON_KEY[state] || 'connect');
     btn.disabled = state === 'connecting';
@@ -2434,7 +2510,23 @@
     // Checked before the log()/visual.* routing below on purpose: nothing
     // about silencing local playback should wait on those.
     if (payload.type === 'response.interrupted') {
-      stopPlaybackImmediately({ reason: payload.reason || 'provider_interrupted', generationId: payload.generation_id });
+      // Guard against a LATE interrupt for an already-superseded generation
+      // (A) clobbering playback that has already moved on to a newer one
+      // (B) -- only act if the interrupt targets what the client is
+      // CURRENTLY playing/accepting. A stale interrupt for A must not stop
+      // B's already-started playback.
+      if (
+        payload.generation_id &&
+        acceptedPlaybackGenerationId &&
+        payload.generation_id !== acceptedPlaybackGenerationId
+      ) {
+        sendTelemetry('stale_interrupt_ignored', {
+          interruptedGenerationId: payload.generation_id,
+          currentGenerationId: acceptedPlaybackGenerationId,
+        });
+      } else {
+        stopPlaybackImmediately({ reason: payload.reason || 'provider_interrupted', generationId: payload.generation_id });
+      }
     }
     log(payload.type, { turn: payload.turn_id, gen: payload.generation_id });
     setText('dSession', payload.session_id || '—');
@@ -2524,7 +2616,22 @@
         // src/realtime/realtimeServer.js's handleNativeSpeechStarted()) —
         // that is the "provider-native event of speech starting" the idle
         // timer must be cancelled by, not local RMS.
-        if (voiceMode === 'tap_to_start') cancelTapIdleTimer();
+        if (voiceMode === 'tap_to_start') {
+          cancelTapIdleTimer();
+          // Real user speech (this event is provider-native-VAD-driven, per
+          // the comment above -- never fired for the agent's own audio
+          // playback) cancels any inactivity auto-end in progress and
+          // restarts the 90s inactivity clock. Session-limit timers are
+          // deliberately untouched here -- that cap is absolute, not
+          // activity-based.
+          if (tapToStartActive) {
+            if (pendingAutoEnd && pendingAutoEnd.reason === 'inactivity_timeout') {
+              pendingAutoEnd = null;
+              sendTelemetry('inactivity_auto_end_cancelled_by_speech', {});
+            }
+            armInactivityWarnTimer();
+          }
+        }
         break;
       case 'input_audio.end':
         inputEndedAt = performance.now();
@@ -2552,6 +2659,17 @@
         setText('langState', payload.to_language || '—');
         break;
       case 'audio.start':
+        // A late/reordered audio.start for a generation already cancelled
+        // must NOT re-arm playback acceptance -- it would silently resurrect
+        // a dead generation and, worse, clobber acceptedPlaybackGenerationId
+        // back off of whatever newer generation the client has already moved
+        // on to. Every other handler that touches acceptedPlaybackGenerationId
+        // is guarded by isGenerationAccepted()/cancelledGenerationIds; this
+        // was the one unguarded assignment.
+        if (payload.generation_id && cancelledGenerationIds.has(payload.generation_id)) {
+          sendTelemetry('audio_start_for_cancelled_generation_ignored', { generationId: payload.generation_id });
+          break;
+        }
         if (!modelEventSeenForTurn[payload.turn_id]) {
           modelEventSeenForTurn[payload.turn_id] = true;
           itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'audio.start' });
@@ -2734,7 +2852,19 @@
     // Stopped(). isHolding simply gates "is the mic pipeline armed at all" —
     // for Hold to Talk that's true only while the button is held; for Tap to
     // Start it's true for the whole conversation (see resumeTapListening()/
-    // stopConversationOnTap() below), not re-toggled per utterance.
+    // stopFreeConversation() below), not re-toggled per utterance.
+    // ---- Local barge-in VAD (Free Conversation / tap_to_start only) ----
+    // Pure, hardware-independent so it can be unit-tested directly (see
+    // tests/dashboardBargeIn.test.js) without a real microphone/AudioContext.
+    // Threshold reuses the SAME amplitude value already established elsewhere
+    // in this file as "genuine speech, not silence" — see
+    // first_non_silent_frame above and the server's NO_SPEECH_AMPLITUDE_THRESHOLD
+    // (realtimeServer.js), not a newly-invented number. Hysteresis (low <
+    // high) plus a multi-frame confirmation window is defense-in-depth on
+    // top of the WebRTC echoCancellation already enabled for tap_to_start in
+    // acquireMic() — AEC is what actually cancels the assistant's own voice
+    // out of the mic signal; this only prevents a single loud transient
+    // (a click, a cough) from firing a barge-in before AEC has settled.
     processor.onaudioprocess = (e) => {
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
@@ -2752,6 +2882,17 @@
         itrace('processor_first_callback', { peak: Math.round(peak) });
         itrace('first_frame_sent', { bytes: pcm16.buffer.byteLength });
         itrace('pointerdown_to_first_frame_ms', { ms: Math.round(performance.now() - lastPointerdownAt) });
+      }
+      // Local barge-in: only while Free Conversation is open AND the
+      // assistant is actually the one making sound right now. Hold to Talk's
+      // interrupt path is pointerdown-driven (startTurn()), not this.
+      if (voiceMode === 'tap_to_start' && tapToStartActive && DeviceVisual.getState() === 'speaking') {
+        const confirmed = evaluateLocalVadFrame(localVadState, peak, {
+          highThreshold: LOCAL_VAD_HIGH_PEAK,
+          lowThreshold: LOCAL_VAD_LOW_PEAK,
+          confirmFrames: LOCAL_VAD_CONFIRM_FRAMES,
+        });
+        if (confirmed) triggerLocalBargeIn(peak);
       }
       // Diagnostic only — same amplitude threshold as the server's
       // no-speech gate (NO_SPEECH_AMPLITUDE_THRESHOLD), so a client trace
@@ -2813,14 +2954,21 @@
     // Stop any currently-playing assistant audio and flip the UI to
     // "listening" IMMEDIATELY on press — this is the client's own
     // AudioContext, so there is no reason to wait for a server round-trip
-    // (session.interrupt -> response.cancelled) before silencing it. The
-    // server-side cancellation (see realtimeServer.js's cancelCurrent(),
-    // triggered automatically by the input_audio.start sent below) still
-    // happens and stops new audio.chunk events from arriving; this just
-    // makes the *local* stop instant instead of network-latency-bound.
-    stopPlaybackImmediately({ reason: 'user_interrupt_ptt', generationId: acceptedPlaybackGenerationId });
+    // (session.interrupt -> response.cancelled) before silencing it. A short
+    // gain fade-out (not a hard cut) avoids an audible click; the fade
+    // itself is fire-and-forget -- it must never delay recording start
+    // below. The explicit client_barge_in sent right after is NOT delayed
+    // behind ensureAudioContextRunning()/ensureMic()'s async gaps the way
+    // input_audio.start (sent later in this function) is -- the server needs
+    // to cancel the old generation as early as possible, independent of how
+    // long mic/AudioContext setup takes.
+    const bargeInGenerationId = acceptedPlaybackGenerationId;
+    stopPlaybackWithFadeOut({ reason: 'user_interrupt_ptt', generationId: bargeInGenerationId, fadeMs: 120 });
     DeviceVisual.setState('ready');
     setText('speakerState', 'you');
+    if (ws && ws.readyState === WebSocket.OPEN && bargeInGenerationId) {
+      ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'client_barge_in_ptt' }));
+    }
     const turnInteractionId = currentInteractionId;
 
     // Must run BEFORE ensureMic() and must not be skipped on a "already
@@ -2957,7 +3105,7 @@
     pendingContextTurnStart = false;
 
     // Full state snapshot before/after teardown — the requirement this is
-    // meant to make verifiable is that teardown (stopConversationOnTap()/
+    // meant to make verifiable is that teardown (stopFreeConversation()/
     // disconnect(), both awaited below, never fire-and-forget in parallel
     // with the new mode starting up) actually completes before the new mode
     // takes over the mic/ws.
@@ -2973,7 +3121,7 @@
     });
 
     if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
-      await stopConversationOnTap();
+      await stopFreeConversation();
     } else if (voiceMode === 'hold_to_talk' && isHolding) {
       endTurn();
     }
@@ -3012,6 +3160,15 @@
     tapToStartActive = true;
     setPttCaption();
     if (ws && ws.readyState === WebSocket.OPEN) {
+      // Starting a new Free Conversation over an already-open socket
+      // (stopFreeConversation() left ws connected but stopped the mic) --
+      // the mic must be re-acquired fresh; resumeTapListening() only sends
+      // the confirmation and does not itself acquire a stream.
+      try {
+        await ensureMic();
+      } catch (err) {
+        sendTelemetry('mic_prewarm_error', { message: err.message });
+      }
       resumeTapListening();
       return;
     }
@@ -3029,8 +3186,17 @@
     connect();
   }
 
-  async function stopConversationOnTap() {
+  // Ends the active Free Conversation turn WITHOUT closing the WebSocket --
+  // disconnect() (below) remains the only thing that closes the socket and
+  // resets the overall connection status. Splitting these is what lets
+  // "ЗАВЕРШИТЬ РАЗГОВОР" -> "НАЧАТЬ РАЗГОВОР" reuse the same connection
+  // instead of forcing a full reconnect for every conversation.
+  async function stopFreeConversation() {
     cancelTapIdleTimer();
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    stopVoiceSessionTimerDisplay();
+    pendingAutoEnd = null;
     tapSilenceStartedAt = null;
     pendingTapStart = false;
     tapToStartActive = false;
@@ -3040,7 +3206,26 @@
         ws.send(JSON.stringify({ type: 'input_audio.end' }));
       }
     }
-    disconnect();
+    // Cancel whatever generation the provider still has in flight -- the
+    // same session.interrupt message barge-in already uses, sent
+    // immediately rather than waiting on a round-trip;
+    // realtimeServer.js's cancelCurrent() is a no-op if nothing is
+    // actually active.
+    const cancelledGenerationId = acceptedPlaybackGenerationId;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_stop_free_conversation' })); } catch { /* best-effort */ }
+    }
+    stopPlaybackImmediately({ reason: 'user_stop_free_conversation', generationId: cancelledGenerationId });
+    stopMic();
+    // Re-arm the local VAD for the NEXT Free Conversation exactly like a
+    // fresh createLocalVadState() would -- must not carry over
+    // consecutiveLoud/armed from the ended conversation.
+    localVadState.consecutiveLoud = 0;
+    localVadState.armed = true;
+    // Socket and overall connection status are deliberately left untouched
+    // -- ws stays OPEN, the Connect/Disconnect button stays showing
+    // "Disconnect" (still CONNECTED). Only disconnect() closes the channel.
+    DeviceVisual.setState('ready');
     setPttCaption();
   }
 
@@ -3059,6 +3244,13 @@
     isHolding = true;
     setText('micState', 'recording');
     DeviceVisual.setState('listening');
+    // Called exactly once per Free Conversation start (see this function's
+    // own header comment) -- the right single place to start both the
+    // inactivity clock and the overall session-duration cap for this
+    // conversation, not per-utterance.
+    armInactivityWarnTimer();
+    armSessionLimitTimers();
+    startVoiceSessionTimerDisplay();
     // Report the mic pipeline actually backing this conversation (not the
     // requested constraints — track.getSettings() reflects what the browser
     // actually granted) so the server can gate barge-in on a confirmed,
@@ -3088,7 +3280,7 @@
   }
   function onTapIdleTimeout() {
     tapIdleTimer = null;
-    stopConversationOnTap();
+    stopFreeConversation();
   }
 
   function sendTextTurn() {
@@ -3301,7 +3493,7 @@
     // doesn't support it, don't leave voiceMode stuck on a mode the mic
     // button can no longer act on.
     if (voiceMode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) {
-      if (tapToStartActive || pendingTapStart) await stopConversationOnTap();
+      if (tapToStartActive || pendingTapStart) await stopFreeConversation();
       if (ws) disconnect();
       voiceMode = 'hold_to_talk';
     }
@@ -3344,6 +3536,261 @@
   // cancelled — checked once on arrival (playAudioChunk) and again right
   // before scheduling (schedulePlayback), since decodeAudioData is async and
   // a cancel can land in the gap between the two.
+  // ---- Local barge-in VAD (Free Conversation / tap_to_start) ----
+  // Pure, hardware-independent -- unit-tested directly (tests/dashboardBargeIn.test.js)
+  // without a real microphone/AudioContext. Threshold reuses the SAME
+  // amplitude value already established elsewhere in this file as "genuine
+  // speech, not silence" — see first_non_silent_frame and the server's
+  // NO_SPEECH_AMPLITUDE_THRESHOLD (realtimeServer.js), not a newly-invented
+  // number. Hysteresis (low < high) plus a multi-frame confirmation window
+  // is defense-in-depth on top of the WebRTC echoCancellation already
+  // enabled for tap_to_start in acquireMic() — AEC is what actually cancels
+  // the assistant's own voice out of the mic signal; this only prevents a
+  // single loud transient (a click, a cough) from firing a barge-in before
+  // AEC has settled.
+  function createLocalVadState() {
+    return { consecutiveLoud: 0, armed: true };
+  }
+  // Returns true exactly once per continuous loud episode -- re-arms only
+  // after the level drops back below the LOW threshold, so a sustained
+  // barge-in utterance can never send more than one client_barge_in.
+  function evaluateLocalVadFrame(state, peak, opts) {
+    const high = opts.highThreshold;
+    const low = opts.lowThreshold;
+    const confirmFrames = opts.confirmFrames;
+    if (peak >= high) {
+      if (state.armed) {
+        state.consecutiveLoud += 1;
+        if (state.consecutiveLoud >= confirmFrames) {
+          state.armed = false;
+          return true;
+        }
+      }
+    } else if (peak < low) {
+      state.consecutiveLoud = 0;
+      state.armed = true;
+    }
+    return false;
+  }
+
+  const LOCAL_VAD_HIGH_PEAK = 500;
+  const LOCAL_VAD_LOW_PEAK = 250;
+  const LOCAL_VAD_CONFIRM_FRAMES = 3; // ~3 x 2048-sample callbacks (~384ms @16kHz)
+  const localVadState = createLocalVadState();
+  let localBargeInEpisodeId = 0;
+
+  // ---- Free Conversation: automatic end on user inactivity ----
+  // Keyed strictly on real user speech (server-native-VAD-driven
+  // input_audio.start, see handleEvent() below) -- the agent's own audio
+  // playback (audio.start/audio.end) must never count as activity, or a
+  // long assistant reply would silently keep resetting the clock.
+  const FREE_CONV_INACTIVITY_WARNING_MS = 90000;
+  const FREE_CONV_INACTIVITY_GRACE_MS = 30000;
+  const FREE_CONV_INACTIVITY_WARNING_TEXT = 'Вы ещё здесь? Если хотите продолжить, просто скажите что-нибудь или нажмите кнопку.';
+  const FREE_CONV_INACTIVITY_GOODBYE_TEXT = 'Похоже, мы сделали небольшую паузу. Я завершу разговор. Возвращайтесь, когда захотите продолжить.';
+  let inactivityWarnTimer = null;
+  let inactivityGraceTimer = null;
+
+  // ---- Free Conversation: overall session duration cap ----
+  // Server-controlled (see /api/persona's freeConversationSessionLimitMs,
+  // src/server.js's FREE_CONVERSATION_SESSION_LIMIT_MS) so the client can
+  // never silently extend its own session -- only the value loaded from the
+  // server at startup is ever used.
+  let freeConversationSessionLimitMs = 3 * 60 * 1000; // default; overwritten from /api/persona on load
+  const FREE_CONV_SESSION_WARNING_LEAD_MS = 30000;
+  const FREE_CONV_SESSION_WARNING_TEXT = 'У нас осталось полминуты. Давайте успеем разобрать последний вопрос.';
+  const FREE_CONV_SESSION_LIMIT_TEXT = 'Мне пора немного отдохнуть. Если захотите продолжить, начните новый разговор.';
+  let sessionLimitWarnTimer = null;
+  let sessionLimitEndTimer = null;
+  let freeConversationStartedAt = null; // set once per conversation, in resumeTapListening()
+  let voiceSessionTickInterval = null;
+
+  // Small always-visible countdown under the Free Conversation button --
+  // remaining time before the absolute session cap (not the inactivity
+  // clock, which is silent until its own spoken warning).
+  function formatRemainingMmSs(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function updateVoiceSessionTimerDisplay() {
+    const el2 = el('voiceSessionTimer');
+    if (!el2) return;
+    if (!(voiceMode === 'tap_to_start' && tapToStartActive && freeConversationStartedAt)) {
+      el2.hidden = true;
+      return;
+    }
+    const elapsed = Date.now() - freeConversationStartedAt;
+    const remaining = freeConversationSessionLimitMs - elapsed;
+    el2.hidden = false;
+    el2.textContent = formatRemainingMmSs(remaining);
+  }
+
+  function startVoiceSessionTimerDisplay() {
+    stopVoiceSessionTimerDisplay();
+    freeConversationStartedAt = Date.now();
+    updateVoiceSessionTimerDisplay();
+    voiceSessionTickInterval = setInterval(updateVoiceSessionTimerDisplay, 1000);
+  }
+
+  function stopVoiceSessionTimerDisplay() {
+    if (voiceSessionTickInterval) { clearInterval(voiceSessionTickInterval); voiceSessionTickInterval = null; }
+    freeConversationStartedAt = null;
+    const el2 = el('voiceSessionTimer');
+    if (el2) el2.hidden = true;
+  }
+
+  // Two-phase closing sequence shared by both auto-end paths: `await_drain`
+  // means "wait for whatever the assistant is currently saying to finish,
+  // THEN speak the closing line"; `closing_sent` means "the closing line has
+  // been submitted, wait for IT to finish playing, THEN actually
+  // disconnect". Both phases resolve through maybeFinishSpeaking()'s
+  // existing playback-drained hook -- see there and performAutoEnd() below.
+  let pendingAutoEnd = null; // { reason, closingText, phase }
+
+  // Set by performAutoEnd()/the ws 'error' listener right before disconnect()
+  // runs, so disconnect() itself knows the real reason instead of always
+  // assuming a manual click. Read-and-cleared by disconnect() -- defaults to
+  // 'user_disconnect' when nothing more specific was set, since that IS the
+  // main button's own meaning.
+  let pendingTerminationReason = null;
+
+  function reportSessionEndAnalytics(reason) {
+    if (!tapToStartActive && reason !== 'user_disconnect') return; // only meaningful for an actual Free Conversation
+    try {
+      fetch('/api/analytics/session-end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason,
+          sessionId: websocketConnectionId || null,
+          voiceMode,
+          context: sessionContext,
+          durationMs: freeConversationStartedAt ? Date.now() - freeConversationStartedAt : null,
+        }),
+      }).catch(() => { /* best-effort */ });
+    } catch { /* best-effort */ }
+  }
+
+  function clearInactivityTimers() {
+    if (inactivityWarnTimer) { clearTimeout(inactivityWarnTimer); inactivityWarnTimer = null; }
+    if (inactivityGraceTimer) { clearTimeout(inactivityGraceTimer); inactivityGraceTimer = null; }
+  }
+
+  function clearSessionLimitTimers() {
+    if (sessionLimitWarnTimer) { clearTimeout(sessionLimitWarnTimer); sessionLimitWarnTimer = null; }
+    if (sessionLimitEndTimer) { clearTimeout(sessionLimitEndTimer); sessionLimitEndTimer = null; }
+  }
+
+  // Best-effort: asks the model (via the same text-turn channel typing a
+  // question uses) to speak this exact line. The transcript panel that used
+  // to echo input_text.submit was removed per an earlier request, so this
+  // never becomes visible UI text -- it only reaches the model.
+  function speakScriptedLine(text) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: 'input_text.submit', text: `[system instruction, speak this exact sentence verbatim and nothing else] ${text}` }));
+  }
+
+  function armInactivityWarnTimer() {
+    clearInactivityTimers();
+    inactivityWarnTimer = setTimeout(() => {
+      inactivityWarnTimer = null;
+      if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      speakScriptedLine(FREE_CONV_INACTIVITY_WARNING_TEXT);
+      sendTelemetry('inactivity_warning_spoken', {});
+      inactivityGraceTimer = setTimeout(() => {
+        inactivityGraceTimer = null;
+        if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+        triggerAutoEnd('inactivity_timeout', FREE_CONV_INACTIVITY_GOODBYE_TEXT);
+      }, FREE_CONV_INACTIVITY_GRACE_MS);
+    }, FREE_CONV_INACTIVITY_WARNING_MS);
+  }
+
+  function armSessionLimitTimers() {
+    clearSessionLimitTimers();
+    const limitMs = freeConversationSessionLimitMs;
+    const warnAt = Math.max(0, limitMs - FREE_CONV_SESSION_WARNING_LEAD_MS);
+    sessionLimitWarnTimer = setTimeout(() => {
+      sessionLimitWarnTimer = null;
+      if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      speakScriptedLine(FREE_CONV_SESSION_WARNING_TEXT);
+      sendTelemetry('session_limit_warning_spoken', {});
+    }, warnAt);
+    sessionLimitEndTimer = setTimeout(() => {
+      sessionLimitEndTimer = null;
+      if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT);
+    }, limitMs);
+  }
+
+  // reason is one of: session_timeout, inactivity_timeout (user_disconnect
+  // and technical_error are reported directly at their own call sites, not
+  // through here) -- surfaced via telemetry as a first step toward a real
+  // termination-reason analytics field.
+  function triggerAutoEnd(reason, closingText) {
+    if (pendingAutoEnd) return; // already ending
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    pendingAutoEnd = { reason, closingText, phase: activeSources.size > 0 ? 'await_drain' : 'ready' };
+    sendTelemetry('auto_end_triggered', { reason, phase: pendingAutoEnd.phase });
+    if (pendingAutoEnd.phase === 'ready') {
+      speakScriptedLine(pendingAutoEnd.closingText);
+      pendingAutoEnd.phase = 'closing_sent';
+    }
+  }
+
+  // Called from maybeFinishSpeaking() once the assistant has genuinely
+  // drained (not just audio.end) -- returns true if it consumed this drain
+  // event as part of an auto-end in progress, so the caller must not also
+  // run its normal post-reply behavior (e.g. re-arming the short
+  // resume-listening idle timer).
+  function handleAutoEndDrain() {
+    if (!pendingAutoEnd) return false;
+    if (pendingAutoEnd.phase === 'await_drain') {
+      speakScriptedLine(pendingAutoEnd.closingText);
+      pendingAutoEnd.phase = 'closing_sent';
+      return true;
+    }
+    if (pendingAutoEnd.phase === 'closing_sent') {
+      const reason = pendingAutoEnd.reason;
+      pendingAutoEnd = null;
+      performAutoEnd(reason);
+      return true;
+    }
+    return false;
+  }
+
+  function performAutoEnd(reason) {
+    sendTelemetry('auto_end_completed', { reason });
+    reportSessionEndAnalytics(reason);
+    pendingTerminationReason = reason;
+    clearInactivityTimers();
+    clearSessionLimitTimers();
+    disconnect();
+    setPttCaption();
+  }
+  function triggerLocalBargeIn(peak) {
+    localBargeInEpisodeId += 1;
+    const supersededGenerationId = acceptedPlaybackGenerationId;
+    sendTelemetry('local_barge_in_detected', {
+      peak: Math.round(peak),
+      supersededGenerationId,
+      episodeId: localBargeInEpisodeId,
+    });
+    stopPlaybackWithFadeOut({ reason: 'local_vad_barge_in', generationId: supersededGenerationId, fadeMs: 120 });
+    // Sent immediately, not after the fade-out completes -- the server must
+    // cancel the old generation as soon as possible regardless of how long
+    // the local fade takes. Reuses the existing session.interrupt message
+    // (realtimeServer.js -> cancelCurrent()), which is naturally idempotent
+    // (no-ops once the generation is already terminal), so a duplicate send
+    // for the same episode is harmless.
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'client_barge_in' }));
+    }
+  }
+
   function isGenerationAccepted(generationId) {
     return Boolean(acceptedPlaybackGenerationId)
       && generationId === acceptedPlaybackGenerationId
@@ -3396,16 +3843,23 @@
     sendTelemetry('playback_stopped', { reason: 'drained' });
     if (DeviceVisual.getState() === 'speaking') DeviceVisual.setState('ready');
     if (avatar3d) avatar3d.resetAudio();
-    // Tap to Start: the assistant has FULLY finished (playback drained, not
-    // just audio.end received) — start the 5s idle-close timer now, exactly
-    // per the requirement that it must only run once the response is truly
-    // over. The mic itself was never stopped between utterances (see
-    // resumeTapListening()'s header comment), so there is nothing to
-    // "re-arm" here anymore — the provider's own native VAD is already
-    // listening for the next utterance.
-    if (voiceMode === 'tap_to_start' && tapToStartActive) {
-      startTapIdleTimer();
-    }
+    // An auto-end (inactivity or session-limit) in progress takes over this
+    // drain event entirely -- see handleAutoEndDrain().
+    if (handleAutoEndDrain()) return;
+    // The legacy 5s "silent idle-close" (startTapIdleTimer()/
+    // onTapIdleTimeout(), armed here in every earlier version of this
+    // function) is DELIBERATELY no longer called. Confirmed live in
+    // production: when the new 90s inactivity check-in line itself
+    // finishes playing, THIS same drain event fires -- at that point
+    // pendingAutoEnd is still null (only the 30s grace timer is armed, the
+    // grace period itself hasn't elapsed yet), so handleAutoEndDrain()
+    // above returns false and execution reaches here. The old code then
+    // armed a 5-SECOND timer that silently ended the conversation almost
+    // immediately after the check-in line -- completely ignoring the
+    // mandated 30s grace window. The new armInactivityWarnTimer()/
+    // triggerAutoEnd() system (see resumeTapListening()) now fully owns
+    // "how long to wait before ending an idle Free Conversation"; this
+    // function must not independently race it with a much shorter timer.
   }
 
   // generationId must match isGenerationAccepted() at call time — checked
@@ -3423,7 +3877,13 @@
     }
     const src = audioContext.createBufferSource();
     src.buffer = buffer;
-    src.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
+    // Per-source gain node so a barge-in can fade this source out smoothly
+    // (see stopPlaybackWithFadeOut()) instead of only ever hard-stopping it.
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 1;
+    src.connect(gainNode);
+    gainNode.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
+    sourceGainNodes.set(src, gainNode);
     const now = audioContext.currentTime;
     const startAt = Math.max(now, playbackQueueTime);
     src.start(startAt);
@@ -3431,6 +3891,7 @@
     activeSources.add(src);
     src.onended = () => {
       activeSources.delete(src);
+      sourceGainNodes.delete(src);
       maybeFinishSpeaking();
     };
   }
@@ -3446,6 +3907,7 @@
     const stopOperationId = nextStopOperationId();
     const startedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     sendTelemetry('playback_stop_started', { stopOperationId, reason, generationId, acceptedPlaybackGenerationId });
+    playbackEpoch += 1;
 
     const activeSourcesBefore = activeSources.size;
     // No separate "not yet scheduled" queue exists in this pipeline — every
@@ -3468,6 +3930,8 @@
     for (const src of activeSources) {
       try { src.onended = null; src.stop(0); } catch { /* already stopped */ }
       try { src.disconnect(); } catch { /* already disconnected */ }
+      const gainNode = sourceGainNodes.get(src);
+      if (gainNode) { try { gainNode.disconnect(); } catch { /* already disconnected */ } sourceGainNodes.delete(src); }
     }
     activeSources.clear();
 
@@ -3503,6 +3967,63 @@
     sendTelemetry('local_playback_stopped', { stopOperationId, reason });
   }
 
+  // Barge-in-specific stop: gates new chunks/generation acceptance and
+  // invalidates pending decodes IMMEDIATELY (same as stopPlaybackImmediately),
+  // but instead of hard-cutting currently-playing sources it ramps their gain
+  // to ~0 over `fadeMs` first, then stops/disconnects them -- avoids an
+  // audible click on every PTT press / voice barge-in. Neither provider
+  // (Gemini, Grok) currently exposes word-boundary timestamps in this
+  // codebase, so there is no "stop exactly at the word boundary" data to use;
+  // this always falls back to the fixed fade, per spec capped well under the
+  // 200ms ceiling that would apply if such data existed.
+  function stopPlaybackWithFadeOut({ reason, generationId, fadeMs = 120 }) {
+    const stopOperationId = nextStopOperationId();
+    sendTelemetry('playback_stop_started', { stopOperationId, reason, generationId, acceptedPlaybackGenerationId, fadeMs });
+    playbackEpoch += 1;
+
+    if (generationId) cancelledGenerationIds.add(generationId);
+    if (acceptedPlaybackGenerationId) cancelledGenerationIds.add(acceptedPlaybackGenerationId);
+    acceptedPlaybackGenerationId = null;
+    sendTelemetry('accepted_generation_cleared', { stopOperationId });
+
+    const sourcesToFade = Array.from(activeSources);
+    const now = audioContext ? audioContext.currentTime : 0;
+    const fadeSeconds = fadeMs / 1000;
+    for (const src of sourcesToFade) {
+      const gainNode = sourceGainNodes.get(src);
+      if (!gainNode || !audioContext) continue;
+      try {
+        const currentGain = gainNode.gain.value;
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(currentGain, now);
+        // Never ramp to literal 0 -- linearRampToValueAtTime treats 0 as
+        // "already there" on some engines and can skip the ramp entirely.
+        gainNode.gain.linearRampToValueAtTime(0.0001, now + fadeSeconds);
+      } catch { /* best-effort fade; hard-stop below still applies on timeout */ }
+    }
+    setTimeout(() => {
+      for (const src of sourcesToFade) {
+        try { src.onended = null; src.stop(0); } catch { /* already stopped */ }
+        try { src.disconnect(); } catch { /* already disconnected */ }
+        const gainNode = sourceGainNodes.get(src);
+        if (gainNode) { try { gainNode.disconnect(); } catch { /* already disconnected */ } sourceGainNodes.delete(src); }
+        activeSources.delete(src);
+      }
+      sendTelemetry('barge_in_fade_out_completed', { stopOperationId, reason, fadeMs, sourcesFaded: sourcesToFade.length });
+      maybeFinishSpeaking();
+    }, fadeMs);
+
+    // playbackQueueTime/serverAudioEnded/DeviceVisual flip to "listening"
+    // happen immediately, same as stopPlaybackImmediately() -- only the
+    // ACTUAL AudioBufferSourceNode.stop() is deferred to let the fade play
+    // out. New chunks/generation acceptance are already blocked above.
+    playbackQueueTime = audioContext ? audioContext.currentTime : 0;
+    serverAudioEnded = true;
+    if (avatar3d) avatar3d.resetAudio();
+    DeviceVisual.setState('listening');
+    sendTelemetry('local_playback_stopped', { stopOperationId, reason });
+  }
+
   function playAudioChunk(payload) {
     const generationId = payload.generation_id;
     if (!isGenerationAccepted(generationId)) {
@@ -3513,8 +4034,13 @@
     if (payload.mime_type === 'audio/wav') {
       audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
       pendingDecodeCount += 1;
+      const epochAtDecodeStart = playbackEpoch;
       audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), (buf) => {
         pendingDecodeCount = Math.max(0, pendingDecodeCount - 1);
+        if (epochAtDecodeStart !== playbackEpoch) {
+          sendTelemetry('stale_decode_discarded', { generationId, epochAtDecodeStart, currentEpoch: playbackEpoch });
+          return; // a stop ran while this decode was in flight
+        }
         if (!isGenerationAccepted(generationId)) {
           sendTelemetry('pending_decode_dropped', { generationId, acceptedPlaybackGenerationId });
           return;
@@ -3575,7 +4101,7 @@
   //
   // Hold to Talk keeps this exact press/release behavior unchanged. Tap to
   // Start reuses the SAME button as a single-tap toggle instead (see
-  // startConversationOnTap()/stopConversationOnTap()) — each wiring style
+  // startConversationOnTap()/stopFreeConversation()) — each wiring style
   // is gated on the current voiceMode so only one is ever active.
   const pttBtn = el('pttBtn');
   pttBtn.addEventListener('pointerdown', () => {
@@ -3622,8 +4148,8 @@
   pttBtn.addEventListener('click', () => {
     if (voiceMode !== 'tap_to_start') return;
     if (tapToStartActive) {
-      sendTelemetry('disconnect_clicked', {});
-      stopConversationOnTap();
+      sendTelemetry('stop_free_conversation_clicked', {});
+      stopFreeConversation();
     } else startConversationOnTap();
   });
 
@@ -3741,7 +4267,8 @@
 
   async function loadPersona(profileId) {
     const pId = profileId || editorProfileId;
-    const res = await fetch(`/api/persona?profileId=${pId}`);
+    const contextParam = sessionContext ? `&context=${encodeURIComponent(sessionContext)}` : '';
+    const res = await fetch(`/api/persona?profileId=${pId}${contextParam}`);
     const data = await res.json();
 
     lastLoadedData = data;
@@ -3814,7 +4341,34 @@
     // Render new voice selectors
     await renderVoiceSelectors(data);
 
+    populateSessionLimitSelects(data);
+
     return data;
+  }
+
+  // Populates the three session-length selects from the server's own
+  // allowed-values list -- never hardcoded client-side, so the admin panel
+  // and the server that enforces the value can never silently disagree.
+  function populateSessionLimitSelects(data) {
+    const allowed = Array.isArray(data.allowedSessionLimitMinutes) ? data.allowedSessionLimitMinutes : [2.5, 3, 5, 10];
+    const formatMinutes = (m) => (m === Math.floor(m) ? String(m) : String(m).replace('.', ','));
+
+    const generalSelect = el('pSessionLimitMinutes');
+    if (generalSelect) {
+      generalSelect.innerHTML = allowed.map((m) => `<option value="${m}">${formatMinutes(m)} мин</option>`).join('');
+      generalSelect.value = String(data.sessionLimitMinutes ?? 3);
+    }
+    const byContext = data.sessionLimitMinutesByContext || {};
+    for (const [context, selectId] of [['kiosk', 'pSessionLimitMinutesKiosk'], ['mobile_qr', 'pSessionLimitMinutesMobileQr']]) {
+      const sel = el(selectId);
+      if (!sel) continue;
+      const options = ['<option value="">По умолчанию</option>'].concat(
+        allowed.map((m) => `<option value="${m}">${formatMinutes(m)} мин</option>`)
+      );
+      sel.innerHTML = options.join('');
+      const override = byContext[context];
+      sel.value = override === null || override === undefined ? '' : String(override);
+    }
   }
 
   function getDraftOverrides() {
@@ -3921,12 +4475,23 @@
     statusEl.textContent = 'Saving…';
     try {
       const draft = getDraftOverrides();
+      const sessionLimitSelect = el('pSessionLimitMinutes');
+      const kioskSelect = el('pSessionLimitMinutesKiosk');
+      const mobileQrSelect = el('pSessionLimitMinutesMobileQr');
+      const parseOverride = (sel) => (sel && sel.value !== '' ? Number(sel.value) : null);
       const res = await fetch('/api/persona', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profileId: editorProfileId,
-          overrides: draft
+          overrides: draft,
+          ...(sessionLimitSelect && sessionLimitSelect.value !== '' ? { sessionLimitMinutes: Number(sessionLimitSelect.value) } : {}),
+          ...(kioskSelect || mobileQrSelect ? {
+            sessionLimitMinutesByContext: {
+              kiosk: parseOverride(kioskSelect),
+              mobile_qr: parseOverride(mobileQrSelect),
+            },
+          } : {}),
         }),
       });
       const data = await res.json();
@@ -5293,6 +5858,11 @@
     }
     if (data && typeof data.tapToStartIdleTimeoutMs === 'number' && data.tapToStartIdleTimeoutMs > 0) {
       tapToStartIdleTimeoutMs = data.tapToStartIdleTimeoutMs;
+    }
+    // Server-controlled Free Conversation session cap -- never widened by
+    // anything client-side; only ever set from this response.
+    if (data && typeof data.freeConversationSessionLimitMs === 'number' && data.freeConversationSessionLimitMs > 0) {
+      freeConversationSessionLimitMs = data.freeConversationSessionLimitMs;
     }
     applyVoiceModeUI();
   })().catch((err) => log('persona_load_error', { message: err.message }));

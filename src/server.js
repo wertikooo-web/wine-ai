@@ -423,6 +423,13 @@ async function handleRequest(req, res) {
             filePath: path.join(publicDir, 'woman avatar 1.png'),
             contentType: 'image/png',
         },
+        // dashboard.html's persona-select card (Александр / classic profile)
+        // has always referenced this path, but no route for it ever existed
+        // here -- a genuine 404 unrelated to any deploy-tooling issue.
+        '/visual-assets/avatar-man-1.png': {
+            filePath: path.join(publicDir, 'avatar wine ai.png'),
+            contentType: 'image/png',
+        },
         '/visual-assets/sample-1.png': {
             filePath: path.join(publicDir, 'Sample 1 .png'),
             contentType: 'image/png',
@@ -627,6 +634,11 @@ async function handleRequest(req, res) {
         try {
             const activeProfileId = personaStore.getActiveProfileId();
             const targetProfileId = requestUrl.searchParams.get('profileId') || activeProfileId;
+            // Deployment context (kiosk / mobile_qr / unset) -- lets the
+            // session-duration cap differ per deployment type; an
+            // unrecognized/missing value falls back to the general default
+            // inside personaStore.getSessionLimitMinutes() itself.
+            const requestContext = requestUrl.searchParams.get('context') || null;
 
             const builtin = getProfileById(targetProfileId);
             if (!builtin) {
@@ -692,6 +704,10 @@ async function handleRequest(req, res) {
                 mood,
                 voiceMode: personaStore.getVoiceMode(),
                 tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
+                freeConversationSessionLimitMs: Math.round(personaStore.getSessionLimitMinutes(requestContext) * 60 * 1000),
+                sessionLimitMinutes: personaStore.getSessionLimitMinutes(null),
+                sessionLimitMinutesByContext: personaStore.getCached().sessionLimitMinutesByContext,
+                allowedSessionLimitMinutes: personaStore.ALLOWED_SESSION_LIMIT_MINUTES,
                 resolved,
                 effectivePromptPreview: preview,
                 overrides,
@@ -813,8 +829,10 @@ async function handleRequest(req, res) {
             'customizationMode', 'effectivePromptPreview', 'resolved', 'languages', 'activeProfileId', 'ok',
             'name', 'description', 'welcomeMessage', 'welcome_message',
             'sommelierGender', 'sommelier_gender', 'personalityPrompt', 'personality_prompt',
-            'systemPrompt', 'system_prompt'
+            'systemPrompt', 'system_prompt',
+            'sessionLimitMinutes', 'sessionLimitMinutesByContext'
         ];
+        const requestContext = requestUrl.searchParams.get('context') || null;
         for (const key of Object.keys(body)) {
             if (!allowedRootKeys.includes(key)) {
                 return sendJson(res, 400, { ok: false, error: 'unknown_root_field' });
@@ -828,6 +846,17 @@ async function handleRequest(req, res) {
             // separately from the overrides/updateProfile() path below.
             if (body.voiceMode !== undefined) {
                 await personaStore.setVoiceMode(body.voiceMode);
+            }
+
+            if (body.sessionLimitMinutes !== undefined) {
+                await personaStore.setSessionLimitMinutes(body.sessionLimitMinutes);
+            }
+            if (body.sessionLimitMinutesByContext !== undefined && typeof body.sessionLimitMinutesByContext === 'object') {
+                for (const context of personaStore.SESSION_LIMIT_CONTEXTS) {
+                    if (Object.prototype.hasOwnProperty.call(body.sessionLimitMinutesByContext, context)) {
+                        await personaStore.setSessionLimitMinutesForContext(context, body.sessionLimitMinutesByContext[context]);
+                    }
+                }
             }
 
             if (body.baseProfileId === null) {
@@ -919,6 +948,10 @@ async function handleRequest(req, res) {
                 mood,
                 voiceMode: personaStore.getVoiceMode(),
                 tapToStartIdleTimeoutMs: TAP_TO_START_IDLE_TIMEOUT_MS,
+                freeConversationSessionLimitMs: Math.round(personaStore.getSessionLimitMinutes(requestContext) * 60 * 1000),
+                sessionLimitMinutes: personaStore.getSessionLimitMinutes(null),
+                sessionLimitMinutesByContext: personaStore.getCached().sessionLimitMinutesByContext,
+                allowedSessionLimitMinutes: personaStore.ALLOWED_SESSION_LIMIT_MINUTES,
                 resolved,
                 effectivePromptPreview: preview,
                 overrides,
@@ -960,6 +993,30 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && purchaseOptionsMatch) {
         const [, wineId] = purchaseOptionsMatch;
         return sendJson(res, 200, { ok: true, wine_id: wineId, options: getPurchaseOptions(wineId) });
+    }
+
+    // Termination-reason analytics for voice sessions -- same lightweight
+    // console.log-based pattern as purchase-click below (no dedicated
+    // analytics table exists in this codebase yet). reason is one of:
+    // session_timeout, inactivity_timeout, user_disconnect, technical_error.
+    if (req.method === 'POST' && pathname === '/api/analytics/session-end') {
+        let body;
+        try {
+            body = await readJsonBody(req);
+        } catch (error) {
+            return sendJson(res, 400, { ok: false, error: 'invalid_json' });
+        }
+        const allowedReasons = ['session_timeout', 'inactivity_timeout', 'user_disconnect', 'technical_error'];
+        const reason = allowedReasons.includes(body.reason) ? body.reason : 'unknown';
+        console.log('[Analytics] session_end', JSON.stringify({
+            reason,
+            sessionId: String(body.sessionId || '').slice(0, 120),
+            voiceMode: String(body.voiceMode || '').slice(0, 40),
+            context: String(body.context || '').slice(0, 40),
+            durationMs: Number.isFinite(body.durationMs) ? Math.round(body.durationMs) : null,
+            at: new Date().toISOString(),
+        }));
+        return sendJson(res, 200, { ok: true });
     }
 
     if (req.method === 'POST' && pathname === '/api/analytics/purchase-click') {

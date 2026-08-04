@@ -216,6 +216,8 @@ async function run() {
             removeItem: () => {}
         },
         URL: global.URL,
+        URLSearchParams: global.URLSearchParams,
+        location: { protocol: 'https:', host: 'test.local', search: '' },
         // Audio & visual stubs to prevent dashboard.html init errors
         AudioContext: function() {
             return {

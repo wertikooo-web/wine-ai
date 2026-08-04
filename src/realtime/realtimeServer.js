@@ -652,16 +652,46 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     // adapter's own native VAD (Gemini's voiceActivity signal, Grok's
     // input_audio_buffer.speech_started/stopped), never by a client
     // message, in tap_to_start mode only.
+    // A turn only counts as "open" while its generation is still genuinely
+    // pending -- a cancelled/completed/failed generation must NEVER block
+    // the next handleNativeSpeechStarted() just because inputEndedAt happens
+    // to still be 0. Combined with cancelCurrent() now stamping inputEndedAt
+    // itself on cancel (see below), this is belt-and-suspenders: either
+    // signal alone is now sufficient to close a barge-in-cancelled turn, so
+    // a future code path that cancels a generation through some route other
+    // than cancelCurrent() doesn't reopen this exact bug.
+    function isTurnOpen() {
+        return Boolean(
+            currentGeneration
+            && currentGeneration.status === 'pending'
+            && inputStartedAt
+            && !inputEndedAt
+        );
+    }
+
     function handleNativeSpeechStarted() {
         if (currentMode !== 'tap_to_start') return;
-        const hasOpenTurn = Boolean(currentGeneration && inputStartedAt && !inputEndedAt);
         // The client's own initial input_audio.start (the tap) already
         // opened this turn — a native "speech started" for that SAME
-        // utterance is just confirmation, not a new-turn signal. Only a
-        // native start arriving with no open turn (every utterance after
-        // the first, or a genuine barge-in over the assistant's own
-        // response) should open a new one.
-        if (hasOpenTurn) return;
+        // utterance is just confirmation, not a new-turn signal, and
+        // currentGeneration here IS that freshly-opened turn's own
+        // generation, not stale residue -- cancelling it here would kill
+        // the user's own turn before it even starts. Only a native start
+        // arriving with no open turn (every utterance after the first, or a
+        // genuine barge-in over the assistant's own response) should cancel
+        // anything / open a new one.
+        if (isTurnOpen()) return;
+        // Cancel whatever generation is still active/streaming BEFORE the
+        // micPipelineConfirmed check below -- a genuine barge-in over an
+        // assistant response must still stop the OLD generation even on the
+        // rare turn where the client's mic-pipeline confirmation hasn't
+        // landed yet. Previously this only ever happened indirectly via
+        // startInput(), further below, which requires micPipelineConfirmed
+        // too — leaving a real barge-in's active generation uncancelled
+        // whenever that one check failed. cancelCurrent() is a no-op once
+        // the generation is already terminal, so calling it here is safe
+        // even when there is nothing to cancel.
+        cancelCurrent('native_speech_started');
         // Belt-and-suspenders on top of client-side AEC (which is the actual
         // fix): don't trust a native "speech started" into opening a new
         // turn/cancelling the active response unless the client has told us
@@ -680,10 +710,25 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
         startInput({ mode: 'tap_to_start' });
     }
 
-    function handleNativeSpeechStopped() {
+    // generationId is the generation the CALLER believes it just finished
+    // input for (geminiLiveProvider.js's emitOutputEnd() passes
+    // this.active.generationId; Grok's real-time server_vad stop doesn't
+    // have an equivalent late-arrival risk and is allowed to omit it).
+    // Without this check, a LATE natural-completion signal for an OLD
+    // generation (already superseded by a barge-in and a fresh turn C)
+    // would call endInput() and wrongly stamp inputEndedAt on the CURRENT
+    // open turn instead of the stale one it actually belongs to.
+    function handleNativeSpeechStopped(generationId) {
         if (currentMode !== 'tap_to_start') return;
-        const hasOpenTurn = Boolean(currentGeneration && inputStartedAt && !inputEndedAt);
-        if (!hasOpenTurn) return;
+        if (generationId && (!currentGeneration || currentGeneration.generationId !== generationId)) {
+            log('native_speech_stopped_ignored_stale_generation', {
+                provider: providerSession?.name || 'provider',
+                generationId,
+                currentGenerationId: currentGeneration?.generationId || 'none',
+            });
+            return;
+        }
+        if (!isTurnOpen()) return;
         log('native_speech_stopped', { provider: providerSession?.name || 'provider' });
         endInput({ end_reason: 'provider_vad' });
     }
@@ -1381,6 +1426,23 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
             interrupt_requested_at: cancelRequestedAt,
         });
         currentGeneration.status = 'cancelled';
+        // A barge-in-cancelled generation never reaches emitOutputEnd()'s
+        // natural-completion path -- the ONLY other place inputEndedAt is
+        // set (geminiLiveProvider.js's emitOutputEnd(), tap_to_start's
+        // "input-end via response-end" fallback for accounts with no
+        // voiceActivity signal). Without this, isTurnOpen() would see this
+        // now-cancelled generation as still open forever (inputEndedAt
+        // stuck at 0), silently blocking every SUBSEQUENT
+        // handleNativeSpeechStarted() call from ever opening a new turn --
+        // confirmed via production logs: the second barge-in in a session
+        // never opened the next turn, input just accumulated until
+        // input_replay_buffer_full. Guarded by !inputEndedAt so this never
+        // clobbers a timestamp that's already meaningful (e.g. hold_to_talk,
+        // which always sets this itself via the client's own
+        // input_audio.end and doesn't need this fallback at all).
+        if (currentMode === 'tap_to_start' && !inputEndedAt) {
+            inputEndedAt = Date.now();
+        }
         clearGenerationTimeout(currentGeneration);
         visualOrchestrator.cancel(currentGeneration.generationId, reason);
         const cancelLatencyMs = Date.now() - cancelRequestedAt;
