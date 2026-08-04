@@ -987,6 +987,25 @@
   </section>
 
   <section class="panel" id="tab-knowledge">
+    <details class="card pm-card" open id="knowledgeEvaluationPanel">
+      <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Текстовая проверка ответов <span class="badge" id="evalRunCount">0 / 250</span></h2></summary>
+      <p style="font-size:12px; color:var(--muted); margin:10px 0;">Вставьте по одному вопросу в строке. Прогон идёт только текстом через тот же маршрут поиска знаний, что и ассистент; голос и микрофон не включаются.</p>
+      <textarea id="evalQuestions" rows="7" maxlength="30000" placeholder="Что вы знаете о винодельне Aurelius?&#10;Какое вино выбрать к баранине?&#10;Unde pot cumpăra acest vin?" style="width:100%; resize:vertical; font:inherit;"></textarea>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;">
+        <select id="evalLanguage" style="width:auto; margin:0;"><option value="auto">Язык: авто</option><option value="ru">Русский</option><option value="ro">Română</option><option value="en">English</option></select>
+        <label style="font-size:12px; display:flex; gap:6px; align-items:center;"><input type="checkbox" id="evalAllowWeb"> Разрешить web для свежих данных</label>
+        <label style="font-size:12px; display:flex; gap:6px; align-items:center;">Пауза <input type="number" id="evalPauseMs" min="0" max="10000" value="350" style="width:76px; margin:0;"> мс</label>
+        <button type="button" class="btn-icon primary" id="evalStartBtn">Автопрогон</button>
+        <button type="button" class="secondary" id="evalNextBtn">Next</button>
+        <button type="button" class="secondary" id="evalStopBtn" disabled>Stop</button>
+        <button type="button" class="secondary" id="evalExportCsvBtn" disabled>CSV</button>
+        <button type="button" class="secondary" id="evalExportJsonBtn" disabled>JSON</button>
+      </div>
+      <div id="evalStatus" style="font-size:12px; color:var(--muted); margin-top:10px;">Готов к запуску.</div>
+      <div class="row" style="margin-top:8px;"><span class="k">Ответы с источниками</span><span class="v" id="evalFoundRate">—</span></div>
+      <div class="row"><span class="k">Среднее время ответа</span><span class="v" id="evalAverageMs">—</span></div>
+      <div id="evalResults" style="display:grid; gap:10px; margin-top:12px;"></div>
+    </details>
     <details class="card pm-card" open>
       <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Реестр сайтов <span class="badge" id="kosSourceCount">0</span></h2></summary>
       <p style="font-size:12px; color:var(--muted); margin:10px 0 14px;">
@@ -5341,6 +5360,175 @@
   el('kbSearchModeDisabled').addEventListener('change', (e) => { if (e.target.checked) setSearchMode('disabled'); });
   el('kbSourcesRefreshBtn').addEventListener('click', loadKnowledgeSources);
   el('kbSearchInput').addEventListener('input', applySearchAndSort);
+
+  // ---- Text-only knowledge evaluation ----------------------------------
+  // Results deliberately live only in the browser until the operator exports
+  // them. This keeps repeated QA runs out of production data and makes Stop
+  // immediate: no queued server-side batch continues after the button click.
+  const evaluationState = { questions: [], nextIndex: 0, running: false, results: [] };
+
+  function evaluationQuestionsFromUi() {
+    const lines = el('evalQuestions').value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    return [...new Set(lines)].slice(0, 250);
+  }
+
+  function setEvaluationStatus(text, isError = false) {
+    const node = el('evalStatus');
+    node.textContent = text;
+    node.style.color = isError ? 'var(--err)' : 'var(--muted)';
+  }
+
+  function renderEvaluationSummary() {
+    const total = evaluationState.results.length;
+    const found = evaluationState.results.filter((item) => item.found).length;
+    const completed = evaluationState.results.filter((item) => item.duration_ms != null);
+    const average = completed.length ? Math.round(completed.reduce((sum, item) => sum + item.duration_ms, 0) / completed.length) : null;
+    el('evalRunCount').textContent = `${evaluationState.nextIndex} / ${evaluationState.questions.length || 250}`;
+    el('evalFoundRate').textContent = total ? `${found} / ${total}` : '—';
+    el('evalAverageMs').textContent = average == null ? '—' : `${average} мс`;
+    el('evalExportCsvBtn').disabled = total === 0;
+    el('evalExportJsonBtn').disabled = total === 0;
+  }
+
+  function gradeEvaluationResult(index, grade) {
+    const result = evaluationState.results[index];
+    if (!result) return;
+    result.grade = grade;
+    renderEvaluationResults();
+  }
+
+  function renderEvaluationResults() {
+    const root = el('evalResults');
+    root.replaceChildren();
+    evaluationState.results.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.style.cssText = 'padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--card-bg); font-size:12px;';
+      const question = document.createElement('strong');
+      question.textContent = `${index + 1}. ${item.question}`;
+      const answer = document.createElement('div');
+      answer.textContent = item.answer || `Ошибка: ${item.error || 'нет ответа'}`;
+      answer.style.cssText = 'white-space:pre-wrap; margin:7px 0;';
+      const meta = document.createElement('div');
+      meta.style.color = 'var(--muted)';
+      meta.textContent = `${item.found ? 'Есть источники' : 'Нет источников'} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+      const grades = document.createElement('div');
+      grades.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
+      [['correct', 'Верно'], ['partial', 'Частично'], ['wrong', 'Ошибка'], ['no_data', 'Нет данных']].forEach(([value, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'secondary'; button.textContent = label;
+        if (item.grade === value) button.style.outline = '2px solid var(--wine)';
+        button.addEventListener('click', () => gradeEvaluationResult(index, value));
+        grades.appendChild(button);
+      });
+      // Free-text reviewer note, kept separate from the model's own answer --
+      // this is the operator's manual review comment, never sent to the
+      // evaluation API. Updates the state directly on input instead of
+      // going through renderEvaluationResults(), so typing doesn't rebuild
+      // the whole result list and steal focus/cursor position.
+      const commentLabel = document.createElement('label');
+      commentLabel.style.cssText = 'display:block; margin-top:8px; font-size:11px; color:var(--muted);';
+      commentLabel.textContent = 'Комментарий';
+      const commentInput = document.createElement('textarea');
+      commentInput.rows = 2;
+      commentInput.value = item.comment || '';
+      commentInput.placeholder = 'Заметка проверяющего (необязательно)';
+      commentInput.style.cssText = 'width:100%; resize:vertical; font:inherit; margin-top:4px;';
+      commentInput.addEventListener('input', (e) => { item.comment = e.target.value; });
+      commentLabel.appendChild(commentInput);
+      card.append(question, answer, meta, grades, commentLabel);
+      root.appendChild(card);
+    });
+    renderEvaluationSummary();
+  }
+
+  async function runEvaluationOne() {
+    if (evaluationState.nextIndex >= evaluationState.questions.length) return false;
+    const question = evaluationState.questions[evaluationState.nextIndex++];
+    renderEvaluationSummary();
+    setEvaluationStatus(`Вопрос ${evaluationState.nextIndex} из ${evaluationState.questions.length}…`);
+    try {
+      const res = await fetch('/api/knowledge/evaluate', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ question, language: el('evalLanguage').value, allow_web: el('evalAllowWeb').checked }),
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+      evaluationState.results.push({ ...payload, grade: null, comment: '', completed_at: new Date().toISOString() });
+    } catch (error) {
+      evaluationState.results.push({ question, found: false, answer: '', error: error.message, duration_ms: null, evidence: [], grade: null, comment: '', completed_at: new Date().toISOString() });
+      setEvaluationStatus(`Вопрос ${evaluationState.nextIndex}: ${error.message}`, true);
+    }
+    renderEvaluationResults();
+    return true;
+  }
+
+  async function runEvaluationLoop() {
+    while (evaluationState.running && evaluationState.nextIndex < evaluationState.questions.length) {
+      await runEvaluationOne();
+      const pause = Math.max(0, Math.min(10000, Number(el('evalPauseMs').value) || 0));
+      if (evaluationState.running && pause) await new Promise((resolve) => setTimeout(resolve, pause));
+    }
+    const completed = evaluationState.nextIndex >= evaluationState.questions.length;
+    evaluationState.running = false;
+    el('evalStartBtn').disabled = false; el('evalNextBtn').disabled = completed; el('evalStopBtn').disabled = true;
+    setEvaluationStatus(completed ? EVALUATION_COMPLETE_MESSAGE : `Остановлено после ${evaluationState.results.length} ответов.`);
+  }
+
+  const EVALUATION_COMPLETE_MESSAGE = 'Прогон завершён. Экспортируйте результаты или начните новый прогон.';
+
+  // Only Start begins a fresh run. If there are results from a previous run
+  // that haven't been exported yet, it asks for confirmation first --
+  // otherwise a completed run's results could be silently discarded.
+  function confirmDiscardIfUnexportedResults() {
+    if (evaluationState.results.length === 0) return true;
+    return confirm('Начать новый прогон? Текущие результаты будут очищены, если вы их не выгрузили.');
+  }
+
+  function resetEvaluationRun() {
+    evaluationState.questions = evaluationQuestionsFromUi();
+    evaluationState.nextIndex = 0; evaluationState.results = [];
+    el('evalResults').replaceChildren(); renderEvaluationSummary();
+  }
+
+  function exportEvaluation(format) {
+    const rows = evaluationState.results.map((item, index) => ({
+      number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '', comment: item.comment || '',
+      found: item.found, duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
+      sources: (item.evidence || []).map((e) => e.source).filter(Boolean).join(' | '), error: item.error || '', completed_at: item.completed_at,
+    }));
+    const content = format === 'json' ? JSON.stringify(rows, null, 2) : [Object.keys(rows[0] || {}).join(','), ...rows.map((row) => Object.values(row).map((v) => `"${String(v ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
+    const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/csv;charset=utf-8' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `wine-ai-evaluation-${new Date().toISOString().slice(0, 10)}.${format}`; link.click(); URL.revokeObjectURL(link.href);
+  }
+
+  el('evalStartBtn').addEventListener('click', () => {
+    if (!confirmDiscardIfUnexportedResults()) return;
+    resetEvaluationRun();
+    if (!evaluationState.questions.length) return setEvaluationStatus('Добавьте хотя бы один вопрос.', true);
+    evaluationState.running = true; el('evalStartBtn').disabled = true; el('evalNextBtn').disabled = true; el('evalStopBtn').disabled = false;
+    runEvaluationLoop();
+  });
+  el('evalNextBtn').addEventListener('click', async () => {
+    // A completed run never auto-resets here -- only Start (with
+    // confirmation, above) may discard existing results. If Next is ever
+    // reached with nothing loaded yet and no prior results, it's safe to
+    // pull questions from the textarea for a first manual step.
+    if (!evaluationState.questions.length && evaluationState.results.length === 0) resetEvaluationRun();
+    if (!evaluationState.questions.length) return setEvaluationStatus('Добавьте хотя бы один вопрос.', true);
+    if (evaluationState.nextIndex >= evaluationState.questions.length) {
+      el('evalNextBtn').disabled = true;
+      setEvaluationStatus(EVALUATION_COMPLETE_MESSAGE);
+      return;
+    }
+    await runEvaluationOne();
+    if (evaluationState.nextIndex >= evaluationState.questions.length) {
+      el('evalNextBtn').disabled = true;
+      setEvaluationStatus(EVALUATION_COMPLETE_MESSAGE);
+    }
+  });
+  el('evalStopBtn').addEventListener('click', () => { evaluationState.running = false; });
+  el('evalExportCsvBtn').addEventListener('click', () => exportEvaluation('csv'));
+  el('evalExportJsonBtn').addEventListener('click', () => exportEvaluation('json'));
   el('kbSortSelect').addEventListener('change', applySearchAndSort);
   el('kbReindexBtn').addEventListener('click', async () => {
     el('kbReindexBtn').disabled = true;

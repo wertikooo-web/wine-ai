@@ -36,6 +36,12 @@ async function run() {
     assert.ok(htmlContent.includes('id="vGrokInfo"'), 'HTML must contain #vGrokInfo');
     assert.ok(htmlContent.includes('id="voiceConfigStatus"'), 'HTML must contain #voiceConfigStatus');
     assert.ok(htmlContent.includes('id="legacyVoiceSection"'), 'HTML must contain #legacyVoiceSection');
+    assert.ok(htmlContent.includes('id="knowledgeEvaluationPanel"'), 'HTML must contain the text knowledge evaluation panel');
+    assert.ok(htmlContent.includes('id="evalStartBtn"'), 'HTML must contain the evaluation auto-run button');
+    assert.ok(htmlContent.includes('id="evalStopBtn"'), 'HTML must contain the evaluation stop button');
+    assert.ok(htmlContent.includes('id="evalExportCsvBtn"'), 'HTML must contain CSV export');
+    assert.ok(htmlContent.includes("'/api/knowledge/evaluate'"), 'Dashboard evaluation must use the text evaluation API');
+    assert.ok(htmlContent.includes('evaluationState.running'), 'Dashboard evaluation must have an explicit stop-controlled run state');
 
     // Standard mock responses
     const mockProfilesResponse = {
