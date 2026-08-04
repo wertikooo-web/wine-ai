@@ -5420,7 +5420,22 @@
         button.addEventListener('click', () => gradeEvaluationResult(index, value));
         grades.appendChild(button);
       });
-      card.append(question, answer, meta, grades);
+      // Free-text reviewer note, kept separate from the model's own answer --
+      // this is the operator's manual review comment, never sent to the
+      // evaluation API. Updates the state directly on input instead of
+      // going through renderEvaluationResults(), so typing doesn't rebuild
+      // the whole result list and steal focus/cursor position.
+      const commentLabel = document.createElement('label');
+      commentLabel.style.cssText = 'display:block; margin-top:8px; font-size:11px; color:var(--muted);';
+      commentLabel.textContent = 'Комментарий';
+      const commentInput = document.createElement('textarea');
+      commentInput.rows = 2;
+      commentInput.value = item.comment || '';
+      commentInput.placeholder = 'Заметка проверяющего (необязательно)';
+      commentInput.style.cssText = 'width:100%; resize:vertical; font:inherit; margin-top:4px;';
+      commentInput.addEventListener('input', (e) => { item.comment = e.target.value; });
+      commentLabel.appendChild(commentInput);
+      card.append(question, answer, meta, grades, commentLabel);
       root.appendChild(card);
     });
     renderEvaluationSummary();
@@ -5438,9 +5453,9 @@
       });
       const payload = await res.json();
       if (!res.ok || !payload.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-      evaluationState.results.push({ ...payload, grade: null, completed_at: new Date().toISOString() });
+      evaluationState.results.push({ ...payload, grade: null, comment: '', completed_at: new Date().toISOString() });
     } catch (error) {
-      evaluationState.results.push({ question, found: false, answer: '', error: error.message, duration_ms: null, evidence: [], grade: null, completed_at: new Date().toISOString() });
+      evaluationState.results.push({ question, found: false, answer: '', error: error.message, duration_ms: null, evidence: [], grade: null, comment: '', completed_at: new Date().toISOString() });
       setEvaluationStatus(`Вопрос ${evaluationState.nextIndex}: ${error.message}`, true);
     }
     renderEvaluationResults();
@@ -5455,8 +5470,18 @@
     }
     const completed = evaluationState.nextIndex >= evaluationState.questions.length;
     evaluationState.running = false;
-    el('evalStartBtn').disabled = false; el('evalNextBtn').disabled = false; el('evalStopBtn').disabled = true;
-    setEvaluationStatus(completed ? `Готово: ${evaluationState.results.length} ответов. Отметьте качество или выгрузите результат.` : `Остановлено после ${evaluationState.results.length} ответов.`);
+    el('evalStartBtn').disabled = false; el('evalNextBtn').disabled = completed; el('evalStopBtn').disabled = true;
+    setEvaluationStatus(completed ? EVALUATION_COMPLETE_MESSAGE : `Остановлено после ${evaluationState.results.length} ответов.`);
+  }
+
+  const EVALUATION_COMPLETE_MESSAGE = 'Прогон завершён. Экспортируйте результаты или начните новый прогон.';
+
+  // Only Start begins a fresh run. If there are results from a previous run
+  // that haven't been exported yet, it asks for confirmation first --
+  // otherwise a completed run's results could be silently discarded.
+  function confirmDiscardIfUnexportedResults() {
+    if (evaluationState.results.length === 0) return true;
+    return confirm('Начать новый прогон? Текущие результаты будут очищены, если вы их не выгрузили.');
   }
 
   function resetEvaluationRun() {
@@ -5467,7 +5492,7 @@
 
   function exportEvaluation(format) {
     const rows = evaluationState.results.map((item, index) => ({
-      number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '',
+      number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '', comment: item.comment || '',
       found: item.found, duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
       sources: (item.evidence || []).map((e) => e.source).filter(Boolean).join(' | '), error: item.error || '', completed_at: item.completed_at,
     }));
@@ -5477,16 +5502,29 @@
   }
 
   el('evalStartBtn').addEventListener('click', () => {
+    if (!confirmDiscardIfUnexportedResults()) return;
     resetEvaluationRun();
     if (!evaluationState.questions.length) return setEvaluationStatus('Добавьте хотя бы один вопрос.', true);
     evaluationState.running = true; el('evalStartBtn').disabled = true; el('evalNextBtn').disabled = true; el('evalStopBtn').disabled = false;
     runEvaluationLoop();
   });
   el('evalNextBtn').addEventListener('click', async () => {
-    if (!evaluationState.questions.length || evaluationState.nextIndex >= evaluationState.questions.length) resetEvaluationRun();
+    // A completed run never auto-resets here -- only Start (with
+    // confirmation, above) may discard existing results. If Next is ever
+    // reached with nothing loaded yet and no prior results, it's safe to
+    // pull questions from the textarea for a first manual step.
+    if (!evaluationState.questions.length && evaluationState.results.length === 0) resetEvaluationRun();
     if (!evaluationState.questions.length) return setEvaluationStatus('Добавьте хотя бы один вопрос.', true);
+    if (evaluationState.nextIndex >= evaluationState.questions.length) {
+      el('evalNextBtn').disabled = true;
+      setEvaluationStatus(EVALUATION_COMPLETE_MESSAGE);
+      return;
+    }
     await runEvaluationOne();
-    if (evaluationState.nextIndex >= evaluationState.questions.length) setEvaluationStatus(`Готово: ${evaluationState.results.length} ответов.`);
+    if (evaluationState.nextIndex >= evaluationState.questions.length) {
+      el('evalNextBtn').disabled = true;
+      setEvaluationStatus(EVALUATION_COMPLETE_MESSAGE);
+    }
   });
   el('evalStopBtn').addEventListener('click', () => { evaluationState.running = false; });
   el('evalExportCsvBtn').addEventListener('click', () => exportEvaluation('csv'));
