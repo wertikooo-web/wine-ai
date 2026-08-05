@@ -1,11 +1,16 @@
 'use strict';
 
 const { GoogleGenAI } = require('@google/genai');
+const {
+    createClassicSttAdapter,
+    DEFAULT_STT_PROVIDER,
+    DEFAULT_WHISPER_MODEL,
+} = require('./classicSttAdapters');
 
 const DEFAULT_CLASSIC_LLM_MODEL = process.env.CLASSIC_LLM_MODEL || 'gemini-3.1-flash-lite';
 const DEFAULT_CLASSIC_TTS_MODEL = process.env.CLASSIC_TTS_MODEL || 'gemini-3.1-flash-tts-preview';
 const DEFAULT_CLASSIC_TTS_VOICE = process.env.CLASSIC_TTS_VOICE || 'Kore';
-const DEFAULT_CLASSIC_STT_MODEL = process.env.CLASSIC_STT_MODEL || 'nova-3';
+const DEFAULT_CLASSIC_STT_MODEL = process.env.CLASSIC_STT_MODEL || DEFAULT_WHISPER_MODEL;
 const CLASSIC_INPUT_SAMPLE_RATE = 16000;
 const CLASSIC_OUTPUT_SAMPLE_RATE = 24000;
 const MAX_INPUT_BYTES = Number(process.env.CLASSIC_MAX_INPUT_BYTES || 8 * 1024 * 1024);
@@ -31,15 +36,6 @@ function pcm16ToWav(pcm, sampleRate = CLASSIC_OUTPUT_SAMPLE_RATE) {
     return wav;
 }
 
-function getTranscript(payload) {
-    return String(payload?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '').trim();
-}
-
-function getDetectedLanguage(payload) {
-    const channel = payload?.results?.channels?.[0];
-    return channel?.detected_language || payload?.metadata?.detected_language || null;
-}
-
 function normalizeToolResult(result) {
     if (result === undefined) return { ok: true };
     if (result && typeof result === 'object') return result;
@@ -50,15 +46,18 @@ class ClassicVoiceProvider {
     constructor(config = {}, dependencies = {}) {
         this.name = 'classic';
         this.config = {
+            sttProvider: config.sttProvider || process.env.CLASSIC_STT_PROVIDER || DEFAULT_STT_PROVIDER,
+            sttModel: config.sttModel || DEFAULT_CLASSIC_STT_MODEL,
+            openaiApiKey: config.openaiApiKey || process.env.OPENAI_API_KEY || '',
             deepgramApiKey: config.deepgramApiKey || process.env.DEEPGRAM_API_KEY || '',
             geminiApiKey: config.geminiApiKey || process.env.GEMINI_API_KEY || '',
             llmModel: config.llmModel || DEFAULT_CLASSIC_LLM_MODEL,
             ttsModel: config.ttsModel || DEFAULT_CLASSIC_TTS_MODEL,
             ttsVoice: config.ttsVoice || DEFAULT_CLASSIC_TTS_VOICE,
-            sttModel: config.sttModel || DEFAULT_CLASSIC_STT_MODEL,
         };
         this.fetchImpl = dependencies.fetchImpl || globalThis.fetch;
         this.aiFactory = dependencies.aiFactory || ((apiKey) => new GoogleGenAI({ apiKey }));
+        this.sttFactory = dependencies.sttFactory || ((cfg) => createClassicSttAdapter(cfg, { fetchImpl: this.fetchImpl }));
         this.instanceCounter = 0;
     }
 
@@ -66,7 +65,7 @@ class ClassicVoiceProvider {
         this.instanceCounter += 1;
         return new ClassicVoiceProviderSession({
             config: this.config,
-            fetchImpl: this.fetchImpl,
+            stt: this.sttFactory(this.config),
             ai: this.aiFactory(this.config.geminiApiKey),
             instanceId: `classic_session_${this.instanceCounter}`,
             options,
@@ -75,16 +74,17 @@ class ClassicVoiceProvider {
 }
 
 class ClassicVoiceProviderSession {
-    constructor({ config, fetchImpl, ai, instanceId, options }) {
+    constructor({ config, stt, ai, instanceId, options }) {
         this.name = 'classic';
         this.config = config;
-        this.fetchImpl = fetchImpl;
+        this.stt = stt;
         this.ai = ai;
         this.instanceId = instanceId;
         this.systemInstructionText = options.systemInstructionText || '';
         this.toolDeclarations = Array.isArray(options.toolDeclarations) ? options.toolDeclarations : [];
         this.toolHandlers = options.toolHandlers && typeof options.toolHandlers === 'object' ? options.toolHandlers : {};
         this.voiceName = options.voiceName || options.voice || config.ttsVoice;
+        this.language = options.language || 'auto';
         this.history = [];
         this.inputChunks = [];
         this.inputBytes = 0;
@@ -96,13 +96,13 @@ class ClassicVoiceProviderSession {
     }
 
     async connect(log) {
-        if (!this.config.deepgramApiKey) throw new Error('classic_stt_api_key_missing');
+        if (!this.stt?.configured) throw Object.assign(new Error('classic_stt_api_key_missing'), { code: 'classic_stt_api_key_missing' });
         if (!this.config.geminiApiKey) throw new Error('classic_gemini_api_key_missing');
-        if (typeof this.fetchImpl !== 'function') throw new Error('classic_fetch_unavailable');
         if (typeof log === 'function') {
             log('classic_provider_connected', {
                 providerInstanceId: this.instanceId,
-                sttModel: this.config.sttModel,
+                sttProvider: this.stt.id,
+                sttModel: this.stt.model,
                 llmModel: this.config.llmModel,
                 ttsModel: this.config.ttsModel,
             });
@@ -119,10 +119,7 @@ class ClassicVoiceProviderSession {
         this.inputBytes += chunk.length;
     }
 
-    beginResponse() {
-        // Classic waits for the server's input_audio.end boundary. The same
-        // contract is used by Hold to Talk and local-VAD Free Conversation.
-    }
+    beginResponse() {}
 
     interrupt(reason = 'interrupt') {
         if (this.activeSignal && !this.activeSignal.cancelled) {
@@ -145,62 +142,22 @@ class ClassicVoiceProviderSession {
     }
 
     async transcribeAudio(audio, signal) {
-        const controller = new AbortController();
-        this.activeAbortController = controller;
-        if (signal.cancelled) controller.abort(signal.reason || 'cancelled');
-        const query = new URLSearchParams({
-            model: this.config.sttModel,
-            detect_language: 'true',
-            smart_format: 'true',
-            numerals: 'true',
-            encoding: 'linear16',
-            sample_rate: String(CLASSIC_INPUT_SAMPLE_RATE),
-            channels: '1',
+        return this.stt.transcribe(audio, {
+            signal,
+            language: this.language,
+            onController: (controller) => { this.activeAbortController = controller; },
         });
-        const response = await this.fetchImpl(`https://api.deepgram.com/v1/listen?${query}`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Token ${this.config.deepgramApiKey}`,
-                'Content-Type': 'audio/raw',
-            },
-            body: audio,
-            signal: controller.signal,
-        });
-        this.activeAbortController = null;
-        if (!response.ok) {
-            const detail = await response.text().catch(() => '');
-            throw Object.assign(new Error(`classic_stt_failed:${response.status}`), {
-                code: 'classic_stt_failed',
-                status: response.status,
-                detail: detail.slice(0, 300),
-            });
-        }
-        const payload = await response.json();
-        return {
-            text: getTranscript(payload),
-            language: getDetectedLanguage(payload),
-        };
     }
 
     async generateReply(userText, signal, log) {
-        const contents = [
-            ...this.history,
-            { role: 'user', parts: [{ text: userText }] },
-        ];
-        const config = {
-            systemInstruction: this.systemInstructionText || undefined,
-        };
-        if (this.toolDeclarations.length) {
-            config.tools = [{ functionDeclarations: this.toolDeclarations }];
-        }
+        const contents = [...this.history, { role: 'user', parts: [{ text: userText }] }];
+        const config = { systemInstruction: this.systemInstructionText || undefined };
+        if (this.toolDeclarations.length) config.tools = [{ functionDeclarations: this.toolDeclarations }];
 
         for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
             if (this.closed || signal.cancelled) return '';
-            const response = await this.ai.models.generateContent({
-                model: this.config.llmModel,
-                contents,
-                config,
-            });
+            const response = await this.ai.models.generateContent({ model: this.config.llmModel, contents, config });
+            if (this.closed || signal.cancelled) return '';
             const modelContent = response?.candidates?.[0]?.content;
             if (modelContent) contents.push(modelContent);
             const calls = Array.isArray(response?.functionCalls) ? response.functionCalls : [];
@@ -229,12 +186,7 @@ class ClassicVoiceProviderSession {
                     }
                 }
                 log('classic_tool_completed', { tool: call.name, ok: result?.ok !== false });
-                responseParts.push({
-                    functionResponse: {
-                        name: call.name,
-                        response: result,
-                    },
-                });
+                responseParts.push({ functionResponse: { name: call.name, response: result } });
             }
             contents.push({ role: 'user', parts: responseParts });
         }
@@ -246,18 +198,10 @@ class ClassicVoiceProviderSession {
         const startedAt = Date.now();
         const stream = await this.ai.models.generateContentStream({
             model: this.config.ttsModel,
-            contents: [{
-                parts: [{
-                    text: `Synthesize the following sommelier answer exactly as written. Keep the language, names and numbers unchanged. Spoken text:\n${text}`,
-                }],
-            }],
+            contents: [{ parts: [{ text: `Synthesize this sommelier answer exactly as written. Keep language, wine names and numbers unchanged.\n${text}` }] }],
             config: {
                 responseModalities: ['AUDIO'],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: this.voiceName || this.config.ttsVoice },
-                    },
-                },
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName || this.config.ttsVoice } } },
             },
         });
 
@@ -267,70 +211,34 @@ class ClassicVoiceProviderSession {
             if (this.closed || signal.cancelled) return;
             const parts = chunk?.candidates?.[0]?.content?.parts || [];
             for (const part of parts) {
+                if (this.closed || signal.cancelled) return;
                 const base64 = part?.inlineData?.data;
                 if (!base64) continue;
                 const pcm = Buffer.from(base64, 'base64');
                 if (!pcm.length) continue;
                 if (!audioStarted) {
                     audioStarted = true;
-                    onEvent({
-                        type: 'audio.start',
-                        response_id: responseId,
-                        turn_id: turnId,
-                        elapsed_ms: Date.now() - startedAt,
-                        format: 'audio/wav',
-                        provider_instance_id: this.instanceId,
-                    });
+                    onEvent({ type: 'audio.start', response_id: responseId, turn_id: turnId, elapsed_ms: Date.now() - startedAt, format: 'audio/wav', provider_instance_id: this.instanceId });
                     log('audio_start', { responseId, turnId, elapsedMs: Date.now() - startedAt });
                 }
-                onAudioChunk({
-                    type: 'audio.chunk',
-                    response_id: responseId,
-                    turn_id: turnId,
-                    chunk_index: chunkIndex,
-                    mime_type: 'audio/wav',
-                    audio_base64: pcm16ToWav(pcm).toString('base64'),
-                    elapsed_ms: Date.now() - startedAt,
-                });
+                onAudioChunk({ type: 'audio.chunk', response_id: responseId, turn_id: turnId, chunk_index: chunkIndex, mime_type: 'audio/wav', audio_base64: pcm16ToWav(pcm).toString('base64'), elapsed_ms: Date.now() - startedAt });
                 chunkIndex += 1;
             }
         }
         if (this.closed || signal.cancelled) return;
         if (!audioStarted) throw new Error('classic_tts_empty_audio');
-        onEvent({
-            type: 'audio.end',
-            response_id: responseId,
-            turn_id: turnId,
-            elapsed_ms: Date.now() - startedAt,
-        });
+        onEvent({ type: 'audio.end', response_id: responseId, turn_id: turnId, elapsed_ms: Date.now() - startedAt });
         log('audio_end', { responseId, turnId, elapsedMs: Date.now() - startedAt, chunkCount: chunkIndex });
     }
 
     async answerText(userText, context, detectedLanguage = null) {
         const { responseId, turnId, signal, onEvent, log } = context;
         if (!userText || this.closed || signal.cancelled) return;
-        onEvent({
-            type: 'transcript.user',
-            response_id: responseId,
-            turn_id: turnId,
-            text: userText,
-            language: detectedLanguage || undefined,
-        });
-        log('response_processing_started', {
-            responseId,
-            turnId,
-            providerInstanceId: this.instanceId,
-            sttModel: this.config.sttModel,
-            llmModel: this.config.llmModel,
-        });
+        onEvent({ type: 'transcript.user', response_id: responseId, turn_id: turnId, text: userText, language: detectedLanguage || undefined });
+        log('response_processing_started', { responseId, turnId, providerInstanceId: this.instanceId, sttProvider: this.stt.id, sttModel: this.stt.model, llmModel: this.config.llmModel });
         const answer = await this.generateReply(userText, signal, log);
         if (!answer || this.closed || signal.cancelled) return;
-        onEvent({
-            type: 'transcript.model',
-            response_id: responseId,
-            turn_id: turnId,
-            text: answer,
-        });
+        onEvent({ type: 'transcript.model', response_id: responseId, turn_id: turnId, text: answer });
         await this.streamSpeech(answer, context);
     }
 
@@ -365,8 +273,8 @@ module.exports = {
     DEFAULT_CLASSIC_TTS_MODEL,
     DEFAULT_CLASSIC_TTS_VOICE,
     DEFAULT_CLASSIC_STT_MODEL,
+    DEFAULT_STT_PROVIDER,
     CLASSIC_INPUT_SAMPLE_RATE,
     CLASSIC_OUTPUT_SAMPLE_RATE,
     pcm16ToWav,
-    getTranscript,
 };
