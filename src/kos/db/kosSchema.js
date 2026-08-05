@@ -684,6 +684,31 @@ const MIGRATIONS = [
             `);
         },
     },
+    {
+        version: 8,
+        name: 'v8_wine_catalog_cards',
+        up: async (client) => {
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS kos_wine_catalog_cards (
+                    id TEXT PRIMARY KEY,
+                    source_url TEXT UNIQUE,
+                    source_text TEXT NOT NULL,
+                    source_hash TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    producer TEXT,
+                    vintage TEXT,
+                    profile_json JSONB NOT NULL,
+                    status TEXT NOT NULL CHECK (status IN ('draft', 'published', 'archived')) DEFAULT 'draft',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    published_at TIMESTAMPTZ,
+                    last_synced_at TIMESTAMPTZ,
+                    last_sync_error TEXT
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_kos_wine_catalog_cards_status ON kos_wine_catalog_cards(status, updated_at DESC);');
+        },
+    },
 ];
 
 const crypto = require('crypto');

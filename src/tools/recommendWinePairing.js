@@ -1,15 +1,16 @@
 'use strict';
 
-const { search } = require('../knowledge/search');
 const { requireNonEmptyString, optionalString } = require('./toolHelpers');
+const { recommendForDish } = require('../pairing/pairingEngine');
 
 const declaration = {
     name: 'recommend_wine_pairing',
-    description: 'Recommend a Moldovan wine to pair with a dish or occasion. Call this before recommending a specific wine for food pairing.',
+    description: 'For an age-verified adult session, recommend Moldovan wine styles for a dish. It returns ranked options, concise reasons, and one clarification only when the dish details materially change the match.',
     parameters: {
         type: 'OBJECT',
         properties: {
             dish: { type: 'STRING', description: 'The dish or type of food to pair, in the user\'s own words.' },
+            details: { type: 'STRING', description: 'Optional preparation, sauce, spice, or ingredient details.' },
             occasion: { type: 'STRING', description: 'Optional occasion (e.g. celebration, casual dinner).' },
             budget: { type: 'STRING', description: 'Optional budget hint (e.g. "budget-friendly", "premium").' },
         },
@@ -19,28 +20,22 @@ const declaration = {
 
 async function impl(args, toolContext = {}) {
     const dish = requireNonEmptyString(args.dish, 'dish');
+    if (toolContext.isAdultVerified !== true) return { found: false, error: 'age_verification_required' };
+    const details = optionalString(args.details, 300);
     const occasion = optionalString(args.occasion, 100);
     const budget = optionalString(args.budget, 60);
 
-    const { hits } = await search(dish, { limit: 3 });
-
     if (toolContext.sessionMemory) {
-        toolContext.sessionMemory.recordPairingRequest({ dish, occasion, budget });
+        toolContext.sessionMemory.recordPairingRequest({ dish: details ? `${dish}; ${details}` : dish, occasion, budget });
     }
-
-    if (hits.length === 0) {
-        return { found: false, dish, results: [] };
-    }
-
+    const result = recommendForDish({ dish, details, limit: 3 });
     return {
         found: true,
         dish,
+        details: details || null,
         occasion: occasion || null,
-        results: hits.map(({ chunk }) => ({
-            text: chunk.text,
-            source: chunk.metadata.source,
-            confidence: chunk.metadata.confidence,
-        })),
+        budget: budget || null,
+        ...result,
     };
 }
 
