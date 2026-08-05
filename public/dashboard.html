@@ -5432,6 +5432,30 @@
             ? 'Есть источники (проверка ответности недоступна — не подтверждено)'
             : (item.web_used ? 'Источники найдены, ответ дополнен web' : 'Источники найдены, однако ответа в них недостаточно');
       meta.textContent = `${evidenceLabel} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+
+      // Visibility into the web-search decision: which routing tier the
+      // question fell into, why web was (or wasn't) used, and clickable
+      // links to whatever web sources were actually cited.
+      const webMeta = document.createElement('div');
+      webMeta.style.cssText = 'color:var(--muted); font-size:11px; margin-top:2px;';
+      const intentLabel = { own_entity: 'наш продукт', general_wine: 'винная тема', off_topic_factual: 'вне темы (факт)', off_topic_smalltalk: 'болтовня' }[item.query_intent] || null;
+      const reasonLabel = { freshness: 'свежесть данных', weak_internal: 'мало данных внутри', forced: 'запрошено явно', general_wine_topic: 'общая винная тема', off_topic_factual: 'фактический вопрос вне темы' }[item.web_reason] || null;
+      const metaParts = [];
+      if (intentLabel) metaParts.push(`Тема: ${intentLabel}`);
+      if (item.web_used && reasonLabel) metaParts.push(`Web: ${reasonLabel}`);
+      if (metaParts.length) webMeta.appendChild(document.createTextNode(metaParts.join(' · ')));
+      if (Array.isArray(item.web_sources) && item.web_sources.length) {
+        webMeta.appendChild(document.createTextNode((metaParts.length ? ' · ' : '') + 'Источники: '));
+        item.web_sources.forEach((src, srcIndex) => {
+          if (srcIndex > 0) webMeta.appendChild(document.createTextNode(', '));
+          const link = document.createElement('a');
+          link.href = src.url || '#';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = src.title || src.url || 'источник';
+          webMeta.appendChild(link);
+        });
+      }
       const grades = document.createElement('div');
       grades.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
       [['correct', 'Верно'], ['partial', 'Частично'], ['wrong', 'Ошибка'], ['no_data', 'Нет данных']].forEach(([value, label]) => {
@@ -5456,7 +5480,7 @@
       commentInput.style.cssText = 'width:100%; resize:vertical; font:inherit; margin-top:4px;';
       commentInput.addEventListener('input', (e) => { item.comment = e.target.value; });
       commentLabel.appendChild(commentInput);
-      card.append(question, answer, meta, grades, commentLabel);
+      card.append(question, answer, meta, webMeta, grades, commentLabel);
       root.appendChild(card);
     });
     renderEvaluationSummary();
@@ -5515,6 +5539,8 @@
     const rows = evaluationState.results.map((item, index) => ({
       number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '', comment: item.comment || '',
       found: item.found, answerable: item.answerable === true, answerability_reason: item.answerability_reason || '', web_used: item.web_used === true,
+      web_reason: item.web_reason || '', query_intent: item.query_intent || '',
+      web_sources: (item.web_sources || []).map((s) => s.url).filter(Boolean).join(' | '),
       duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
       sources: (item.evidence || []).map((e) => e.source).filter(Boolean).join(' | '), error: item.error || '', completed_at: item.completed_at,
     }));

@@ -9,7 +9,7 @@ const { routeKnowledgeWithAnswerabilityGate } = require('../knowledge/layeredRou
 // stable contract is now the four-level router.
 const declaration = {
     name: 'search_wine_knowledge',
-    description: 'Primary factual tool for wine questions. It checks verified canonical facts, current Wine.md catalog data, document knowledge, and web sources only when internal evidence is insufficient or the question requires fresh information. Call this before answering factual questions about wines, wineries, grape varieties, regions, wine tourism, prices, stock, opening hours, schedules, or current events. Never expose the internal search sequence to the user.',
+    description: 'Primary factual tool for wine questions and general factual questions. It checks verified canonical facts, current Wine.md catalog data, and document knowledge first. For questions about our own wines/wineries/catalog, web is used only for freshness (price, stock, hours, events) or when internal evidence does not cover the question. For general wine knowledge (grapes, regions, history, styles, pairings, ratings, travel, culture) and other factual/current questions, web search runs proactively alongside internal knowledge. Call this before answering any factual question. Never expose the internal search sequence to the user.',
     parameters: {
         type: 'OBJECT',
         properties: {
@@ -48,15 +48,22 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');
 
+        const webSources = result.evidence
+            .filter((item) => item.level === 'web')
+            .map((item) => ({ title: item.title, url: item.source }));
+
         console.log('[search_wine_knowledge:layered]', JSON.stringify({
             query,
             language,
+            queryIntent: result.query_intent,
             found: result.found,
             answerable: result.answerable,
             answerabilityReason: result.answerabilityReason,
             used_levels: result.used_levels,
             webUsed: result.web_used,
+            webReason: result.web_reason,
             web_attempted: result.web_attempted,
+            webSources,
             attempts: result.attempts,
             evidence_count: result.evidence.length,
             conflict_count: result.conflicts?.length || 0,
@@ -106,6 +113,8 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 answerable: result.answerable === true ? true : result.answerable,
                 answerabilityReason: result.answerabilityReason || null,
                 webUsed: result.web_used === true,
+                webReason: result.web_reason || null,
+                webSources,
                 status: 'insufficient',
                 evidence,
                 results: evidence,
@@ -124,6 +133,8 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             answerable: true,
             answerabilityReason: result.answerabilityReason || null,
             webUsed: result.web_used === true,
+            webReason: result.web_reason || null,
+            webSources,
             status: 'found',
             evidence,
             // Keep `results` as a compatibility alias for callers/tests built around

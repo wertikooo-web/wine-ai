@@ -106,7 +106,12 @@ async function run() {
         });
         const answerabilityImpl = async () => ({ text: '{"answerable": false, "reason": "fragments are generic, no pairing info"}' });
 
-        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+        // Deliberately phrased to mention a known winery (Cricova) so this
+        // classifies as 'own_entity', NOT 'general_wine' -- keeps this test
+        // isolated to the gate's own two-phase check-then-fallback logic,
+        // not the separate eager-web-for-general-wine-topics behavior
+        // (covered by its own dedicated tests further below).
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино Cricova выбрать к баранине?', {
             allowWeb: true,
             adapters: value,
             answerabilityModel: { generateContent: answerabilityImpl },
@@ -127,7 +132,12 @@ async function run() {
         const { value, calls } = adapters({ documentItems: eightFragments });
         const answerabilityImpl = async () => ({ text: '{"answerable": false, "reason": "no pairing info"}' });
 
-        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+        // Deliberately phrased to mention a known winery (Cricova) so this
+        // classifies as 'own_entity', NOT 'general_wine' -- keeps this test
+        // isolated to the gate's own two-phase check-then-fallback logic,
+        // not the separate eager-web-for-general-wine-topics behavior
+        // (covered by its own dedicated tests further below).
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино Cricova выбрать к баранине?', {
             allowWeb: false,
             adapters: value,
             answerabilityModel: { generateContent: answerabilityImpl },
@@ -149,7 +159,12 @@ async function run() {
         });
         const answerabilityImpl = async () => ({ text: '{"answerable": true, "reason": "direct pairing recommendation present"}' });
 
-        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+        // Deliberately phrased to mention a known winery (Cricova) so this
+        // classifies as 'own_entity', NOT 'general_wine' -- keeps this test
+        // isolated to the gate's own two-phase check-then-fallback logic,
+        // not the separate eager-web-for-general-wine-topics behavior
+        // (covered by its own dedicated tests further below).
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино Cricova выбрать к баранине?', {
             allowWeb: true,
             adapters: value,
             answerabilityModel: { generateContent: answerabilityImpl },
@@ -200,7 +215,12 @@ async function run() {
         const eightFragments = Array.from({ length: 8 }, (_, i) => documentFragment(i + 1, 0.5));
         const { value, calls } = adapters({ documentItems: eightFragments, webItems: [] });
 
-        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+        // Deliberately phrased to mention a known winery (Cricova) so this
+        // classifies as 'own_entity', NOT 'general_wine' -- keeps this test
+        // isolated to the gate's own two-phase check-then-fallback logic,
+        // not the separate eager-web-for-general-wine-topics behavior
+        // (covered by its own dedicated tests further below).
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино Cricova выбрать к баранине?', {
             allowWeb: true,
             adapters: value,
             // No generateContent and no apiKey -> checkAnswerability's
@@ -226,7 +246,12 @@ async function run() {
             }],
         });
 
-        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+        // Deliberately phrased to mention a known winery (Cricova) so this
+        // classifies as 'own_entity', NOT 'general_wine' -- keeps this test
+        // isolated to the gate's own two-phase check-then-fallback logic,
+        // not the separate eager-web-for-general-wine-topics behavior
+        // (covered by its own dedicated tests further below).
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино Cricova выбрать к баранине?', {
             allowWeb: true,
             adapters: value,
             answerabilityModel: { apiKey: '' },

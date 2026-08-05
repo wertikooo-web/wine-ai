@@ -1,6 +1,7 @@
 'use strict';
 
 const { routeKnowledgeWithAnswerabilityGate } = require('../knowledge/layeredRouter');
+const { getBudgetStatus: getWebSearchBudgetStatus } = require('../knowledge/webSearchProvider');
 
 const MAX_QUESTION_CHARS = 1000;
 const MAX_EVIDENCE_ITEMS = 8;
@@ -129,6 +130,12 @@ function createTextKnowledgeEvaluator({
                 evidence: (retrieval.evidence || []).slice(0, MAX_EVIDENCE_ITEMS).map(publicEvidence),
                 used_levels: retrieval.used_levels || [],
                 web_used: retrieval.web_used === true,
+                web_reason: retrieval.web_reason || null,
+                web_sources: (retrieval.evidence || [])
+                    .filter((item) => item.level === 'web')
+                    .map((item) => ({ title: item.title || null, url: item.source || null })),
+                query_intent: retrieval.query_intent || null,
+                web_budget: getWebSearchBudgetStatus(),
                 duration_ms: Date.now() - startedAt,
                 usage: generated?.usageMetadata ? {
                     prompt_tokens: generated.usageMetadata.promptTokenCount ?? null,

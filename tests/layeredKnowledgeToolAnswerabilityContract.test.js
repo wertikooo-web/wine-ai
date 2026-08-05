@@ -45,6 +45,11 @@ function toolImplWithGate({ documentItems, webItems, answerable, reason }) {
 async function run() {
     console.log('Running Live Voice Tool Answerability Contract Tests...');
     const context = { log: () => {} };
+    // All queries below mention "Cricova" (a known winery) so they classify
+    // as 'own_entity', not 'general_wine' -- this isolates these tests to
+    // the gate's own two-phase check-then-fallback logic, distinct from the
+    // separate eager-web-for-general-wine-topics behavior covered by
+    // tests/retrievalAnswerabilityGate.test.js's eager-web-specific blocks.
 
     // Core regression case, but through the REAL live tool
     // (search_wine_knowledge), not just the router in isolation: 8
@@ -65,7 +70,7 @@ async function run() {
             reason: 'fragments are generic background info, no pairing recommendation',
         });
 
-        const result = await impl({ query: 'Какое вино выбрать к баранине?' }, context);
+        const result = await impl({ query: 'Какое вино Cricova выбрать к баранине?' }, context);
 
         assert.strictEqual(result.found, true, 'found must be true -- fragments were genuinely retrieved');
         assert.ok(calls.includes('web'), 'the web adapter must have been called, since the initial check said answerable:false');
@@ -93,7 +98,7 @@ async function run() {
         const routeImpl = (query, options) => routeKnowledgeWithAnswerabilityGate(query, { ...options, adapters: value, answerabilityModel: { apiKey: '' } });
         const impl = tool.createImpl(routeImpl);
 
-        const result = await impl({ query: 'Какое вино выбрать к баранине?' }, context);
+        const result = await impl({ query: 'Какое вино Cricova выбрать к баранине?' }, context);
 
         assert.strictEqual(result.found, true);
         assert.strictEqual(result.webUsed, true, 'an unknown/unavailable check must still route to web, not skip it');
@@ -114,7 +119,7 @@ async function run() {
             reason: 'no pairing information anywhere in the evidence',
         });
 
-        const result = await impl({ query: 'Какое вино выбрать к баранине?' }, context);
+        const result = await impl({ query: 'Какое вино Cricova выбрать к баранине?' }, context);
 
         assert.strictEqual(result.found, true);
         assert.strictEqual(result.answerable, false, 'the assistant must not imitate knowledge it does not have');
@@ -136,7 +141,7 @@ async function run() {
             reason: 'direct pairing recommendation present',
         });
 
-        const result = await impl({ query: 'Какое вино выбрать к баранине?' }, context);
+        const result = await impl({ query: 'Какое вино Cricova выбрать к баранине?' }, context);
 
         assert.strictEqual(result.found, true);
         assert.strictEqual(result.answerable, true);

@@ -93,11 +93,16 @@ async function run() {
         assert.ok(result.used_levels.includes(LEVELS.WEB));
     }
 
-    // Weak internal search falls back to web.
+    // Weak internal search falls back to web. This query is wine-related
+    // ("вино"), so it classifies as general_wine -- web now runs eagerly,
+    // concurrently with internal retrieval, rather than strictly after it;
+    // call ORDER between the two concurrent branches is not guaranteed
+    // (unlike the old sequential fallback), only that all three sources
+    // were actually consulted.
     {
         const stub = adapters({ documentItems: [document(0.2)], webItems: [web()] });
         const result = await routeKnowledge('Новое неизвестное вино', { adapters: stub.value });
-        assert.deepStrictEqual(stub.calls, ['canonical', 'documents', 'web']);
+        assert.deepStrictEqual([...stub.calls].sort(), ['canonical', 'documents', 'web']);
         assert.strictEqual(result.web_used, true);
     }
 
