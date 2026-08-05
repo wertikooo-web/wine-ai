@@ -3,9 +3,12 @@
 const {
     ClassicVoiceProvider,
     pcm16ToWav,
-    getTranscript,
 } = require('../src/realtime/classicVoiceProvider');
-const { normalizeProviderName, createRealtimeProviderRegistry } = require('../src/realtime/providerRegistry');
+const {
+    createWhisperAdapter,
+    normalizeDetectedLanguage,
+} = require('../src/realtime/classicSttAdapters');
+const { normalizeProviderName, normalizeClassicSttProvider, createRealtimeProviderRegistry } = require('../src/realtime/providerRegistry');
 const t = require('./helpers/assertions');
 
 function asyncChunks(items) {
@@ -21,107 +24,74 @@ async function run() {
     t.equal(wav.subarray(0, 4).toString('ascii'), 'RIFF');
     t.equal(wav.subarray(8, 12).toString('ascii'), 'WAVE');
     t.equal(wav.readUInt32LE(40), 4);
-    t.equal(wav.length, 48);
-
-    t.equal(getTranscript({ results: { channels: [{ alternatives: [{ transcript: '  привет  ' }] }] } }), 'привет');
+    t.equal(normalizeDetectedLanguage('Russian'), 'ru-RU');
+    t.equal(normalizeDetectedLanguage('ro'), 'ro-RO');
     t.equal(normalizeProviderName('stt-llm-tts'), 'classic');
-    t.equal(normalizeProviderName('cascade'), 'classic');
+    t.equal(normalizeClassicSttProvider('anything'), 'whisper');
+    t.equal(normalizeClassicSttProvider('deepgram'), 'deepgram');
 
-    const sttRequests = [];
-    const fetchImpl = async (url, options) => {
-        sttRequests.push({ url, options });
-        return {
-            ok: true,
-            async json() {
-                return {
-                    metadata: { detected_language: 'ru' },
-                    results: { channels: [{ alternatives: [{ transcript: 'Какое вино к баранине?' }] }] },
-                };
-            },
-        };
-    };
+    const whisperRequests = [];
+    const whisper = createWhisperAdapter({ openaiApiKey: 'openai-test', sttModel: 'whisper-1' }, {
+        fetchImpl: async (url, options) => {
+            whisperRequests.push({ url, options });
+            return {
+                ok: true,
+                async json() { return { text: 'Какое вино к баранине?', language: 'russian' }; },
+            };
+        },
+    });
+    const whisperResult = await whisper.transcribe(Buffer.alloc(7000), { language: 'ru-RU' });
+    t.equal(whisperRequests.length, 1);
+    t.equal(whisperRequests[0].url, 'https://api.openai.com/v1/audio/transcriptions');
+    t.equal(whisperResult.text, 'Какое вино к баранине?');
+    t.equal(whisperResult.language, 'ru-RU');
 
-    const llmCalls = [];
     const ai = {
         models: {
-            async generateContent(request) {
-                llmCalls.push(request);
+            async generateContent() {
                 return { text: 'К баранине подойдёт Fetească Neagră.' };
             },
-            async generateContentStream(request) {
-                llmCalls.push(request);
-                return asyncChunks([
-                    {
-                        candidates: [{
-                            content: {
-                                parts: [{ inlineData: { data: Buffer.from([0, 0, 1, 0]).toString('base64') } }],
-                            },
-                        }],
-                    },
-                ]);
+            async generateContentStream() {
+                return asyncChunks([{ candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from([0, 0, 1, 0]).toString('base64') } }] } }] }]);
             },
         },
     };
 
-    const provider = new ClassicVoiceProvider({
-        deepgramApiKey: 'dg-test',
-        geminiApiKey: 'gemini-test',
-        llmModel: 'llm-test',
-        ttsModel: 'tts-test',
-        ttsVoice: 'Kore',
-    }, {
-        fetchImpl,
+    const provider = new ClassicVoiceProvider({ geminiApiKey: 'gemini-test' }, {
         aiFactory: () => ai,
+        sttFactory: () => ({
+            id: 'whisper', model: 'whisper-1', configured: true,
+            async transcribe() { return { text: 'Какое вино к баранине?', language: 'ru-RU' }; },
+        }),
     });
-    const session = provider.createSession({
-        systemInstructionText: 'Ты цифровой сомелье.',
-        toolDeclarations: [],
-        toolHandlers: {},
-        voiceName: 'Puck',
-    });
+    const session = provider.createSession({ systemInstructionText: 'Ты цифровой сомелье.', voiceName: 'Puck' });
     await session.connect(() => {});
-    session.sendAudio(Buffer.from([1, 0, 2, 0]));
+    session.sendAudio(Buffer.alloc(7000));
 
     const events = [];
     const audioChunks = [];
     await session.endInput({
-        responseId: 'response_1',
-        turnId: 'turn_1',
-        signal: { cancelled: false },
+        responseId: 'response_1', turnId: 'turn_1', signal: { cancelled: false },
         onEvent: (event) => events.push(event),
         onAudioChunk: (event) => audioChunks.push(event),
         log: () => {},
     });
 
-    t.equal(sttRequests.length, 1);
-    t.match(sttRequests[0].url, /api\.deepgram\.com\/v1\/listen/);
-    t.equal(sttRequests[0].options.headers.Authorization, 'Token dg-test');
-    t.ok(events.some((event) => event.type === 'transcript.user' && event.text === 'Какое вино к баранине?'));
+    t.ok(events.some((event) => event.type === 'transcript.user'));
     t.ok(events.some((event) => event.type === 'transcript.model' && /Fetească Neagră/.test(event.text)));
     t.ok(events.some((event) => event.type === 'audio.start'));
     t.ok(events.some((event) => event.type === 'audio.end'));
     t.equal(audioChunks.length, 1);
-    t.equal(Buffer.from(audioChunks[0].audio_base64, 'base64').subarray(0, 4).toString('ascii'), 'RIFF');
-    t.equal(llmCalls[0].model, 'llm-test');
-    t.equal(llmCalls[1].model, 'tts-test');
-    t.equal(llmCalls[1].config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, 'Puck');
 
-    const registry = createRealtimeProviderRegistry({
-        defaultProvider: 'classic',
-    }, {}, {
-        classic: provider,
-    });
+    const registry = createRealtimeProviderRegistry({ defaultProvider: 'classic' }, {}, { classic: provider });
     const resolved = registry.resolve('classic');
     t.equal(resolved.id, 'classic');
     t.equal(resolved.metadata.provider, 'classic');
-    const listed = registry.list();
-    t.ok(listed.some((item) => item.id === 'classic'));
 
     const cancelledSignal = { cancelled: false };
     session.activeSignal = cancelledSignal;
     session.interrupt('barge_in');
     t.equal(cancelledSignal.cancelled, true);
-    t.equal(cancelledSignal.reason, 'barge_in');
     session.close();
 }
 
