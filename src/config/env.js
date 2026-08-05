@@ -10,6 +10,7 @@ const PORT = Number(process.env.PORT || 3200);
 const REALTIME_PROVIDER = process.env.REALTIME_PROVIDER || 'mock';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GROK_API_KEY = process.env.GROK_API_KEY || process.env.XAI_API_KEY || '';
+const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 const AVATAR_PROVIDER = process.env.AVATAR_PROVIDER || 'mock';
 const DEFAULT_LANGUAGE = process.env.DEFAULT_LANGUAGE || 'auto';
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -28,6 +29,7 @@ module.exports = {
     REALTIME_PROVIDER,
     GEMINI_API_KEY,
     GROK_API_KEY,
+    DEEPGRAM_API_KEY,
     AVATAR_PROVIDER,
     DEFAULT_LANGUAGE,
     LOG_LEVEL,
