@@ -6,11 +6,14 @@ const PREVIOUS_KEY = 'previous_build';
 
 const ERROR = {
     INVALID_ACTIVE_BUILD: 'INVALID_ACTIVE_BUILD',
+    MISSING_ACTIVE_BUILD: 'MISSING_ACTIVE_BUILD',
+    INVALID_PREVIOUS_BUILD: 'INVALID_PREVIOUS_BUILD',
     INVALID_TARGET: 'INVALID_TARGET',
     BUILD_NOT_FOUND: 'BUILD_NOT_FOUND',
     BUILD_NOT_READY: 'BUILD_NOT_READY',
-    BUILD_WRITE: 'BUILD_WRITE',
 };
+
+const VECTOR_EXTENSION_DDL = 'CREATE EXTENSION IF NOT EXISTS vector';
 
 const BUILDS_DDL = `
 CREATE TABLE IF NOT EXISTS build_registry_builds (
@@ -64,11 +67,32 @@ CREATE TABLE IF NOT EXISTS build_registry_state (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`;
 
+const SINGLE_ACTIVE_INDEX_DDL = `
+CREATE UNIQUE INDEX IF NOT EXISTS uq_build_registry_builds_single_active
+    ON build_registry_builds (status) WHERE status = 'active'`;
+
 const INDEX_DDL = [
     'CREATE INDEX IF NOT EXISTS idx_build_registry_builds_status ON build_registry_builds(status)',
     'CREATE INDEX IF NOT EXISTS idx_build_registry_builds_fingerprint ON build_registry_builds(input_fingerprint)',
     'CREATE INDEX IF NOT EXISTS idx_build_registry_chunks_build ON build_registry_chunks(build_id)',
     'CREATE INDEX IF NOT EXISTS idx_build_registry_chunks_source ON build_registry_chunks(build_id, source_file)',
+];
+
+const EMBEDDING_ALTER_DDL = 'ALTER TABLE build_registry_chunks ADD COLUMN IF NOT EXISTS embedding vector(768)';
+
+const VECTOR_INDEX_DDL = `
+CREATE INDEX IF NOT EXISTS idx_build_registry_chunks_vector
+    ON build_registry_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)`;
+
+const FULL_INIT = [
+    VECTOR_EXTENSION_DDL,
+    BUILDS_DDL,
+    CHUNKS_DDL,
+    STATE_DDL,
+    SINGLE_ACTIVE_INDEX_DDL,
+    ...INDEX_DDL,
+    EMBEDDING_ALTER_DDL,
+    VECTOR_INDEX_DDL,
 ];
 
 function buildError(code, buildId, detail) {
@@ -89,32 +113,36 @@ function isLegacy(buildId) {
 }
 
 async function initSchema(pool) {
-    const statements = [BUILDS_DDL, CHUNKS_DDL, STATE_DDL, ...INDEX_DDL];
-    for (const statement of statements) {
-        await pool.query(statement);
-    }
-    await pool.query(
-        'INSERT INTO build_registry_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
-        [ACTIVE_KEY, LEGACY_BUILD]
-    );
-    await pool.query(
-        'INSERT INTO build_registry_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
-        [PREVIOUS_KEY, LEGACY_BUILD]
-    );
+    const client = await pool.connect();
     try {
-        await pool.query('ALTER TABLE build_registry_chunks ADD COLUMN IF NOT EXISTS embedding vector(768)');
-        await pool.query(
-            'CREATE INDEX IF NOT EXISTS idx_build_registry_chunks_vector ON build_registry_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)'
+        await client.query('BEGIN');
+        for (const statement of FULL_INIT) {
+            await client.query(statement);
+        }
+        await client.query(
+            'INSERT INTO build_registry_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+            [ACTIVE_KEY, LEGACY_BUILD]
         );
+        await client.query(
+            'INSERT INTO build_registry_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+            [PREVIOUS_KEY, LEGACY_BUILD]
+        );
+        await client.query('COMMIT');
+        return true;
     } catch (err) {
-        return false;
+        await safeRollback(client);
+        throw err;
+    } finally {
+        client.release();
     }
-    return true;
 }
 
 async function resolveActiveBuild(pool) {
     const { rows } = await pool.query('SELECT value FROM build_registry_state WHERE key = $1', [ACTIVE_KEY]);
-    const value = rows.length ? rows[0].value : LEGACY_BUILD;
+    if (rows.length === 0) {
+        return { error: ERROR.MISSING_ACTIVE_BUILD };
+    }
+    const value = rows[0].value;
     if (isLegacy(value)) {
         return { build_id: LEGACY_BUILD };
     }
@@ -152,6 +180,13 @@ async function activateBuild(pool, buildId) {
         const activeRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [ACTIVE_KEY]);
         const previousBuild = activeRow.rows.length ? activeRow.rows[0].value : LEGACY_BUILD;
         if (!isLegacy(previousBuild)) {
+            const current = await client.query(
+                'SELECT status FROM build_registry_builds WHERE build_id = $1 FOR UPDATE',
+                [previousBuild]
+            );
+            if (current.rows.length === 0) {
+                throw buildError(ERROR.INVALID_ACTIVE_BUILD, previousBuild, 'current active build missing');
+            }
             await client.query(
                 'UPDATE build_registry_builds SET status = $1, updated_at = NOW() WHERE build_id = $2',
                 ['ready', previousBuild]
@@ -179,6 +214,22 @@ async function activateBuild(pool, buildId) {
     }
 }
 
+async function validatePreviousTarget(client, buildId) {
+    if (isLegacy(buildId)) {
+        return;
+    }
+    const { rows } = await client.query(
+        'SELECT status FROM build_registry_builds WHERE build_id = $1',
+        [buildId]
+    );
+    if (rows.length === 0) {
+        throw buildError(ERROR.INVALID_PREVIOUS_BUILD, buildId, 'previous build missing');
+    }
+    if (rows[0].status !== 'ready') {
+        throw buildError(ERROR.INVALID_PREVIOUS_BUILD, buildId, `status=${rows[0].status}`);
+    }
+}
+
 async function rollbackBuild(pool) {
     const client = await pool.connect();
     try {
@@ -189,12 +240,13 @@ async function rollbackBuild(pool) {
         );
         const activeRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [ACTIVE_KEY]);
         const currentBuild = activeRow.rows.length ? activeRow.rows[0].value : LEGACY_BUILD;
+        const prevRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [PREVIOUS_KEY]);
+        const previousBuild = prevRow.rows.length ? prevRow.rows[0].value : LEGACY_BUILD;
+        await validatePreviousTarget(client, previousBuild);
         if (isLegacy(currentBuild)) {
             await client.query('COMMIT');
             return { build_id: LEGACY_BUILD, rolled_back: LEGACY_BUILD };
         }
-        const prevRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [PREVIOUS_KEY]);
-        const previousBuild = prevRow.rows.length ? prevRow.rows[0].value : LEGACY_BUILD;
         await client.query(
             'UPDATE build_registry_builds SET status = $1, updated_at = NOW() WHERE build_id = $2',
             ['rolled_back', currentBuild]
@@ -209,7 +261,10 @@ async function rollbackBuild(pool) {
                 ['active', previousBuild]
             );
         }
-        await client.query('DELETE FROM build_registry_state WHERE key = $1', [PREVIOUS_KEY]);
+        await client.query(
+            'UPDATE build_registry_state SET value = $1, updated_at = NOW() WHERE key = $2',
+            [LEGACY_BUILD, PREVIOUS_KEY]
+        );
         await client.query('COMMIT');
         return { build_id: previousBuild, rolled_back: currentBuild };
     } catch (err) {
@@ -234,6 +289,15 @@ module.exports = {
     ACTIVE_KEY,
     PREVIOUS_KEY,
     ERROR,
+    VECTOR_EXTENSION_DDL,
+    BUILDS_DDL,
+    CHUNKS_DDL,
+    STATE_DDL,
+    SINGLE_ACTIVE_INDEX_DDL,
+    INDEX_DDL,
+    EMBEDDING_ALTER_DDL,
+    VECTOR_INDEX_DDL,
+    FULL_INIT,
     initSchema,
     resolveActiveBuild,
     activateBuild,

@@ -5,6 +5,8 @@ Branch: `phase0b/build-registry-design`
 Date: 2026-08-04
 Base: `origin/main` @ `3d0fb48` (corpus-manifest Step 1 merged)
 
+> **Implementation note (PR #20, Draft):** the Registry Foundation in `src/buildRegistry/registry.js` now implements the contracts in §4.3–§4.6, §6.1, §7.1–§7.2, and §9. §4.4/§4.5/§4.6, §6.1, §7.1–§7.2 and the PR-1 acceptance criteria were updated to match the proven behavior (missing-pointer error, atomic strict init, single-active partial unique index, validated rollback with `previous_build` reset-to-legacy, repeated-activation contract). Verified against real PostgreSQL (`tests/buildRegistry.postgres.integration.test.js`, 61 assertions) and by the unit suite (`tests/buildRegistryFoundation.test.js`). PR #20 stays Draft — no merge, no deploy, no production write.
+
 Predecessor audit: `docs/audits/corpus-manifest/report.md` + `manifest.json` (canonical input set, 453 included / 36 excluded, 9 duplicate groups).
 
 ---
@@ -178,6 +180,7 @@ CREATE TABLE IF NOT EXISTS build_registry_state (
 ```
 
 - **On schema init the pointer rows are seeded idempotently:** `active_build='legacy'`, `previous_build='legacy'` (idempotent `INSERT ... ON CONFLICT DO NOTHING`). A fresh DB therefore defaults to the legacy path and never fails a pointer read.
+- **Both pointer rows always exist.** Init creates both rows (`ON CONFLICT DO NOTHING` re-creates a row if one is ever missing), and rollback **resets** `previous_build` to `legacy` instead of deleting the row — the row set is never emptied. This makes the two-row read model stable and removes the old `DELETE ... WHERE key='previous_build'` failure mode (a missing row previously made a second rollback impossible).
 - Parity with existing `app_settings` (`src/knowledge/searchMode.js`) is intentional: same persisted-toggle pattern that survives `railway up`, but a dedicated table keeps the pointer distinct from search-mode. `active_build = 'legacy'` reproduces today's behavior exactly.
 
 ### 4.4 Pointer read (runtime, per-request)
@@ -191,11 +194,30 @@ SELECT value FROM build_registry_state WHERE key = 'active_build';
 - Cutover **and** rollback = the atomic pointer transactions in §7. No deploy.
 
 **Missing / non-existent active build is an explicit error, not a silent fallback.** `resolveActiveBuild()` returns one of:
-- `{ build_id: 'legacy' }` — safe default (legacy), also used when the pointer row is absent (defensive).
+- `{ build_id: 'legacy' }` — safe default (legacy), returned only when the pointer value is literally `'legacy'`.
 - `{ build_id: '<id>' }` — a *verified* build whose `status='active'` and which exists in `build_registry_builds`.
+- `{ error: 'MISSING_ACTIVE_BUILD' }` — the `active_build` pointer row itself is absent.
 - `{ error: 'INVALID_ACTIVE_BUILD', build_id }` — the pointer references a build_id that does **not** exist in `build_registry_builds`, or exists but is **not** `status='active'`.
 
-Rule: **no production fallback that hides a corrupt pointer.** If the pointer is dangling or points at a non-active build, `resolveActiveBuild()` never silently returns `legacy`; it returns the explicit error so the corruption is surfaced (logged/monitored), not papered over. A valid build is only reported when it is present and `active`.
+Rule: **no production fallback that hides a corrupt pointer.** If the pointer row is missing or the pointer is dangling/points at a non-active build, `resolveActiveBuild()` never silently returns `legacy`; it returns the explicit error so the corruption is surfaced (logged/monitored), not papered over. A valid build is only reported when it is present and `active`.
+
+### 4.5 Schema init is atomic (one client, one transaction)
+
+`initSchema(pool)` runs the entire schema block on **one** client in **one** transaction: `BEGIN → FULL_INIT → seed both pointer rows → COMMIT`.
+
+- `FULL_INIT` is a single ordered statement list: `CREATE EXTENSION IF NOT EXISTS vector`, `build_registry_builds`, `build_registry_chunks`, `build_registry_state`, the single-active unique index, the supporting indexes, `ALTER TABLE ... ADD COLUMN embedding vector(768)`, and the `ivfflat (vector_cosine_ops, lists=100)` index.
+- If **any** statement fails (including the pgvector-dependent ones), the whole init `ROLLBACK`s and the error is rethrown — **no partial schema is ever counted as success**. Verified by failure-injection: an injected error mid-DDL leaves **zero** registry objects.
+- If pgvector is unavailable, `CREATE EXTENSION IF NOT EXISTS vector` itself fails (SQLSTATE `0A000` `feature_not_supported` / `42704`), so init aborts cleanly with zero objects — strict by design, never a half-created schema.
+- Idempotent: every statement is `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`, so re-running init is a no-op after the first success.
+
+### 4.6 Single-active DB invariant
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS uq_build_registry_builds_single_active
+    ON build_registry_builds (status) WHERE status = 'active';
+```
+
+A **partial unique index** enforces "exactly one `active` build" at the database level, so even a buggy caller can never leave two builds `active`. A second `active` row raises `23505` (`unique_violation`), verified against real PostgreSQL and via the activation transaction's demote-before-promote ordering. The pointer (`active_build`) and the status are therefore kept consistent by both application logic (§7.1) and a hard DB constraint.
 
 ---
 
@@ -254,7 +276,7 @@ Recorded 1:1 in `build_registry_builds.status` (CHECK clause above) and mirrored
 | `rolled_back` | was active, superseded via rollback (§7.2) | rollback transaction | — |
 | `verification_failed` / `cancelled` | terminal, never activatable | gate failure / operator | — |
 
-Key invariant: **exactly one build has `status='active'` at any time, and it is always the build referenced by `active_build`.** When a build is activated, the previously-served real build (if any) is demoted to `ready` in the same transaction, so the pointer and status never desync. Both the pointer flip and every status change are atomic in the activation transaction.
+Key invariant: **exactly one build has `status='active'` at any time, and it is always the build referenced by `active_build`.** This is enforced twice: (1) by the activation transaction, which demotes the currently-served build to `ready` in the same transaction before promoting the new build; and (2) by the partial unique index `uq_build_registry_builds_single_active` (§4.6), which makes a second `active` row a DB-level `23505`. Both the pointer flip and every status change are atomic in the activation transaction.
 
 ### 6.2 Dry-run
 - `build-dry-run.js` performs the full input scan, dedupe application, chunk estimation, and hash computation **read-only** — no table writes, no embedding API calls.
@@ -278,6 +300,7 @@ Every gate below must pass; a single failure sets `status='verification_failed'`
 7. **Retrieval benchmark:** `npm run benchmark:retrieval` and `npm run benchmark:retrieval:hybrid` run against the v2 build; top-k results on the benchmark battery must be equal or better than legacy on recall, with no missing hits for canonical queries.
 8. **Latency budget:** p95/p99 of `search()` under the v2 build must not regress beyond legacy by a stated bound (e.g. ≤ legacy p95 + 25%), measured with the same query battery and DB profile.
 9. **Rollback test (staging):** an automated test activates the build (§7.1), serves queries, rolls back (§7.2), and asserts (a) legacy is restored, (b) no data is deleted, (c) pointer ended on `legacy`/`previous_build`, (d) the build's status is `rolled_back`. Must pass before the same build may be activated in production.
+10. **Repeated-activation / second-rollback contract (staging):** an automated test runs `activate(A) → activate(B) → rollback` and asserts the immediate previous build (`A`) is restored as `active` with `previous_build` reset to `legacy`; a second `rollback` then restores `legacy`. This pins the rollback-of-a-rollback semantics (§7.2) so a repeated `activate → activate → rollback` cycle never restores the wrong build.
 
 A build may be referenced by `active_build` **only** when its status is `active`; the pointer never references a `building`, `ready`, `rolled_back`, `verification_failed`, or `cancelled` build.
 
@@ -295,28 +318,25 @@ BEGIN;
 SELECT value FROM build_registry_state WHERE key IN ('active_build','previous_build') FOR UPDATE;
 -- validate target is a real, ready-but-not-yet-active build
 SELECT status FROM build_registry_builds WHERE build_id = '<build_id>' FOR UPDATE;
--- (throws INVALID/ NOT_READY if missing or not eligible — see §4.4)
--- demote the currently-served real build (if any) from 'active' to 'ready'
-UPDATE build_registry_builds
-   SET status = 'ready', updated_at = NOW()
- WHERE status = 'active'
-   AND build_id <> '<build_id>';
-UPDATE build_registry_builds
-   SET status = 'active', updated_at = NOW()
- WHERE build_id = '<build_id>';
-UPDATE build_registry_state
-   SET value = (SELECT value FROM build_registry_state WHERE key = 'active_build'),
-       updated_at = NOW()
+-- (throws BUILD_NOT_FOUND if missing, BUILD_NOT_READY if not status='ready')
+SELECT value FROM build_registry_state WHERE key = 'active_build';  -- current = '<prev>'
+-- demote the currently-served real build (if any) to 'ready'
+UPDATE build_registry_builds SET status = 'ready', updated_at = NOW()
+ WHERE build_id = '<prev>';
+-- (throws INVALID_ACTIVE_BUILD if the current active row is missing — a corrupt pointer
+--  is never silently demoted/replaced)
+UPDATE build_registry_state SET value = '<prev>', updated_at = NOW()
  WHERE key = 'previous_build';
-UPDATE build_registry_state
-   SET value = '<build_id>', updated_at = NOW()
+UPDATE build_registry_state SET value = '<build_id>', updated_at = NOW()
  WHERE key = 'active_build';
+UPDATE build_registry_builds SET status = 'active', updated_at = NOW()
+ WHERE build_id = '<build_id>';
 COMMIT;
 ```
 
 - Atomic: readers never observe a half-flip. If any statement fails, `ROLLBACK` leaves pointer and status untouched.
-- Row-locking guarantees a concurrent activation blocks here and then targets the *new* `active_build`, so the last committer wins deterministically — no lost update, no interleaving.
-- `active_build` therefore always equals a build whose status is `active` (or `legacy` sentinel before first cutover), and **exactly one real build is `active` at a time**: the superseded build is demoted to `ready` in the same transaction.
+- Row-locking guarantees a concurrent activation blocks here and then targets the *new* `active_build`, so the last committer wins deterministically — no lost update, no interleaving. Verified against real PostgreSQL with two concurrent activations: both settle, one candidate ends `active`, the loser ends `ready`, and `previous_build` equals the loser.
+- `active_build` therefore always equals a build whose status is `active` (or `legacy` sentinel before first cutover), and **exactly one real build is `active` at a time**: the superseded build is demoted to `ready` in the same transaction, and the partial unique index (§4.6) enforces it at the DB level.
 - The prior served corpus is preserved in `previous_build` (never `DELETE`d during cutover), so rollback is always available.
 
 ### 7.2 Rollback — rollback transaction
@@ -325,21 +345,33 @@ COMMIT;
 BEGIN;
 -- serialize with any in-flight cutover
 SELECT value FROM build_registry_state WHERE key IN ('active_build','previous_build') FOR UPDATE;
-SELECT value FROM build_registry_state WHERE key = 'active_build' FOR UPDATE;
-UPDATE build_registry_state
-   SET value = (SELECT value FROM build_registry_state WHERE key = 'previous_build'),
-       updated_at = NOW()
+SELECT value FROM build_registry_state WHERE key = 'active_build';  -- current
+SELECT value FROM build_registry_state WHERE key = 'previous_build'; -- previous
+-- validate the rollback target BEFORE touching anything
+--  previous='legacy'            -> valid (restore legacy path)
+--  previous row missing/ghost   -> throw INVALID_PREVIOUS_BUILD, abort, nothing changes
+--  previous.status <> 'ready'   -> throw INVALID_PREVIOUS_BUILD, abort, nothing changes
+IF previous <> 'legacy':
+    SELECT status FROM build_registry_builds WHERE build_id = previous; -- must be 'ready'
+IF current == 'legacy':
+    COMMIT;  -- nothing to roll back; legacy is already served
+-- mark the currently-served build as rolled back
+UPDATE build_registry_builds SET status = 'rolled_back', updated_at = NOW()
+ WHERE build_id = current;
+UPDATE build_registry_state SET value = previous, updated_at = NOW()
  WHERE key = 'active_build';
-UPDATE build_registry_builds
-   SET status = 'rolled_back', updated_at = NOW()
- WHERE build_id = (SELECT value FROM build_registry_state WHERE key = 'previous_build');
-DELETE FROM build_registry_state WHERE key = 'previous_build';
+IF previous <> 'legacy':
+    UPDATE build_registry_builds SET status = 'active', updated_at = NOW()
+     WHERE build_id = previous;
+UPDATE build_registry_state SET value = 'legacy', updated_at = NOW()
+ WHERE key = 'previous_build';   -- reset (not DELETE); the row always exists
 COMMIT;
 ```
 
 - Immediate, single transaction, no redeploy. The **legacy tables are never deleted** during this phase, so rollback to `legacy` (or to the recorded `previous_build`) is always possible.
 - If `previous_build = 'legacy'`, rollback restores the legacy path exactly. If a prior v2 build was superseded, rollback restores that v2 build and flips its status back to `active` in the same transaction.
-- Rollback never deletes build rows or artifacts — it only moves the pointer and status.
+- **Rollback never deletes build rows or artifacts** — it only moves the pointer and status. `previous_build` is **reset to `'legacy'`** (not deleted), so the two pointer rows always exist and a repeated `activate → activate → rollback` cycle restores the immediate previous build on the first rollback and `legacy` on the second.
+- **The rollback target is validated before any write.** If `previous_build` is missing/ghost or its build is not `status='ready'`, rollback aborts with `INVALID_PREVIOUS_BUILD` and leaves the pointer and statuses untouched — a corrupt `previous_build` can never make rollback silently point at a bad build.
 - Row-locking makes rollback safe against a concurrent cutover: one of them wins, the other re-reads and acts on the post-commit pointer.
 
 ### 7.3 Cache invalidation strategy
@@ -392,10 +424,12 @@ Confirmed senior decision: the versioned corpus lands in **two** PRs so the buil
 
 In scope:
 - Additive registry schema: `build_registry_builds`, `build_registry_chunks`, `build_registry_state` (idempotent `CREATE TABLE IF NOT EXISTS`; owner = `src/buildRegistry/`, **not** KOS `kos_schema_migrations`).
+- **Atomic schema init** (`initSchema`): one client, one transaction, strict `FULL_INIT` incl. `CREATE EXTENSION vector`, `embedding vector(768)` column, and the `ivfflat` index; any failure → full ROLLBACK, zero partial objects (§4.5).
+- **Single-active DB invariant:** partial unique index `uq_build_registry_builds_single_active` (§4.6).
 - `build_registry_chunks.build_id` FK with `ON DELETE RESTRICT` (orphan chunks impossible; see §4.2).
-- Pointer helpers: `resolveActiveBuild(pool)` (§4.4) and the **cutover/rollback transactions** (§7.1/§7.2) with row locking (`SELECT ... FOR UPDATE`).
-- Schema + unit tests, including a **failure-injection test** proving pointer/status never desync on a mid-transaction failure (ROLLBACK leaves both untouched), concurrency/lock-serialization coverage, invalid-target rejection, and orphan-chunk FK rejection.
-- Contract documentation of the lifecycle, pointer, and transactions.
+- Pointer helpers: `resolveActiveBuild(pool)` (§4.4 — incl. explicit `MISSING_ACTIVE_BUILD`) and the **cutover/rollback transactions** (§7.1/§7.2) with row locking (`SELECT ... FOR UPDATE`), previous-target validation, and `previous_build` reset-to-legacy (never deleted).
+- Schema + unit tests (in-memory transactional double), including a **failure-injection test** proving pointer/status never desync on a mid-transaction failure (ROLLBACK leaves both untouched), concurrency/lock-serialization coverage, invalid-target rejection, orphan-chunk FK rejection, and the repeated `activate → activate → rollback` contract (gate §6.4-10).
+- A **real-PostgreSQL integration test** (`TEST_DATABASE_URL`; skips cleanly when unset) that re-verifies every guarantee above against a live `pg` Pool, and a CI job that runs it against a PostgreSQL service (pgvector when available).
 
 Out of scope for PR 1:
 - Build corpus, chunks import, embeddings, benchmark — all in PR 2.
@@ -423,10 +457,11 @@ Mainly driven by embedding calls (~1.3k new chunks to embed for v2; most legacy 
 ### Acceptance criteria for PR 1 (Registry Foundation)
 1. `git diff` touches only: registry schema module (`src/buildRegistry/`) + pointer/cutover/rollback module + their tests + this design doc. No `src/knowledge/search.js`, no build scripts, no production writes.
 2. `npm run check:missing-imports`, `node scripts/run-tests.js` and `npm run test:smoke` are green.
-3. New tests cover: schema idempotency (run twice, no error); default `legacy` pointer; invalid/non-existent target rejected; concurrent cutover serialized via `FOR UPDATE`; failure-injection mid-transaction → full rollback, pointer+status unchanged; rollback restores `previous_build`/legacy without data deletion; orphan chunk insert rejected by FK (RESTRICT).
+3. New tests cover: schema idempotency (run twice, no error); **atomic init failure-injection → zero registry objects**; default `legacy` pointer; **missing pointer row → `MISSING_ACTIVE_BUILD`**; invalid/non-existent target rejected; **partial unique index rejects a second `active` build (`23505`)**; concurrent cutover serialized via `FOR UPDATE`; failure-injection mid-transaction → full rollback, pointer+status unchanged; rollback restores `previous_build`/legacy without data deletion; **rollback validates the previous target and aborts with `INVALID_PREVIOUS_BUILD` without state change**; **`activate → activate → rollback` restores the immediate previous build, second rollback → `legacy`**; orphan chunk insert rejected by FK (RESTRICT).
 4. Migration is additive (verified: existing tables unchanged; new ones only), `git diff --check` clean.
 5. Registry is provably never auto-activated (no code path flips `active_build` to a non-legacy value outside an explicit operator action).
 6. `active_build` default is `legacy`; nothing references a v2 build until a later cutover PR.
+7. The real-PG integration test passes against a PostgreSQL service in CI (and skips cleanly without `TEST_DATABASE_URL`), exercising the same scenarios as the unit suite on a live `pg` Pool.
 
 ---
 

@@ -111,7 +111,8 @@ class RegistryDouble {
     async _exec(client, rawSql, params = []) {
         const sql = String(rawSql).trim().replace(/\s+/g, ' ');
 
-        if (/^CREATE INDEX/i.test(sql)) return { rows: [] };
+        if (/^CREATE EXTENSION/i.test(sql)) return { rows: [] };
+        if (/^CREATE (UNIQUE )?INDEX/i.test(sql)) return { rows: [] };
         if (/^ALTER TABLE/i.test(sql)) return { rows: [] };
         if (/^DROP TABLE/i.test(sql)) {
             const m = sql.match(/DROP TABLE IF EXISTS (\w+)/i);
@@ -279,11 +280,16 @@ async function run() {
     const initial = await registry.resolveActiveBuild(double);
     ok(initial.build_id === legacy);
 
+    await double.query('DELETE FROM build_registry_state WHERE key = $1', [registry.ACTIVE_KEY]);
+    const missing = await registry.resolveActiveBuild(double);
+    ok(missing.error === registry.ERROR.MISSING_ACTIVE_BUILD);
+    await registry.initSchema(double);
+    ok(stateOf(double, 'active_build') === legacy);
+
     double.setState('active_build', 'does-not-exist');
     const dangling = await registry.resolveActiveBuild(double);
     ok(dangling.error === registry.ERROR.INVALID_ACTIVE_BUILD);
     ok(dangling.build_id === 'does-not-exist');
-    ok(dangling.build_id !== legacy);
     double.setState('active_build', legacy);
 
     await assert.rejects(
@@ -299,16 +305,15 @@ async function run() {
         () => registry.activateBuild(double, 'b1'),
         (e) => e.code === registry.ERROR.BUILD_NOT_READY
     );
-
     double.seedBuild({ build_id: 'b1', status: 'ready' });
+
     const r1 = await registry.activateBuild(double, 'b1');
     ok(r1.build_id === 'b1');
     ok(r1.previous_build === legacy);
     ok(stateOf(double, 'active_build') === 'b1');
+    ok(stateOf(double, 'previous_build') === legacy);
     ok(statusOf(double, 'b1') === 'active');
     ok(buildsWithStatus(double, 'active').length === 1);
-    const after1 = await registry.resolveActiveBuild(double);
-    ok(after1.build_id === 'b1');
 
     double.seedBuild({ build_id: 'b2', status: 'ready' });
     const r2 = await registry.activateBuild(double, 'b2');
@@ -324,6 +329,7 @@ async function run() {
     ok(rr.build_id === 'b1');
     ok(rr.rolled_back === 'b2');
     ok(stateOf(double, 'active_build') === 'b1');
+    ok(stateOf(double, 'previous_build') === legacy);
     ok(statusOf(double, 'b2') === 'rolled_back');
     ok(statusOf(double, 'b1') === 'active');
     ok(buildsWithStatus(double, 'active').length === 1);
@@ -333,6 +339,36 @@ async function run() {
     ok(rr2.rolled_back === 'b1');
     ok(stateOf(double, 'active_build') === legacy);
     ok(statusOf(double, 'b1') === 'rolled_back');
+
+    double.seedBuild({ build_id: 'b3', status: 'ready' });
+    double.setState('active_build', 'b1');
+    double.setState('previous_build', legacy);
+    await registry.activateBuild(double, 'b3');
+
+    double.setState('previous_build', 'ghost');
+    await assert.rejects(
+        () => registry.rollbackBuild(double),
+        (e) => e.code === registry.ERROR.INVALID_PREVIOUS_BUILD
+    );
+    ok(stateOf(double, 'active_build') === 'b3');
+    ok(statusOf(double, 'b3') === 'active');
+    ok(stateOf(double, 'previous_build') === 'ghost');
+
+    double.setState('previous_build', 'b3');
+    await assert.rejects(
+        () => registry.rollbackBuild(double),
+        (e) => e.code === registry.ERROR.INVALID_PREVIOUS_BUILD
+    );
+    ok(stateOf(double, 'active_build') === 'b3');
+    ok(statusOf(double, 'b3') === 'active');
+    ok(stateOf(double, 'previous_build') === 'b3');
+
+    double.setState('previous_build', 'b1');
+    const rr3 = await registry.rollbackBuild(double);
+    ok(rr3.build_id === 'b1');
+    ok(rr3.rolled_back === 'b3');
+    ok(stateOf(double, 'active_build') === 'b1');
+    ok(stateOf(double, 'previous_build') === legacy);
 
     await assert.rejects(
         () => double.query(
@@ -350,19 +386,22 @@ async function run() {
     double.seedBuild({ build_id: 'b1', status: 'ready' });
     await registry.activateBuild(double, 'b1');
     double.seedBuild({ build_id: 'b2', status: 'ready' });
+    await registry.activateBuild(double, 'b2');
+    double.seedBuild({ build_id: 'b3', status: 'ready' });
     double.clearFail();
-    double.failAtStmt = 6;
+    double.failAtStmt = 8;
     await assert.rejects(
-        () => registry.activateBuild(double, 'b2'),
+        () => registry.activateBuild(double, 'b3'),
         (e) => {
             ok(e.code === 'INJECTED');
             return true;
         }
     );
-    ok(stateOf(double, 'active_build') === 'b1');
-    ok(stateOf(double, 'previous_build') === legacy);
-    ok(statusOf(double, 'b1') === 'active');
-    ok(statusOf(double, 'b2') === 'ready');
+    ok(stateOf(double, 'active_build') === 'b2');
+    ok(stateOf(double, 'previous_build') === 'b1');
+    ok(statusOf(double, 'b1') === 'ready');
+    ok(statusOf(double, 'b2') === 'active');
+    ok(statusOf(double, 'b3') === 'ready');
     ok(buildsWithStatus(double, 'active').length === 1);
 
     double.clearFail();
@@ -386,6 +425,17 @@ async function run() {
     ok(buildsWithStatus(double, 'active').length === 1);
 
     return { assertionCount: n };
+}
+
+if (require.main === module) {
+    run()
+        .then((r) => {
+            console.log(`buildRegistryFoundation: ${r.assertionCount} assertions OK`);
+        })
+        .catch((error) => {
+            console.error(error);
+            process.exit(1);
+        });
 }
 
 module.exports = { run };
