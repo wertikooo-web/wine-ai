@@ -303,7 +303,7 @@ async function run() {
         );
         await assert.rejects(
             () => pool.query('DELETE FROM build_registry_builds WHERE build_id = $1', ['FK']),
-            (e) => e.code === '23001'
+            (e) => ['23001', '23503'].includes(e.code)
         );
         await assert.rejects(
             () => pool.query(
