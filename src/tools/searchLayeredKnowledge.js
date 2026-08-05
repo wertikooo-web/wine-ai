@@ -81,7 +81,15 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
 
         const evidence = result.evidence.slice(0, 12);
 
-        if (result.answerable === false) {
+        // Treat "no" (false) and "unknown" (null -- grader unavailable or
+        // unparseable) identically here -- neither may let the assistant
+        // present loosely-related evidence as a verified fact. `undefined`
+        // (a routeImpl that doesn't run the gate at all, e.g. a bare
+        // routeKnowledge() passed directly) is deliberately NOT included:
+        // that's a caller opting out of answerability grading entirely, not
+        // a "checked and failed" or "checked and unknown" outcome, so it
+        // must keep the pre-gate behavior of trusting `found`.
+        if (result.answerable === false || result.answerable === null) {
             // Fragments were retrieved (found:true) but the answerability
             // gate -- and, when allowed, a web fallback already attempted
             // inside it -- could not confirm they cover this specific
@@ -90,7 +98,12 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             // loosely-related fragments.
             return {
                 found: true,
-                answerable: false,
+                // Preserve the real tri-state signal (false = checked and
+                // rejected, null = unknown/grader unavailable) rather than
+                // collapsing both to false -- logs and the dashboard need to
+                // be able to tell "confirmed insufficient" apart from
+                // "we genuinely don't know".
+                answerable: result.answerable === true ? true : result.answerable,
                 answerabilityReason: result.answerabilityReason || null,
                 webUsed: result.web_used === true,
                 status: 'insufficient',

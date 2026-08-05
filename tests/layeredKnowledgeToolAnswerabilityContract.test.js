@@ -48,10 +48,11 @@ async function run() {
 
     // Core regression case, but through the REAL live tool
     // (search_wine_knowledge), not just the router in isolation: 8
-    // similar-but-irrelevant fragments -> found:true, answerable:false,
-    // then a web fallback once allowWeb is permitted (the tool always
-    // passes allowWeb:true -- unchanged from before this gate existed).
-    console.log('Testing: live tool with 8 similar-but-irrelevant fragments -> found:true, answerable:false, web fallback fires...');
+    // similar-but-irrelevant fragments -> found:true, initial answerable:false,
+    // then a web fallback fires (the tool always passes allowWeb:true --
+    // unchanged from before this gate existed) and, since it genuinely
+    // finds something, the final outcome flips to a confident answer.
+    console.log('Testing: live tool with 8 similar-but-irrelevant fragments -> found:true, web fallback fires and confirms...');
     {
         const eightFragments = Array.from({ length: 8 }, (_, i) => similarButIrrelevantFragment(i + 1));
         const { impl, calls } = toolImplWithGate({
@@ -67,15 +68,37 @@ async function run() {
         const result = await impl({ query: 'Какое вино выбрать к баранине?' }, context);
 
         assert.strictEqual(result.found, true, 'found must be true -- fragments were genuinely retrieved');
-        assert.strictEqual(result.answerable, false, 'answerable must be false -- the fragments do not cover the pairing question');
-        assert.strictEqual(result.answerabilityReason, 'fragments are generic background info, no pairing recommendation');
-        assert.strictEqual(result.webUsed, true, 'web fallback must have fired since the live tool always permits web');
-        assert.strictEqual(result.status, 'insufficient', 'status must reflect found-but-insufficient, not a plain "found"');
-        assert.ok(calls.includes('web'), 'the web adapter must actually have been called');
-        assert.ok(result.answer_policy.final_instruction.toLowerCase().includes('cannot be reliably confirmed') || result.answer_policy.final_instruction.toLowerCase().includes('honest'),
-            'the instruction given to the model must tell it to answer honestly, not fabricate a pairing from loosely-related evidence');
-        assert.ok(/do not (mention|guess)/i.test(result.answer_policy.final_instruction),
-            'the instruction must explicitly tell the model not to expose internal search machinery or guess');
+        assert.ok(calls.includes('web'), 'the web adapter must have been called, since the initial check said answerable:false');
+        assert.strictEqual(result.webUsed, true, 'web fallback must have found something');
+        assert.strictEqual(result.answerable, true, 'a web fallback that genuinely finds evidence must resolve to answerable:true');
+        assert.strictEqual(result.answerabilityReason, 'confirmed_via_web_fallback');
+        assert.strictEqual(result.status, 'found', 'status must reflect a confirmed answer once web genuinely supplied one');
+        assert.ok(!/cannot be reliably confirmed/i.test(result.answer_policy.final_instruction),
+            'once web has confirmed an answer, the model must be told to answer confidently, not refuse');
+    }
+
+    console.log('Testing: live tool -- answerability check unavailable (unknown), web fallback fires and confirms...');
+    {
+        const eightFragments = Array.from({ length: 8 }, (_, i) => similarButIrrelevantFragment(i + 1));
+        const { value } = adapters({
+            documentItems: eightFragments,
+            webItems: [{
+                level: LEVELS.WEB, text: 'Баранину хорошо сочетать с насыщенным красным вином.', title: 'Pairing guide',
+                source: 'https://example.com/pairing', source_type: 'general_web', confidence: 'medium',
+            }],
+        });
+        // No generateContent, no apiKey -> checkAnswerability's unavailable
+        // (unknown) branch -- must be routed to web exactly like an
+        // explicit answerable:false, never treated as a silent pass.
+        const routeImpl = (query, options) => routeKnowledgeWithAnswerabilityGate(query, { ...options, adapters: value, answerabilityModel: { apiKey: '' } });
+        const impl = tool.createImpl(routeImpl);
+
+        const result = await impl({ query: 'Какое вино выбрать к баранине?' }, context);
+
+        assert.strictEqual(result.found, true);
+        assert.strictEqual(result.webUsed, true, 'an unknown/unavailable check must still route to web, not skip it');
+        assert.strictEqual(result.answerable, true, 'a successful web fallback resolves the unknown check to a confident answer');
+        assert.strictEqual(result.status, 'found');
     }
 
     console.log('Testing: same fragments but the caller context still results in an honest refusal path when web adds nothing new...');

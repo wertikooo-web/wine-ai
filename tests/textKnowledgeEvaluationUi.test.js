@@ -196,7 +196,10 @@ async function run() {
                     status: 200, ok: true,
                     json: async () => ({
                         ok: true, question: 'Вопрос?', language: 'ru', answer: 'Некий ответ.',
-                        found: true, answerable: true, answerability_reason: 'answerability_check_unavailable',
+                        // Matches the real API contract: a fail-open/unknown
+                        // check is reported as answerable:false (never true),
+                        // with the reason naming exactly what happened.
+                        found: true, answerable: false, answerability_reason: 'answerability_check_unavailable',
                         evidence: [{ level: 'documents', title: 'T', source: 'https://example.md', text: 'x' }],
                         used_levels: ['documents'], web_used: false, duration_ms: 10, usage: null,
                     }),

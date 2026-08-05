@@ -331,7 +331,13 @@ async function checkAnswerability(question, evidence, {
         if (typeof generateContent === 'function') {
             response = await generateContent({ model, prompt });
         } else if (!apiKey) {
-            return { answerable: true, reason: 'answerability_check_unavailable' };
+            // Unknown, not confirmed: for a live wine assistant, "the grader
+            // is unreachable" must never read the same as "yes, this
+            // evidence answers the question" -- that would silently skip
+            // the web fallback and let a random topically-similar fragment
+            // pass as a verified answer. null lets the gate below route this
+            // exactly like answerable:false (try web if allowed).
+            return { answerable: null, reason: 'answerability_check_unavailable' };
         } else {
             const { GoogleGenAI } = require('@google/genai');
             const ai = new GoogleGenAI({ apiKey });
@@ -342,10 +348,9 @@ async function checkAnswerability(question, evidence, {
             });
         }
     } catch (error) {
-        // Fail open (skip the extra web call) rather than let a grader
-        // outage silently break every factual answer -- the underlying
-        // answer-generation step still carries its own honesty instruction.
-        return { answerable: true, reason: 'answerability_check_error' };
+        // Same reasoning as the missing-apiKey branch above: an outage in
+        // the grader is "unknown", not a pass.
+        return { answerable: null, reason: 'answerability_check_error' };
     }
     const raw = extractCheckText(response);
     let parsed;
@@ -353,12 +358,14 @@ async function checkAnswerability(question, evidence, {
         const match = raw.match(/\{[\s\S]*\}/);
         parsed = JSON.parse(match ? match[0] : raw);
     } catch {
-        return { answerable: true, reason: 'answerability_check_unparseable' };
+        return { answerable: null, reason: 'answerability_check_unparseable' };
     }
-    const answerable = typeof parsed?.answerable === 'boolean' ? parsed.answerable : true;
+    // The model responded with parseable JSON but no valid boolean field --
+    // still "unknown", not a pass, for the same reason as above.
+    const answerable = typeof parsed?.answerable === 'boolean' ? parsed.answerable : null;
     const reason = typeof parsed?.reason === 'string' && parsed.reason.trim()
         ? parsed.reason.trim().slice(0, 200)
-        : (answerable ? 'answerable' : 'evidence_does_not_answer_question');
+        : (answerable === true ? 'answerable' : answerable === false ? 'evidence_does_not_answer_question' : 'answerability_check_unparseable');
     return { answerable, reason };
 }
 
@@ -378,20 +385,32 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
 
     const { answerable, reason } = await checkAnswerability(query, base.evidence, options.answerabilityModel);
 
-    if (answerable || options.allowWeb === false) {
+    // Web fallback fires whenever the check did NOT confirm the evidence
+    // answers the question -- that's answerable === false (checked and
+    // rejected) OR answerable === null (unknown -- grader unavailable or
+    // unparseable). Treating "unknown" the same as "no" here is the whole
+    // point: a live assistant must never silently skip going to the web
+    // just because its own grader happened to be down.
+    if (answerable === true || options.allowWeb === false) {
         return { ...base, answerable, answerabilityReason: reason };
     }
 
     const web = await (options.adapters?.searchInternet || searchInternet)(query, { ...options, language: options.language || null });
     const evidence = sortEvidence([...base.evidence, ...web]);
+    const webConfirmed = web.length > 0;
     return {
         ...base,
         evidence,
         used_levels: [...new Set(evidence.map((item) => item.level))],
-        web_used: web.length > 0,
+        web_used: webConfirmed,
         web_attempted: true,
-        answerable,
-        answerabilityReason: reason,
+        // If the web pass actually turned up something, treat the question
+        // as answered -- the model gets fresh, real evidence to answer from
+        // confidently. If web found nothing either, the honest signal from
+        // the check (false/null) stands, and callers must present this as
+        // "insufficient", never as a confirmed answer.
+        answerable: webConfirmed ? true : answerable,
+        answerabilityReason: webConfirmed ? 'confirmed_via_web_fallback' : reason,
     };
 }
 

@@ -54,13 +54,33 @@ async function run() {
         assert.ok(!capturedPrompt.includes('cellars'), 'prompt must not include unrelated persona/system content -- only question + evidence');
     }
 
-    console.log('Testing: checkAnswerability() fails open (answerable:true) on unparseable model output...');
+    // For a live assistant, "the grader is unreachable" must read as
+    // UNKNOWN (null), never as a silent pass -- a pass would skip the web
+    // fallback and let a random, topically-similar fragment stand in for a
+    // verified answer.
+    console.log('Testing: checkAnswerability() reports answerable:null (unknown, not a pass) on unparseable model output...');
     {
         const result = await checkAnswerability('Вопрос?', [documentFragment(1)], {
             generateContent: async () => ({ text: 'not json at all' }),
         });
-        assert.strictEqual(result.answerable, true, 'unparseable grader output must fail open, not silently force web every time');
+        assert.strictEqual(result.answerable, null, 'unparseable grader output must be unknown, not answerable:true');
         assert.strictEqual(result.reason, 'answerability_check_unparseable');
+    }
+
+    console.log('Testing: checkAnswerability() reports answerable:null when no apiKey/generateContent is configured...');
+    {
+        const result = await checkAnswerability('Вопрос?', [documentFragment(1)], { apiKey: '' });
+        assert.strictEqual(result.answerable, null, 'a missing grader configuration must be unknown, not a silent pass');
+        assert.strictEqual(result.reason, 'answerability_check_unavailable');
+    }
+
+    console.log('Testing: checkAnswerability() reports answerable:null when the grader call itself throws...');
+    {
+        const result = await checkAnswerability('Вопрос?', [documentFragment(1)], {
+            generateContent: async () => { throw new Error('network error'); },
+        });
+        assert.strictEqual(result.answerable, null, 'a grader outage must be unknown, not a silent pass');
+        assert.strictEqual(result.reason, 'answerability_check_error');
     }
 
     console.log('Testing: checkAnswerability() with no evidence is trivially not answerable...');
@@ -70,9 +90,11 @@ async function run() {
     }
 
     // 2. The core regression case: 8 similar-but-irrelevant document
-    //    fragments -> found:true, answerable:false, and a web fallback only
-    //    fires when the caller allows web.
-    console.log('Testing: 8 similar-but-irrelevant fragments -> found:true, answerable:false, web fallback when allowWeb:true...');
+    //    fragments -> found:true, answerable:false, web fallback fires when
+    //    allowed -- and, since the web pass here genuinely turns up
+    //    something, the final answerable flips to true so the model can
+    //    confidently answer from the fresh web evidence.
+    console.log('Testing: 8 similar-but-irrelevant fragments -> found:true, initial answerable:false, web fallback fires and confirms...');
     {
         const eightFragments = Array.from({ length: 8 }, (_, i) => documentFragment(i + 1, 0.5));
         const { value, calls } = adapters({
@@ -91,10 +113,10 @@ async function run() {
         });
 
         assert.strictEqual(result.found, true, 'found must stay true -- fragments genuinely were retrieved');
-        assert.strictEqual(result.answerable, false, 'answerable must reflect that the fragments do not cover the question');
-        assert.strictEqual(result.answerabilityReason, 'fragments are generic, no pairing info');
-        assert.strictEqual(result.web_used, true, 'web fallback must fire once allowWeb:true and answerable:false');
-        assert.ok(calls.includes('web'), 'searchInternet must actually have been called');
+        assert.ok(calls.includes('web'), 'searchInternet must actually have been called, since the initial check said answerable:false');
+        assert.strictEqual(result.web_used, true, 'web fallback must have found something');
+        assert.strictEqual(result.answerable, true, 'a web fallback that genuinely finds evidence must resolve to answerable:true, not stay stuck on the original false');
+        assert.strictEqual(result.answerabilityReason, 'confirmed_via_web_fallback');
         assert.ok(result.evidence.some((item) => item.level === LEVELS.WEB), 'web evidence must be merged into the final evidence list');
         assert.ok(result.evidence.length > eightFragments.length, 'web evidence must be added on top of the original fragments, not replace them');
     }
@@ -167,6 +189,53 @@ async function run() {
         });
         assert.strictEqual(result.web_used, true, 'freshness detection should have already triggered web inside routeKnowledge');
         assert.strictEqual(answerabilityCalled, false, 'the gate must not run an extra answerability check once web was already used');
+    }
+
+    // 3. The unknown/unavailable case: the grader itself is unreachable
+    //    (no apiKey, network error, etc). This must NOT silently skip the
+    //    web fallback like the old answerable:true fail-open used to --
+    //    "unknown" is routed to web exactly like "no".
+    console.log('Testing: answerability check unavailable -> treated as unknown -> web fallback still fires -> empty web result -> insufficient...');
+    {
+        const eightFragments = Array.from({ length: 8 }, (_, i) => documentFragment(i + 1, 0.5));
+        const { value, calls } = adapters({ documentItems: eightFragments, webItems: [] });
+
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+            allowWeb: true,
+            adapters: value,
+            // No generateContent and no apiKey -> checkAnswerability's
+            // unavailable branch (answerable: null).
+            answerabilityModel: { apiKey: '' },
+        });
+
+        assert.strictEqual(result.found, true, 'found must stay true -- fragments were retrieved');
+        assert.strictEqual(calls.includes('web'), true, 'web fallback must fire even though the check was unavailable, not skipped like a silent pass');
+        assert.notStrictEqual(result.answerable, true, 'an unavailable check followed by an empty web result must never resolve to answerable:true');
+        assert.strictEqual(result.web_used, false, 'web was attempted but found nothing, so web_used correctly stays false');
+        assert.strictEqual(result.answerabilityReason, 'answerability_check_unavailable', 'the original unavailable reason must survive when web adds nothing');
+    }
+
+    console.log('Testing: answerability check unavailable -> web fallback fires -> web DOES find something -> treated as answered...');
+    {
+        const eightFragments = Array.from({ length: 8 }, (_, i) => documentFragment(i + 1, 0.5));
+        const { value, calls } = adapters({
+            documentItems: eightFragments,
+            webItems: [{
+                level: LEVELS.WEB, text: 'Баранину хорошо сочетать с насыщенным красным вином.', title: 'Pairing guide',
+                source: 'https://example.com/pairing', source_type: 'general_web', confidence: 'medium',
+            }],
+        });
+
+        const result = await routeKnowledgeWithAnswerabilityGate('Какое вино выбрать к баранине?', {
+            allowWeb: true,
+            adapters: value,
+            answerabilityModel: { apiKey: '' },
+        });
+
+        assert.ok(calls.includes('web'), 'web fallback must have fired');
+        assert.strictEqual(result.web_used, true, 'web genuinely found something');
+        assert.strictEqual(result.answerable, true, 'a successful web fallback after an unknown check must resolve to answerable:true so the model can answer confidently from the new evidence');
+        assert.strictEqual(result.answerabilityReason, 'confirmed_via_web_fallback');
     }
 
     console.log('ALL RETRIEVAL ANSWERABILITY GATE TESTS PASSED!');

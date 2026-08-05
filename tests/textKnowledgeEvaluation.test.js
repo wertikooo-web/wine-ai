@@ -76,18 +76,22 @@ async function run() {
         const origWarn = console.warn;
         console.warn = (...args) => warnCalls.push(args);
         try {
+            // The gate itself now reports answerable:null (unknown) for a
+            // fail-open outcome, not true -- evaluate()'s public boolean
+            // field collapses that to false (never a false "confirmed"),
+            // while the reason field still names exactly what happened.
             const failOpen = createTextKnowledgeEvaluator({
                 apiKey: '',
                 routeImpl: async () => ({
-                    found: true, answerable: true, answerabilityReason: 'answerability_check_unavailable',
+                    found: true, answerable: null, answerabilityReason: 'answerability_check_unavailable',
                     evidence: [{ level: 'documents', title: 'X', text: 'y' }],
                     used_levels: ['documents'], web_used: false,
                 }),
                 generateContent: async () => ({ text: 'Some answer.' }),
             });
             const failOpenResult = await failOpen.evaluate({ question: 'Вопрос?' });
-            assert.strictEqual(failOpenResult.answerable, true, 'fail-open still reports answerable:true (the contract), but...');
-            assert.strictEqual(failOpenResult.answerability_reason, 'answerability_check_unavailable', '...the reason must explicitly say the check did not actually run');
+            assert.strictEqual(failOpenResult.answerable, false, 'a fail-open (unknown) outcome must never be reported as answerable:true');
+            assert.strictEqual(failOpenResult.answerability_reason, 'answerability_check_unavailable', 'the reason must explicitly say the check did not actually run');
             assert.strictEqual(warnCalls.length, 1, 'a fail-open answerability outcome must be logged server-side, not silently pass through');
             assert.ok(warnCalls[0][0].includes('answerability check did not run'), 'the log message must explicitly name the fail-open condition');
         } finally {

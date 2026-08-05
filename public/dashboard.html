@@ -5423,13 +5423,14 @@
       // upgrades every result to "verified" in the operator's eyes.
       const answerabilityUnverified = item.answerability_reason === 'answerability_check_unavailable'
         || item.answerability_reason === 'answerability_check_error';
+      const webConfirmed = item.answerable === true && item.web_used;
       const evidenceLabel = !item.found
         ? 'Нет источников'
-        : item.answerable === false
-          ? (item.web_used ? 'Источники найдены, ответ дополнен web' : 'Источники найдены, однако ответа в них недостаточно')
+        : item.answerable === true
+          ? (webConfirmed ? 'Есть источники (подтверждено через web)' : 'Есть источники')
           : answerabilityUnverified
             ? 'Есть источники (проверка ответности недоступна — не подтверждено)'
-            : 'Есть источники';
+            : (item.web_used ? 'Источники найдены, ответ дополнен web' : 'Источники найдены, однако ответа в них недостаточно');
       meta.textContent = `${evidenceLabel} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
       const grades = document.createElement('div');
       grades.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
