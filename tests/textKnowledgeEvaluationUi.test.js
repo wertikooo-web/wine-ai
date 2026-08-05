@@ -184,6 +184,41 @@ async function run() {
         assert.ok(csvContent.includes('Проверено вручную, ответ корректный'), 'CSV data row must include the reviewer comment text');
     }
 
+    // 1b. A fail-open answerability outcome (grader unavailable/unparseable)
+    //     must never render identically to a genuinely confirmed answer --
+    //     otherwise an outage in the grader silently looks like full
+    //     verification to whoever is reading the eval panel.
+    console.log('Testing: a fail-open answerability result is visibly distinct from a real confirmation in the UI...');
+    {
+        const fetchImpl = async (url) => {
+            if (url === '/api/knowledge/evaluate') {
+                return {
+                    status: 200, ok: true,
+                    json: async () => ({
+                        ok: true, question: 'Вопрос?', language: 'ru', answer: 'Некий ответ.',
+                        found: true, answerable: true, answerability_reason: 'answerability_check_unavailable',
+                        evidence: [{ level: 'documents', title: 'T', source: 'https://example.md', text: 'x' }],
+                        used_levels: ['documents'], web_used: false, duration_ms: 10, usage: null,
+                    }),
+                };
+            }
+            return null;
+        };
+        const sandbox = createTestSandbox(cleanText, fetchImpl);
+        setLexical(sandbox, 'evaluationState.questions', ['Вопрос?']);
+        await getLexical(sandbox, 'runEvaluationOne()');
+
+        // Mock createElement objects don't auto-aggregate textContent from
+        // children the way real DOM nodes do -- read the meta line directly
+        // off the card's children (question, answer, meta, grades, comment).
+        const card = sandbox.document.getElementById('evalResults').children[0];
+        const metaText = card.children[2].textContent;
+        assert.ok(metaText.includes('проверка ответности недоступна') || metaText.includes('не подтверждено'),
+            `a fail-open result must show explicit unverified wording, not a plain confirmation. Got: "${metaText}"`);
+        assert.ok(!metaText.startsWith('Есть источники ·'),
+            `the meta line must not read as a bare, unqualified "Есть источники" when the check never actually ran. Got: "${metaText}"`);
+    }
+
     // 2. Next after the last question never silently wipes results ---------
     console.log('Testing: clicking Next after the run has completed does not discard results...');
     {

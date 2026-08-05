@@ -5411,7 +5411,26 @@
       answer.style.cssText = 'white-space:pre-wrap; margin:7px 0;';
       const meta = document.createElement('div');
       meta.style.color = 'var(--muted)';
-      meta.textContent = `${item.found ? 'Есть источники' : 'Нет источников'} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+      // found / answerable are distinct: fragments can be found but not
+      // actually answer the question (topical similarity != coverage). When
+      // that happens and web wasn't allowed for this run, say so plainly
+      // instead of a bare "Нет источников", which would be misleading --
+      // sources DID exist, they just weren't sufficient.
+      //
+      // A fail-open answerable:true (the grader model was unavailable or its
+      // output couldn't be parsed) must never read the same as a genuine
+      // confirmed answer -- otherwise an outage in the grader silently
+      // upgrades every result to "verified" in the operator's eyes.
+      const answerabilityUnverified = item.answerability_reason === 'answerability_check_unavailable'
+        || item.answerability_reason === 'answerability_check_error';
+      const evidenceLabel = !item.found
+        ? 'Нет источников'
+        : item.answerable === false
+          ? (item.web_used ? 'Источники найдены, ответ дополнен web' : 'Источники найдены, однако ответа в них недостаточно')
+          : answerabilityUnverified
+            ? 'Есть источники (проверка ответности недоступна — не подтверждено)'
+            : 'Есть источники';
+      meta.textContent = `${evidenceLabel} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
       const grades = document.createElement('div');
       grades.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
       [['correct', 'Верно'], ['partial', 'Частично'], ['wrong', 'Ошибка'], ['no_data', 'Нет данных']].forEach(([value, label]) => {
@@ -5494,7 +5513,8 @@
   function exportEvaluation(format) {
     const rows = evaluationState.results.map((item, index) => ({
       number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '', comment: item.comment || '',
-      found: item.found, duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
+      found: item.found, answerable: item.answerable === true, answerability_reason: item.answerability_reason || '', web_used: item.web_used === true,
+      duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
       sources: (item.evidence || []).map((e) => e.source).filter(Boolean).join(' | '), error: item.error || '', completed_at: item.completed_at,
     }));
     const content = format === 'json' ? JSON.stringify(rows, null, 2) : [Object.keys(rows[0] || {}).join(','), ...rows.map((row) => Object.values(row).map((v) => `"${String(v ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');

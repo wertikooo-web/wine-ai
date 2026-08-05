@@ -1,7 +1,7 @@
 'use strict';
 
 const { requireNonEmptyString, optionalString, setSearchBlock } = require('./toolHelpers');
-const { routeKnowledge } = require('../knowledge/layeredRouter');
+const { routeKnowledgeWithAnswerabilityGate } = require('../knowledge/layeredRouter');
 
 // Preserve the established public tool name. The realtime persona already
 // requires search_wine_knowledge for factual turns, so changing the name would
@@ -30,10 +30,15 @@ const declaration = {
     },
 };
 
-function createImpl(routeImpl = routeKnowledge) {
+function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     return async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
         const language = optionalString(args.language, 8) || null;
+        // allowWeb stays true here (unchanged from before this gate existed)
+        // -- the live assistant has always been permitted to reach the web;
+        // routeKnowledgeWithAnswerabilityGate is what now decides WHEN that
+        // permission is actually used (freshness, or evidence that doesn't
+        // answer the question), same as it does for the eval tool.
         const result = await routeImpl(query, {
             language,
             forceWeb: args.force_web === true,
@@ -47,17 +52,22 @@ function createImpl(routeImpl = routeKnowledge) {
             query,
             language,
             found: result.found,
+            answerable: result.answerable,
+            answerabilityReason: result.answerabilityReason,
             used_levels: result.used_levels,
-            web_used: result.web_used,
+            webUsed: result.web_used,
             web_attempted: result.web_attempted,
             attempts: result.attempts,
             evidence_count: result.evidence.length,
-            conflict_count: result.conflicts.length,
+            conflict_count: result.conflicts?.length || 0,
         }));
 
         if (!result.found) {
             return {
                 found: false,
+                answerable: false,
+                answerabilityReason: result.answerabilityReason || 'no_evidence',
+                webUsed: result.web_used === true,
                 status: 'not_found',
                 evidence: [],
                 results: [],
@@ -70,8 +80,37 @@ function createImpl(routeImpl = routeKnowledge) {
         }
 
         const evidence = result.evidence.slice(0, 12);
+
+        if (result.answerable === false) {
+            // Fragments were retrieved (found:true) but the answerability
+            // gate -- and, when allowed, a web fallback already attempted
+            // inside it -- could not confirm they cover this specific
+            // question. Topical similarity is not knowledge: tell the
+            // model to say so honestly instead of answering from
+            // loosely-related fragments.
+            return {
+                found: true,
+                answerable: false,
+                answerabilityReason: result.answerabilityReason || null,
+                webUsed: result.web_used === true,
+                status: 'insufficient',
+                evidence,
+                results: evidence,
+                used_levels: result.used_levels,
+                freshness_sensitive: result.freshness_sensitive,
+                conflicts: result.conflicts,
+                answer_policy: {
+                    ...result.answer_policy,
+                    final_instruction: 'The evidence below is topically related but does not actually contain a direct answer to this specific question. Give a concise, honest answer that this specific fact cannot be reliably confirmed right now. Do not guess or answer from loosely-related evidence, and do not mention internal databases, retrieval levels, or web search.',
+                },
+            };
+        }
+
         return {
             found: true,
+            answerable: true,
+            answerabilityReason: result.answerabilityReason || null,
+            webUsed: result.web_used === true,
             status: 'found',
             evidence,
             // Keep `results` as a compatibility alias for callers/tests built around

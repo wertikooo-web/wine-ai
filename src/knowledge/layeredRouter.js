@@ -290,9 +290,116 @@ async function routeKnowledge(query, options = {}) {
     };
 }
 
+const ANSWERABILITY_MODEL = process.env.ANSWERABILITY_MODEL || 'gemini-2.5-flash';
+const ANSWERABILITY_EVIDENCE_LIMIT = 6;
+const ANSWERABILITY_FRAGMENT_CHARS = 300;
+
+function extractCheckText(response) {
+    const text = typeof response?.text === 'string'
+        ? response.text
+        : response?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('');
+    return String(text || '').trim();
+}
+
+function buildAnswerabilityPrompt(question, evidence) {
+    const fragments = evidence.slice(0, ANSWERABILITY_EVIDENCE_LIMIT).map((item, index) => {
+        const text = String(item.text || '').slice(0, ANSWERABILITY_FRAGMENT_CHARS);
+        return `[${index + 1}] ${item.title || 'Fragment'}\n${text}`;
+    }).join('\n\n');
+    return `You are a strict grader, not an assistant. You are given a QUESTION and EVIDENCE fragments retrieved for it. Decide only whether the EVIDENCE, taken by itself, contains enough information to give a direct, confident, factual answer to the QUESTION -- similarity or topical relatedness is not enough; the specific fact asked for must actually be present.
+
+Respond with ONLY strict JSON, no markdown, no prose outside the JSON: {"answerable": true or false, "reason": "one short sentence"}
+
+QUESTION: ${question}
+
+EVIDENCE:
+${fragments}`;
+}
+
+// Sees only the question and the retrieved evidence text -- no persona,
+// system prompt, or conversation history -- so its verdict reflects
+// whether THIS evidence answers THIS question, nothing else.
+async function checkAnswerability(question, evidence, {
+    generateContent,
+    apiKey = process.env.GEMINI_API_KEY || '',
+    model = ANSWERABILITY_MODEL,
+} = {}) {
+    if (!evidence.length) return { answerable: false, reason: 'no_evidence' };
+    const prompt = buildAnswerabilityPrompt(question, evidence);
+    let response;
+    try {
+        if (typeof generateContent === 'function') {
+            response = await generateContent({ model, prompt });
+        } else if (!apiKey) {
+            return { answerable: true, reason: 'answerability_check_unavailable' };
+        } else {
+            const { GoogleGenAI } = require('@google/genai');
+            const ai = new GoogleGenAI({ apiKey });
+            response = await ai.models.generateContent({
+                model,
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config: { temperature: 0, maxOutputTokens: 80 },
+            });
+        }
+    } catch (error) {
+        // Fail open (skip the extra web call) rather than let a grader
+        // outage silently break every factual answer -- the underlying
+        // answer-generation step still carries its own honesty instruction.
+        return { answerable: true, reason: 'answerability_check_error' };
+    }
+    const raw = extractCheckText(response);
+    let parsed;
+    try {
+        const match = raw.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(match ? match[0] : raw);
+    } catch {
+        return { answerable: true, reason: 'answerability_check_unparseable' };
+    }
+    const answerable = typeof parsed?.answerable === 'boolean' ? parsed.answerable : true;
+    const reason = typeof parsed?.reason === 'string' && parsed.reason.trim()
+        ? parsed.reason.trim().slice(0, 200)
+        : (answerable ? 'answerable' : 'evidence_does_not_answer_question');
+    return { answerable, reason };
+}
+
+// Wraps routeKnowledge() with an explicit answerability gate: retrieval
+// can return `found: true` (fragments exist) while none of them actually
+// answer the question -- topical similarity is not the same as coverage.
+// `found` keeps meaning "evidence was retrieved"; `answerable` is the new,
+// separate signal for "the retrieved evidence actually supports an answer".
+// Web is only ever attempted here when the caller allows it AND the
+// evidence-only check says it can't answer -- freshness/forced web (already
+// decided inside routeKnowledge) is left untouched and never double-checked.
+async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
+    const base = await routeKnowledge(query, options);
+    if (!base.found || base.web_used) {
+        return { ...base, answerable: base.found, answerabilityReason: base.found ? null : 'no_evidence' };
+    }
+
+    const { answerable, reason } = await checkAnswerability(query, base.evidence, options.answerabilityModel);
+
+    if (answerable || options.allowWeb === false) {
+        return { ...base, answerable, answerabilityReason: reason };
+    }
+
+    const web = await (options.adapters?.searchInternet || searchInternet)(query, { ...options, language: options.language || null });
+    const evidence = sortEvidence([...base.evidence, ...web]);
+    return {
+        ...base,
+        evidence,
+        used_levels: [...new Set(evidence.map((item) => item.level))],
+        web_used: web.length > 0,
+        web_attempted: true,
+        answerable,
+        answerabilityReason: reason,
+    };
+}
+
 module.exports = {
     LEVELS,
     routeKnowledge,
+    routeKnowledgeWithAnswerabilityGate,
+    checkAnswerability,
     searchCanonical,
     searchCatalog,
     searchDocuments,
