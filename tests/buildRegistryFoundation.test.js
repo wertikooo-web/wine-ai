@@ -156,7 +156,7 @@ class RegistryDouble {
             return { rows: [] };
         }
 
-        let m = sql.match(/^SELECT value FROM build_registry_state WHERE key IN \(\$1,\s*\$2\) FOR UPDATE$/i);
+        let m = sql.match(/^SELECT key, value FROM build_registry_state WHERE key IN \(\$1,\s*\$2\) FOR UPDATE$/i);
         if (m) {
             const keys = [params[0], params[1]];
             for (const key of keys) {
@@ -286,6 +286,53 @@ async function run() {
     await registry.initSchema(double);
     ok(stateOf(double, 'active_build') === legacy);
 
+    double.seedBuild({ build_id: 'w1', status: 'ready' });
+    await double.query('DELETE FROM build_registry_state WHERE key = $1', [registry.PREVIOUS_KEY]);
+    await assert.rejects(
+        () => registry.activateBuild(double, 'w1'),
+        (e) => e.code === registry.ERROR.MISSING_PREVIOUS_BUILD
+    );
+    ok(stateOf(double, 'active_build') === legacy, 'missing previous: activate leaves active untouched');
+    ok(statusOf(double, 'w1') === 'ready', 'missing previous: activate never touches target');
+    double.setState(registry.PREVIOUS_KEY, legacy);
+
+    await double.query('DELETE FROM build_registry_state WHERE key = $1', [registry.ACTIVE_KEY]);
+    await assert.rejects(
+        () => registry.activateBuild(double, 'w1'),
+        (e) => e.code === registry.ERROR.MISSING_ACTIVE_BUILD
+    );
+    ok(statusOf(double, 'w1') === 'ready', 'missing active: activate never touches target');
+    double.setState(registry.ACTIVE_KEY, legacy);
+
+    double.setState(registry.ACTIVE_KEY, 'w1');
+    await registry.activateBuild(double, 'w1');
+    ok(statusOf(double, 'w1') === 'active');
+    await double.query('DELETE FROM build_registry_state WHERE key = $1', [registry.PREVIOUS_KEY]);
+    await assert.rejects(
+        () => registry.rollbackBuild(double),
+        (e) => e.code === registry.ERROR.MISSING_PREVIOUS_BUILD
+    );
+    ok(stateOf(double, 'active_build') === 'w1', 'missing previous: rollback leaves active untouched');
+    ok(statusOf(double, 'w1') === 'active', 'missing previous: rollback does not roll back');
+    double.setState(registry.PREVIOUS_KEY, legacy);
+
+    double.seedBuild({ build_id: 'w2', status: 'ready' });
+    await registry.activateBuild(double, 'w2');
+    ok(statusOf(double, 'w2') === 'active');
+    await double.query('DELETE FROM build_registry_state WHERE key = $1', [registry.ACTIVE_KEY]);
+    await assert.rejects(
+        () => registry.rollbackBuild(double),
+        (e) => e.code === registry.ERROR.MISSING_ACTIVE_BUILD
+    );
+    ok(stateOf(double, 'previous_build') === 'w1', 'missing active: rollback leaves previous untouched');
+    ok(statusOf(double, 'w2') === 'active', 'missing active: rollback does not roll back');
+    ok(statusOf(double, 'w1') === 'ready', 'missing active: rollback does not promote previous');
+    double.setState(registry.ACTIVE_KEY, 'w2');
+    double.seedBuild({ build_id: 'w1', status: 'ready' });
+    double.seedBuild({ build_id: 'w2', status: 'ready' });
+    double.setState(registry.ACTIVE_KEY, legacy);
+    double.setState(registry.PREVIOUS_KEY, legacy);
+
     double.setState('active_build', 'does-not-exist');
     const dangling = await registry.resolveActiveBuild(double);
     ok(dangling.error === registry.ERROR.INVALID_ACTIVE_BUILD);
@@ -389,7 +436,7 @@ async function run() {
     await registry.activateBuild(double, 'b2');
     double.seedBuild({ build_id: 'b3', status: 'ready' });
     double.clearFail();
-    double.failAtStmt = 8;
+    double.failAtStmt = 7;
     await assert.rejects(
         () => registry.activateBuild(double, 'b3'),
         (e) => {

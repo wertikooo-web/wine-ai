@@ -71,6 +71,17 @@ async function run() {
         );
     }
 
+    async function deleteState(p, key) {
+        await p.query('DELETE FROM build_registry_state WHERE key = $1', [key]);
+    }
+
+    async function restoreState(p, key, value) {
+        await p.query(
+            'INSERT INTO build_registry_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+            [key, value]
+        );
+    }
+
     async function stateOf(p, key) {
         const { rows } = await p.query('SELECT value FROM build_registry_state WHERE key = $1', [key]);
         return rows.length ? rows[0].value : undefined;
@@ -151,6 +162,53 @@ async function run() {
         equal(dangling.error, registry.ERROR.INVALID_ACTIVE_BUILD, 'dangling active pointer is a structured error');
         equal(dangling.build_id, 'ghost-build', 'dangling error carries the bad build_id');
         await setState(pool, registry.ACTIVE_KEY, registry.LEGACY_BUILD);
+
+        await insertBuild(pool, 'MA1', 'ready');
+        await deleteState(pool, registry.PREVIOUS_KEY);
+        await assert.rejects(
+            () => registry.activateBuild(pool, 'MA1'),
+            (e) => e.code === registry.ERROR.MISSING_PREVIOUS_BUILD
+        );
+        equal(await stateOf(pool, 'active_build'), registry.LEGACY_BUILD, 'activate/missing previous: active pointer untouched');
+        equal(await statusOf(pool, 'MA1'), 'ready', 'activate/missing previous: target never touched');
+        await restoreState(pool, registry.PREVIOUS_KEY, registry.LEGACY_BUILD);
+
+        await deleteState(pool, registry.ACTIVE_KEY);
+        await assert.rejects(
+            () => registry.activateBuild(pool, 'MA1'),
+            (e) => e.code === registry.ERROR.MISSING_ACTIVE_BUILD
+        );
+        equal(await statusOf(pool, 'MA1'), 'ready', 'activate/missing active: target never touched');
+        await restoreState(pool, registry.ACTIVE_KEY, registry.LEGACY_BUILD);
+
+        await registry.activateBuild(pool, 'MA1');
+        equal(await statusOf(pool, 'MA1'), 'active', 'MA1 active before rollback cases');
+        await deleteState(pool, registry.PREVIOUS_KEY);
+        await assert.rejects(
+            () => registry.rollbackBuild(pool),
+            (e) => e.code === registry.ERROR.MISSING_PREVIOUS_BUILD
+        );
+        equal(await stateOf(pool, 'active_build'), 'MA1', 'rollback/missing previous: active pointer untouched');
+        equal(await statusOf(pool, 'MA1'), 'active', 'rollback/missing previous: build not rolled back');
+        await restoreState(pool, registry.PREVIOUS_KEY, registry.LEGACY_BUILD);
+
+        await insertBuild(pool, 'MA2', 'ready');
+        await registry.activateBuild(pool, 'MA2');
+        equal(await statusOf(pool, 'MA2'), 'active', 'MA2 active before rollback cases');
+        await deleteState(pool, registry.ACTIVE_KEY);
+        await assert.rejects(
+            () => registry.rollbackBuild(pool),
+            (e) => e.code === registry.ERROR.MISSING_ACTIVE_BUILD
+        );
+        equal(await stateOf(pool, 'previous_build'), 'MA1', 'rollback/missing active: previous pointer untouched');
+        equal(await statusOf(pool, 'MA2'), 'active', 'rollback/missing active: build not rolled back');
+        equal(await statusOf(pool, 'MA1'), 'ready', 'rollback/missing active: previous not promoted');
+        await restoreState(pool, registry.ACTIVE_KEY, 'MA2');
+        await setBuildStatus(pool, 'MA1', 'ready');
+        await setBuildStatus(pool, 'MA2', 'ready');
+        await setState(pool, registry.ACTIVE_KEY, registry.LEGACY_BUILD);
+        await setState(pool, registry.PREVIOUS_KEY, registry.LEGACY_BUILD);
+        equal(await activeCount(pool), 0, 'no active build after missing-row cases cleanup');
 
         await insertBuild(pool, 'A', 'ready');
         await insertBuild(pool, 'B', 'ready');
@@ -292,9 +350,9 @@ async function run() {
         await setBuildStatus(pool, 'C1', 'ready');
         await setBuildStatus(pool, 'C3', 'ready');
 
-        const proxy8 = injectablePool(pool, { failAtStmt: 8 });
+        const proxy7 = injectablePool(pool, { failAtStmt: 7 });
         await assert.rejects(
-            () => registry.activateBuild(proxy8, 'C3'),
+            () => registry.activateBuild(proxy7, 'C3'),
             (e) => e.code === 'INJECTED'
         );
         equal(await stateOf(pool, 'active_build'), 'C2', 'failure-injection rollback keeps active pointer');

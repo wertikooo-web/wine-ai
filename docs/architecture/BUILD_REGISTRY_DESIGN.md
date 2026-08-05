@@ -181,6 +181,7 @@ CREATE TABLE IF NOT EXISTS build_registry_state (
 
 - **On schema init the pointer rows are seeded idempotently:** `active_build='legacy'`, `previous_build='legacy'` (idempotent `INSERT ... ON CONFLICT DO NOTHING`). A fresh DB therefore defaults to the legacy path and never fails a pointer read.
 - **Both pointer rows always exist.** Init creates both rows (`ON CONFLICT DO NOTHING` re-creates a row if one is ever missing), and rollback **resets** `previous_build` to `legacy` instead of deleting the row — the row set is never emptied. This makes the two-row read model stable and removes the old `DELETE ... WHERE key='previous_build'` failure mode (a missing row previously made a second rollback impossible).
+- **Write ops require both rows; no silent fallback.** `activateBuild` and `rollbackBuild` read both pointer rows *after* taking the row lock and require them to exist: a missing `active_build` row throws `MISSING_ACTIVE_BUILD`, a missing `previous_build` row throws `MISSING_PREVIOUS_BUILD` — **before any `UPDATE`**, so pointer and build statuses stay untouched (zero mutation, verified in unit + real-PG tests). A missing row is corruption and is surfaced, never silently treated as `legacy` inside a write path.
 - Parity with existing `app_settings` (`src/knowledge/searchMode.js`) is intentional: same persisted-toggle pattern that survives `railway up`, but a dedicated table keeps the pointer distinct from search-mode. `active_build = 'legacy'` reproduces today's behavior exactly.
 
 ### 4.4 Pointer read (runtime, per-request)
@@ -198,6 +199,8 @@ SELECT value FROM build_registry_state WHERE key = 'active_build';
 - `{ build_id: '<id>' }` — a *verified* build whose `status='active'` and which exists in `build_registry_builds`.
 - `{ error: 'MISSING_ACTIVE_BUILD' }` — the `active_build` pointer row itself is absent.
 - `{ error: 'INVALID_ACTIVE_BUILD', build_id }` — the pointer references a build_id that does **not** exist in `build_registry_builds`, or exists but is **not** `status='active'`.
+
+`activateBuild`/`rollbackBuild` use the same structured errors (`MISSING_ACTIVE_BUILD`, plus `MISSING_PREVIOUS_BUILD` for a missing `previous_build` row) as thrown errors before any write (§4.3).
 
 Rule: **no production fallback that hides a corrupt pointer.** If the pointer row is missing or the pointer is dangling/points at a non-active build, `resolveActiveBuild()` never silently returns `legacy`; it returns the explicit error so the corruption is surfaced (logged/monitored), not papered over. A valid build is only reported when it is present and `active`.
 

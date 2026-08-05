@@ -7,6 +7,7 @@ const PREVIOUS_KEY = 'previous_build';
 const ERROR = {
     INVALID_ACTIVE_BUILD: 'INVALID_ACTIVE_BUILD',
     MISSING_ACTIVE_BUILD: 'MISSING_ACTIVE_BUILD',
+    MISSING_PREVIOUS_BUILD: 'MISSING_PREVIOUS_BUILD',
     INVALID_PREVIOUS_BUILD: 'INVALID_PREVIOUS_BUILD',
     INVALID_TARGET: 'INVALID_TARGET',
     BUILD_NOT_FOUND: 'BUILD_NOT_FOUND',
@@ -112,6 +113,16 @@ function isLegacy(buildId) {
     return buildId === LEGACY_BUILD;
 }
 
+function requirePointerRows(rows) {
+    const keys = new Set(rows.map((r) => r.key));
+    if (!keys.has(ACTIVE_KEY)) {
+        throw buildError(ERROR.MISSING_ACTIVE_BUILD, ACTIVE_KEY);
+    }
+    if (!keys.has(PREVIOUS_KEY)) {
+        throw buildError(ERROR.MISSING_PREVIOUS_BUILD, PREVIOUS_KEY);
+    }
+}
+
 async function initSchema(pool) {
     const client = await pool.connect();
     try {
@@ -163,10 +174,13 @@ async function activateBuild(pool, buildId) {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        await client.query(
-            'SELECT value FROM build_registry_state WHERE key IN ($1, $2) FOR UPDATE',
+        const locked = await client.query(
+            'SELECT key, value FROM build_registry_state WHERE key IN ($1, $2) FOR UPDATE',
             [ACTIVE_KEY, PREVIOUS_KEY]
         );
+        requirePointerRows(locked.rows);
+        const stateByKey = new Map(locked.rows.map((r) => [r.key, r.value]));
+        const previousBuild = stateByKey.get(ACTIVE_KEY);
         const target = await client.query(
             'SELECT status FROM build_registry_builds WHERE build_id = $1 FOR UPDATE',
             [buildId]
@@ -177,8 +191,6 @@ async function activateBuild(pool, buildId) {
         if (target.rows[0].status !== 'ready') {
             throw buildError(ERROR.BUILD_NOT_READY, buildId, `status=${target.rows[0].status}`);
         }
-        const activeRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [ACTIVE_KEY]);
-        const previousBuild = activeRow.rows.length ? activeRow.rows[0].value : LEGACY_BUILD;
         if (!isLegacy(previousBuild)) {
             const current = await client.query(
                 'SELECT status FROM build_registry_builds WHERE build_id = $1 FOR UPDATE',
@@ -234,14 +246,14 @@ async function rollbackBuild(pool) {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        await client.query(
-            'SELECT value FROM build_registry_state WHERE key IN ($1, $2) FOR UPDATE',
+        const locked = await client.query(
+            'SELECT key, value FROM build_registry_state WHERE key IN ($1, $2) FOR UPDATE',
             [ACTIVE_KEY, PREVIOUS_KEY]
         );
-        const activeRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [ACTIVE_KEY]);
-        const currentBuild = activeRow.rows.length ? activeRow.rows[0].value : LEGACY_BUILD;
-        const prevRow = await client.query('SELECT value FROM build_registry_state WHERE key = $1', [PREVIOUS_KEY]);
-        const previousBuild = prevRow.rows.length ? prevRow.rows[0].value : LEGACY_BUILD;
+        requirePointerRows(locked.rows);
+        const stateByKey = new Map(locked.rows.map((r) => [r.key, r.value]));
+        const currentBuild = stateByKey.get(ACTIVE_KEY);
+        const previousBuild = stateByKey.get(PREVIOUS_KEY);
         await validatePreviousTarget(client, previousBuild);
         if (isLegacy(currentBuild)) {
             await client.query('COMMIT');
