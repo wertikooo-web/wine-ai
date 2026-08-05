@@ -3,19 +3,28 @@
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./mockRealtimeProvider');
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./geminiLiveProvider');
 const { GrokVoiceProvider, DEFAULT_GROK_MODEL } = require('./grokVoiceProvider');
+const {
+    ClassicVoiceProvider,
+    DEFAULT_CLASSIC_LLM_MODEL,
+    DEFAULT_CLASSIC_TTS_MODEL,
+    DEFAULT_CLASSIC_TTS_VOICE,
+    DEFAULT_CLASSIC_STT_MODEL,
+} = require('./classicVoiceProvider');
 const { GEMINI_VOICES, DEFAULT_VOICE_NAME } = require('../geminiVoices');
 const { GROK_VOICES, DEFAULT_GROK_VOICE_ID, listGrokVoices } = require('../grokVoices');
 
 function normalizeProviderName(value, fallback = 'mock') {
     const provider = String(value || '').trim().toLowerCase();
     if (provider === 'xai') return 'grok';
-    return ['mock', 'gemini', 'grok'].includes(provider) ? provider : fallback;
+    if (provider === 'cascade' || provider === 'stt-llm-tts' || provider === 'stt_llm_tts') return 'classic';
+    return ['mock', 'gemini', 'grok', 'classic'].includes(provider) ? provider : fallback;
 }
 
 function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overrides = {}) {
     const defaultProvider = normalizeProviderName(config.defaultProvider || process.env.REALTIME_PROVIDER || 'mock');
     const geminiKey = config.geminiApiKey ?? process.env.GEMINI_API_KEY ?? '';
     const grokKey = config.grokApiKey ?? process.env.GROK_API_KEY ?? process.env.XAI_API_KEY ?? '';
+    const deepgramKey = config.deepgramApiKey ?? process.env.DEEPGRAM_API_KEY ?? '';
     const mockProvider = overrides.mock || new MockRealtimeProvider(DEFAULT_CONFIG);
     const geminiProvider = overrides.gemini || new GeminiLiveProvider({
         apiKey: geminiKey,
@@ -27,6 +36,14 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
         model: config.grokModel,
         realtimeUrl: config.grokRealtimeUrl,
         voiceId: config.grokVoice,
+    });
+    const classicProvider = overrides.classic || new ClassicVoiceProvider({
+        deepgramApiKey: deepgramKey,
+        geminiApiKey: geminiKey,
+        sttModel: config.classicSttModel,
+        llmModel: config.classicLlmModel,
+        ttsModel: config.classicTtsModel,
+        ttsVoice: config.classicTtsVoice,
     });
 
     const definitions = {
@@ -64,6 +81,22 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
             provider: grokProvider,
             rotationMode: 'errors_only',
         },
+        classic: {
+            id: 'classic',
+            label: 'Classic STT + LLM + TTS',
+            configured: Boolean((deepgramKey && geminiKey) || overrides.classic),
+            model: config.classicLlmModel || DEFAULT_CLASSIC_LLM_MODEL,
+            defaultVoice: config.classicTtsVoice || DEFAULT_CLASSIC_TTS_VOICE,
+            voices: GEMINI_VOICES.map((voice) => ({
+                id: voice.name,
+                name: voice.name,
+                characteristic: voice.characteristic,
+            })),
+            provider: classicProvider,
+            rotationMode: 'errors_only',
+            sttModel: config.classicSttModel || DEFAULT_CLASSIC_STT_MODEL,
+            ttsModel: config.classicTtsModel || DEFAULT_CLASSIC_TTS_MODEL,
+        },
     };
 
     function publicDefinition(definition) {
@@ -74,11 +107,13 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
             model: definition.model,
             default_voice: definition.defaultVoice,
             voices: definition.voices,
+            stt_model: definition.sttModel,
+            tts_model: definition.ttsModel,
         };
     }
 
     function list() {
-        return ['gemini', 'grok']
+        return ['gemini', 'grok', 'classic']
             .map((id) => publicDefinition(definitions[id]));
     }
 
@@ -100,6 +135,8 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
                 ...commonMetadata,
                 provider: id,
                 model: definition.model,
+                sttModel: definition.sttModel,
+                ttsModel: definition.ttsModel,
                 defaultVoiceName: definition.defaultVoice || undefined,
                 defaultVoiceConfigSource: definition.defaultVoice ? 'default' : 'provider_default',
                 rotationMode: definition.rotationMode,
@@ -119,6 +156,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
     async function getPublicCapabilities() {
         const geminiDef = definitions.gemini;
         const grokDef = definitions.grok;
+        const classicDef = definitions.classic;
 
         let grokVoicesList = [];
         try {
@@ -142,6 +180,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
                 unavailableReason: geminiDef.configured ? null : 'api_key_missing',
                 supportsPerSessionModel: false,
                 supportsPerSessionVoice: true,
+                pipeline: 'native_speech_to_speech',
                 models: [
                     {
                         id: geminiDef.model,
@@ -161,11 +200,37 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
                 unavailableReason: grokDef.configured ? null : 'api_key_missing',
                 supportsPerSessionModel: false,
                 supportsPerSessionVoice: true,
+                pipeline: 'native_speech_to_speech',
                 models: [
                     {
                         id: grokDef.model,
                         displayName: grokDef.model,
                         voices: grokVoicesList.map(v => ({
+                            id: v.id,
+                            displayName: v.name,
+                            characteristic: v.characteristic
+                        }))
+                    }
+                ]
+            },
+            {
+                id: 'classic',
+                displayName: 'Classic STT + LLM + TTS',
+                configured: classicDef.configured,
+                unavailableReason: classicDef.configured ? null : 'deepgram_or_gemini_api_key_missing',
+                supportsPerSessionModel: false,
+                supportsPerSessionVoice: true,
+                pipeline: 'classic_stt_llm_tts',
+                components: {
+                    stt: classicDef.sttModel,
+                    llm: classicDef.model,
+                    tts: classicDef.ttsModel,
+                },
+                models: [
+                    {
+                        id: classicDef.model,
+                        displayName: classicDef.model,
+                        voices: classicDef.voices.map(v => ({
                             id: v.id,
                             displayName: v.name,
                             characteristic: v.characteristic
