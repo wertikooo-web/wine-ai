@@ -6,6 +6,7 @@ const {
     DEFAULT_STT_PROVIDER,
     DEFAULT_WHISPER_MODEL,
 } = require('./classicSttAdapters');
+const { ClassicTtsRouter, normalizeLanguage } = require('./classicTtsRouter');
 
 const DEFAULT_CLASSIC_LLM_MODEL = process.env.CLASSIC_LLM_MODEL || 'gemini-3.1-flash-lite';
 const DEFAULT_CLASSIC_TTS_MODEL = process.env.CLASSIC_TTS_MODEL || 'gemini-3.1-flash-tts-preview';
@@ -54,10 +55,15 @@ class ClassicVoiceProvider {
             llmModel: config.llmModel || DEFAULT_CLASSIC_LLM_MODEL,
             ttsModel: config.ttsModel || DEFAULT_CLASSIC_TTS_MODEL,
             ttsVoice: config.ttsVoice || DEFAULT_CLASSIC_TTS_VOICE,
+            yandexApiKey: config.yandexApiKey || process.env.YANDEX_API_KEY || '',
+            yandexFolderId: config.yandexFolderId || process.env.YANDEX_FOLDER_ID || '',
+            yandexVoiceRu: config.yandexVoiceRu || process.env.CLASSIC_YANDEX_VOICE_RU || 'alena',
+            yandexSpeed: Number(config.yandexSpeed || process.env.CLASSIC_YANDEX_SPEED || 0.9),
         };
         this.fetchImpl = dependencies.fetchImpl || globalThis.fetch;
         this.aiFactory = dependencies.aiFactory || ((apiKey) => new GoogleGenAI({ apiKey }));
         this.sttFactory = dependencies.sttFactory || ((cfg) => createClassicSttAdapter(cfg, { fetchImpl: this.fetchImpl }));
+        this.ttsFactory = dependencies.ttsFactory || ((cfg) => new ClassicTtsRouter(cfg, { fetchImpl: this.fetchImpl }));
         this.instanceCounter = 0;
     }
 
@@ -66,6 +72,7 @@ class ClassicVoiceProvider {
         return new ClassicVoiceProviderSession({
             config: this.config,
             stt: this.sttFactory(this.config),
+            ttsRouter: this.ttsFactory(this.config),
             ai: this.aiFactory(this.config.geminiApiKey),
             instanceId: `classic_session_${this.instanceCounter}`,
             options,
@@ -74,10 +81,11 @@ class ClassicVoiceProvider {
 }
 
 class ClassicVoiceProviderSession {
-    constructor({ config, stt, ai, instanceId, options }) {
+    constructor({ config, stt, ttsRouter, ai, instanceId, options }) {
         this.name = 'classic';
         this.config = config;
         this.stt = stt;
+        this.ttsRouter = ttsRouter;
         this.ai = ai;
         this.instanceId = instanceId;
         this.systemInstructionText = options.systemInstructionText || '';
@@ -105,6 +113,7 @@ class ClassicVoiceProviderSession {
                 sttModel: this.stt.model,
                 llmModel: this.config.llmModel,
                 ttsModel: this.config.ttsModel,
+                yandexConfigured: Boolean(this.ttsRouter?.yandexConfigured),
             });
         }
     }
@@ -193,7 +202,42 @@ class ClassicVoiceProviderSession {
         return '';
     }
 
-    async streamSpeech(text, context) {
+    emitAudioBuffer(pcm, sampleRate, context, provider, startedAt) {
+        const { responseId, turnId, signal, onEvent, onAudioChunk, log } = context;
+        if (this.closed || signal.cancelled || !pcm?.length) return false;
+        onEvent({
+            type: 'audio.start',
+            response_id: responseId,
+            turn_id: turnId,
+            elapsed_ms: Date.now() - startedAt,
+            format: 'audio/wav',
+            provider_instance_id: this.instanceId,
+            tts_provider: provider,
+        });
+        log('audio_start', { responseId, turnId, elapsedMs: Date.now() - startedAt, ttsProvider: provider });
+        onAudioChunk({
+            type: 'audio.chunk',
+            response_id: responseId,
+            turn_id: turnId,
+            chunk_index: 0,
+            mime_type: 'audio/wav',
+            audio_base64: pcm16ToWav(pcm, sampleRate).toString('base64'),
+            elapsed_ms: Date.now() - startedAt,
+            tts_provider: provider,
+        });
+        if (this.closed || signal.cancelled) return false;
+        onEvent({
+            type: 'audio.end',
+            response_id: responseId,
+            turn_id: turnId,
+            elapsed_ms: Date.now() - startedAt,
+            tts_provider: provider,
+        });
+        log('audio_end', { responseId, turnId, elapsedMs: Date.now() - startedAt, chunkCount: 1, ttsProvider: provider });
+        return true;
+    }
+
+    async streamGeminiSpeech(text, context, language, fallbackReason = null) {
         const { responseId, turnId, signal, onEvent, onAudioChunk, log } = context;
         const startedAt = Date.now();
         const stream = await this.ai.models.generateContentStream({
@@ -218,17 +262,73 @@ class ClassicVoiceProviderSession {
                 if (!pcm.length) continue;
                 if (!audioStarted) {
                     audioStarted = true;
-                    onEvent({ type: 'audio.start', response_id: responseId, turn_id: turnId, elapsed_ms: Date.now() - startedAt, format: 'audio/wav', provider_instance_id: this.instanceId });
-                    log('audio_start', { responseId, turnId, elapsedMs: Date.now() - startedAt });
+                    onEvent({
+                        type: 'audio.start',
+                        response_id: responseId,
+                        turn_id: turnId,
+                        elapsed_ms: Date.now() - startedAt,
+                        format: 'audio/wav',
+                        provider_instance_id: this.instanceId,
+                        tts_provider: 'gemini',
+                        tts_fallback_reason: fallbackReason || undefined,
+                    });
+                    log('audio_start', { responseId, turnId, elapsedMs: Date.now() - startedAt, ttsProvider: 'gemini', language, fallbackReason });
                 }
-                onAudioChunk({ type: 'audio.chunk', response_id: responseId, turn_id: turnId, chunk_index: chunkIndex, mime_type: 'audio/wav', audio_base64: pcm16ToWav(pcm).toString('base64'), elapsed_ms: Date.now() - startedAt });
+                onAudioChunk({
+                    type: 'audio.chunk',
+                    response_id: responseId,
+                    turn_id: turnId,
+                    chunk_index: chunkIndex,
+                    mime_type: 'audio/wav',
+                    audio_base64: pcm16ToWav(pcm).toString('base64'),
+                    elapsed_ms: Date.now() - startedAt,
+                    tts_provider: 'gemini',
+                });
                 chunkIndex += 1;
             }
         }
         if (this.closed || signal.cancelled) return;
         if (!audioStarted) throw new Error('classic_tts_empty_audio');
-        onEvent({ type: 'audio.end', response_id: responseId, turn_id: turnId, elapsed_ms: Date.now() - startedAt });
-        log('audio_end', { responseId, turnId, elapsedMs: Date.now() - startedAt, chunkCount: chunkIndex });
+        onEvent({ type: 'audio.end', response_id: responseId, turn_id: turnId, elapsed_ms: Date.now() - startedAt, tts_provider: 'gemini' });
+        log('audio_end', { responseId, turnId, elapsedMs: Date.now() - startedAt, chunkCount: chunkIndex, ttsProvider: 'gemini' });
+    }
+
+    async streamSpeech(text, context, detectedLanguage = null) {
+        const { signal, log } = context;
+        const language = normalizeLanguage(detectedLanguage || this.language, text);
+        const selectedProvider = this.ttsRouter.chooseProvider(language, text);
+        log('classic_tts_route_selected', { language, provider: selectedProvider });
+
+        if (selectedProvider === 'yandex') {
+            const startedAt = Date.now();
+            const controller = new AbortController();
+            this.activeAbortController = controller;
+            if (signal.cancelled) controller.abort(signal.reason || 'cancelled');
+            try {
+                const result = await this.ttsRouter.synthesizeRussian(text, {
+                    signal: controller.signal,
+                    voice: this.config.yandexVoiceRu,
+                    speed: this.config.yandexSpeed,
+                });
+                this.activeAbortController = null;
+                if (this.closed || signal.cancelled) return;
+                this.emitAudioBuffer(result.pcm, result.sampleRate, context, 'yandex', startedAt);
+                return;
+            } catch (error) {
+                this.activeAbortController = null;
+                if (this.closed || signal.cancelled || error?.name === 'AbortError') return;
+                log('classic_tts_fallback', {
+                    from: 'yandex',
+                    to: 'gemini',
+                    language,
+                    error: error?.code || error?.message || 'unknown',
+                });
+                await this.streamGeminiSpeech(text, context, language, error?.code || error?.message || 'yandex_failed');
+                return;
+            }
+        }
+
+        await this.streamGeminiSpeech(text, context, language);
     }
 
     async answerText(userText, context, detectedLanguage = null) {
@@ -239,7 +339,7 @@ class ClassicVoiceProviderSession {
         const answer = await this.generateReply(userText, signal, log);
         if (!answer || this.closed || signal.cancelled) return;
         onEvent({ type: 'transcript.model', response_id: responseId, turn_id: turnId, text: answer });
-        await this.streamSpeech(answer, context);
+        await this.streamSpeech(answer, context, detectedLanguage);
     }
 
     async endInput(context) {
