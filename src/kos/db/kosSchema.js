@@ -713,9 +713,33 @@ const MIGRATIONS = [
 
 const crypto = require('crypto');
 
+function migrationSource(migration) {
+    return typeof migration.up === 'function' ? migration.up.toString() : String(migration.up);
+}
+
+function checksumSource(source) {
+    return crypto.createHash('sha256').update(source).digest('hex');
+}
+
 function computeMigrationChecksum(migration) {
-    const codeStr = typeof migration.up === 'function' ? migration.up.toString() : String(migration.up);
-    return crypto.createHash('sha256').update(codeStr).digest('hex');
+    // Function#toString preserves the source file's line endings. Without
+    // normalization, the same migration gets a different checksum on a
+    // Windows CRLF checkout and a Railway/Linux LF checkout.
+    const normalizedSource = migrationSource(migration).replace(/\r\n?/g, '\n');
+    return checksumSource(normalizedSource);
+}
+
+function computeMigrationChecksumVariants(migration) {
+    const normalizedSource = migrationSource(migration).replace(/\r\n?/g, '\n');
+    return new Set([
+        checksumSource(normalizedSource),
+        checksumSource(normalizedSource.replace(/\n/g, '\r\n')),
+    ]);
+}
+
+function isMigrationChecksumCompatible(migration, appliedChecksum) {
+    return appliedChecksum === 'dev'
+        || computeMigrationChecksumVariants(migration).has(appliedChecksum);
 }
 
 async function initKosSchema() {
@@ -751,7 +775,7 @@ async function initKosSchema() {
 
                 if (applied) {
                     // Detect Schema Drift
-                    if (applied.checksum !== currentChecksum && applied.checksum !== 'dev') {
+                    if (!isMigrationChecksumCompatible(migration, applied.checksum)) {
                         throw Object.assign(
                             new Error(`KOS_SCHEMA_DRIFT_DETECTED: Migration v${migration.version} (${migration.name}) checksum mismatch. Stored: ${applied.checksum}, Current: ${currentChecksum}`),
                             { code: 'KOS_SCHEMA_DRIFT_DETECTED', version: migration.version, name: migration.name }
@@ -789,4 +813,7 @@ module.exports = {
     initKosSchema,
     isKosSchemaReady,
     getKosSchemaError,
+    computeMigrationChecksum,
+    computeMigrationChecksumVariants,
+    isMigrationChecksumCompatible,
 };
