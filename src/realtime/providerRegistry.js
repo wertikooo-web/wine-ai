@@ -61,6 +61,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
         mock: {
             id: 'mock', label: 'Mock', configured: true, model: 'mock', defaultVoice: null,
             voices: [], provider: mockProvider, rotationMode: 'errors_only',
+            supportedVoiceModes: ['hold_to_talk'],
         },
         gemini: {
             id: 'gemini', label: 'Gemini Live', configured: Boolean(geminiKey || overrides.gemini),
@@ -69,6 +70,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
             voices: GEMINI_VOICES.map((voice) => ({ id: voice.name, name: voice.name, characteristic: voice.characteristic })),
             provider: geminiProvider,
             rotationMode: process.env.GEMINI_ROTATION_MODE || 'per_turn',
+            supportedVoiceModes: ['hold_to_talk', 'tap_to_start'],
         },
         grok: {
             id: 'grok', label: 'Grok Voice', configured: Boolean(grokKey || overrides.grok),
@@ -77,6 +79,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
             voices: GROK_VOICES,
             provider: grokProvider,
             rotationMode: 'errors_only',
+            supportedVoiceModes: ['hold_to_talk', 'tap_to_start'],
         },
         classic: {
             id: 'classic', label: 'Classic STT + LLM + TTS',
@@ -89,6 +92,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
             sttProvider: classicSttProvider,
             sttModel: config.classicSttModel || DEFAULT_CLASSIC_STT_MODEL,
             ttsModel: config.classicTtsModel || DEFAULT_CLASSIC_TTS_MODEL,
+            supportedVoiceModes: ['hold_to_talk'],
         },
     };
 
@@ -103,6 +107,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
             stt_provider: definition.sttProvider,
             stt_model: definition.sttModel,
             tts_model: definition.ttsModel,
+            supported_voice_modes: definition.supportedVoiceModes,
         };
     }
 
@@ -163,6 +168,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
                 id: 'gemini', displayName: 'Gemini Live', configured: geminiDef.configured,
                 unavailableReason: geminiDef.configured ? null : 'api_key_missing',
                 supportsPerSessionModel: false, supportsPerSessionVoice: true,
+                supportedVoiceModes: geminiDef.supportedVoiceModes,
                 pipeline: 'native_speech_to_speech',
                 models: [{ id: geminiDef.model, displayName: geminiDef.model, voices: geminiDef.voices.map(v => ({ id: v.id, displayName: v.name, characteristic: v.characteristic })) }],
             },
@@ -170,6 +176,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
                 id: 'grok', displayName: 'Grok Voice', configured: grokDef.configured,
                 unavailableReason: grokDef.configured ? null : 'api_key_missing',
                 supportsPerSessionModel: false, supportsPerSessionVoice: true,
+                supportedVoiceModes: grokDef.supportedVoiceModes,
                 pipeline: 'native_speech_to_speech',
                 models: [{ id: grokDef.model, displayName: grokDef.model, voices: grokVoicesList.map(v => ({ id: v.id, displayName: v.name, characteristic: v.characteristic })) }],
             },
@@ -177,6 +184,7 @@ function createRealtimeProviderRegistry(config = {}, commonMetadata = {}, overri
                 id: 'classic', displayName: 'Classic STT + LLM + TTS', configured: classicDef.configured,
                 unavailableReason: classicDef.configured ? null : `${classicDef.sttProvider}_or_gemini_api_key_missing`,
                 supportsPerSessionModel: false, supportsPerSessionVoice: true,
+                supportedVoiceModes: classicDef.supportedVoiceModes,
                 pipeline: 'classic_stt_llm_tts',
                 components: { sttProvider: classicDef.sttProvider, stt: classicDef.sttModel, llm: classicDef.model, tts: classicDef.ttsModel },
                 models: [{ id: classicDef.model, displayName: classicDef.model, voices: classicDef.voices.map(v => ({ id: v.id, displayName: v.name, characteristic: v.characteristic })) }],

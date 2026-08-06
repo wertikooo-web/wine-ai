@@ -28,6 +28,8 @@ async function run() {
         throw new Error('Could not find inline <script> block in dashboard.html');
     }
     const scriptText = htmlContent.substring(startIndex + 8, endIndex);
+    assert.ok(!scriptText.includes('WineAiVoiceEngineUi.mount('), 'dashboard must not mount the legacy duplicate mode-state controller');
+    assert.ok(!scriptText.includes('onAvatarState: (state) => DeviceVisual.setState(state)'), 'visual story state must not own voice/playback UI state');
 
     let cleanText = scriptText;
     cleanText = cleanText.replace('(function () {', '');
@@ -89,7 +91,8 @@ async function run() {
             createAnalyser() {
                 return { fftSize: 0, smoothingTimeConstant: 0, connect() {}, disconnect() {} };
             },
-            createMediaStreamSource() { return {}; },
+            createMediaStreamSource() { return { connect() {}, disconnect() {} }; },
+            createScriptProcessor() { return { onaudioprocess: null, connect() {}, disconnect() {} }; },
             decodeAudioData() { return new Promise(() => {}); }, // never resolves unless overridden per-test
             close() { return Promise.resolve(); },
             get currentTime() { return currentTime; },
@@ -161,6 +164,9 @@ async function run() {
             // on selectedRealtimeProvider staying 'gemini' across a connect
             // cycle. Real production always returns a real providers list.
             fetch: async (url) => {
+                if (url === '/api/age-verification') {
+                    return { status: 200, ok: true, json: async () => ({ adult_verified: true }) };
+                }
                 if (typeof url === 'string' && url.startsWith('/api/voices')) {
                     return {
                         status: 200, ok: true,
@@ -169,8 +175,8 @@ async function run() {
                             provider: 'gemini',
                             default_provider: 'gemini',
                             providers: [
-                                { id: 'gemini', configured: true },
-                                { id: 'grok', configured: true },
+                                { id: 'gemini', configured: true, supported_voice_modes: ['hold_to_talk', 'tap_to_start'] },
+                                { id: 'grok', configured: true, supported_voice_modes: ['hold_to_talk', 'tap_to_start'] },
                             ],
                             voices: [],
                         }),
@@ -396,6 +402,39 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'local stop must not depend on any server round-trip');
         fireLatestTimer(sandbox);
         assert.strictEqual(sandbox.testResults.srcCompleted.stopped, true, 'the leftover local source must actually be stopped');
+    }
+
+    console.log('Testing Free Conversation: visual idle cannot hide audible playback from local barge-in VAD...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'isHolding', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_visual_idle');
+        vm.runInContext(`
+            const src = testResults.audioContext.createBufferSource();
+            src.buffer = testResults.audioContext.createBuffer(1, 100, 16000);
+            const gainNode = testResults.audioContext.createGain();
+            src.connect(gainNode);
+            sourceGainNodes.set(src, gainNode);
+            activeSources.add(src);
+            testResults.visualIdleSource = src;
+            ws = { readyState: WebSocket.OPEN, send: (msg) => { testResults.sentMessages.push(msg); } };
+            DeviceVisual.setState('ready');
+        `, sandbox);
+        await sandbox.ensureMic();
+        const processor = getLexical(sandbox, 'processor');
+        const loud = new Float32Array(2048).fill(0.08);
+        const frame = { inputBuffer: { getChannelData: () => loud } };
+        processor.onaudioprocess(frame);
+        processor.onaudioprocess(frame);
+        processor.onaudioprocess(frame);
+
+        assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, 'audible playback must be interrupted even when visual state already says ready');
+        assert.ok(sandbox.testResults.sentMessages.some((message) => (
+            typeof message === 'string' && JSON.parse(message).type === 'session.interrupt'
+        )), 'visual-idle barge-in must cancel the server generation');
     }
 
     // ================= Epoch invalidation for pending decode =================
@@ -808,6 +847,38 @@ async function run() {
         }
     }
 
+    console.log('Testing a connected mode switch persists, tears down, and reconnects automatically...');
+    {
+        const sandbox = createTestSandbox();
+        setLexical(sandbox, 'voiceMode', 'hold_to_talk');
+        setLexical(sandbox, 'selectedRealtimeProvider', 'gemini');
+        vm.runInContext(`
+            ws = {
+                readyState: WebSocket.OPEN,
+                listenersByType: {},
+                addEventListener(type, handler) { (this.listenersByType[type] = this.listenersByType[type] || []).push(handler); },
+                send() {},
+                close() {
+                    this.readyState = WebSocket.CLOSED;
+                    (this.listenersByType.close || []).forEach((handler) => handler());
+                },
+            };
+        `, sandbox);
+        let reconnectCount = 0;
+        let reconnectMode = null;
+        sandbox.connect = async () => {
+            reconnectCount += 1;
+            reconnectMode = getLexical(sandbox, 'voiceMode');
+        };
+
+        await sandbox.setVoiceMode('tap_to_start');
+
+        assert.strictEqual(getLexical(sandbox, 'voiceMode'), 'tap_to_start', 'connected switch must apply the requested mode');
+        assert.strictEqual(reconnectCount, 1, 'connected switch must reconnect exactly once without a manual Connect click');
+        assert.strictEqual(reconnectMode, 'tap_to_start', 'automatic reconnect must observe the newly persisted mode');
+        assert.strictEqual(getLexical(sandbox, 'pendingPttStart'), false, 'automatic reconnect must not carry pending PTT state');
+    }
+
     // ================= Main Connect/Disconnect button: real DOM click =================
     // Production report: the button never actually flips from "Подключить"
     // to "Отключить"/back, and mode switching (Disconnect -> pick mode ->
@@ -867,7 +938,7 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'initial DISCONNECTED state: button reads Connect/Подключить');
 
         // ---- Click 1: DISCONNECTED -> CONNECTING -> (open) -> CONNECTED ----
-        clickConnectBtn();
+        await clickConnectBtn();
         assert.strictEqual(sandbox.testResults.socketInstances.length, 1, 'the first click must create a WebSocket');
         assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connecting')"), 'while connecting, the button reads Connecting/Подключение…');
         assert.strictEqual(getLexical(sandbox, "el('connectBtn').disabled"), true, 'the button must be disabled while connecting');
@@ -877,7 +948,7 @@ async function run() {
         assert.strictEqual(getLexical(sandbox, "el('connectBtn').disabled"), false, 'the button must be enabled once connected');
 
         // ---- Click 2: CONNECTED -> DISCONNECTED (full close) ----
-        clickConnectBtn();
+        await clickConnectBtn();
         assert.strictEqual(getLexical(sandbox, 'testResults.socketInstances[0].readyState'), 3, 'the second click must actually call ws.close() (this is exactly what silently failed before the fix)');
         assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), 'immediately after local cleanup, the button must already read Connect/Подключить (not wait for the close event)');
         assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'Free Conversation state must be torn down by the same click');
@@ -892,7 +963,7 @@ async function run() {
         await sandbox.setVoiceMode('hold_to_talk');
         assert.strictEqual(getLexical(sandbox, 'voiceMode'), 'hold_to_talk', 'the mode switch must take effect while disconnected');
 
-        clickConnectBtn();
+        await clickConnectBtn();
         assert.strictEqual(sandbox.testResults.socketInstances.length, 2, 'clicking Connect again after a mode switch must open a genuinely NEW WebSocket, not reuse the old (closed) one');
         assert.notEqual(sandbox.testResults.socketInstances[1], sandbox.testResults.socketInstances[0], 'the new WebSocket instance must be different from the first');
         // voiceMode itself (read fresh by every relevant check, and by
@@ -971,7 +1042,7 @@ async function run() {
             assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), `cycle ${cycle} (${mode}): must start DISCONNECTED`);
 
             const socketsBefore = getLexical(sandbox, 'testResults.socketInstances.length');
-            clickConnectBtn();
+            await clickConnectBtn();
             assert.strictEqual(getLexical(sandbox, 'testResults.socketInstances.length'), socketsBefore + 1, `cycle ${cycle}: exactly one new WebSocket must be created`);
             const sockExpr = `testResults.socketInstances[${socketsBefore}]`;
             getLexical(sandbox, sockExpr)._fireOpen();
@@ -990,7 +1061,7 @@ async function run() {
                 assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('disconnect')"), `cycle ${cycle}: main button still reads CONNECTED after ending Free Conversation`);
             }
 
-            clickConnectBtn();
+            await clickConnectBtn();
             assert.strictEqual(getLexical(sandbox, sockExpr + '.readyState'), 3, `cycle ${cycle}: Disconnect must close this cycle's WebSocket`);
             assert.strictEqual(getLexical(sandbox, "el('connectBtn').textContent"), getLexical(sandbox, "getUiString('connect')"), `cycle ${cycle}: must read DISCONNECTED immediately after Disconnect`);
             assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, `cycle ${cycle}: no leftover tapToStartActive`);
