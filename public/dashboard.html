@@ -5504,7 +5504,51 @@
       answer.style.cssText = 'white-space:pre-wrap; margin:7px 0;';
       const meta = document.createElement('div');
       meta.style.color = 'var(--muted)';
-      meta.textContent = `${item.found ? 'Есть источники' : 'Нет источников'} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+      // found / answerable are distinct: fragments can be found but not
+      // actually answer the question (topical similarity != coverage). When
+      // that happens and web wasn't allowed for this run, say so plainly
+      // instead of a bare "Нет источников", which would be misleading --
+      // sources DID exist, they just weren't sufficient.
+      //
+      // A fail-open answerable:true (the grader model was unavailable or its
+      // output couldn't be parsed) must never read the same as a genuine
+      // confirmed answer -- otherwise an outage in the grader silently
+      // upgrades every result to "verified" in the operator's eyes.
+      const answerabilityUnverified = item.answerability_reason === 'answerability_check_unavailable'
+        || item.answerability_reason === 'answerability_check_error';
+      const webConfirmed = item.answerable === true && item.web_used;
+      const evidenceLabel = !item.found
+        ? 'Нет источников'
+        : item.answerable === true
+          ? (webConfirmed ? 'Есть источники (подтверждено через web)' : 'Есть источники')
+          : answerabilityUnverified
+            ? 'Есть источники (проверка ответности недоступна — не подтверждено)'
+            : (item.web_used ? 'Источники найдены, ответ дополнен web' : 'Источники найдены, однако ответа в них недостаточно');
+      meta.textContent = `${evidenceLabel} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+
+      // Visibility into the web-search decision: which routing tier the
+      // question fell into, why web was (or wasn't) used, and clickable
+      // links to whatever web sources were actually cited.
+      const webMeta = document.createElement('div');
+      webMeta.style.cssText = 'color:var(--muted); font-size:11px; margin-top:2px;';
+      const intentLabel = { own_entity: 'наш продукт', general_wine: 'винная тема', off_topic_factual: 'вне темы (факт)', off_topic_smalltalk: 'болтовня' }[item.query_intent] || null;
+      const reasonLabel = { freshness: 'свежесть данных', weak_internal: 'мало данных внутри', forced: 'запрошено явно', general_wine_topic: 'общая винная тема', off_topic_factual: 'фактический вопрос вне темы' }[item.web_reason] || null;
+      const metaParts = [];
+      if (intentLabel) metaParts.push(`Тема: ${intentLabel}`);
+      if (item.web_used && reasonLabel) metaParts.push(`Web: ${reasonLabel}`);
+      if (metaParts.length) webMeta.appendChild(document.createTextNode(metaParts.join(' · ')));
+      if (Array.isArray(item.web_sources) && item.web_sources.length) {
+        webMeta.appendChild(document.createTextNode((metaParts.length ? ' · ' : '') + 'Источники: '));
+        item.web_sources.forEach((src, srcIndex) => {
+          if (srcIndex > 0) webMeta.appendChild(document.createTextNode(', '));
+          const link = document.createElement('a');
+          link.href = src.url || '#';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = src.title || src.url || 'источник';
+          webMeta.appendChild(link);
+        });
+      }
       const grades = document.createElement('div');
       grades.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
       [['correct', 'Верно'], ['partial', 'Частично'], ['wrong', 'Ошибка'], ['no_data', 'Нет данных']].forEach(([value, label]) => {
@@ -5529,7 +5573,7 @@
       commentInput.style.cssText = 'width:100%; resize:vertical; font:inherit; margin-top:4px;';
       commentInput.addEventListener('input', (e) => { item.comment = e.target.value; });
       commentLabel.appendChild(commentInput);
-      card.append(question, answer, meta, grades, commentLabel);
+      card.append(question, answer, meta, webMeta, grades, commentLabel);
       root.appendChild(card);
     });
     renderEvaluationSummary();
@@ -5587,7 +5631,10 @@
   function exportEvaluation(format) {
     const rows = evaluationState.results.map((item, index) => ({
       number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '', comment: item.comment || '',
-      found: item.found, duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
+      found: item.found, answerable: item.answerable === true, answerability_reason: item.answerability_reason || '', web_used: item.web_used === true,
+      web_reason: item.web_reason || '', query_intent: item.query_intent || '',
+      web_sources: (item.web_sources || []).map((s) => s.url).filter(Boolean).join(' | '),
+      duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
       sources: (item.evidence || []).map((e) => e.source).filter(Boolean).join(' | '), error: item.error || '', completed_at: item.completed_at,
     }));
     const content = format === 'json' ? JSON.stringify(rows, null, 2) : [Object.keys(rows[0] || {}).join(','), ...rows.map((row) => Object.values(row).map((v) => `"${String(v ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');

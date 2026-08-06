@@ -1,6 +1,7 @@
 'use strict';
 
-const { routeKnowledge } = require('../knowledge/layeredRouter');
+const { routeKnowledgeWithAnswerabilityGate } = require('../knowledge/layeredRouter');
+const { getBudgetStatus: getWebSearchBudgetStatus } = require('../knowledge/webSearchProvider');
 
 const MAX_QUESTION_CHARS = 1000;
 const MAX_EVIDENCE_ITEMS = 8;
@@ -58,10 +59,11 @@ function publicEvidence(item) {
 }
 
 function createTextKnowledgeEvaluator({
-    routeImpl = routeKnowledge,
+    routeImpl = routeKnowledgeWithAnswerabilityGate,
     generateContent,
     apiKey = process.env.GEMINI_API_KEY || '',
     model = TEXT_EVALUATION_MODEL,
+    answerabilityModel,
 } = {}) {
     async function callModel(prompt) {
         if (typeof generateContent === 'function') return generateContent({ model, prompt });
@@ -82,11 +84,15 @@ function createTextKnowledgeEvaluator({
             const startedAt = Date.now();
             const retrieval = await routeImpl(normalizedQuestion, {
                 language: normalizedLanguage,
-                // Evaluation defaults to the controlled corpus. The UI may explicitly
-                // opt into web routing for questions that genuinely need freshness.
+                // Evaluation defaults to the controlled corpus -- web is only
+                // ever reachable when the operator opts in. With it on, two
+                // independent things can still trigger a web pass: routeKnowledge's
+                // own freshness detection, and the answerability gate below
+                // (evidence exists but doesn't actually answer the question).
+                // Neither is a blanket "always use web" like a raw forceWeb.
                 allowWeb: allowWeb === true,
-                forceWeb: allowWeb === true,
                 limit: MAX_EVIDENCE_ITEMS,
+                answerabilityModel,
             });
             const prompt = buildPrompt({
                 question: normalizedQuestion,
@@ -98,15 +104,38 @@ function createTextKnowledgeEvaluator({
             const answer = extractText(generated);
             if (!answer) throw createInputError('empty_text_evaluation_response');
 
+            // Fail-open answerability (grader unavailable/unparseable) must be
+            // visible server-side too, not just in the UI label -- otherwise
+            // an outage in the grader is invisible in ops logs while every
+            // eval run quietly stops actually verifying anything.
+            if (retrieval.answerabilityReason === 'answerability_check_unavailable' || retrieval.answerabilityReason === 'answerability_check_error') {
+                console.warn('[knowledge:evaluate] answerability check did not run (fail-open)', {
+                    question: normalizedQuestion,
+                    reason: retrieval.answerabilityReason,
+                });
+            }
+
             return {
                 ok: true,
                 question: normalizedQuestion,
                 language: normalizedLanguage || 'auto',
                 answer,
                 found: retrieval.found === true,
+                // `found` keeps meaning "evidence was retrieved". `answerable` is
+                // the separate, explicit signal for "the retrieved evidence
+                // actually supports a direct answer" -- a topically-similar but
+                // non-answering set of fragments is found:true, answerable:false.
+                answerable: retrieval.answerable === true,
+                answerability_reason: retrieval.answerabilityReason || null,
                 evidence: (retrieval.evidence || []).slice(0, MAX_EVIDENCE_ITEMS).map(publicEvidence),
                 used_levels: retrieval.used_levels || [],
                 web_used: retrieval.web_used === true,
+                web_reason: retrieval.web_reason || null,
+                web_sources: (retrieval.evidence || [])
+                    .filter((item) => item.level === 'web')
+                    .map((item) => ({ title: item.title || null, url: item.source || null })),
+                query_intent: retrieval.query_intent || null,
+                web_budget: getWebSearchBudgetStatus(),
                 duration_ms: Date.now() - startedAt,
                 usage: generated?.usageMetadata ? {
                     prompt_tokens: generated.usageMetadata.promptTokenCount ?? null,
