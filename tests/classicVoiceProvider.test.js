@@ -22,6 +22,7 @@ function asyncChunks(items) {
 
 function createContext(events, audioChunks, logs, suffix = '1') {
     return {
+        generationId: `gen_${suffix}`,
         responseId: `response_${suffix}`,
         turnId: `turn_${suffix}`,
         signal: { cancelled: false },
@@ -131,6 +132,53 @@ async function run() {
     const resolved = registry.resolve('classic');
     t.equal(resolved.id, 'classic');
     t.equal(resolved.metadata.provider, 'classic');
+
+    const toolRounds = [];
+    const toolProvider = new ClassicVoiceProvider({ geminiApiKey: 'gemini-test' }, {
+        aiFactory: (apiKey) => ({
+            models: {
+                async generateContent({ contents }) {
+                    const hasFunctionResponses = Array.isArray(contents)
+                        && contents.some((c) => Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
+                    if (!hasFunctionResponses) {
+                        return { functionCalls: [{ name: 'search_wine_knowledge', args: { query: 'Cricova' } }] };
+                    }
+                    return { text: 'Cricova — старейший подвал Молдовы.' };
+                },
+                async generateContentStream() {
+                    return asyncChunks([{ candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from([0, 0, 1, 0]).toString('base64') } }] } }] }]);
+                },
+            },
+        }),
+        sttFactory: () => ({ id: 'whisper', model: 'whisper-1', configured: true, async transcribe() { return { text: 'Что ты знаешь про Cricova?', language: 'en' }; } }),
+        ttsFactory: () => ({
+            yandexConfigured: true,
+            chooseProvider() { return 'gemini'; },
+            async synthesizeRussian() { throw new Error('no_yandex'); },
+        }),
+    });
+    const toolSession = toolProvider.createSession({
+        toolDeclarations: [{ name: 'search_wine_knowledge' }],
+        toolHandlers: {
+            search_wine_knowledge: async (toolCall) => {
+                toolRounds.push(toolCall);
+                return { results: [{ wine: 'Cricova' }] };
+            },
+        },
+    });
+    await toolSession.connect(() => {});
+    const toolEvents = [];
+    const toolChunks = [];
+    const toolLogs = [];
+    await toolSession.sendText('Что ты знаешь про Cricova?', createContext(toolEvents, toolChunks, toolLogs, 'tool'));
+
+    t.equal(toolRounds.length, 1);
+    t.equal(toolRounds[0].args.query, 'Cricova');
+    t.equal(toolRounds[0].generationId, 'gen_tool');
+    t.equal(toolRounds[0].turnId, 'turn_tool');
+    t.equal(toolRounds[0].providerInstanceId, 'classic_session_1');
+    t.ok(toolEvents.some((event) => event.type === 'tool.call' && event.tool_name === 'search_wine_knowledge'));
+    t.ok(toolEvents.some((event) => event.type === 'transcript.model' && /Cricova — старейший подвал/.test(event.text)));
 
     const cancelledSignal = { cancelled: false };
     session.activeSignal = cancelledSignal;

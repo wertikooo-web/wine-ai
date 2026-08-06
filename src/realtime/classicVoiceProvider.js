@@ -158,8 +158,12 @@ class ClassicVoiceProviderSession {
         });
     }
 
-    async generateReply(userText, signal, log) {
+    async generateReply(userText, signal, log, context = {}) {
         const contents = [...this.history, { role: 'user', parts: [{ text: userText }] }];
+        const generationId = context.generationId || null;
+        const responseId = context.responseId || null;
+        const turnId = context.turnId || null;
+        const onEvent = context.onEvent || (() => {});
         const config = { systemInstruction: this.systemInstructionText || undefined };
         if (this.toolDeclarations.length) config.tools = [{ functionDeclarations: this.toolDeclarations }];
 
@@ -185,11 +189,25 @@ class ClassicVoiceProviderSession {
                 if (this.closed || signal.cancelled) return '';
                 const handler = this.toolHandlers[call.name];
                 let result;
+                onEvent({
+                    type: 'tool.call',
+                    response_id: responseId,
+                    turn_id: turnId,
+                    tool_name: String(call.name || ''),
+                    provider_instance_id: this.instanceId,
+                });
                 if (typeof handler !== 'function') {
                     result = { ok: false, error: 'tool_not_available', tool: call.name };
                 } else {
                     try {
-                        result = normalizeToolResult(await handler(call.args || {}));
+                        result = normalizeToolResult(await handler({
+                            args: call.args || {},
+                            functionCall: call,
+                            generationId,
+                            responseId,
+                            turnId,
+                            providerInstanceId: this.instanceId,
+                        }));
                     } catch (error) {
                         result = { ok: false, error: error?.code || error?.message || 'tool_failed' };
                     }
@@ -336,7 +354,7 @@ class ClassicVoiceProviderSession {
         if (!userText || this.closed || signal.cancelled) return;
         onEvent({ type: 'transcript.user', response_id: responseId, turn_id: turnId, text: userText, language: detectedLanguage || undefined });
         log('response_processing_started', { responseId, turnId, providerInstanceId: this.instanceId, sttProvider: this.stt.id, sttModel: this.stt.model, llmModel: this.config.llmModel });
-        const answer = await this.generateReply(userText, signal, log);
+        const answer = await this.generateReply(userText, signal, log, context);
         if (!answer || this.closed || signal.cancelled) return;
         onEvent({ type: 'transcript.model', response_id: responseId, turn_id: turnId, text: answer });
         await this.streamSpeech(answer, context, detectedLanguage);
