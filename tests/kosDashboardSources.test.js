@@ -26,6 +26,9 @@ async function run() {
     assert.ok(htmlContent.includes('id="kosSourceName"'), 'HTML must contain #kosSourceName');
     assert.ok(htmlContent.includes('id="kosSourceWineryId"'), 'HTML must contain #kosSourceWineryId');
     assert.ok(htmlContent.includes('id="kosSourceList"'), 'HTML must contain #kosSourceList');
+    assert.ok(htmlContent.includes('id="tab-documents"'), 'HTML must contain the document storage tab');
+    assert.ok(htmlContent.includes('id="storageDocumentList"'), 'HTML must contain the document storage table');
+    assert.ok(htmlContent.includes("fetch(`/api/kos/documents?${params}`)"), 'Dashboard must load the read-only KOS documents API');
 
     // 2. Build mock DOM structures
     const listeners = {};

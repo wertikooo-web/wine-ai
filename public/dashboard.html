@@ -185,6 +185,34 @@
   }
   .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--wine); text-transform: uppercase; letter-spacing: 0.04em; }
 
+  .storage-toolbar { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin: 18px 0; }
+  .storage-filter { min-width: min(320px, 100%); flex: 1; }
+  .storage-filter label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .storage-filter select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--ink); font: inherit; }
+  .storage-summary { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+  .storage-stat { padding: 8px 11px; border: 1px solid var(--border); border-radius: 999px; background: #fbf8f3; color: var(--muted); font-size: 12px; }
+  .storage-stat strong { color: var(--ink); }
+  .storage-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .storage-table { width: 100%; border-collapse: collapse; min-width: 920px; background: white; }
+  .storage-table th { padding: 11px 12px; background: #f8f3ec; color: var(--muted); font-size: 11px; letter-spacing: .04em; text-align: left; text-transform: uppercase; }
+  .storage-table td { padding: 12px; border-top: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  .storage-source { display: block; color: var(--ink); font-weight: 650; }
+  .storage-url { display: block; max-width: 360px; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .storage-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 999px; background: #f1ede7; color: var(--muted); font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .storage-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #9a8f83; }
+  .storage-badge.available { background: #eaf7ef; color: #1f7042; }
+  .storage-badge.available::before { background: #2aa866; }
+  .storage-badge.missing { background: #fff0ee; color: #9c352e; }
+  .storage-badge.missing::before { background: #d6534b; }
+  .storage-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; color: var(--muted); font-size: 12px; }
+  .storage-empty { padding: 34px 18px; color: var(--muted); text-align: center; }
+  @media (max-width: 700px) {
+    nav.tabs { overflow-x: auto; }
+    nav.tabs button { padding-inline: 11px; white-space: nowrap; }
+    nav.tabs .avatar-lab-link { margin-left: 10px; padding-right: 8px; }
+    .storage-toolbar > button { width: 100%; }
+  }
+
   /* ==== Device visual component ====
      Placeholder "hero" rendering of the physical device concept: a single
      circular photo dressed up with layered shadow/glow/glass-highlight and
@@ -709,6 +737,7 @@
 <nav class="tabs">
   <button data-tab="avatar" class="active">Talk</button>
   <button data-tab="knowledge">Knowledge</button>
+  <button data-tab="documents">Documents</button>
   <button data-tab="persona">Settings</button>
   <a class="avatar-lab-link" href="/avatar-lab" target="_blank" rel="noopener">Avatar Lab ↗</a>
 </nav>
@@ -1186,6 +1215,51 @@
     </details>
   </section>
 
+  <section class="panel" id="tab-documents">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+        <div>
+          <h2 id="storageTitle" style="margin-bottom:7px;">Хранилище документов</h2>
+          <p id="storageDescription" style="margin:0;color:var(--muted);font-size:13px;line-height:1.5;">Документы, собранные краулером, и проверка наличия исходного файла в Bucket.</p>
+        </div>
+        <button class="secondary" type="button" id="storageRefreshBtn">Обновить</button>
+      </div>
+
+      <div class="storage-toolbar">
+        <div class="storage-filter">
+          <label for="storageSourceFilter" id="storageSourceFilterLabel">Источник</label>
+          <select id="storageSourceFilter"><option value="">Все источники</option></select>
+        </div>
+      </div>
+
+      <div class="storage-summary" aria-live="polite">
+        <span class="storage-stat"><span id="storageTotalLabel">Всего документов:</span> <strong id="storageTotal">—</strong></span>
+        <span class="storage-stat"><span id="storagePageLabel">На этой странице в Bucket:</span> <strong id="storageAvailable">—</strong></span>
+        <span class="storage-stat" id="storageCheckState">Проверка Bucket: —</span>
+      </div>
+
+      <div class="storage-table-wrap">
+        <table class="storage-table">
+          <thead><tr>
+            <th id="storageThSource">Источник и URL</th>
+            <th id="storageThStatus">Статус</th>
+            <th id="storageThDate">Дата обхода</th>
+            <th id="storageThSize">Размер</th>
+            <th id="storageThBucket">Оригинал в Bucket</th>
+            <th id="storageThAction">Просмотр</th>
+          </tr></thead>
+          <tbody id="storageDocumentList"><tr><td colspan="6" class="storage-empty">Нажмите «Обновить», чтобы загрузить данные.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="storage-pagination">
+        <button class="secondary" type="button" id="storagePrevBtn" disabled>← Назад</button>
+        <span id="storageRange">—</span>
+        <button class="secondary" type="button" id="storageNextBtn" disabled>Дальше →</button>
+      </div>
+    </div>
+  </section>
+
   <section class="panel" id="tab-persona">
     <div class="card">
       <h2>Voice</h2>
@@ -1497,6 +1571,7 @@
       document.querySelectorAll('section.panel').forEach((p) => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'documents') loadDocumentStorage().catch((err) => log('document_storage_load_error', { message: err.message }));
     });
   });
 
@@ -1695,7 +1770,7 @@
   const UI_STRINGS = {
     en: {
       sub: 'Digital expert on Moldovan wine',
-      tabTalk: 'Talk', tabKnowledge: 'Knowledge', tabSettings: 'Settings',
+      tabTalk: 'Talk', tabKnowledge: 'Knowledge', tabDocuments: 'Documents', tabSettings: 'Settings',
       inputPlaceholder: 'Type your question…',
       connect: 'Connect', connecting: 'Connecting…', disconnect: 'Disconnect',
       statusDisconnected: 'Disconnected', statusConnected: 'Connected',
@@ -1738,7 +1813,7 @@
     },
     ru: {
       sub: 'Цифровой эксперт по молдавскому вину',
-      tabTalk: 'Разговор', tabKnowledge: 'База знаний', tabSettings: 'Настройки',
+      tabTalk: 'Разговор', tabKnowledge: 'База знаний', tabDocuments: 'Документы', tabSettings: 'Настройки',
       inputPlaceholder: 'Напишите вопрос…',
       connect: 'Подключить', connecting: 'Подключение…', disconnect: 'Отключить',
       statusDisconnected: 'Нет соединения', statusConnected: 'Подключено',
@@ -1781,7 +1856,7 @@
     },
     ro: {
       sub: 'Expert digital în vinul moldovenesc',
-      tabTalk: 'Discuție', tabKnowledge: 'Cunoștințe', tabSettings: 'Setări',
+      tabTalk: 'Discuție', tabKnowledge: 'Cunoștințe', tabDocuments: 'Documente', tabSettings: 'Setări',
       inputPlaceholder: 'Scrie întrebarea ta…',
       connect: 'Conectare', connecting: 'Se conectează…', disconnect: 'Deconectare',
       statusDisconnected: 'Deconectat', statusConnected: 'Conectat',
@@ -1815,7 +1890,7 @@
     },
     fr: {
       sub: 'Expert numérique du vin moldave',
-      tabTalk: 'Discuter', tabKnowledge: 'Connaissances', tabSettings: 'Paramètres',
+      tabTalk: 'Discuter', tabKnowledge: 'Connaissances', tabDocuments: 'Documents', tabSettings: 'Paramètres',
       inputPlaceholder: 'Écrivez votre question…',
       connect: 'Connexion', connecting: 'Connexion en cours…', disconnect: 'Déconnexion',
       statusDisconnected: 'Déconnecté', statusConnected: 'Connecté',
@@ -1849,7 +1924,7 @@
     },
     it: {
       sub: 'Esperto digitale del vino moldavo',
-      tabTalk: 'Parla', tabKnowledge: 'Conoscenza', tabSettings: 'Impostazioni',
+      tabTalk: 'Parla', tabKnowledge: 'Conoscenza', tabDocuments: 'Documenti', tabSettings: 'Impostazioni',
       inputPlaceholder: 'Scrivi la tua domanda…',
       connect: 'Connetti', connecting: 'Connessione…', disconnect: 'Disconnetti',
       statusDisconnected: 'Disconnesso', statusConnected: 'Connesso',
@@ -1883,7 +1958,7 @@
     },
     es: {
       sub: 'Experto digital en vino moldavo',
-      tabTalk: 'Hablar', tabKnowledge: 'Conocimiento', tabSettings: 'Ajustes',
+      tabTalk: 'Hablar', tabKnowledge: 'Conocimiento', tabDocuments: 'Documentos', tabSettings: 'Ajustes',
       inputPlaceholder: 'Escribe tu pregunta…',
       connect: 'Conectar', connecting: 'Conectando…', disconnect: 'Desconectar',
       statusDisconnected: 'Desconectado', statusConnected: 'Conectado',
@@ -1917,7 +1992,7 @@
     },
     de: {
       sub: 'Digitaler Experte für moldauischen Wein',
-      tabTalk: 'Gespräch', tabKnowledge: 'Wissen', tabSettings: 'Einstellungen',
+      tabTalk: 'Gespräch', tabKnowledge: 'Wissen', tabDocuments: 'Dokumente', tabSettings: 'Einstellungen',
       inputPlaceholder: 'Frage eingeben…',
       connect: 'Verbinden', connecting: 'Verbindung wird hergestellt…', disconnect: 'Trennen',
       statusDisconnected: 'Getrennt', statusConnected: 'Verbunden',
@@ -1951,7 +2026,7 @@
     },
     zh: {
       sub: '摩尔多瓦葡萄酒数字专家',
-      tabTalk: '对话', tabKnowledge: '知识库', tabSettings: '设置',
+      tabTalk: '对话', tabKnowledge: '知识库', tabDocuments: '文档', tabSettings: '设置',
       inputPlaceholder: '请输入您的问题…',
       connect: '连接', connecting: '正在连接…', disconnect: '断开连接',
       statusDisconnected: '未连接', statusConnected: '已连接',
@@ -1985,7 +2060,7 @@
     },
     ja: {
       sub: 'モルドバワインのデジタルエキスパート',
-      tabTalk: '会話', tabKnowledge: '知識', tabSettings: '設定',
+      tabTalk: '会話', tabKnowledge: '知識', tabDocuments: 'ドキュメント', tabSettings: '設定',
       inputPlaceholder: '質問を入力してください…',
       connect: '接続', connecting: '接続中…', disconnect: '切断',
       statusDisconnected: '未接続', statusConnected: '接続済み',
@@ -5138,6 +5213,156 @@
     return data;
   }
 
+  const STORAGE_PAGE_SIZE = 50;
+  let storageOffset = 0;
+  let storageLoaded = false;
+
+  function formatStorageBytes(value) {
+    if (value == null || !Number.isFinite(Number(value))) return '—';
+    const bytes = Number(value);
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatStorageDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString(uiLang);
+  }
+
+  function storageStatusMeta(status) {
+    return ({
+      available: { label: 'Готов', className: 'available', bucket: 'Есть' },
+      missing: { label: 'Файл отсутствует', className: 'missing', bucket: 'Нет' },
+      awaiting_file: { label: 'Ожидает файл', className: '', bucket: 'Нет версии' },
+      unknown: { label: 'Не удалось проверить', className: '', bucket: 'Неизвестно' },
+    })[status] || { label: status || 'Неизвестно', className: '', bucket: 'Неизвестно' };
+  }
+
+  function appendStorageCell(row, child) {
+    const cell = document.createElement('td');
+    if (typeof child === 'string') cell.textContent = child;
+    else cell.appendChild(child);
+    row.appendChild(cell);
+    return cell;
+  }
+
+  function renderStoredDocument(documentRecord) {
+    const row = document.createElement('tr');
+    const sourceBlock = document.createElement('div');
+    const sourceName = document.createElement('span');
+    sourceName.className = 'storage-source';
+    sourceName.textContent = documentRecord.source?.name || documentRecord.source?.id || '—';
+    const url = document.createElement('span');
+    url.className = 'storage-url';
+    url.title = documentRecord.url || '';
+    url.textContent = documentRecord.url || 'URL отсутствует';
+    sourceBlock.append(sourceName, url);
+    appendStorageCell(row, sourceBlock);
+
+    const meta = storageStatusMeta(documentRecord.storageStatus);
+    const statusBadge = document.createElement('span');
+    statusBadge.className = `storage-badge ${meta.className}`.trim();
+    statusBadge.textContent = meta.label;
+    appendStorageCell(row, statusBadge);
+    appendStorageCell(row, formatStorageDate(documentRecord.fetchedAt));
+    appendStorageCell(row, formatStorageBytes(documentRecord.sizeBytes));
+
+    const bucketBadge = document.createElement('span');
+    bucketBadge.className = `storage-badge ${meta.className}`.trim();
+    bucketBadge.textContent = meta.bucket;
+    appendStorageCell(row, bucketBadge);
+
+    const action = document.createElement('a');
+    action.className = 'secondary';
+    action.style.cssText = 'display:inline-block;text-decoration:none;white-space:nowrap;';
+    action.textContent = 'Открыть источник ↗';
+    if (documentRecord.url) {
+      action.href = documentRecord.url;
+      action.target = '_blank';
+      action.rel = 'noopener';
+    } else {
+      action.removeAttribute('href');
+      action.setAttribute('aria-disabled', 'true');
+      action.style.opacity = '.45';
+    }
+    appendStorageCell(row, action);
+    return row;
+  }
+
+  async function loadStorageSourceOptions() {
+    const select = el('storageSourceFilter');
+    if (!select || select.dataset.loaded === 'true') return;
+    const data = await readApiResponse(await fetch('/api/kos/sources'));
+    (data.sources || []).forEach((source) => {
+      const option = document.createElement('option');
+      option.value = source.id;
+      option.textContent = source.name || source.normalized_origin || source.seed_url || source.id;
+      select.appendChild(option);
+    });
+    select.dataset.loaded = 'true';
+  }
+
+  async function loadDocumentStorage({ reset = false } = {}) {
+    if (storageLoaded && !reset) return;
+    const list = el('storageDocumentList');
+    if (!list) return;
+    if (reset) storageOffset = 0;
+    list.innerHTML = '<tr><td colspan="6" class="storage-empty">Загружаем документы и проверяем Bucket…</td></tr>';
+    el('storageRefreshBtn').disabled = true;
+    try {
+      await loadStorageSourceOptions();
+      const params = new URLSearchParams({ limit: String(STORAGE_PAGE_SIZE), offset: String(storageOffset) });
+      const sourceId = el('storageSourceFilter').value;
+      if (sourceId) params.set('sourceId', sourceId);
+      const data = await readApiResponse(await fetch(`/api/kos/documents?${params}`));
+      list.innerHTML = '';
+      if (!data.documents.length) {
+        list.innerHTML = '<tr><td colspan="6" class="storage-empty">Документы не найдены.</td></tr>';
+      } else {
+        data.documents.forEach((documentRecord) => list.appendChild(renderStoredDocument(documentRecord)));
+      }
+      const available = data.documents.filter((item) => item.objectExists === true).length;
+      const start = data.pagination.total ? data.pagination.offset + 1 : 0;
+      const end = data.pagination.offset + data.documents.length;
+      el('storageTotal').textContent = data.pagination.total;
+      el('storageAvailable').textContent = `${available} / ${data.documents.length}`;
+      el('storageCheckState').textContent = data.storageCheck.ok ? 'Проверка Bucket: выполнена' : 'Проверка Bucket: недоступна';
+      el('storageCheckState').style.color = data.storageCheck.ok ? 'var(--ok)' : 'var(--err)';
+      el('storageRange').textContent = `${start}–${end} из ${data.pagination.total}`;
+      el('storagePrevBtn').disabled = data.pagination.offset === 0;
+      el('storageNextBtn').disabled = !data.pagination.hasMore;
+      storageLoaded = true;
+    } catch (error) {
+      storageLoaded = false;
+      list.innerHTML = '';
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 6;
+      cell.className = 'storage-empty';
+      cell.style.color = 'var(--err)';
+      cell.textContent = `Хранилище документов недоступно: ${error.message}`;
+      row.appendChild(cell);
+      list.appendChild(row);
+    } finally {
+      el('storageRefreshBtn').disabled = false;
+    }
+  }
+
+  el('storageRefreshBtn').addEventListener('click', () => loadDocumentStorage({ reset: true }));
+  el('storageSourceFilter').addEventListener('change', () => loadDocumentStorage({ reset: true }));
+  el('storagePrevBtn').addEventListener('click', () => {
+    storageOffset = Math.max(0, storageOffset - STORAGE_PAGE_SIZE);
+    storageLoaded = false;
+    loadDocumentStorage();
+  });
+  el('storageNextBtn').addEventListener('click', () => {
+    storageOffset += STORAGE_PAGE_SIZE;
+    storageLoaded = false;
+    loadDocumentStorage();
+  });
+
   function renderKosSource(source) {
     const card = document.createElement('div');
     card.className = 'kos-source-card';
@@ -6097,9 +6322,11 @@
     setText('headerSub', getUiString('sub'));
     const tabAvatar = document.querySelector('nav.tabs [data-tab="avatar"]');
     const tabKnowledge = document.querySelector('nav.tabs [data-tab="knowledge"]');
+    const tabDocuments = document.querySelector('nav.tabs [data-tab="documents"]');
     const tabPersona = document.querySelector('nav.tabs [data-tab="persona"]');
     if (tabAvatar) tabAvatar.textContent = getUiString('tabTalk');
     if (tabKnowledge) tabKnowledge.textContent = getUiString('tabKnowledge');
+    if (tabDocuments) tabDocuments.textContent = getUiString('tabDocuments');
     if (tabPersona) tabPersona.textContent = getUiString('tabSettings');
     const input = el('textInput');
     if (input) input.placeholder = getUiString('inputPlaceholder');
