@@ -1,0 +1,27 @@
+name: Security Runtime Probe
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  production-security-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run non-destructive production probes
+        env:
+          SECURITY_BASE_URL: https://wine-ai-realtime-production.up.railway.app
+        run: node scripts/security-runtime-probe.js
