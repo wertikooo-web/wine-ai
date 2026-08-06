@@ -5,6 +5,7 @@ on:
     paths:
       - 'tests/security/**'
       - 'scripts/security-foundation-check.js'
+      - 'scripts/security-100-check.js'
       - 'package.json'
       - '.github/workflows/security-foundation.yml'
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'tests/security/**'
       - 'scripts/security-foundation-check.js'
+      - 'scripts/security-100-check.js'
       - 'package.json'
       - '.github/workflows/security-foundation.yml'
   workflow_dispatch:
@@ -34,5 +36,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Validate security cases
+      - name: Validate foundation cases
         run: npm run test:security
+
+      - name: Validate 100 specialized cases
+        run: node scripts/security-100-check.js
