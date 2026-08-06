@@ -15,6 +15,7 @@
     "knowledge:embed-backfill": "node scripts/knowledge-embed-backfill.js",
     "test": "node scripts/run-tests.js",
     "test:smoke": "node scripts/run-smoke.js",
+    "test:security": "node scripts/security-foundation-check.js",
     "smoke:http": "node scripts/http-smoke.js",
     "smoke:realtime": "node scripts/realtime-smoke.js",
     "smoke:language": "node scripts/language-smoke.js",
