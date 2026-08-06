@@ -22,6 +22,7 @@ function asyncChunks(items) {
 
 function createContext(events, audioChunks, logs, suffix = '1') {
     return {
+        generationId: `gen_${suffix}`,
         responseId: `response_${suffix}`,
         turnId: `turn_${suffix}`,
         signal: { cancelled: false },
@@ -131,6 +132,196 @@ async function run() {
     const resolved = registry.resolve('classic');
     t.equal(resolved.id, 'classic');
     t.equal(resolved.metadata.provider, 'classic');
+
+    const toolRounds = [];
+    const toolProvider = new ClassicVoiceProvider({ geminiApiKey: 'gemini-test' }, {
+        aiFactory: (apiKey) => ({
+            models: {
+                async generateContent({ contents }) {
+                    const hasFunctionResponses = Array.isArray(contents)
+                        && contents.some((c) => Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
+                    if (!hasFunctionResponses) {
+                        return { functionCalls: [{ name: 'search_wine_knowledge', args: { query: 'Cricova' } }] };
+                    }
+                    return { text: 'Cricova — старейший подвал Молдовы.' };
+                },
+                async generateContentStream() {
+                    return asyncChunks([{ candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from([0, 0, 1, 0]).toString('base64') } }] } }] }]);
+                },
+            },
+        }),
+        sttFactory: () => ({ id: 'whisper', model: 'whisper-1', configured: true, async transcribe() { return { text: 'Что ты знаешь про Cricova?', language: 'en' }; } }),
+        ttsFactory: () => ({
+            yandexConfigured: true,
+            chooseProvider() { return 'gemini'; },
+            async synthesizeRussian() { throw new Error('no_yandex'); },
+        }),
+    });
+    const toolSession = toolProvider.createSession({
+        toolDeclarations: [{ name: 'search_wine_knowledge' }],
+        toolHandlers: {
+            search_wine_knowledge: async (toolCall) => {
+                toolRounds.push(toolCall);
+                return { results: [{ wine: 'Cricova' }] };
+            },
+        },
+    });
+    await toolSession.connect(() => {});
+    const toolEvents = [];
+    const toolChunks = [];
+    const toolLogs = [];
+    await toolSession.sendText('Что ты знаешь про Cricova?', createContext(toolEvents, toolChunks, toolLogs, 'tool'));
+
+    t.equal(toolRounds.length, 1);
+    t.equal(toolRounds[0].args.query, 'Cricova');
+    t.equal(toolRounds[0].generationId, 'response_tool');
+    t.equal(toolRounds[0].turnId, 'turn_tool');
+    t.equal(toolRounds[0].providerInstanceId, 'classic_session_1');
+    t.ok(toolEvents.some((event) => event.type === 'tool.call' && event.tool_name === 'search_wine_knowledge'));
+    t.ok(toolEvents.some((event) => event.type === 'transcript.model' && /Cricova — старейший подвал/.test(event.text)));
+
+    // --- Bound Tool Regression Tests ---
+    const { bindTool } = require('../src/tools/toolHelpers');
+
+    // Test 1: Real bindTool wrapper regression test
+    const logEvents = [];
+    const regressionToolContext = {
+        log: (event, details) => {
+            logEvents.push({ event, details });
+        },
+    };
+
+    let lastReceivedArgs = null;
+    const testToolImpl = async (args) => {
+        lastReceivedArgs = args;
+        return { success: true, count: 42 };
+    };
+
+    const boundRegressionTool = bindTool({
+        name: 'regression_test_tool',
+        impl: testToolImpl,
+    }, regressionToolContext);
+
+    let capturedFunctionResponse = null;
+    const regressionProvider = new ClassicVoiceProvider({ geminiApiKey: 'gemini-test' }, {
+        aiFactory: () => ({
+            models: {
+                async generateContent({ contents }) {
+                    const hasFunctionResponses = Array.isArray(contents)
+                        && contents.some((c) => Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
+                    if (!hasFunctionResponses) {
+                        return { functionCalls: [{ name: 'regression_test_tool', args: { query: 'Feteasca' } }] };
+                    }
+                    // Capture the functionResponse returned from the engine
+                    const responsePart = contents.find((c) => Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
+                    capturedFunctionResponse = responsePart.parts.find((p) => p.functionResponse).functionResponse;
+                    return { text: 'Done.' };
+                },
+                async generateContentStream() {
+                    return asyncChunks([{ candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from([0, 0, 1, 0]).toString('base64') } }] } }] }]);
+                },
+            },
+        }),
+        sttFactory: () => ({ id: 'whisper', model: 'whisper-1', configured: true, async transcribe() { return { text: 'Call tool', language: 'en' }; } }),
+        ttsFactory: () => ({
+            yandexConfigured: true,
+            chooseProvider() { return 'gemini'; },
+            async synthesizeRussian() { throw new Error('no_yandex'); },
+        }),
+    });
+
+    const regressionSession = regressionProvider.createSession({
+        toolDeclarations: [{ name: 'regression_test_tool' }],
+        toolHandlers: {
+            regression_test_tool: boundRegressionTool,
+        },
+    });
+
+    await regressionSession.connect(() => {});
+    const rEvents = [];
+    const rChunks = [];
+    const rLogs = [];
+    const regressionContext = createContext(rEvents, rChunks, rLogs, 'regression');
+
+    await regressionSession.sendText('Call tool', regressionContext);
+
+    // Assert 1: A tool is registered and matched
+    t.ok(capturedFunctionResponse);
+    t.equal(capturedFunctionResponse.name, 'regression_test_tool');
+
+    // Assert 2: Non-empty tool arguments reach the underlying handler unchanged
+    t.deepEqual(lastReceivedArgs, { query: 'Feteasca' });
+
+    // Find the log event to verify IDs
+    const executionLog = logEvents.find((e) => e.event === 'tool_executed');
+    t.ok(executionLog);
+
+    // Assert 3: generationId equals context.responseId and turnId equals context.turnId
+    t.equal(executionLog.details.generationId, regressionContext.responseId); // 'response_regression'
+    t.equal(executionLog.details.turnId, regressionContext.turnId); // 'turn_regression'
+
+    // Assert 4: The tool result is normalized and returned to the model
+    // (This also proves the test would fail under the old handler(call.args || {}) implementation,
+    // which would reject with 'missing_generation_id' and return that in the response).
+    t.deepEqual(capturedFunctionResponse.response, { success: true, count: 42 });
+
+    // Test 2: Edge-case coverage for missing call.args
+    let edgeCaseArgs = null;
+    const edgeCaseImpl = async (args) => {
+        edgeCaseArgs = args;
+        return { ok: true };
+    };
+
+    const boundEdgeCaseTool = bindTool({
+        name: 'edge_case_tool',
+        impl: edgeCaseImpl,
+    }, regressionToolContext);
+
+    let capturedEdgeCaseResponse = null;
+    const edgeCaseProvider = new ClassicVoiceProvider({ geminiApiKey: 'gemini-test' }, {
+        aiFactory: () => ({
+            models: {
+                async generateContent({ contents }) {
+                    const hasFunctionResponses = Array.isArray(contents)
+                        && contents.some((c) => Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
+                    if (!hasFunctionResponses) {
+                        return { functionCalls: [{ name: 'edge_case_tool' }] }; // args missing entirely
+                    }
+                    const responsePart = contents.find((c) => Array.isArray(c.parts) && c.parts.some((p) => p.functionResponse));
+                    capturedEdgeCaseResponse = responsePart.parts.find((p) => p.functionResponse).functionResponse;
+                    return { text: 'Done.' };
+                },
+                async generateContentStream() {
+                    return asyncChunks([{ candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from([0, 0, 1, 0]).toString('base64') } }] } }] }]);
+                },
+            },
+        }),
+        sttFactory: () => ({ id: 'whisper', model: 'whisper-1', configured: true, async transcribe() { return { text: 'Call tool', language: 'en' }; } }),
+        ttsFactory: () => ({
+            yandexConfigured: true,
+            chooseProvider() { return 'gemini'; },
+            async synthesizeRussian() { throw new Error('no_yandex'); },
+        }),
+    });
+
+    const edgeCaseSession = edgeCaseProvider.createSession({
+        toolDeclarations: [{ name: 'edge_case_tool' }],
+        toolHandlers: {
+            edge_case_tool: boundEdgeCaseTool,
+        },
+    });
+
+    await edgeCaseSession.connect(() => {});
+    const ecEvents = [];
+    const ecChunks = [];
+    const ecLogs = [];
+    const edgeCaseContext = createContext(ecEvents, ecChunks, ecLogs, 'edgecase');
+
+    await edgeCaseSession.sendText('Call tool', edgeCaseContext);
+
+    // Assert 5: Missing call.args results in args: {} passed to underlying handler
+    t.deepEqual(edgeCaseArgs, {});
+    t.deepEqual(capturedEdgeCaseResponse.response, { ok: true });
 
     const cancelledSignal = { cancelled: false };
     session.activeSignal = cancelledSignal;
