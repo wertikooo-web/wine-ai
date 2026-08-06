@@ -5,6 +5,7 @@
 // as a default — this module has no domain knowledge of wine.
 const crypto = require('crypto');
 const { getRawPersonaPrompt, appendSommelierGenderInstruction, getEffectivePersonaPrompt } = require('../persona/wineExpertPersona');
+const { buildVoiceSommelierStyleBlock } = require('../persona/voiceSommelierStyleModule');
 
 // Generous ceiling per block, mirroring the reasoning that produced this
 // same kind of constant in the origin project: must comfortably fit a
@@ -83,9 +84,23 @@ function buildRealtimeSystemInstruction({
         typeof currentContext === 'string' ? currentContext : buildCurrentContext(currentContext),
         'current_context',
     );
+    // Voice Sommelier Style Moldova: assembled here, once, for every engine
+    // (Gemini Live, Grok Realtime, classic STT->LLM->TTS) -- they all share
+    // this one buildRealtimeSystemInstruction() call via
+    // realtimeServer.js's buildProviderSessionOptions(). It goes AFTER the
+    // persona block (which carries the base safety rules and RAG/search
+    // policy) and before per-turn context, so it only ever shapes HOW an
+    // already-safe, already-fact-checked answer is spoken, never what facts
+    // are allowed. Always included, regardless of whether `persona` above
+    // is the default profile or a dashboard-supplied custom override --
+    // this line runs unconditionally for every caller of this function, so
+    // an admin persona swap can never silently drop the voice style.
+    const voiceStyle = buildVoiceSommelierStyleBlock();
     const text = [
         '[PERSONA]',
         personaBlock,
+        '',
+        voiceStyle.text,
         '',
         '[CURRENT CONTEXT]',
         current,
@@ -95,12 +110,14 @@ function buildRealtimeSystemInstruction({
         text,
         blocks: {
             persona: personaBlock,
+            voiceStyle: voiceStyle.text,
             currentContext: current,
         },
         meta: {
             promptChars: text.length,
             promptHash: hashText(text),
             persona: blockMeta(personaBlock),
+            voiceStyle: voiceStyle.meta,
             currentContext: blockMeta(current),
         },
     };
