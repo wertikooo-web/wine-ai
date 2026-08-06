@@ -14,8 +14,6 @@
 // (confirmed via staging diagnostics: Railway's hosting IPs get an anti-bot
 // HTTP 202 from DuckDuckGo, never real results -- not fixable from here).
 
-const db = require('./db');
-
 const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER || 'gemini-grounding'; // gemini-grounding | brave | disabled
 const GROUNDING_MODEL = process.env.WEB_SEARCH_GROUNDING_MODEL || 'gemini-2.5-flash';
 const DEFAULT_TIMEOUT_MS = Number(process.env.WEB_SEARCH_TIMEOUT_MS || 8000);
@@ -26,38 +24,19 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h -- grounding facts don't churn
 const CACHE_MAX_ENTRIES = 1000;
 
 // ---------------------------------------------------------------------
-// Cost control: daily budget (Postgres-backed, file-fallback when no DB),
-// per-session soft cap (in-memory, best-effort -- see note below), and a
-// short in-memory result cache. Budget counts ACTUAL search queries
-// performed, not calls to this module: Gemini Grounding may run several
-// search queries to answer one question, and that is what has to be
-// capped, not "one call = one query".
+// Cost control: in-memory-only for this stage -- daily budget, per-session
+// soft cap, and a short result cache, all process-local and reset on
+// restart. Budget counts ACTUAL search queries performed, not calls to this
+// module: Gemini Grounding may run several search queries to answer one
+// question, and that is what has to be capped, not "one call = one query".
+//
+// Deliberately NOT Postgres-backed: a persisted daily/cost ledger needs its
+// own migration with an explicit rollback and schema-drift check, tracked
+// as separate follow-up work, not created ad hoc at runtime from this
+// module. An in-memory budget that resets on deploy is an accepted, scoped
+// limitation for this stage -- not a gap silently filled by a hidden DDL.
 // ---------------------------------------------------------------------
 
-let schemaReadyPromise = null;
-function _ensureSchema() {
-    if (!db.isEnabled()) return Promise.resolve(null);
-    if (!schemaReadyPromise) {
-        schemaReadyPromise = (async () => {
-            const pool = db.getPool();
-            await pool.query(`
-                CREATE TABLE IF NOT EXISTS web_search_usage (
-                    day DATE PRIMARY KEY,
-                    query_count INT NOT NULL DEFAULT 0,
-                    request_count INT NOT NULL DEFAULT 0,
-                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-                );
-            `);
-            return pool;
-        })();
-    }
-    return schemaReadyPromise;
-}
-
-// In-memory fallback counters, used when DATABASE_URL isn't set (local dev)
-// or as the always-on per-session tracker (session budgets are intentionally
-// not persisted -- they exist to stop one runaway conversation from burning
-// the whole day's budget, not to survive a restart).
 let memoryDay = null;
 let memoryDayCount = 0;
 const sessionCounts = new Map(); // sessionId -> { day, count }
@@ -66,36 +45,16 @@ function _todayUtc() {
     return new Date().toISOString().slice(0, 10);
 }
 
-async function _readDailyCount() {
+function _readDailyCount() {
     const today = _todayUtc();
-    if (db.isEnabled()) {
-        await _ensureSchema();
-        const pool = db.getPool();
-        const { rows } = await pool.query('SELECT query_count FROM web_search_usage WHERE day = $1', [today]);
-        return rows[0] ? Number(rows[0].query_count) : 0;
-    }
     if (memoryDay !== today) { memoryDay = today; memoryDayCount = 0; }
     return memoryDayCount;
 }
 
-async function _recordUsage(queryCount, sessionId) {
+function _recordUsage(queryCount, sessionId) {
     const today = _todayUtc();
-    if (db.isEnabled()) {
-        await _ensureSchema();
-        const pool = db.getPool();
-        await pool.query(
-            `INSERT INTO web_search_usage (day, query_count, request_count, updated_at)
-             VALUES ($1, $2, 1, NOW())
-             ON CONFLICT (day) DO UPDATE SET
-                query_count = web_search_usage.query_count + EXCLUDED.query_count,
-                request_count = web_search_usage.request_count + 1,
-                updated_at = NOW()`,
-            [today, queryCount]
-        );
-    } else {
-        if (memoryDay !== today) { memoryDay = today; memoryDayCount = 0; }
-        memoryDayCount += queryCount;
-    }
+    if (memoryDay !== today) { memoryDay = today; memoryDayCount = 0; }
+    memoryDayCount += queryCount;
     if (sessionId) {
         const entry = sessionCounts.get(sessionId);
         if (!entry || entry.day !== today) {
@@ -131,7 +90,6 @@ function _resetForTests() {
     memoryDayCount = 0;
     sessionCounts.clear();
     cache.clear();
-    schemaReadyPromise = null;
 }
 
 // ---------------------------------------------------------------------
