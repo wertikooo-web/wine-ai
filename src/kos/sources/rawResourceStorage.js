@@ -51,9 +51,27 @@ async function saveRawDocumentVersion({
         const checkSql = 'SELECT * FROM kos_source_document_versions WHERE document_id = $1 AND checksum_sha256 = $2';
         const { rows: existingRows } = await queryClient.query(checkSql, [documentId, checksumSha256]);
         if (existingRows.length > 0) {
+            const existingVersion = existingRows[0];
+            const existingStorageKey = existingVersion.storage_key || storageKey;
+            let blobExists;
+            try {
+                blobExists = await objectStorage.exists(existingStorageKey);
+                if (!blobExists) {
+                    await objectStorage.put(existingStorageKey, buffer, {
+                        mimeType: detectedMimeType,
+                        metadata: { documentId, checksumSha256 },
+                    });
+                }
+            } catch (err) {
+                throw Object.assign(
+                    new Error(`KOS_OBJECT_STORAGE_REPAIR_FAILED: ${err.message}`),
+                    { code: 'KOS_OBJECT_STORAGE_REPAIR_FAILED' }
+                );
+            }
             return {
                 existing: true,
-                version: existingRows[0],
+                repaired: !blobExists,
+                version: existingVersion,
             };
         }
     }
