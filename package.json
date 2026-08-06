@@ -16,6 +16,7 @@
     "test": "node scripts/run-tests.js",
     "test:smoke": "node scripts/run-smoke.js",
     "test:security": "node scripts/security-foundation-check.js",
+    "test:security:runtime": "node scripts/security-runtime-check.js",
     "smoke:http": "node scripts/http-smoke.js",
     "smoke:realtime": "node scripts/realtime-smoke.js",
     "smoke:language": "node scripts/language-smoke.js",

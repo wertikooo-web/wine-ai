@@ -1,0 +1,36 @@
+name: Security Runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Target base URL
+        required: false
+        default: https://wine-ai-realtime-production.up.railway.app
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/security-runtime-check.js'
+      - '.github/workflows/security-runtime.yml'
+      - 'package.json'
+
+concurrency:
+  group: security-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Wait briefly for Railway autodeploy
+        if: github.event_name == 'push'
+        run: sleep 90
+      - name: Run live runtime security checks
+        env:
+          SECURITY_BASE_URL: ${{ github.event.inputs.base_url || 'https://wine-ai-realtime-production.up.railway.app' }}
+        run: npm run test:security:runtime
