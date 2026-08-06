@@ -385,6 +385,7 @@ function attachRealtimeServer(server, options = {}) {
     const providerFactory = options.providerFactory || ((sessionOptions = {}) => defaultProvider.createSession(sessionOptions));
     const providerMetadata = options.providerMetadata || { provider: 'mock', model: 'mock' };
     const resolveProvider = typeof options.resolveProvider === 'function' ? options.resolveProvider : null;
+    const resolveAdultVerification = typeof options.isAdultVerified === 'function' ? options.isAdultVerified : () => false;
 
     server.on('upgrade', (req, socket) => {
         const url = new URL(req.url || '/', 'http://localhost');
@@ -409,11 +410,13 @@ function attachRealtimeServer(server, options = {}) {
         }
 
         if (!acceptWebSocket(req, socket)) return;
-        createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata);
+        createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata, {
+            isAdultVerified: resolveAdultVerification(req) === true,
+        });
     });
 }
 
-function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
+function createRealtimeSession(socket, providerFactory, providerMetadata = {}, sessionAccess = {}) {
     const sessionId = id('session');
     const connectedAt = Date.now();
     let sessionVoiceName = normalizeProviderVoiceName(providerMetadata.defaultVoiceName || providerMetadata.voiceName);
@@ -495,8 +498,11 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
     // records a discussed wine/preference) — so, like the turn/generation
     // state they already close over, they are built once per session via
     // an optional factory rather than shared as one static object.
+    // Access status is resolved from the signed HTTP session before the
+    // WebSocket upgrade. A client payload never gets authority to enable it.
+    const toolContext = { sessionMemory, isAdultVerified: sessionAccess.isAdultVerified === true, log: (stage, extra) => log(stage, extra) };
     const toolHandlers = typeof providerMetadata.createToolHandlers === 'function'
-        ? providerMetadata.createToolHandlers({ sessionMemory, log: (stage, extra) => log(stage, extra) })
+        ? providerMetadata.createToolHandlers(toolContext)
         : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {});
     // Full prompt text (persona/knowledge_context, tens of KB combined — up
     // to PROMPT_MAX_CHARS per block) is only useful for the dashboard's
@@ -763,6 +769,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}) {
                 sample_rate_source: inputSampleRateSource,
                 gemini_input_sample_rate: GEMINI_INPUT_SAMPLE_RATE,
             },
+            access: { adult_verified: toolContext.isAdultVerified },
             prompt_debug: {
                 allow_custom_prompt: DASHBOARD_ALLOW_CUSTOM_PROMPT,
                 max_chars: PROMPT_MAX_CHARS,

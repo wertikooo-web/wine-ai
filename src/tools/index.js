@@ -5,6 +5,7 @@ const searchWineKnowledge = require('./searchLayeredKnowledge');
 const searchWinery = require('./searchWinery');
 const compareGrapeVarieties = require('./compareGrapeVarieties');
 const recommendWinePairing = require('./recommendWinePairing');
+const recommendWineServing = require('./recommendWineServing');
 const getWineRouteInformation = require('./getWineRouteInformation');
 const updateSessionMemory = require('./updateSessionMemory');
 const checkWineMdAvailability = require('./checkWineMdAvailability');
@@ -17,6 +18,7 @@ const TOOLS = [
     searchWinery,
     compareGrapeVarieties,
     recommendWinePairing,
+    recommendWineServing,
     getWineRouteInformation,
     updateSessionMemory,
     checkWineMdAvailability,

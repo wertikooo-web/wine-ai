@@ -36,8 +36,10 @@ const { createTextKnowledgeEvaluator, MAX_QUESTION_CHARS } = require('./evaluati
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
+const wineCatalogService = require('./kos/wines/wineCatalogService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
+const { issueAdultCookie, isAdultVerified } = require('./security/ageVerification');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
@@ -95,6 +97,18 @@ if (db.isEnabled()) {
             console.error('[WineAI] Boot-time data migration failed (non-fatal):', err.message);
         }
     })();
+}
+
+// Catalog cards are published only by a human, then refreshed from their
+// original source once per day. Refreshing may change factual fields, but it
+// never changes the publication decision or creates a new bottle by itself.
+const WINE_CATALOG_SYNC_INTERVAL_MS = Math.max(60 * 60 * 1000, Number(process.env.WINE_CATALOG_SYNC_INTERVAL_MS || 24 * 60 * 60 * 1000));
+if (db.isEnabled()) {
+    const syncPublishedWineCards = () => wineCatalogService.syncPublishedCards()
+        .then((result) => { if (result.checked) console.log('[WineAI] wine catalog sync', result); })
+        .catch((error) => console.error('[WineAI] wine catalog sync failed:', error.message));
+    setTimeout(syncPublishedWineCards, 30_000).unref();
+    setInterval(syncPublishedWineCards, WINE_CATALOG_SYNC_INTERVAL_MS).unref();
 }
 
 // Defense in depth beyond the per-request try/catch below: this process
@@ -212,7 +226,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -238,6 +252,21 @@ async function handleRequest(req, res) {
     // that distinction matters once any route takes a query string.
     const requestUrl = new URL(req.url, 'http://localhost');
     const pathname = requestUrl.pathname;
+
+    if (req.method === 'GET' && pathname === '/api/age-verification') {
+        return sendJson(res, 200, { ok: true, adult_verified: isAdultVerified(req.headers.cookie) });
+    }
+
+    if (req.method === 'POST' && pathname === '/api/age-verification') {
+        let body;
+        try { body = await readJsonBody(req); } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        if (body.confirmed !== true) return sendJson(res, 400, { ok: false, error: 'adult_confirmation_required' });
+        const secure = process.env.NODE_ENV === 'production' || req.headers['x-forwarded-proto'] === 'https';
+        res.setHeader('Set-Cookie', issueAdultCookie({ secure }));
+        return sendJson(res, 200, { ok: true, adult_verified: true });
+    }
 
     if (req.method === 'GET' && pathname === '/health') {
         const isDbPostgres = db.isEnabled();
@@ -1037,6 +1066,33 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
     }
 
+    const wineCardPublishMatch = /^\/api\/kos\/wines\/([a-zA-Z0-9_]+)\/publish\/?$/.exec(pathname);
+    if (pathname === '/api/kos/wines' || pathname === '/api/kos/wines/extract' || wineCardPublishMatch) {
+        if (!db.isEnabled() || !isKosSchemaReady()) return sendJson(res, 503, { ok: false, error: 'wine_catalog_unavailable' });
+        try {
+            if (req.method === 'GET' && pathname === '/api/kos/wines') return sendJson(res, 200, { ok: true, wines: await wineCatalogService.listCards() });
+            if (req.method === 'POST' && pathname === '/api/kos/wines/extract') {
+                const body = await readJsonBody(req, 6 * 1024 * 1024);
+                let text = body.text || null;
+                if (body.contentBase64) {
+                    const buffer = Buffer.from(String(body.contentBase64), 'base64');
+                    if (buffer.length > 4 * 1024 * 1024) return sendJson(res, 413, { ok: false, error: 'wine_file_too_large' });
+                    if (String(body.mimeType || '').toLowerCase() === 'application/pdf') {
+                        const { PDFParse } = require('pdf-parse');
+                        const parser = new PDFParse({ data: buffer });
+                        try { text = String((await parser.getText()).text || '').trim(); } finally { await parser.destroy(); }
+                    } else text = buffer.toString('utf8');
+                }
+                if (!body.url && !text) return sendJson(res, 400, { ok: false, error: 'wine_source_required' });
+                return sendJson(res, 201, { ok: true, wine: await wineCatalogService.createDraft({ url: body.url || null, text }) });
+            }
+            if (req.method === 'POST' && wineCardPublishMatch) return sendJson(res, 200, { ok: true, wine: await wineCatalogService.publishCard(wineCardPublishMatch[1]) });
+            return sendJson(res, 405, { ok: false, error: 'method_not_allowed' });
+        } catch (error) {
+            return sendJson(res, error.statusCode || (error.code === 'WINE_CARD_NOT_FOUND' ? 404 : 400), { ok: false, error: error.code || 'wine_catalog_failed', message: error.message });
+        }
+    }
+
     // Only maxPages/maxDepth/renderJs are exposed to callers — never let a
     // client override delayMs/robots/SSRF-relevant settings from the
     // request body. Ceiling (500 pages, depth 4) is a sanity bound, not a
@@ -1707,6 +1763,7 @@ attachRealtimeServer(server, {
     providerFactory: defaultProvider.createSession,
     providerMetadata: defaultProvider.metadata,
     resolveProvider: (requestedProvider) => providerRegistry.resolve(requestedProvider),
+    isAdultVerified: (req) => isAdultVerified(req.headers.cookie),
 });
 
 server.listen(PORT, () => {

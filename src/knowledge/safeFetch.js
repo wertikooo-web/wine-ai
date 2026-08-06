@@ -89,4 +89,39 @@ function isPrivateIp(hostname) {
     return false;
 }
 
-module.exports = { isDomainAllowed, sanitizeUrl, isPrivateIp, ALLOWED_DOMAINS };
+// Reputable general wine/reference sources -- NOT an allowlist that blocks
+// anything. Web search results are always broad (see webSearch.js); this is
+// purely a trust label used to prioritize and to decide how confidently a
+// source may be cited, never to withhold a result from consideration.
+const REPUTABLE_DOMAINS = new Set([
+    'en.wikipedia.org',
+    'ro.wikipedia.org',
+    'ru.wikipedia.org',
+    'wine-searcher.com',
+    'decanter.com',
+    'jancisrobinson.com',
+    'winefolly.com',
+    'wsetglobal.com',
+]);
+
+// Trust tiers for a search-result URL, used to rank/label evidence, never to
+// filter search results outright:
+// - 'official': one of our own known partner/winery domains (ALLOWED_DOMAINS)
+//   -- these win over any other source when the fact is about that partner.
+// - 'reputable': a curated general wine-reference/encyclopedia domain --
+//   acceptable to cite for general wine knowledge, not authoritative for our
+//   own partners' specific facts (price, hours, stock).
+// - 'general': anything else the web provider returned -- usable as
+//   supporting color, never as the SOLE confirmation of an important fact.
+function classifySourceTrust(urlString) {
+    try {
+        const hostname = new URL(urlString).hostname;
+        if (ALLOWED_DOMAINS.has(hostname)) return 'official';
+        if (REPUTABLE_DOMAINS.has(hostname)) return 'reputable';
+        return 'general';
+    } catch {
+        return 'general';
+    }
+}
+
+module.exports = { isDomainAllowed, sanitizeUrl, isPrivateIp, ALLOWED_DOMAINS, REPUTABLE_DOMAINS, classifySourceTrust };

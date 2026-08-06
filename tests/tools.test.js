@@ -6,14 +6,14 @@ const { createSessionMemory } = require('../src/memory/sessionMemory');
 const t = require('./helpers/assertions');
 
 async function run() {
-    t.equal(TOOL_DECLARATIONS.length, 7, 'expected 7 tool declarations (5 required + update_session_memory + check_wine_md_availability)');
+    t.equal(TOOL_DECLARATIONS.length, 11, 'expected all registered tool declarations including bidirectional pairing tools');
     for (const decl of TOOL_DECLARATIONS) {
         t.ok(decl.name && decl.description && decl.parameters, `tool ${decl.name || '(unnamed)'} must have name/description/parameters`);
     }
 
     const sessionMemory = createSessionMemory();
     const calls = [];
-    const handlers = createToolHandlers({ sessionMemory, log: (stage, extra) => calls.push({ stage, extra }) });
+    const handlers = createToolHandlers({ sessionMemory, isAdultVerified: true, log: (stage, extra) => calls.push({ stage, extra }) });
 
     // search_wine_knowledge: valid input
     const found = await handlers.search_wine_knowledge({ args: { query: 'Фетяска Нягрэ' }, generationId: 'g1', turnId: 't1' });
@@ -26,10 +26,20 @@ async function run() {
     t.equal(invalid.field, 'query');
 
     // recommend_wine_pairing must also update session memory as a side effect.
-    await handlers.recommend_wine_pairing({ args: { dish: 'roast lamb', occasion: 'anniversary' }, generationId: 'g1', turnId: 't1' });
+    const pairing = await handlers.recommend_wine_pairing({ args: { dish: 'roast lamb', occasion: 'anniversary' }, generationId: 'g1', turnId: 't1' });
+    t.ok(pairing.found && pairing.candidates.length === 3, 'dish pairing should return three ranked Moldovan wine styles');
+    t.equal(pairing.candidates[0].style_id, 'feteasca-neagra', 'lamb should rank Fetească Neagră first');
     const memoryText = sessionMemory.formatForPrompt();
     t.ok(memoryText && /roast lamb/.test(memoryText), 'recommend_wine_pairing should record the dish into session memory');
     t.ok(/anniversary/.test(memoryText), 'recommend_wine_pairing should record the occasion into session memory');
+
+    const serving = await handlers.recommend_wine_serving({ args: { wine: 'Fetească Neagră' }, generationId: 'g1', turnId: 't1' });
+    t.ok(serving.found, 'wine-to-food tool should resolve a known Moldovan grape style');
+    t.ok(serving.dishes.length > 0, 'wine-to-food tool should return food matches');
+
+    const unverifiedHandlers = createToolHandlers({ sessionMemory, log: () => {} });
+    const blocked = await unverifiedHandlers.recommend_wine_pairing({ args: { dish: 'fish' }, generationId: 'g1', turnId: 't1' });
+    t.equal(blocked.error, 'age_verification_required', 'pairing must stay blocked until the host verifies adulthood');
 
     // update_session_memory: explicit structured recording.
     const updated = await handlers.update_session_memory({ args: { discussedWine: 'Cabernet Sauvignon', budget: 'premium' }, generationId: 'g1', turnId: 't1' });

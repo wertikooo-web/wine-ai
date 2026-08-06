@@ -1,0 +1,76 @@
+name: Bootstrap classic voice integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/bootstrap-classic-voice.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/classic-stt-llm-tts
+          fetch-depth: 0
+
+      - name: Merge current main into Classic branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-edit origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Integrate engine-family UI
+        run: node scripts/finalize-classic-ui.js
+
+      - name: Validate Classic provider and first-screen UI
+        run: |
+          node <<'NODE'
+          const files = [
+            './tests/classicVoiceProvider.test.js',
+            './tests/voiceEngineUi.test.js',
+          ];
+          (async () => {
+            for (const file of files) {
+              const test = require(file);
+              if (typeof test.run !== 'function') throw new Error(`${file} does not export run()`);
+              await test.run();
+              console.log(`[classic-voice] PASS ${file}`);
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+          node tests/dashboardVoiceConfiguration.test.js
+          grep -q 'WINE_AI_CLASSIC_ENGINE_UI_BEGIN' public/dashboard.html
+          grep -q "runtimeProvider" public/dashboard.html
+          grep -q "session.interrupt" public/dashboard.html
+          grep -q "stopPlaybackImmediately" public/dashboard.html
+          grep -q "Classic STT" src/realtime/providerRegistry.js
+
+      - run: npm run check:missing-imports
+
+      - name: Commit merged main and integrated dashboard
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No generated changes after merge"
+          else
+            git commit -m "feat(voice): update branch and connect Classic UI"
+          fi
+          git push origin HEAD:feat/classic-stt-llm-tts

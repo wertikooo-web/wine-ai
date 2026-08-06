@@ -10,7 +10,7 @@ const http = require('http');
 const crypto = require('crypto');
 const { sendJson, sendBinary, createFrameParser } = require('../../src/realtime/wsProtocol');
 
-function connect(port, path = '/realtime') {
+function connect(port, path = '/realtime', headers = {}) {
     return new Promise((resolve, reject) => {
         const key = crypto.randomBytes(16).toString('base64');
         const req = http.request({
@@ -21,6 +21,7 @@ function connect(port, path = '/realtime') {
                 Upgrade: 'websocket',
                 'Sec-WebSocket-Version': 13,
                 'Sec-WebSocket-Key': key,
+                ...headers,
             },
         });
 

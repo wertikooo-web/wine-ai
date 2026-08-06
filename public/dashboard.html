@@ -73,6 +73,12 @@
   .dot.ok { background: #4ade80; }
   .dot.err { background: #f87171; }
   .dot.warn { background: #fbbf24; }
+  .age-gate { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; padding: 20px; background: rgba(36, 18, 18, 0.82); }
+  .age-gate[hidden] { display: none; }
+  .age-gate__card { width: min(440px, 100%); border-radius: 18px; padding: 28px; background: var(--cream); color: var(--ink); box-shadow: 0 24px 60px rgba(0,0,0,.32); text-align: center; }
+  .age-gate__card h2 { margin: 0 0 12px; color: var(--wine); }
+  .age-gate__card p { line-height: 1.5; color: var(--muted); }
+  .age-gate__card button { margin-top: 12px; width: 100%; border: 0; border-radius: 10px; padding: 12px 16px; color: white; background: var(--wine); font: inherit; font-weight: 700; cursor: pointer; }
 
   nav.tabs {
     display: flex; gap: 4px; padding: 12px 24px 0;
@@ -672,6 +678,13 @@
 </style>
 </head>
 <body>
+<div id="ageGate" class="age-gate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle" hidden>
+  <div class="age-gate__card">
+    <h2 id="ageGateTitle">Доступ для взрослых</h2>
+    <p>Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.</p>
+    <button id="ageGateConfirm" type="button">Мне есть разрешённый законом возраст</button>
+  </div>
+</div>
 
 <header>
   <div>
@@ -1037,6 +1050,28 @@
       </form>
       <div id="kosSourceActionStatus" style="font-size:12px; margin-top:10px;"></div>
       <div id="kosSourceList" class="kos-source-list"></div>
+    </details>
+
+    <details class="card pm-card" open>
+      <summary class="pm-card-summary"><h2 style="display:inline; margin:0;">Вина <span class="badge" id="wineCatalogCount">0</span></h2></summary>
+      <p style="font-size:12px; color:var(--muted); margin:10px 0 14px;">Вставьте ссылку на карточку вина или текст из техлиста. Wine AI соберёт черновик профиля, а после публикации бутылка станет доступна сомелье.</p>
+      <form id="wineCatalogForm" class="kos-source-form">
+        <div class="kos-source-field" style="grid-column: 1 / -1;">
+          <label for="wineCatalogUrl">Ссылка на WineMD или сайт винодельни</label>
+          <input type="url" id="wineCatalogUrl" placeholder="https://wine.md/...">
+        </div>
+        <div class="kos-source-field" style="grid-column: 1 / -1;">
+          <label for="wineCatalogText">Или вставьте описание / текст техлиста</label>
+          <textarea id="wineCatalogText" rows="4" placeholder="Название, сорт, год, описание, подача…"></textarea>
+        </div>
+        <div class="kos-source-field" style="grid-column: 1 / -1;">
+          <label for="wineCatalogFile">Или загрузите техлист</label>
+          <input type="file" id="wineCatalogFile" accept=".pdf,.txt,.md">
+        </div>
+        <div class="kos-source-actions"><button type="submit" id="wineCatalogExtractBtn">Собрать карточку</button><button type="button" class="secondary" id="wineCatalogRefreshBtn">Обновить список</button></div>
+      </form>
+      <div id="wineCatalogStatus" style="font-size:12px; margin-top:10px;"></div>
+      <div id="wineCatalogList" class="kos-source-list"></div>
     </details>
 
     <div class="card">
@@ -2157,6 +2192,28 @@
     return `${proto}//${location.host}/realtime${providerParam}`;
   }
 
+  let adultAccessPromise = null;
+  async function ensureAdultAccess() {
+    if (adultAccessPromise) return adultAccessPromise;
+    adultAccessPromise = (async () => {
+    const gate = el('ageGate');
+    const confirm = el('ageGateConfirm');
+    const status = await fetch('/api/age-verification', { credentials: 'same-origin' }).then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
+    if (status.adult_verified) return true;
+    gate.hidden = false;
+    return new Promise((resolve) => {
+      confirm.onclick = async () => {
+        confirm.disabled = true;
+        const result = await fetch('/api/age-verification', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirmed: true }) })
+          .then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
+        if (result.adult_verified) { gate.hidden = true; resolve(true); return; }
+        confirm.disabled = false;
+      };
+    });
+    })();
+    return adultAccessPromise;
+  }
+
   // Screen-launch context ("Спросить Wine AI об этой винодельне/вине") —
   // reuses this exact session.start/config.persona mechanism instead of a
   // second voice module. null = general mode (default persona, no forced
@@ -2313,7 +2370,9 @@
     if (isHolding) endTurn();
   }
 
-  function connect() {
+  async function connect() {
+    if (!await ensureAdultAccess()) return;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     DeviceVisual.setState('connecting');
     setConnectionButton('connecting');
     providerReadyForInput = false;
@@ -4788,6 +4847,40 @@
   }
 
   // ---- KOS website source registry (Step 2E) ----
+  // ---- Wine Catalog: source -> reviewable profile -> manual publish ----
+  function setWineCatalogStatus(message, tone = 'muted') {
+    const node = el('wineCatalogStatus');
+    node.textContent = message;
+    node.style.color = tone === 'error' ? 'var(--err)' : (tone === 'ok' ? 'var(--ok)' : 'var(--muted)');
+  }
+  function renderWineCatalogCard(wine) {
+    const card = document.createElement('div'); card.className = 'kos-source-card';
+    const head = document.createElement('div'); head.className = 'kos-source-card-head';
+    const title = document.createElement('strong'); title.textContent = wine.name;
+    const badge = document.createElement('span'); badge.className = `badge ${wine.status === 'published' ? 'ok' : ''}`.trim(); badge.textContent = wine.status === 'published' ? 'опубликовано' : 'черновик';
+    head.append(title, badge); card.appendChild(head);
+    const profile = wine.profile || {};
+    const meta = document.createElement('div'); meta.className = 'kos-source-meta';
+    meta.textContent = [wine.producer, wine.vintage, (profile.grapes || []).join(', '), profile.color, profile.confidence === 'needs_review' ? 'нужно дополнить профиль' : 'профиль извлечён'].filter(Boolean).join(' · ');
+    card.appendChild(meta);
+    if (wine.source_url) { const link = document.createElement('a'); link.href = wine.source_url; link.target = '_blank'; link.rel = 'noopener'; link.textContent = wine.source_url; link.style.cssText = 'display:block;font-size:11px;margin-top:6px;word-break:break-all;'; card.appendChild(link); }
+    if (wine.status !== 'published') { const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'secondary'; publish.textContent = 'Опубликовать'; publish.style.marginTop = '9px'; publish.addEventListener('click', async () => { publish.disabled = true; try { const data = await readApiResponse(await fetch(`/api/kos/wines/${encodeURIComponent(wine.id)}/publish`, { method: 'POST' })); setWineCatalogStatus(`«${data.wine.name}» опубликовано и доступно сомелье.`, 'ok'); await loadWineCatalog(); } catch (error) { setWineCatalogStatus(`Не удалось опубликовать: ${error.message}`, 'error'); publish.disabled = false; } }); card.appendChild(publish); }
+    return card;
+  }
+  async function loadWineCatalog() {
+    const list = el('wineCatalogList');
+    try { const data = await readApiResponse(await fetch('/api/kos/wines')); const wines = data.wines || []; el('wineCatalogCount').textContent = wines.length; list.innerHTML = ''; if (!wines.length) { const empty = document.createElement('p'); empty.style.cssText = 'color:var(--muted);font-size:13px;margin:0;'; empty.textContent = 'Пока нет добавленных вин.'; list.appendChild(empty); return; } wines.forEach((wine) => list.appendChild(renderWineCatalogCard(wine))); }
+    catch (error) { list.textContent = `Каталог вин недоступен: ${error.message}`; }
+  }
+  el('wineCatalogForm').addEventListener('submit', async (event) => {
+    event.preventDefault(); const url = el('wineCatalogUrl').value.trim(); const text = el('wineCatalogText').value.trim(); const file = el('wineCatalogFile').files[0]; if (!url && !text && !file) { setWineCatalogStatus('Добавьте ссылку, текст или техлист.', 'error'); return; }
+    const button = el('wineCatalogExtractBtn'); button.disabled = true; setWineCatalogStatus('Извлекаю профиль вина…');
+    try { const payload = { url: url || null, text: text || null }; if (file) { const bytes = new Uint8Array(await file.arrayBuffer()); let binary = ''; bytes.forEach((b) => { binary += String.fromCharCode(b); }); payload.contentBase64 = btoa(binary); payload.mimeType = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain'); } const data = await readApiResponse(await fetch('/api/kos/wines/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })); el('wineCatalogUrl').value = ''; el('wineCatalogText').value = ''; el('wineCatalogFile').value = ''; setWineCatalogStatus(`Черновик «${data.wine.name}» готов. Проверьте карточку и нажмите «Опубликовать».`, 'ok'); await loadWineCatalog(); }
+    catch (error) { setWineCatalogStatus(`Не удалось собрать карточку: ${error.message}`, 'error'); }
+    finally { button.disabled = false; }
+  });
+  el('wineCatalogRefreshBtn').addEventListener('click', loadWineCatalog);
+
   // The POST deliberately stays open until the existing crawler finishes.
   // While it runs, this screen supplies the `running` state; the persisted
   // crawl-run status returned by the API becomes the final badge afterwards.
@@ -5411,7 +5504,51 @@
       answer.style.cssText = 'white-space:pre-wrap; margin:7px 0;';
       const meta = document.createElement('div');
       meta.style.color = 'var(--muted)';
-      meta.textContent = `${item.found ? 'Есть источники' : 'Нет источников'} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+      // found / answerable are distinct: fragments can be found but not
+      // actually answer the question (topical similarity != coverage). When
+      // that happens and web wasn't allowed for this run, say so plainly
+      // instead of a bare "Нет источников", which would be misleading --
+      // sources DID exist, they just weren't sufficient.
+      //
+      // A fail-open answerable:true (the grader model was unavailable or its
+      // output couldn't be parsed) must never read the same as a genuine
+      // confirmed answer -- otherwise an outage in the grader silently
+      // upgrades every result to "verified" in the operator's eyes.
+      const answerabilityUnverified = item.answerability_reason === 'answerability_check_unavailable'
+        || item.answerability_reason === 'answerability_check_error';
+      const webConfirmed = item.answerable === true && item.web_used;
+      const evidenceLabel = !item.found
+        ? 'Нет источников'
+        : item.answerable === true
+          ? (webConfirmed ? 'Есть источники (подтверждено через web)' : 'Есть источники')
+          : answerabilityUnverified
+            ? 'Есть источники (проверка ответности недоступна — не подтверждено)'
+            : (item.web_used ? 'Источники найдены, ответ дополнен web' : 'Источники найдены, однако ответа в них недостаточно');
+      meta.textContent = `${evidenceLabel} · ${item.duration_ms == null ? '—' : `${item.duration_ms} мс`} · ${item.evidence?.length || 0} фрагм.`;
+
+      // Visibility into the web-search decision: which routing tier the
+      // question fell into, why web was (or wasn't) used, and clickable
+      // links to whatever web sources were actually cited.
+      const webMeta = document.createElement('div');
+      webMeta.style.cssText = 'color:var(--muted); font-size:11px; margin-top:2px;';
+      const intentLabel = { own_entity: 'наш продукт', general_wine: 'винная тема', off_topic_factual: 'вне темы (факт)', off_topic_smalltalk: 'болтовня' }[item.query_intent] || null;
+      const reasonLabel = { freshness: 'свежесть данных', weak_internal: 'мало данных внутри', forced: 'запрошено явно', general_wine_topic: 'общая винная тема', off_topic_factual: 'фактический вопрос вне темы' }[item.web_reason] || null;
+      const metaParts = [];
+      if (intentLabel) metaParts.push(`Тема: ${intentLabel}`);
+      if (item.web_used && reasonLabel) metaParts.push(`Web: ${reasonLabel}`);
+      if (metaParts.length) webMeta.appendChild(document.createTextNode(metaParts.join(' · ')));
+      if (Array.isArray(item.web_sources) && item.web_sources.length) {
+        webMeta.appendChild(document.createTextNode((metaParts.length ? ' · ' : '') + 'Источники: '));
+        item.web_sources.forEach((src, srcIndex) => {
+          if (srcIndex > 0) webMeta.appendChild(document.createTextNode(', '));
+          const link = document.createElement('a');
+          link.href = src.url || '#';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = src.title || src.url || 'источник';
+          webMeta.appendChild(link);
+        });
+      }
       const grades = document.createElement('div');
       grades.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;';
       [['correct', 'Верно'], ['partial', 'Частично'], ['wrong', 'Ошибка'], ['no_data', 'Нет данных']].forEach(([value, label]) => {
@@ -5436,7 +5573,7 @@
       commentInput.style.cssText = 'width:100%; resize:vertical; font:inherit; margin-top:4px;';
       commentInput.addEventListener('input', (e) => { item.comment = e.target.value; });
       commentLabel.appendChild(commentInput);
-      card.append(question, answer, meta, grades, commentLabel);
+      card.append(question, answer, meta, webMeta, grades, commentLabel);
       root.appendChild(card);
     });
     renderEvaluationSummary();
@@ -5494,7 +5631,10 @@
   function exportEvaluation(format) {
     const rows = evaluationState.results.map((item, index) => ({
       number: index + 1, question: item.question, answer: item.answer || '', grade: item.grade || '', comment: item.comment || '',
-      found: item.found, duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
+      found: item.found, answerable: item.answerable === true, answerability_reason: item.answerability_reason || '', web_used: item.web_used === true,
+      web_reason: item.web_reason || '', query_intent: item.query_intent || '',
+      web_sources: (item.web_sources || []).map((s) => s.url).filter(Boolean).join(' | '),
+      duration_ms: item.duration_ms, evidence_count: item.evidence?.length || 0,
       sources: (item.evidence || []).map((e) => e.source).filter(Boolean).join(' | '), error: item.error || '', completed_at: item.completed_at,
     }));
     const content = format === 'json' ? JSON.stringify(rows, null, 2) : [Object.keys(rows[0] || {}).join(','), ...rows.map((row) => Object.values(row).map((v) => `"${String(v ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
@@ -6116,6 +6256,7 @@
   loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
   loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
   loadKosSources().catch((err) => log('kos_sources_load_error', { message: err.message }));
+  loadWineCatalog().catch((err) => log('wine_catalog_load_error', { message: err.message }));
   loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
   initVisualStory().catch((err) => log('visual_story_load_error', { message: err.message }));
   prefetchScreenContext('winery', 'crama-dealul-de-aur');
