@@ -36,6 +36,7 @@ const { createTextKnowledgeEvaluator, MAX_QUESTION_CHARS } = require('./evaluati
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
+const documentStorageService = require('./kos/sources/documentStorageService');
 const wineCatalogService = require('./kos/wines/wineCatalogService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
@@ -226,7 +227,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -1115,6 +1116,33 @@ async function handleRequest(req, res) {
             policy.renderJs = rawPolicy.renderJs;
         }
         return Object.keys(policy).length > 0 ? policy : undefined;
+    }
+
+    // Read-only projection of KOS document metadata plus the presence of the
+    // corresponding immutable raw object. The API deliberately never returns
+    // Bucket credentials, storage keys, raw bytes, or signed URLs.
+    if (req.method === 'GET' && (pathname === '/api/kos/documents' || pathname === '/api/kos/documents/')) {
+        if (!db.isEnabled() || !isKosSchemaReady()) {
+            return sendJson(res, 503, {
+                ok: false,
+                error: 'kos_document_storage_unavailable',
+                message: 'The KOS document storage view is not ready. Check PostgreSQL and KOS schema initialization.',
+            });
+        }
+        try {
+            const result = await documentStorageService.listDocuments({
+                sourceId: requestUrl.searchParams.get('sourceId') || '',
+                limit: requestUrl.searchParams.get('limit'),
+                offset: requestUrl.searchParams.get('offset'),
+            });
+            return sendJson(res, 200, result);
+        } catch (error) {
+            return sendJson(res, error.statusCode || 500, {
+                ok: false,
+                error: error.code || 'kos_document_storage_failed',
+                message: error.message || 'Unable to load KOS document storage metadata',
+            });
+        }
     }
 
     // Step 2E: the smallest complete Dashboard -> Source Registry -> crawler
