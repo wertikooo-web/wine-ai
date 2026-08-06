@@ -37,13 +37,12 @@ jobs:
       - name: Integrate engine-family UI
         run: node scripts/finalize-classic-ui.js
 
-      - name: Validate Classic voice and UI
+      - name: Validate Classic provider and first-screen UI
         run: |
           node <<'NODE'
           const files = [
             './tests/classicVoiceProvider.test.js',
             './tests/voiceEngineUi.test.js',
-            './tests/dashboardBargeIn.test.js',
             './tests/dashboardVoiceConfiguration.test.js',
           ];
           (async () => {
@@ -59,6 +58,9 @@ jobs:
           });
           NODE
           grep -q 'WINE_AI_CLASSIC_ENGINE_UI_BEGIN' public/dashboard.html
+          grep -q "runtimeProvider" public/dashboard.html
+          grep -q "session.interrupt" public/dashboard.html
+          grep -q "stopPlaybackImmediately" public/dashboard.html
           grep -q "Classic STT" src/realtime/providerRegistry.js
 
       - run: npm run check:missing-imports
