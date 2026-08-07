@@ -17,6 +17,7 @@ const path = require('path');
 const loader = require('../knowledge/loader');
 const { computeChunkHash, verifyChunkIdStability, rowToChunk } = require('../knowledge/chunkStore');
 const embeddings = require('../knowledge/embeddings');
+const contract = require('./sourceContract');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MANIFEST_PATH = path.join(REPO_ROOT, 'docs', 'audits', 'corpus-manifest', 'manifest.json');
@@ -27,13 +28,11 @@ const HOOKS_VERSION = 'v1';
 const EMBEDDING_MODEL = embeddings.EMBEDDING_MODEL;
 const EMBEDDING_DIMENSIONS = embeddings.EMBEDDING_DIMENSIONS;
 
-// Only these storage backends are canonical (the manifest pins every input to
-// one of them). The postgres pair is allow-listed so the builder never
-// interpolates a manifest-controlled identifier into SQL.
-const POSTGRES_STORAGE = new Map([
-    ['kos_source_documents.normalized_text', { table: 'kos_source_documents', column: 'normalized_text' }],
-    ['knowledge_documents.text', { table: 'knowledge_documents', column: 'text' }],
-]);
+// canon — the canonical text/hash/storage contract is defined ONCE in
+// sourceContract.js and shared with corpus-manifest-audit.js so the manifest
+// pin and the build-time fetch can never hash different bytes again.
+const sha256Text = contract.sha256Text;
+const { canonicalText, canonicalTextHash, pinnedVersionKey, parseStorage } = contract;
 
 const ERROR = {
     UNRESOLVED_DUPLICATE_GROUP: 'UNRESOLVED_DUPLICATE_GROUP',
@@ -49,10 +48,6 @@ function buildError(code, detail) {
     const err = new Error(detail === undefined ? code : `${code}: ${detail}`);
     err.code = code;
     return err;
-}
-
-function sha256Text(input) {
-    return crypto.createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
 function sha256Parts(parts) {
@@ -80,12 +75,10 @@ function computeChunkId(sourceRef, chunkIndex) {
         .slice(0, CHUNK_ID_SLICE);
 }
 
-// Content version pinned by the canonical manifest. Precedence mirrors the
-// audit's own hash fields per source kind (kos text / knowledge text / curated
-// body / generic content / raw file).
+// Content version pinned by the canonical manifest — resolved by the shared
+// source contract so the audit and the builder pick the identical hash field.
 function contentVersionKey(entry) {
-    const h = entry.hashes || {};
-    return h.normalized_text_sha256 || h.text_sha256 || h.body_sha256 || h.content_hash_db || h.raw_sha256 || null;
+    return pinnedVersionKey(entry);
 }
 
 // The fingerprint is a PURE function of the canonical manifest (ordered
@@ -102,26 +95,6 @@ function computeInputFingerprint(orderedIncluded) {
 
 function deriveBuildId(fingerprint) {
     return sha256Text(fingerprint).slice(0, BUILD_ID_SLICE);
-}
-
-function parseStorage(storage) {
-    const value = String(storage || '');
-    if (value.startsWith('postgres:')) {
-        const key = value.slice('postgres:'.length);
-        const target = POSTGRES_STORAGE.get(key);
-        if (!target) {
-            throw buildError(ERROR.UNKNOWN_SOURCE_STORAGE, value);
-        }
-        return { kind: 'postgres', ...target };
-    }
-    if (value.startsWith('filesystem:')) {
-        const file = value.slice('filesystem:'.length);
-        if (!file) {
-            throw buildError(ERROR.UNKNOWN_SOURCE_STORAGE, value);
-        }
-        return { kind: 'filesystem', file };
-    }
-    throw buildError(ERROR.UNKNOWN_SOURCE_STORAGE, value);
 }
 
 function sourceDocType(sourceType) {
@@ -149,14 +122,19 @@ async function fetchSourceText(entry, pool, repoRoot = REPO_ROOT) {
             throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: missing in ${storage.table}`);
         }
         const text = rows[0].content;
-        if (!text || String(text).trim().length === 0) {
+        if (!text || canonicalText(text).length === 0) {
             throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: empty ${storage.column}`);
         }
         // Input pin at fetch time: the live DB must still match the canonical
         // manifest snapshot. A drifted body means the manifest is stale — the
         // build refuses rather than silently embedding different content under
         // the same build_id. (Filesystem sources are pinned by git itself.)
-        const fetchedHash = sha256Text(String(text));
+        //
+        // The hash is the SHARED canonical body hash (see sourceContract.js):
+        // the manifest pins the same value, so trailing/leading whitespace in
+        // the DB can never masquerade as a content change and abort a build.
+        const canonical = canonicalText(text);
+        const fetchedHash = canonicalTextHash(canonical);
         if (fetchedHash !== entry.version_key) {
             throw buildError(
                 ERROR.SOURCE_FETCH_FAILED,
@@ -164,7 +142,7 @@ async function fetchSourceText(entry, pool, repoRoot = REPO_ROOT) {
             );
         }
         return {
-            text: String(text),
+            text: canonical,
             metadata: {
                 title: entry.title || entry.source_ref,
                 language: entry.language || 'ru',
@@ -183,11 +161,12 @@ async function fetchSourceText(entry, pool, repoRoot = REPO_ROOT) {
         throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: ${err.message}`);
     }
     const { metadata, body } = loader.parseFrontmatter(raw);
-    if (!body || body.trim().length === 0) {
+    const canonical = canonicalText(body);
+    if (canonical.length === 0) {
         throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: empty body`);
     }
     return {
-        text: body,
+        text: canonical,
         metadata: {
             title: entry.title || metadata.title || entry.source_ref,
             language: entry.language || metadata.language || 'ru',
@@ -487,6 +466,11 @@ async function embedMissing(pool, buildId, embed = defaultEmbedder) {
 // Read the vector dimension from the actual schema (design §4 note): prefer the
 // legacy embedding column, else the registry column; refuse to run if it
 // disagrees with the configured model output.
+//
+// pgvector reports the dimension differently across versions: older builds put
+// `4 + 4*dim` in atttypmod, newer ones (e.g. 0.8.x) use the plain `dim`. To be
+// robust, parse the resolved type text `vector(<n>)` and fall back to atttypmod
+// arithmetic only when the type text has no explicit dimension.
 async function embeddingDimension(pool) {
     const candidates = [
         ['knowledge_chunk_embeddings', 'embedding'],
@@ -495,14 +479,21 @@ async function embeddingDimension(pool) {
     for (const [table, column] of candidates) {
         try {
             const { rows } = await pool.query(
-                `SELECT a.atttypmod
+                `SELECT a.atttypmod, format_type(a.atttypid, a.atttypmod) AS resolved_type
                  FROM pg_attribute a
                  JOIN pg_class c ON c.oid = a.attrelid
                  WHERE c.relname = $1 AND a.attname = $2 AND a.attnum > 0`,
                 [table, column]
             );
             if (rows.length > 0) {
-                return { dimension: (rows[0].atttypmod - 4) / 4, source: `${table}.${column}` };
+                const match = /vector\((\d+)\)/.exec(rows[0].resolved_type || '');
+                if (match) {
+                    return { dimension: Number(match[1]), source: `${table}.${column}` };
+                }
+                const dim = rows[0].atttypmod > 0 ? (rows[0].atttypmod - 4) / 4 : 0;
+                if (Number.isFinite(dim) && dim > 0) {
+                    return { dimension: dim, source: `${table}.${column}` };
+                }
             }
         } catch (_err) {
             // Table or extension may not exist yet; try the next candidate.

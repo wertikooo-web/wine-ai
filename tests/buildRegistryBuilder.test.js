@@ -21,10 +21,13 @@ const eq = (x, y, msg) => { assertions += 1; assert.strictEqual(x, y, msg); };
 // Tiny in-memory PostgreSQL double that implements exactly the statements the
 // builder issues, so runBuild lands 'ready' on a live shape without a live DB.
 class FakePool {
-    constructor() {
+    constructor(opts = {}) {
         this.builds = [];
         this.chunks = [];
         this.sources = [];
+        // Configurable schema-dimension response: default mirrors pgvector 0.8.x
+        // (atttypmod is the raw dim and resolved_type carries `vector(<dim>)`).
+        this.dimRow = opts.dimRow || { atttypmod: 768, resolved_type: 'vector(768)' };
     }
 
     reset() {
@@ -170,7 +173,7 @@ class FakePool {
             };
         }
         if (/SELECT a.atttypmod/.test(s)) {
-            return { rows: [{ atttypmod: (768 * 4) + 4 }] };
+            return { rows: this.dimRow ? [this.dimRow] : [] };
         }
         if (/COUNT\(\*\)::int FROM build_registry_chunks/.test(s)) {
             const rows = this.chunks.filter((c) => c.build_id === q(1));
@@ -519,6 +522,38 @@ async function run() {
             code = err.code;
         }
         eq(code, builder.ERROR.SOURCE_FETCH_FAILED, 'drifted DB text must abort (input pin at fetch time)');
+    }
+
+    // --- trailing/leading whitespace in the DB is NOT a content change ---
+    // (manifest pins the canonical trimmed hash; the builder must hash the same
+    // bytes, otherwise identical documents get "drift" on every whitespace.)
+    {
+        const pool = seededTwoDocPool();
+        pool.sources[0].text = `\n${TEXTS.doc_a}\n\t `;
+        const report = await builder.runBuild({ pool, manifest: textFixtureManifest(), dryRun: false, createdBy: 'ws', embed: fakeEmbedder() });
+        eq(report.status, 'ready', 'whitespace-padded DB text still builds (shared canonical hash)');
+        const chunks = pool.getChunks(report.build_id).filter((c) => c.source_file === 'kos:doc_a');
+        a(chunks.length > 0, 'doc_a materialized');
+        a(!chunks.some((c) => c.text.includes('whitespace')), 'canonical text trimmed for chunking');
+    }
+
+    // --- dimension detection is robust across pgvector versions ---
+    {
+        // pgvector 0.8.x: atttypmod is the raw dim, resolved_type gives vector(n)
+        const modernPool = new FakePool({ dimRow: { atttypmod: 768, resolved_type: 'vector(768)' } });
+        const d1 = await builder.embeddingDimension(modernPool);
+        eq(d1.dimension, 768, 'modern pgvector (resolved_type) yields 768');
+        eq(d1.source, 'knowledge_chunk_embeddings.embedding', 'modern source is legacy column');
+
+        // older pgvector: atttypmod is 4 + 4*dim and resolved_type carries no dim
+        const legacyPool = new FakePool({ dimRow: { atttypmod: (768 * 4) + 4, resolved_type: 'vector' } });
+        const d2 = await builder.embeddingDimension(legacyPool);
+        eq(d2.dimension, 768, 'legacy pgvector (atttypmod arithmetic) yields 768');
+
+        // no schema match -> falls back to configured model output
+        const barePool = new FakePool({ dimRow: null });
+        const d3 = await builder.embeddingDimension(barePool);
+        eq(d3.dimension, builder.EMBEDDING_DIMENSIONS, 'no schema -> config dimension');
     }
 
     console.log(`builder unit: ${assertions} assertions`);
