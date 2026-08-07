@@ -27,6 +27,10 @@ const CHUNK_ID_SLICE = 16;
 const HOOKS_VERSION = 'v1';
 const EMBEDDING_MODEL = embeddings.EMBEDDING_MODEL;
 const EMBEDDING_DIMENSIONS = embeddings.EMBEDDING_DIMENSIONS;
+// Gemini's embedContent accepts at most 100 requests per call. Keep the batch
+// well under that (matches the legacy embed-missing/knowledge-embed-backfill
+// convention of 20) so a full corpus build never trips INVALID_ARGUMENT.
+const EMBEDDING_BATCH_SIZE = 20;
 
 // canon — the canonical text/hash/storage contract is defined ONCE in
 // sourceContract.js and shared with corpus-manifest-audit.js so the manifest
@@ -450,9 +454,16 @@ async function embedMissing(pool, buildId, embed = defaultEmbedder) {
     if (rows.length === 0) return { embedded: 0, skipped: 0 };
 
     const chunks = rows.map((r) => rowToChunk({ ...r, chunk_id: r.chunk_id }));
-    const vectors = await embed(chunks);
-    if (!Array.isArray(vectors) || vectors.length !== rows.length) {
-        throw buildError(ERROR.UNEXPECTED_EMBEDDING_RESPONSE, `expected ${rows.length} vectors, got ${vectors && vectors.length}`);
+    // Batch well under the provider's per-call limit (≤100) so one corpus
+    // build can embed thousands of chunks without a 400 from the API.
+    const vectors = [];
+    for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
+        const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
+        const part = await embed(batch);
+        if (!Array.isArray(part) || part.length !== batch.length) {
+            throw buildError(ERROR.UNEXPECTED_EMBEDDING_RESPONSE, `expected ${batch.length} vectors, got ${part && part.length}`);
+        }
+        vectors.push(...part);
     }
     for (let i = 0; i < rows.length; i += 1) {
         await pool.query(
@@ -742,6 +753,7 @@ module.exports = {
     HOOKS_VERSION,
     EMBEDDING_MODEL,
     EMBEDDING_DIMENSIONS,
+    EMBEDDING_BATCH_SIZE,
     ERROR,
     sha256Text,
     sha256Parts,

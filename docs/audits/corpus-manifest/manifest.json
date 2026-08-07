@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-07T09:41:40.084Z",
+  "generated_at": "2026-08-07T10:20:01.220Z",
   "mode": "read-only-canonical-source-audit",
   "production_snapshot": "2026-08-07T09:41:22.009Z",
   "totals": {
@@ -9640,8 +9640,8 @@
       "text_available": true,
       "storage": "postgres:knowledge_documents.text",
       "hashes": {
-        "content_hash_db": "f02ddabfdaed2d5df2fafa2973349d60c667dd306b0f09d7cb2543bd60a89d0a",
-        "text_sha256": "f02ddabfdaed2d5df2fafa2973349d60c667dd306b0f09d7cb2543bd60a89d0a"
+        "content_hash_db": "c525bc368a8c75c9d574933bfa96d87a76a90d45320505d849a2f8f164b0a334",
+        "text_sha256": "c525bc368a8c75c9d574933bfa96d87a76a90d45320505d849a2f8f164b0a334"
       },
       "text_size_chars": 9594,
       "estimated_chunks": 9,

@@ -1,6 +1,6 @@
 # Phase 0B Step 1 — Canonical Source Manifest Report
 
-Generated: 2026-08-07T09:41:40.084Z · Production snapshot: 2026-08-07T09:41:22.009Z · Mode: read-only (no writes)
+Generated: 2026-08-07T10:20:01.220Z · Production snapshot: 2026-08-07T09:41:22.009Z · Mode: read-only (no writes)
 
 ## Arithmetic
 
