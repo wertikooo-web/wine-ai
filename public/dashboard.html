@@ -2807,6 +2807,7 @@
     stopVoiceSessionTimerDisplay();
     pendingAutoEnd = null;
     tapSilenceStartedAt = null;
+    resetSessionLimitTurnState();
     pendingTapStart = false;
     tapToStartActive = false;
     // Full session-scoped reset for the next CONNECT (any mode) -- without
@@ -2979,6 +2980,13 @@
         break;
       case 'input_audio.start':
         currentTurnId = payload.turn_id;
+        inputEndedAt = 0;
+        if (voiceMode === 'tap_to_start') {
+          freeConversationUserTurnOpen = true;
+          if (sessionLimitExpired && sessionLimitFinalTurnPending && !sessionLimitFinalTurnId) {
+            sessionLimitFinalTurnId = currentTurnId;
+          }
+        }
         if (currentTurnId) {
           interactionIdByTurnId[currentTurnId] = currentInteractionId;
           itrace('server_input_audio_start_received', {});
@@ -3009,6 +3017,14 @@
         break;
       case 'input_audio.end':
         inputEndedAt = performance.now();
+        if (voiceMode === 'tap_to_start') {
+          freeConversationUserTurnOpen = false;
+          if (sessionLimitFinalTurnPending
+            && (!sessionLimitFinalTurnId || sessionLimitFinalTurnId === payload.turn_id)) {
+            sessionLimitFinalTurnId = payload.turn_id || sessionLimitFinalTurnId;
+            sessionLimitInputClosed = true;
+          }
+        }
         setText('speakerState', 'thinking…');
         itraceForTurn(currentTurnId, 'input_audio_end_received', {});
         itraceForTurn(currentTurnId, 'client_frames_summary', { clientFrameCount, clientByteCount });
@@ -3033,6 +3049,16 @@
         setText('langState', payload.to_language || '—');
         break;
       case 'audio.start':
+        if (sessionLimitFinalTurnPending
+          && sessionLimitFinalTurnId
+          && payload.turn_id === sessionLimitFinalTurnId) {
+          sessionLimitFinalTurnPending = false;
+          sessionLimitInputClosed = true;
+          clearInactivityTimers();
+          clearSessionLimitTimers();
+          pendingAutoEnd = { reason: 'session_timeout', closingText: FREE_CONV_SESSION_LIMIT_TEXT, phase: 'await_drain' };
+          sendTelemetry('auto_end_triggered', { reason: 'session_timeout', phase: 'await_drain' });
+        }
         // A late/reordered audio.start for a generation already cancelled
         // must NOT re-arm playback acceptance -- it would silently resurrect
         // a dead generation and, worse, clobber acceptedPlaybackGenerationId
@@ -3257,16 +3283,31 @@
         itrace('first_frame_sent', { bytes: pcm16.buffer.byteLength });
         itrace('pointerdown_to_first_frame_ms', { ms: Math.round(performance.now() - lastPointerdownAt) });
       }
-      // Local barge-in: only while Free Conversation is open AND the
-      // assistant is actually the one making sound right now. Hold to Talk's
-      // interrupt path is pointerdown-driven (startTurn()), not this.
-      if (voiceMode === 'tap_to_start' && tapToStartActive && DeviceVisual.getState() === 'speaking') {
+      // Local speech-start hint for every Free Conversation utterance.
+      // Gemini still owns the authoritative end-of-speech boundary. This
+      // removes dependence on provider voiceActivity being present promptly.
+      if (voiceMode === 'tap_to_start' && tapToStartActive) {
+        const nowMs = Date.now();
+        if (peak >= LOCAL_VAD_HIGH_PEAK) {
+          if (!sessionLimitLocalSpeechStartedAt) sessionLimitLocalSpeechStartedAt = nowMs;
+          sessionLimitLocalSpeechLastLoudAt = nowMs;
+        } else if (peak < LOCAL_VAD_LOW_PEAK
+          && sessionLimitLocalSpeechLastLoudAt
+          && nowMs - sessionLimitLocalSpeechLastLoudAt > FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS) {
+          sessionLimitLocalSpeechStartedAt = 0;
+          sessionLimitLocalSpeechLastLoudAt = 0;
+        }
         const confirmed = evaluateLocalVadFrame(localVadState, peak, {
           highThreshold: LOCAL_VAD_HIGH_PEAK,
           lowThreshold: LOCAL_VAD_LOW_PEAK,
           confirmFrames: LOCAL_VAD_CONFIRM_FRAMES,
         });
-        if (confirmed) triggerLocalBargeIn(peak);
+        if (confirmed && !sessionLimitInputClosed) {
+          if (DeviceVisual.getState() === 'speaking') triggerLocalBargeIn(peak);
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'input_audio.speech_start', source: 'client_local_vad' }));
+          }
+        }
       }
       // Diagnostic only — same amplitude threshold as the server's
       // no-speech gate (NO_SPEECH_AMPLITUDE_THRESHOLD), so a client trace
@@ -3278,7 +3319,7 @@
       }
       clientFrameCount += 1;
       clientByteCount += pcm16.buffer.byteLength;
-      ws.send(pcm16.buffer);
+      if (!sessionLimitInputClosed) ws.send(pcm16.buffer);
     };
     micSource.connect(processor);
     processor.connect(audioContext.destination);
@@ -3978,6 +4019,26 @@
   let sessionLimitEndTimer = null;
   let freeConversationStartedAt = null; // set once per conversation, in resumeTapListening()
   let voiceSessionTickInterval = null;
+  let sessionLimitDeadlineAt = 0;
+  let sessionLimitExpired = false;
+  let sessionLimitFinalTurnPending = false;
+  let sessionLimitFinalTurnId = null;
+  let sessionLimitInputClosed = false;
+  let freeConversationUserTurnOpen = false;
+  let sessionLimitLocalSpeechStartedAt = 0;
+  let sessionLimitLocalSpeechLastLoudAt = 0;
+  const FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS = 900;
+
+  function resetSessionLimitTurnState() {
+    sessionLimitDeadlineAt = 0;
+    sessionLimitExpired = false;
+    sessionLimitFinalTurnPending = false;
+    sessionLimitFinalTurnId = null;
+    sessionLimitInputClosed = false;
+    freeConversationUserTurnOpen = false;
+    sessionLimitLocalSpeechStartedAt = 0;
+    sessionLimitLocalSpeechLastLoudAt = 0;
+  }
 
   // Small always-visible countdown under the Free Conversation button --
   // remaining time before the absolute session cap (not the inactivity
@@ -4004,6 +4065,7 @@
 
   function startVoiceSessionTimerDisplay() {
     stopVoiceSessionTimerDisplay();
+    resetSessionLimitTurnState();
     freeConversationStartedAt = Date.now();
     updateVoiceSessionTimerDisplay();
     voiceSessionTickInterval = setInterval(updateVoiceSessionTimerDisplay, 1000);
@@ -4086,15 +4148,39 @@
     clearSessionLimitTimers();
     const limitMs = freeConversationSessionLimitMs;
     const warnAt = Math.max(0, limitMs - FREE_CONV_SESSION_WARNING_LEAD_MS);
+    sessionLimitDeadlineAt = Date.now() + limitMs;
     sessionLimitWarnTimer = setTimeout(() => {
       sessionLimitWarnTimer = null;
       if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      // Do not inject the spoken warning into an active user turn or answer.
+      // The visible countdown already communicates the remaining time.
+      if (freeConversationUserTurnOpen || activeSources.size > 0 || DeviceVisual.getState() === 'thinking') {
+        sendTelemetry('session_limit_warning_deferred', {});
+        return;
+      }
       speakScriptedLine(FREE_CONV_SESSION_WARNING_TEXT);
       sendTelemetry('session_limit_warning_spoken', {});
     }, warnAt);
     sessionLimitEndTimer = setTimeout(() => {
       sessionLimitEndTimer = null;
       if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
+      sessionLimitExpired = true;
+      const nowMs = Date.now();
+      const localSpeechBeganBeforeDeadline = Boolean(
+        sessionLimitLocalSpeechStartedAt
+        && sessionLimitLocalSpeechStartedAt <= sessionLimitDeadlineAt
+        && sessionLimitLocalSpeechLastLoudAt
+        && nowMs - sessionLimitLocalSpeechLastLoudAt <= FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS
+      );
+      // A turn that started before 0:00 is grandfathered. Let the user finish,
+      // let Gemini answer fully, drain playback, then speak the closing line.
+      if (freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline) {
+        sessionLimitFinalTurnPending = true;
+        sessionLimitFinalTurnId = freeConversationUserTurnOpen ? currentTurnId : null;
+        sendTelemetry('session_limit_final_turn_granted', {});
+        return;
+      }
+      sessionLimitInputClosed = true;
       triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT);
     }, limitMs);
   }
