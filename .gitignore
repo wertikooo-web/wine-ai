@@ -47,3 +47,5 @@ prod_logs_raw.txt
 scratch_grok_debug*.txt
 grokTestOut*.txt
 rotationRaceTestOutput.txt
+experiments/adaptive-routing/smoke-results.json
+experiments/adaptive-routing/results*.json
