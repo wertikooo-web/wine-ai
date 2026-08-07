@@ -46,7 +46,7 @@ export function mountStartIntentSettings(options = {}) {
   const document = options.document || globalThis.document;
   const storage = options.storage || globalThis.localStorage;
   if (!document || document.getElementById('startIntentSettings')) return null;
-  const panel = document.getElementById('tab-settings');
+  const panel = document.getElementById('tab-persona');
   if (!panel) return null;
 
   injectStyles(document);

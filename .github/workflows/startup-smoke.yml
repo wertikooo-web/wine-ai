@@ -35,6 +35,7 @@ jobs:
           node tests/startIntentLauncher.test.js
           node tests/startIntentPersonaStore.test.js
           node tests/startIntentPersistence.test.js
+          node tests/startIntentSettingsMount.test.js
 
       - name: Server startup (no env vars required)
         run: |
