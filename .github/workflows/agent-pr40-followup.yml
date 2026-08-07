@@ -1,0 +1,40 @@
+name: Agent PR40 follow-up
+
+on:
+  push:
+    branches:
+      - agent/fix-gemini-session-deadline-grace
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    if: ${{ !contains(github.event.head_commit.message, '[pr40-followup-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-gemini-session-deadline-grace
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply follow-up
+        run: python .github/agent_pr40_followup.py
+      - name: Blocking regression tests
+        run: node --test tests/freeConversationDeadlineRegression.test.js tests/geminiProviderInterrupt.test.js
+      - name: Existing harness diagnostic
+        run: node --test tests/dashboardBargeIn.test.js tests/conversationSettings.test.js
+        continue-on-error: true
+      - name: Commit follow-up
+        run: |
+          rm .github/workflows/agent-pr40-followup.yml
+          rm .github/agent_pr40_followup.py
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -A
+          git commit -m "Harden final-turn deadline state [pr40-followup-applied]"
+          git push origin HEAD:agent/fix-gemini-session-deadline-grace
