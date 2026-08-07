@@ -5,37 +5,130 @@
     "canonicalName": "Wine.md",
     "description": "Wine.md — молдавская платформа: интернет-магазин вин, дегустационный зал, агрегатор экскурсий",
     "aliases": [
-      { "alias": "Wine & D", "lang": "en" },
-      { "alias": "Wine & D", "lang": "ru" },
-      { "alias": "Wine&D", "lang": "en" },
-      { "alias": "WineMD", "lang": "en" },
-      { "alias": "Wine MD", "lang": "en" },
-      { "alias": "wine.md", "lang": "en" },
-      { "alias": "wine.md", "lang": "ru" },
-      { "alias": "wine.md", "lang": "ro" },
-      { "alias": "Winemd", "lang": "en" },
-      { "alias": "winemd", "lang": "en" },
-      { "alias": "Wine.md", "lang": "en" },
-      { "alias": "Wine.md", "lang": "ro" },
-      { "alias": "Wine.md", "lang": "ru" },
-      { "alias": "ВайнМД", "lang": "ru" },
-      { "alias": "Вайн МД", "lang": "ru" },
-      { "alias": "Вайн.МД", "lang": "ru" },
-      { "alias": "Y and D", "lang": "en" },
-      { "alias": "Wine D", "lang": "en" },
-      { "alias": "Y&D", "lang": "en" },
-      { "alias": "Y& D", "lang": "en" },
-      { "alias": "WiнеMD", "lang": "en" },
-      { "alias": "WnMD", "lang": "en" },
-      { "alias": "Wine n D", "lang": "en" },
-      { "alias": "WimeMD", "lang": "en" },
-      { "alias": "Wyne&Di", "lang": "en" },
-      { "alias": "WMD", "lang": "en" },
-      { "alias": "W&D", "lang": "en" },
-      { "alias": "WineEmDee", "lang": "en" },
-      { "alias": "wine em dee", "lang": "en" },
-      { "alias": "UineMD", "lang": "en" },
-      { "alias": "WineM D", "lang": "en" }
+      {
+        "alias": "Wine & D",
+        "lang": "en"
+      },
+      {
+        "alias": "Wine & D",
+        "lang": "ru"
+      },
+      {
+        "alias": "Wine&D",
+        "lang": "en"
+      },
+      {
+        "alias": "WineMD",
+        "lang": "en"
+      },
+      {
+        "alias": "Wine MD",
+        "lang": "en"
+      },
+      {
+        "alias": "wine.md",
+        "lang": "en"
+      },
+      {
+        "alias": "wine.md",
+        "lang": "ru"
+      },
+      {
+        "alias": "wine.md",
+        "lang": "ro"
+      },
+      {
+        "alias": "Winemd",
+        "lang": "en"
+      },
+      {
+        "alias": "winemd",
+        "lang": "en"
+      },
+      {
+        "alias": "Wine.md",
+        "lang": "en"
+      },
+      {
+        "alias": "Wine.md",
+        "lang": "ro"
+      },
+      {
+        "alias": "Wine.md",
+        "lang": "ru"
+      },
+      {
+        "alias": "ВайнМД",
+        "lang": "ru"
+      },
+      {
+        "alias": "Вайн МД",
+        "lang": "ru"
+      },
+      {
+        "alias": "Вайн.МД",
+        "lang": "ru"
+      },
+      {
+        "alias": "Y and D",
+        "lang": "en"
+      },
+      {
+        "alias": "Wine D",
+        "lang": "en"
+      },
+      {
+        "alias": "Y&D",
+        "lang": "en"
+      },
+      {
+        "alias": "Y& D",
+        "lang": "en"
+      },
+      {
+        "alias": "WiнеMD",
+        "lang": "en"
+      },
+      {
+        "alias": "WnMD",
+        "lang": "en"
+      },
+      {
+        "alias": "Wine n D",
+        "lang": "en"
+      },
+      {
+        "alias": "WimeMD",
+        "lang": "en"
+      },
+      {
+        "alias": "Wyne&Di",
+        "lang": "en"
+      },
+      {
+        "alias": "WMD",
+        "lang": "en"
+      },
+      {
+        "alias": "W&D",
+        "lang": "en"
+      },
+      {
+        "alias": "WineEmDee",
+        "lang": "en"
+      },
+      {
+        "alias": "wine em dee",
+        "lang": "en"
+      },
+      {
+        "alias": "UineMD",
+        "lang": "en"
+      },
+      {
+        "alias": "WineM D",
+        "lang": "en"
+      }
     ]
   },
   {
@@ -44,16 +137,49 @@
     "canonicalName": "Purcari",
     "description": "Purcari — один из старейших и наиболее известных винодельческих брендов Молдовы",
     "aliases": [
-      { "alias": "Purcari", "lang": "ro" },
-      { "alias": "Purcari", "lang": "ru" },
-      { "alias": "Purcari", "lang": "en" },
-      { "alias": "Пуркари", "lang": "ru" },
-      { "alias": "Purcari Wineries", "lang": "en" },
-      { "alias": "Château Purcari", "lang": "fr" },
-      { "alias": "Пуркэрь", "lang": "ru" },
-      { "alias": "Purkari", "lang": "en" },
-      { "alias": "Purkary", "lang": "en" },
-      { "alias": "Purkary Wines", "lang": "en" }
+      {
+        "alias": "Purcari",
+        "lang": "ro"
+      },
+      {
+        "alias": "Purcari",
+        "lang": "ru"
+      },
+      {
+        "alias": "Purcari",
+        "lang": "en"
+      },
+      {
+        "alias": "Пуркари",
+        "lang": "ru"
+      },
+      {
+        "alias": "Purcari Wineries",
+        "lang": "en"
+      },
+      {
+        "alias": "Château Purcari",
+        "lang": "fr"
+      },
+      {
+        "alias": "Пуркэрь",
+        "lang": "ru"
+      },
+      {
+        "alias": "Purkari",
+        "lang": "en"
+      },
+      {
+        "alias": "Purkary",
+        "lang": "en"
+      },
+      {
+        "alias": "Purkary Wines",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.49"
     ]
   },
   {
@@ -62,17 +188,53 @@
     "canonicalName": "Cricova",
     "description": "Cricova — крупнейший производитель игристых вин и одного из самых больших подземных винных погребов мира",
     "aliases": [
-      { "alias": "Cricova", "lang": "ro" },
-      { "alias": "Cricova", "lang": "ru" },
-      { "alias": "Cricova", "lang": "en" },
-      { "alias": "Крикова", "lang": "ru" },
-      { "alias": "Cricova Prestige", "lang": "en" },
-      { "alias": "krikova", "lang": "en" },
-      { "alias": "Krikowa", "lang": "en" },
-      { "alias": "Krıcova", "lang": "en" },
-      { "alias": "Kritsova", "lang": "en" },
-      { "alias": "Crikova", "lang": "en" },
-      { "alias": "Criccova", "lang": "en" }
+      {
+        "alias": "Cricova",
+        "lang": "ro"
+      },
+      {
+        "alias": "Cricova",
+        "lang": "ru"
+      },
+      {
+        "alias": "Cricova",
+        "lang": "en"
+      },
+      {
+        "alias": "Крикова",
+        "lang": "ru"
+      },
+      {
+        "alias": "Cricova Prestige",
+        "lang": "en"
+      },
+      {
+        "alias": "krikova",
+        "lang": "en"
+      },
+      {
+        "alias": "Krikowa",
+        "lang": "en"
+      },
+      {
+        "alias": "Krıcova",
+        "lang": "en"
+      },
+      {
+        "alias": "Kritsova",
+        "lang": "en"
+      },
+      {
+        "alias": "Crikova",
+        "lang": "en"
+      },
+      {
+        "alias": "Criccova",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.57"
     ]
   },
   {
@@ -81,14 +243,41 @@
     "canonicalName": "Mileștii Mici",
     "description": "Mileștii Mici — подземный город-винный погреб, Книга рекордов Гиннесса как крупнейшее винное хранилище",
     "aliases": [
-      { "alias": "Mileștii Mici", "lang": "ro" },
-      { "alias": "Mileștii Mici", "lang": "ru" },
-      { "alias": "Mileștii Mici", "lang": "en" },
-      { "alias": "Милештий Мичь", "lang": "ru" },
-      { "alias": "Милештии Мичь", "lang": "ru" },
-      { "alias": "Milestii Mici", "lang": "en" },
-      { "alias": "Mileștii Mici Golden Collection", "lang": "en" },
-      { "alias": "Milishtii Mici", "lang": "en" }
+      {
+        "alias": "Mileștii Mici",
+        "lang": "ro"
+      },
+      {
+        "alias": "Mileștii Mici",
+        "lang": "ru"
+      },
+      {
+        "alias": "Mileștii Mici",
+        "lang": "en"
+      },
+      {
+        "alias": "Милештий Мичь",
+        "lang": "ru"
+      },
+      {
+        "alias": "Милештии Мичь",
+        "lang": "ru"
+      },
+      {
+        "alias": "Milestii Mici",
+        "lang": "en"
+      },
+      {
+        "alias": "Mileștii Mici Golden Collection",
+        "lang": "en"
+      },
+      {
+        "alias": "Milishtii Mici",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.79"
     ]
   },
   {
@@ -97,11 +286,29 @@
     "canonicalName": "Castel Mimi",
     "description": "Castel Mimi — винодельня и 5-star zero-emission винный курорт",
     "aliases": [
-      { "alias": "Castel Mimi", "lang": "ro" },
-      { "alias": "Castel Mimi", "lang": "ru" },
-      { "alias": "Castel Mimi", "lang": "en" },
-      { "alias": "Кастель Мими", "lang": "ru" },
-      { "alias": "Mimi", "lang": "en" }
+      {
+        "alias": "Castel Mimi",
+        "lang": "ro"
+      },
+      {
+        "alias": "Castel Mimi",
+        "lang": "ru"
+      },
+      {
+        "alias": "Castel Mimi",
+        "lang": "en"
+      },
+      {
+        "alias": "Кастель Мими",
+        "lang": "ru"
+      },
+      {
+        "alias": "Mimi",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.43"
     ]
   },
   {
@@ -110,10 +317,29 @@
     "canonicalName": "Fautor",
     "description": "Fautor — наиболее награждённая молдавская винодельня в 2017-2022",
     "aliases": [
-      { "alias": "Fautor", "lang": "ro" },
-      { "alias": "Fautor", "lang": "ru" },
-      { "alias": "Fautor", "lang": "en" },
-      { "alias": "Фаутор", "lang": "ru" }
+      {
+        "alias": "Fautor",
+        "lang": "ro"
+      },
+      {
+        "alias": "Fautor",
+        "lang": "ru"
+      },
+      {
+        "alias": "Fautor",
+        "lang": "en"
+      },
+      {
+        "alias": "Фаутор",
+        "lang": "ru"
+      },
+      {
+        "alias": "Fautor Winery",
+        "lang": "ro"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.65"
     ]
   },
   {
@@ -122,10 +348,25 @@
     "canonicalName": "Gitana",
     "description": "Gitana — молдавская винодельня, производитель вин из автохтонных и международных сортов",
     "aliases": [
-      { "alias": "Gitana", "lang": "ro" },
-      { "alias": "Gitana", "lang": "ru" },
-      { "alias": "Gitana", "lang": "en" },
-      { "alias": "Gitana Winery", "lang": "en" }
+      {
+        "alias": "Gitana",
+        "lang": "ro"
+      },
+      {
+        "alias": "Gitana",
+        "lang": "ru"
+      },
+      {
+        "alias": "Gitana",
+        "lang": "en"
+      },
+      {
+        "alias": "Gitana Winery",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.64"
     ]
   },
   {
@@ -134,10 +375,25 @@
     "canonicalName": "Kvint",
     "description": "Kvint — тираспольский винно-коньячный комбинат, производитель коньяков и вин",
     "aliases": [
-      { "alias": "Kvint", "lang": "ro" },
-      { "alias": "Kvint", "lang": "ru" },
-      { "alias": "Kvint", "lang": "en" },
-      { "alias": "Квint", "lang": "ru" }
+      {
+        "alias": "Kvint",
+        "lang": "ro"
+      },
+      {
+        "alias": "Kvint",
+        "lang": "ru"
+      },
+      {
+        "alias": "Kvint",
+        "lang": "en"
+      },
+      {
+        "alias": "Квint",
+        "lang": "ru"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.101"
     ]
   },
   {
@@ -146,10 +402,25 @@
     "canonicalName": "Vinuri de Comrat",
     "description": "Vinuri de Comrat — винодельня в Гагаузии, производство вин из местных сортов",
     "aliases": [
-      { "alias": "Vinuri de Comrat", "lang": "ro" },
-      { "alias": "Vinuri de Comrat", "lang": "ru" },
-      { "alias": "Vinuri de Comrat", "lang": "en" },
-      { "alias": "Винури де Комрат", "lang": "ru" }
+      {
+        "alias": "Vinuri de Comrat",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinuri de Comrat",
+        "lang": "ru"
+      },
+      {
+        "alias": "Vinuri de Comrat",
+        "lang": "en"
+      },
+      {
+        "alias": "Винури де Комрат",
+        "lang": "ru"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.94"
     ]
   },
   {
@@ -158,10 +429,25 @@
     "canonicalName": "Novak",
     "description": "Novak — винодельня из села Копчак, Гагаузия",
     "aliases": [
-      { "alias": "Novak", "lang": "ro" },
-      { "alias": "Novak", "lang": "ru" },
-      { "alias": "Novak", "lang": "en" },
-      { "alias": "Новак", "lang": "ru" }
+      {
+        "alias": "Novak",
+        "lang": "ro"
+      },
+      {
+        "alias": "Novak",
+        "lang": "ru"
+      },
+      {
+        "alias": "Novak",
+        "lang": "en"
+      },
+      {
+        "alias": "Новак",
+        "lang": "ru"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.80"
     ]
   },
   {
@@ -170,11 +456,29 @@
     "canonicalName": "Asconi",
     "description": "Asconi — семейная винодельня, производство качественных вин",
     "aliases": [
-      { "alias": "Asconi", "lang": "ro" },
-      { "alias": "Asconi", "lang": "ru" },
-      { "alias": "Asconi", "lang": "en" },
-      { "alias": "Asconi Winery", "lang": "en" },
-      { "alias": "Asonci", "lang": "en" }
+      {
+        "alias": "Asconi",
+        "lang": "ro"
+      },
+      {
+        "alias": "Asconi",
+        "lang": "ru"
+      },
+      {
+        "alias": "Asconi",
+        "lang": "en"
+      },
+      {
+        "alias": "Asconi Winery",
+        "lang": "en"
+      },
+      {
+        "alias": "Asonci",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.36"
     ]
   },
   {
@@ -183,10 +487,25 @@
     "canonicalName": "Basavin",
     "description": "Basavin — винодельня, производство вин в регионе Кодру",
     "aliases": [
-      { "alias": "Basavin", "lang": "ro" },
-      { "alias": "Basavin", "lang": "ru" },
-      { "alias": "Basavin", "lang": "en" },
-      { "alias": "Basavin Winery", "lang": "en" }
+      {
+        "alias": "Basavin",
+        "lang": "ro"
+      },
+      {
+        "alias": "Basavin",
+        "lang": "ru"
+      },
+      {
+        "alias": "Basavin",
+        "lang": "en"
+      },
+      {
+        "alias": "Basavin Winery",
+        "lang": "en"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.34"
     ]
   },
   {
@@ -195,10 +514,22 @@
     "canonicalName": "Crama Dealul de Aur",
     "description": "Crama Dealul de Aur — винодельня Золотой Холм",
     "aliases": [
-      { "alias": "Crama Dealul de Aur", "lang": "ro" },
-      { "alias": "Crama Dealul de Aur", "lang": "ru" },
-      { "alias": "Crama Dealul de Aur", "lang": "en" },
-      { "alias": "Деалул де Аур", "lang": "ru" }
+      {
+        "alias": "Crama Dealul de Aur",
+        "lang": "ro"
+      },
+      {
+        "alias": "Crama Dealul de Aur",
+        "lang": "ru"
+      },
+      {
+        "alias": "Crama Dealul de Aur",
+        "lang": "en"
+      },
+      {
+        "alias": "Деалул де Аур",
+        "lang": "ru"
+      }
     ]
   },
   {
@@ -207,9 +538,18 @@
     "canonicalName": "Bravista",
     "description": "Bravista — винодельня, производство вин",
     "aliases": [
-      { "alias": "Bravista", "lang": "ro" },
-      { "alias": "Bravista", "lang": "ru" },
-      { "alias": "Bravista", "lang": "en" }
+      {
+        "alias": "Bravista",
+        "lang": "ro"
+      },
+      {
+        "alias": "Bravista",
+        "lang": "ru"
+      },
+      {
+        "alias": "Bravista",
+        "lang": "en"
+      }
     ]
   },
   {
@@ -218,9 +558,25 @@
     "canonicalName": "Bulgari",
     "description": "Bulgari — винодельня в Гагаузии",
     "aliases": [
-      { "alias": "Bulgari", "lang": "ro" },
-      { "alias": "Bulgari", "lang": "ru" },
-      { "alias": "Bulgari", "lang": "en" }
+      {
+        "alias": "Bulgari",
+        "lang": "ro"
+      },
+      {
+        "alias": "Bulgari",
+        "lang": "ru"
+      },
+      {
+        "alias": "Bulgari",
+        "lang": "en"
+      },
+      {
+        "alias": "Bulgari Winery",
+        "lang": "ro"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.40"
     ]
   },
   {
@@ -229,10 +585,22 @@
     "canonicalName": "Riesling",
     "description": "Рислинг — технический сорт винограда, распространён в Молдове для белых вин",
     "aliases": [
-      { "alias": "Riesling", "lang": "ro" },
-      { "alias": "Riesling", "lang": "ru" },
-      { "alias": "Riesling", "lang": "en" },
-      { "alias": "Рислинг", "lang": "ru" }
+      {
+        "alias": "Riesling",
+        "lang": "ro"
+      },
+      {
+        "alias": "Riesling",
+        "lang": "ru"
+      },
+      {
+        "alias": "Riesling",
+        "lang": "en"
+      },
+      {
+        "alias": "Рислинг",
+        "lang": "ru"
+      }
     ]
   },
   {
@@ -241,10 +609,22 @@
     "canonicalName": "Chardonnay",
     "description": "Шардоне — международный технический сорт винограда, широко культивируется в Молдове",
     "aliases": [
-      { "alias": "Chardonnay", "lang": "ro" },
-      { "alias": "Chardonnay", "lang": "ru" },
-      { "alias": "Chardonnay", "lang": "en" },
-      { "alias": "Шардоне", "lang": "ru" }
+      {
+        "alias": "Chardonnay",
+        "lang": "ro"
+      },
+      {
+        "alias": "Chardonnay",
+        "lang": "ru"
+      },
+      {
+        "alias": "Chardonnay",
+        "lang": "en"
+      },
+      {
+        "alias": "Шардоне",
+        "lang": "ru"
+      }
     ]
   },
   {
@@ -253,11 +633,29 @@
     "canonicalName": "Et Cetera",
     "description": "Et Cetera — молдавская винодельня, производство тихих и игристых вин",
     "aliases": [
-      { "alias": "Et Cetera", "lang": "ro" },
-      { "alias": "Et Cetera", "lang": "ru" },
-      { "alias": "Et Cetera", "lang": "en" },
-      { "alias": "Et Cetera winery", "lang": "en" },
-      { "alias": "Эт Цетера", "lang": "ru" }
+      {
+        "alias": "Et Cetera",
+        "lang": "ro"
+      },
+      {
+        "alias": "Et Cetera",
+        "lang": "ru"
+      },
+      {
+        "alias": "Et Cetera",
+        "lang": "en"
+      },
+      {
+        "alias": "Et Cetera winery",
+        "lang": "en"
+      },
+      {
+        "alias": "Эт Цетера",
+        "lang": "ru"
+      }
+    ],
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.63"
     ]
   },
   {
@@ -266,10 +664,1515 @@
     "canonicalName": "Vinaria Nobil",
     "description": "Vinaria Nobil — молдавская винодельня в регионе Кодру",
     "aliases": [
-      { "alias": "Vinaria Nobil", "lang": "ro" },
-      { "alias": "Vinaria Nobil", "lang": "ru" },
-      { "alias": "Vinaria Nobil", "lang": "en" },
-      { "alias": "Винария Нобил", "lang": "ru" }
+      {
+        "alias": "Vinaria Nobil",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinaria Nobil",
+        "lang": "ru"
+      },
+      {
+        "alias": "Vinaria Nobil",
+        "lang": "en"
+      },
+      {
+        "alias": "Винария Нобил",
+        "lang": "ru"
+      }
+    ]
+  },
+  {
+    "entityId": "alterego",
+    "entityType": "winery",
+    "canonicalName": "AlterEgo",
+    "description": "AlterEgo — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.30"
+    ],
+    "aliases": [
+      {
+        "alias": "AlterEgo",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "agrici-wine",
+    "entityType": "winery",
+    "canonicalName": "Agrici Wine",
+    "description": "Agrici Wine — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.30"
+    ],
+    "aliases": [
+      {
+        "alias": "Agrici Wine",
+        "lang": "ro"
+      },
+      {
+        "alias": "Agrici",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "alianta-vin",
+    "entityType": "winery",
+    "canonicalName": "Alianţa-Vin",
+    "description": "Alianţa-Vin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.31"
+    ],
+    "aliases": [
+      {
+        "alias": "Alianţa-Vin",
+        "lang": "ro"
+      },
+      {
+        "alias": "Alianta-Vin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "apriori-wine",
+    "entityType": "winery",
+    "canonicalName": "Apriori Wine",
+    "description": "Apriori Wine — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.33"
+    ],
+    "aliases": [
+      {
+        "alias": "Apriori Wine",
+        "lang": "ro"
+      },
+      {
+        "alias": "Apriori",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "aurvin",
+    "entityType": "winery",
+    "canonicalName": "Aurvin",
+    "description": "Aurvin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.34"
+    ],
+    "aliases": [
+      {
+        "alias": "Aurvin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "bostavan",
+    "entityType": "winery",
+    "canonicalName": "Bostavan",
+    "description": "Bostavan — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.34"
+    ],
+    "aliases": [
+      {
+        "alias": "Bostavan",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "atu-winery",
+    "entityType": "winery",
+    "canonicalName": "ATU Winery",
+    "description": "ATU Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.35"
+    ],
+    "aliases": [
+      {
+        "alias": "ATU Winery",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "bahu-winery",
+    "entityType": "winery",
+    "canonicalName": "Bahu Winery",
+    "description": "Bahu Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.37"
+    ],
+    "aliases": [
+      {
+        "alias": "Bahu Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Bahu",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "aurelius-winery",
+    "entityType": "winery",
+    "canonicalName": "Aurelius Winery",
+    "description": "Aurelius Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.38"
+    ],
+    "aliases": [
+      {
+        "alias": "Aurelius Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Aurelius",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "buket-moldavii",
+    "entityType": "winery",
+    "canonicalName": "Buket Moldavii",
+    "description": "Buket Moldavii — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.40"
+    ],
+    "aliases": [
+      {
+        "alias": "Buket Moldavii",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "caragia-winery",
+    "entityType": "winery",
+    "canonicalName": "Caragia Winery",
+    "description": "Caragia Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.40"
+    ],
+    "aliases": [
+      {
+        "alias": "Caragia Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Caragia",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "carlevana-winery",
+    "entityType": "winery",
+    "canonicalName": "Carlevana Winery",
+    "description": "Carlevana Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.41"
+    ],
+    "aliases": [
+      {
+        "alias": "Carlevana Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Carlevana",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "carpe-diem",
+    "entityType": "winery",
+    "canonicalName": "Carpe Diem",
+    "description": "Carpe Diem — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.42"
+    ],
+    "aliases": [
+      {
+        "alias": "Carpe Diem",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "chateau-cojusna",
+    "entityType": "winery",
+    "canonicalName": "Chateau Cojușna",
+    "description": "Chateau Cojușna — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.42"
+    ],
+    "aliases": [
+      {
+        "alias": "Chateau Cojușna",
+        "lang": "ro"
+      },
+      {
+        "alias": "Chateau Cojusna",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "chirsova",
+    "entityType": "winery",
+    "canonicalName": "Chirsova",
+    "description": "Chirsova — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.42"
+    ],
+    "aliases": [
+      {
+        "alias": "Chirsova",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "chateau-cristi",
+    "entityType": "winery",
+    "canonicalName": "Chateau Cristi",
+    "description": "Chateau Cristi — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.45"
+    ],
+    "aliases": [
+      {
+        "alias": "Chateau Cristi",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "chateau-at-mount",
+    "entityType": "winery",
+    "canonicalName": "Chateau at Mount",
+    "description": "Chateau at Mount — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.46"
+    ],
+    "aliases": [
+      {
+        "alias": "Chateau at Mount",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-mihai-sava",
+    "entityType": "winery",
+    "canonicalName": "Crama Mihai Sava",
+    "description": "Crama Mihai Sava — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.46"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Mihai Sava",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-mingir",
+    "entityType": "winery",
+    "canonicalName": "Crama Mingir",
+    "description": "Crama Mingir — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.46"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Mingir",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "corten-vin",
+    "entityType": "winery",
+    "canonicalName": "Corten-Vin",
+    "description": "Corten-Vin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.47"
+    ],
+    "aliases": [
+      {
+        "alias": "Corten-Vin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-tudor",
+    "entityType": "winery",
+    "canonicalName": "Crama Tudor",
+    "description": "Crama Tudor — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.50"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Tudor",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-tataru",
+    "entityType": "winery",
+    "canonicalName": "Crama Tataru",
+    "description": "Crama Tataru — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.50"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Tataru",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "chateau-vartely",
+    "entityType": "winery",
+    "canonicalName": "Château Vartely",
+    "description": "Château Vartely — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.51"
+    ],
+    "aliases": [
+      {
+        "alias": "Château Vartely",
+        "lang": "ro"
+      },
+      {
+        "alias": "Chateau Vartely",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-mircesti",
+    "entityType": "winery",
+    "canonicalName": "Crama Mircești",
+    "description": "Crama Mircești — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.54"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Mircești",
+        "lang": "ro"
+      },
+      {
+        "alias": "Crama Mircesti",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-ulinici",
+    "entityType": "winery",
+    "canonicalName": "Crama Ulinici",
+    "description": "Crama Ulinici — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.55"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Ulinici",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crama-volintiri",
+    "entityType": "winery",
+    "canonicalName": "Crama Volintiri",
+    "description": "Crama Volintiri — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.56"
+    ],
+    "aliases": [
+      {
+        "alias": "Crama Volintiri",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "denovie",
+    "entityType": "winery",
+    "canonicalName": "Dénovie",
+    "description": "Dénovie — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.56"
+    ],
+    "aliases": [
+      {
+        "alias": "Dénovie",
+        "lang": "ro"
+      },
+      {
+        "alias": "Denovie",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "dac",
+    "entityType": "winery",
+    "canonicalName": "DAC",
+    "description": "DAC — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.58"
+    ],
+    "aliases": [
+      {
+        "alias": "DAC",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "divus-winery",
+    "entityType": "winery",
+    "canonicalName": "Divus Winery",
+    "description": "Divus Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.58"
+    ],
+    "aliases": [
+      {
+        "alias": "Divus Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Divus",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "doina-vin",
+    "entityType": "winery",
+    "canonicalName": "Doina Vin",
+    "description": "Doina Vin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.58"
+    ],
+    "aliases": [
+      {
+        "alias": "Doina Vin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domaine-la-prut",
+    "entityType": "winery",
+    "canonicalName": "Domaine la Prut",
+    "description": "Domaine la Prut — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.59"
+    ],
+    "aliases": [
+      {
+        "alias": "Domaine la Prut",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domeniile-cainari",
+    "entityType": "winery",
+    "canonicalName": "Domeniile Căinari",
+    "description": "Domeniile Căinari — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.59"
+    ],
+    "aliases": [
+      {
+        "alias": "Domeniile Căinari",
+        "lang": "ro"
+      },
+      {
+        "alias": "Domeniile Cainari",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domeniile-cuza",
+    "entityType": "winery",
+    "canonicalName": "Domeniile Cuza",
+    "description": "Domeniile Cuza — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.59"
+    ],
+    "aliases": [
+      {
+        "alias": "Domeniile Cuza",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domeniile-davidescu",
+    "entityType": "winery",
+    "canonicalName": "Domeniile Davidescu",
+    "description": "Domeniile Davidescu — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.60"
+    ],
+    "aliases": [
+      {
+        "alias": "Domeniile Davidescu",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domeniile-pana",
+    "entityType": "winery",
+    "canonicalName": "Domeniile Pană",
+    "description": "Domeniile Pană — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.60"
+    ],
+    "aliases": [
+      {
+        "alias": "Domeniile Pană",
+        "lang": "ro"
+      },
+      {
+        "alias": "Domeniile Pana",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domeniile-pripa",
+    "entityType": "winery",
+    "canonicalName": "Domeniile Pripa",
+    "description": "Domeniile Pripa — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.60"
+    ],
+    "aliases": [
+      {
+        "alias": "Domeniile Pripa",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "domeniile-scutelnic",
+    "entityType": "winery",
+    "canonicalName": "Domeniile Scutelnic",
+    "description": "Domeniile Scutelnic — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.61"
+    ],
+    "aliases": [
+      {
+        "alias": "Domeniile Scutelnic",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "dumitras-winery",
+    "entityType": "winery",
+    "canonicalName": "Dumitraș Winery",
+    "description": "Dumitraș Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.61"
+    ],
+    "aliases": [
+      {
+        "alias": "Dumitraș Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Dumitras Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Dumitraș",
+        "lang": "ro"
+      },
+      {
+        "alias": "Dumitras",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "enoteria-platon",
+    "entityType": "winery",
+    "canonicalName": "Enoteria Platon",
+    "description": "Enoteria Platon — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.61"
+    ],
+    "aliases": [
+      {
+        "alias": "Enoteria Platon",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "equinox",
+    "entityType": "winery",
+    "canonicalName": "Equinox",
+    "description": "Equinox — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.62"
+    ],
+    "aliases": [
+      {
+        "alias": "Equinox",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "etnovin",
+    "entityType": "winery",
+    "canonicalName": "Etnovin",
+    "description": "Etnovin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.62"
+    ],
+    "aliases": [
+      {
+        "alias": "Etnovin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "famber-winery",
+    "entityType": "winery",
+    "canonicalName": "Famber Winery",
+    "description": "Famber Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.62"
+    ],
+    "aliases": [
+      {
+        "alias": "Famber Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Famber",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "familna-vinarna-rizov",
+    "entityType": "winery",
+    "canonicalName": "Familna Vinarna Rizov",
+    "description": "Familna Vinarna Rizov — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.64"
+    ],
+    "aliases": [
+      {
+        "alias": "Familna Vinarna Rizov",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "heredo-winery",
+    "entityType": "winery",
+    "canonicalName": "Heredo Winery",
+    "description": "Heredo Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.64"
+    ],
+    "aliases": [
+      {
+        "alias": "Heredo Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Heredo",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "i-l-amor",
+    "entityType": "winery",
+    "canonicalName": "I.L. Amor",
+    "description": "I.L. Amor — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.66"
+    ],
+    "aliases": [
+      {
+        "alias": "I.L. Amor",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "imperial-vin",
+    "entityType": "winery",
+    "canonicalName": "Imperial Vin",
+    "description": "Imperial Vin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.66"
+    ],
+    "aliases": [
+      {
+        "alias": "Imperial Vin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "javgur",
+    "entityType": "winery",
+    "canonicalName": "Javgur",
+    "description": "Javgur — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.66"
+    ],
+    "aliases": [
+      {
+        "alias": "Javgur",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "gogu-winery",
+    "entityType": "winery",
+    "canonicalName": "Gogu Winery",
+    "description": "Gogu Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.67"
+    ],
+    "aliases": [
+      {
+        "alias": "Gogu Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Gogu",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "impresario",
+    "entityType": "winery",
+    "canonicalName": "Impresario",
+    "description": "Impresario — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.68"
+    ],
+    "aliases": [
+      {
+        "alias": "Impresario",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinuri-ialoveni",
+    "entityType": "winery",
+    "canonicalName": "Vinuri Ialoveni",
+    "description": "Vinuri Ialoveni — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.69"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinuri Ialoveni",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "i-m-winery",
+    "entityType": "winery",
+    "canonicalName": "I'M WINERY",
+    "description": "I'M WINERY — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.70"
+    ],
+    "aliases": [
+      {
+        "alias": "I'M WINERY",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "kara-gani",
+    "entityType": "winery",
+    "canonicalName": "Kara Gani",
+    "description": "Kara Gani — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.71"
+    ],
+    "aliases": [
+      {
+        "alias": "Kara Gani",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "kazayak",
+    "entityType": "winery",
+    "canonicalName": "Kazayak",
+    "description": "Kazayak — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.72"
+    ],
+    "aliases": [
+      {
+        "alias": "Kazayak",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "kislov-winery",
+    "entityType": "winery",
+    "canonicalName": "Kislov Winery",
+    "description": "Kislov Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.74"
+    ],
+    "aliases": [
+      {
+        "alias": "Kislov Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Kislov",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "land-of-basarabia",
+    "entityType": "winery",
+    "canonicalName": "Land of Basarabia",
+    "description": "Land of Basarabia — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.74"
+    ],
+    "aliases": [
+      {
+        "alias": "Land of Basarabia",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-lupascu",
+    "entityType": "winery",
+    "canonicalName": "Vinăria Lupașcu",
+    "description": "Vinăria Lupașcu — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.88"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinăria Lupașcu",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinaria Lupascu",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "unicorn-estate",
+    "entityType": "winery",
+    "canonicalName": "Unicorn Estate",
+    "description": "Unicorn Estate — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.89"
+    ],
+    "aliases": [
+      {
+        "alias": "Unicorn Estate",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-din-vale",
+    "entityType": "winery",
+    "canonicalName": "Vinăria din Vale",
+    "description": "Vinăria din Vale — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.91"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinăria din Vale",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinaria din Vale",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-poiana",
+    "entityType": "winery",
+    "canonicalName": "Vinăria Poiana",
+    "description": "Vinăria Poiana — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.92"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinăria Poiana",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinaria Poiana",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-tronciu",
+    "entityType": "winery",
+    "canonicalName": "Vinaria Tronciu",
+    "description": "Vinaria Tronciu — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.92"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinaria Tronciu",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-ungheni",
+    "entityType": "winery",
+    "canonicalName": "Vinaria Ungheni",
+    "description": "Vinaria Ungheni — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.92",
+      "Ghid Vin-Divin Moldova 2023, p.103"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinaria Ungheni",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinum-estate",
+    "entityType": "winery",
+    "canonicalName": "Vinum Estate",
+    "description": "Vinum Estate — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.93"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinum Estate",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vindicum",
+    "entityType": "winery",
+    "canonicalName": "Vindicum",
+    "description": "Vindicum — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.94"
+    ],
+    "aliases": [
+      {
+        "alias": "Vindicum",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinia-traian",
+    "entityType": "winery",
+    "canonicalName": "Vinia Traian",
+    "description": "Vinia Traian — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.94"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinia Traian",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vornic-winery",
+    "entityType": "winery",
+    "canonicalName": "Vornic Winery",
+    "description": "Vornic Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.95"
+    ],
+    "aliases": [
+      {
+        "alias": "Vornic Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vornic",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "winetage",
+    "entityType": "winery",
+    "canonicalName": "Winetage",
+    "description": "Winetage — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.96"
+    ],
+    "aliases": [
+      {
+        "alias": "Winetage",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "aroma",
+    "entityType": "divin-producer",
+    "canonicalName": "Aroma",
+    "description": "Aroma — производитель дивинов Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.100"
+    ],
+    "aliases": [
+      {
+        "alias": "Aroma",
+        "lang": "ro"
+      }
+    ],
+    "ambiguousCommonWord": true,
+    "needsReview": "Romanian/Russian word for aroma — collides with generic tasting vocabulary"
+  },
+  {
+    "entityId": "bardar",
+    "entityType": "divin-producer",
+    "canonicalName": "Bardar",
+    "description": "Bardar — производитель дивинов Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.100"
+    ],
+    "aliases": [
+      {
+        "alias": "Bardar",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "barza-alba",
+    "entityType": "divin-producer",
+    "canonicalName": "Barza Albă",
+    "description": "Barza Albă — производитель дивинов Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.100"
+    ],
+    "aliases": [
+      {
+        "alias": "Barza Albă",
+        "lang": "ro"
+      },
+      {
+        "alias": "Barza Alba",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "calarasi-divin",
+    "entityType": "divin-producer",
+    "canonicalName": "Călăraşi Divin",
+    "description": "Călăraşi Divin — производитель дивинов Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.101"
+    ],
+    "aliases": [
+      {
+        "alias": "Călăraşi Divin",
+        "lang": "ro"
+      },
+      {
+        "alias": "Calarasi Divin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "crideni",
+    "entityType": "divin-producer",
+    "canonicalName": "Crideni",
+    "description": "Crideni — производитель дивинов Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.101"
+    ],
+    "aliases": [
+      {
+        "alias": "Crideni",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "leuntea-vin",
+    "entityType": "winery",
+    "canonicalName": "Leuntea-Vin",
+    "description": "Leuntea-Vin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.74"
+    ],
+    "aliases": [
+      {
+        "alias": "Leuntea-Vin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "mezalimpe",
+    "entityType": "winery",
+    "canonicalName": "Mezalimpe",
+    "description": "Mezalimpe — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.75"
+    ],
+    "aliases": [
+      {
+        "alias": "Mezalimpe",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "mi-piace",
+    "entityType": "winery",
+    "canonicalName": "Mi Piace",
+    "description": "Mi Piace — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.75"
+    ],
+    "aliases": [
+      {
+        "alias": "Mi Piace",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "minis-terrios",
+    "entityType": "winery",
+    "canonicalName": "Minis Terrios",
+    "description": "Minis Terrios — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.75"
+    ],
+    "aliases": [
+      {
+        "alias": "Minis Terrios",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "maurt",
+    "entityType": "winery",
+    "canonicalName": "Maurt",
+    "description": "Maurt — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.76"
+    ],
+    "aliases": [
+      {
+        "alias": "Maurt",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "podgoriavin",
+    "entityType": "winery",
+    "canonicalName": "PodgoriaVin",
+    "description": "PodgoriaVin — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.80"
+    ],
+    "aliases": [
+      {
+        "alias": "PodgoriaVin",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "pomusoara-dulcisoara",
+    "entityType": "winery",
+    "canonicalName": "Pomușoară Dulcișoară",
+    "description": "Pomușoară Dulcișoară — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.80"
+    ],
+    "aliases": [
+      {
+        "alias": "Pomușoară Dulcișoară",
+        "lang": "ro"
+      },
+      {
+        "alias": "Pomusoara Dulcisoara",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "pelican-negru",
+    "entityType": "winery",
+    "canonicalName": "Pelican Negru",
+    "description": "Pelican Negru — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.81"
+    ],
+    "aliases": [
+      {
+        "alias": "Pelican Negru",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "romanesti",
+    "entityType": "winery",
+    "canonicalName": "Romanești",
+    "description": "Romanești — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.82"
+    ],
+    "aliases": [
+      {
+        "alias": "Romanești",
+        "lang": "ro"
+      },
+      {
+        "alias": "Romanesti",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "salcuta",
+    "entityType": "winery",
+    "canonicalName": "Sălcuța",
+    "description": "Sălcuța — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.82"
+    ],
+    "aliases": [
+      {
+        "alias": "Sălcuța",
+        "lang": "ro"
+      },
+      {
+        "alias": "Salcuta",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "radacini",
+    "entityType": "winery",
+    "canonicalName": "Rădăcini",
+    "description": "Rădăcini — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.83"
+    ],
+    "aliases": [
+      {
+        "alias": "Rădăcini",
+        "lang": "ro"
+      },
+      {
+        "alias": "Radacini",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-somma",
+    "entityType": "winery",
+    "canonicalName": "Vinăria Somma",
+    "description": "Vinăria Somma — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.84"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinăria Somma",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinaria Somma",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "taraclia-winery",
+    "entityType": "winery",
+    "canonicalName": "Taraclia Winery",
+    "description": "Taraclia Winery — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.84"
+    ],
+    "aliases": [
+      {
+        "alias": "Taraclia Winery",
+        "lang": "ro"
+      },
+      {
+        "alias": "Taraclia",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "te-wa-wines",
+    "entityType": "winery",
+    "canonicalName": "TE WA Wines",
+    "description": "TE WA Wines — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.84"
+    ],
+    "aliases": [
+      {
+        "alias": "TE WA Wines",
+        "lang": "ro"
+      },
+      {
+        "alias": "TE WA",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "terra-dacia",
+    "entityType": "winery",
+    "canonicalName": "Terra Dacia",
+    "description": "Terra Dacia — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.85"
+    ],
+    "aliases": [
+      {
+        "alias": "Terra Dacia",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "terasele-hagimus",
+    "entityType": "winery",
+    "canonicalName": "Terasele Hagimus",
+    "description": "Terasele Hagimus — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.87"
+    ],
+    "aliases": [
+      {
+        "alias": "Terasele Hagimus",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "timbrus-purcari-estate",
+    "entityType": "winery",
+    "canonicalName": "Timbrus Purcari Estate",
+    "description": "Timbrus Purcari Estate — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.87"
+    ],
+    "aliases": [
+      {
+        "alias": "Timbrus Purcari Estate",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "tomai",
+    "entityType": "winery",
+    "canonicalName": "Tomai",
+    "description": "Tomai — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.88"
+    ],
+    "aliases": [
+      {
+        "alias": "Tomai",
+        "lang": "ro"
+      }
+    ]
+  },
+  {
+    "entityId": "vinaria-branesti",
+    "entityType": "winery",
+    "canonicalName": "Vinăria Brănești",
+    "description": "Vinăria Brănești — производитель вин Республики Молдова (Ghid Vin-Divin Moldova 2023)",
+    "sources": [
+      "Ghid Vin-Divin Moldova 2023, p.88"
+    ],
+    "aliases": [
+      {
+        "alias": "Vinăria Brănești",
+        "lang": "ro"
+      },
+      {
+        "alias": "Vinaria Branesti",
+        "lang": "ro"
+      }
     ]
   }
 ]

@@ -47,3 +47,11 @@ prod_logs_raw.txt
 scratch_grok_debug*.txt
 grokTestOut*.txt
 rotationRaceTestOutput.txt
+
+# Live experiment run artifacts (smoke + A/B results) - regenerated on demand,
+# never source.
+experiments/adaptive-routing/results*.json
+experiments/adaptive-routing/*-results.json
+experiments/adaptive-routing/ab-b*.json
+experiments/adaptive-routing/fx-b*.json
+experiments/adaptive-routing/smoke-batch*.json

@@ -36,6 +36,22 @@ function getTrackedFiles() {
 }
 
 // ---------------------------------------------------------------
+// Node resolves require('./x.json') against tracked .json data files too, and
+// resolveCandidates() already emits .json candidates -- but the tracked set was
+// built from *.js/*.mjs only, so every legitimate JSON require was reported
+// missing. These files are resolution targets, never scan targets (we do not
+// look for imports inside them).
+// ---------------------------------------------------------------
+function getTrackedDataFiles() {
+    const raw = execSync('git ls-files "*.json"', {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return raw.split('\n').filter(Boolean);
+}
+
+// ---------------------------------------------------------------
 // Build a Set of all tracked file paths (relative to ROOT) for O(1) lookup
 // ---------------------------------------------------------------
 function getTrackedSet(files) {
@@ -113,7 +129,7 @@ function resolveCandidates(specifier, fromFile) {
 // ---------------------------------------------------------------
 function main() {
     const files = getTrackedFiles();
-    const tracked = getTrackedSet(files);
+    const tracked = getTrackedSet([...files, ...getTrackedDataFiles()]);
 
     let missing = 0;
 

@@ -500,7 +500,12 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // an optional factory rather than shared as one static object.
     // Access status is resolved from the signed HTTP session before the
     // WebSocket upgrade. A client payload never gets authority to enable it.
-    const toolContext = { sessionMemory, isAdultVerified: sessionAccess.isAdultVerified === true, log: (stage, extra) => log(stage, extra) };
+    // `recentTurns` is passed by reference (rememberTurn() mutates it in
+    // place), so tool handlers built once per session still observe the
+    // live conversation. search_wine_knowledge uses it to resolve referent-
+    // dependent follow-ups ("а какое из них легче?") that otherwise reach
+    // retrieval as text naming nothing. Read-only for tools.
+    const toolContext = { sessionMemory, recentTurns, isAdultVerified: sessionAccess.isAdultVerified === true, log: (stage, extra) => log(stage, extra) };
     const toolHandlers = typeof providerMetadata.createToolHandlers === 'function'
         ? providerMetadata.createToolHandlers(toolContext)
         : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {});
