@@ -55,10 +55,10 @@ const { pathToFileURL } = require('url');
   assert.strictEqual(isFreeConversationActive(makeDocument({ timerHidden: false })), true);
   assert.strictEqual(isFreeConversationActive(makeDocument({ timerHidden: true })), false);
 
-  function makeAdapter({ connected = false } = {}) {
+  function makeAdapter({ connected = false, freeActive: initialFreeActive = false } = {}) {
     const events = [];
     let isConnected = connected;
-    let freeActive = false;
+    let freeActive = initialFreeActive;
     return {
       events,
       isConnected: () => isConnected,
@@ -68,16 +68,17 @@ const { pathToFileURL } = require('url');
       async waitForAssistantSpeechStart() { events.push('assistant_speaking'); },
       async waitForAssistantSpeechDrain() { events.push('assistant_drained'); },
       async startFreeConversation() { events.push('free_start'); freeActive = true; },
+      async stopFreeConversation() { events.push('free_stop'); freeActive = false; },
       isFreeConversationActive: () => freeActive,
       async waitForFreeConversationActive() { events.push('free_active'); assert.strictEqual(freeActive, true); },
+      async waitForFreeConversationInactive() { events.push('free_inactive'); assert.strictEqual(freeActive, false); },
       async waitForHoldToTalkReady() { events.push('hold_ready'); },
     };
   }
 
-  // Integration-level ordering invariant for the production bug we hit:
-  // opening intent MUST finish its assistant reply before Free Conversation
-  // arms the continuous microphone. Starting free audio first creates a
-  // tap_to_start generation that input_text.submit immediately cancels.
+  // Regression invariant for the production race: the opening starter owns
+  // the first turn. Continuous audio starts only after the assistant reply
+  // has fully drained.
   const freeAdapter = makeAdapter();
   const freeStates = [];
   const free = new ConversationOrchestrator(freeAdapter, { onStateChange: (state) => freeStates.push(state) });
@@ -93,10 +94,6 @@ const { pathToFileURL } = require('url');
     'free_active',
   ]);
   assert(
-    freeAdapter.events.indexOf('starter:PAIR FOOD') < freeAdapter.events.indexOf('free_start'),
-    'starter must be submitted before continuous audio starts'
-  );
-  assert(
     freeAdapter.events.indexOf('assistant_drained') < freeAdapter.events.indexOf('free_start'),
     'continuous audio must start only after the opening assistant reply drains'
   );
@@ -107,6 +104,24 @@ const { pathToFileURL } = require('url');
     CONVERSATION_STATES.ASSISTANT_SPEAKING,
     CONVERSATION_STATES.ARMING_LISTENING,
     CONVERSATION_STATES.LISTENING,
+  ]);
+
+  // If the user invokes a guided intent during an already-active free
+  // conversation, first quiet continuous input, then run the same serialized
+  // opening sequence and re-arm listening after the reply.
+  const activeAdapter = makeAdapter({ connected: true, freeActive: true });
+  const active = new ConversationOrchestrator(activeAdapter);
+  const activeResult = await active.start({ starter: 'WINERIES', mode: 'tap_to_start' });
+  assert.strictEqual(activeResult, CONVERSATION_STATES.LISTENING);
+  assert.deepStrictEqual(activeAdapter.events, [
+    'free_stop',
+    'free_inactive',
+    'text_ready',
+    'starter:WINERIES',
+    'assistant_speaking',
+    'assistant_drained',
+    'free_start',
+    'free_active',
   ]);
 
   const holdAdapter = makeAdapter();
