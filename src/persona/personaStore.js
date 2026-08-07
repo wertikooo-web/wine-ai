@@ -8,30 +8,16 @@ const { getProfileById } = require('./profileRegistry');
 const FILE_PATH = process.env.PERSONA_OVERRIDES_FILE || path.resolve(__dirname, '..', '..', 'data', 'persona-overrides.json');
 const ALLOWED_GENDERS = ['male', 'female'];
 const DEFAULT_SOMMELIER_GENDER = 'male';
-
 const ALLOWED_VOICE_MODES = ['hold_to_talk', 'tap_to_start'];
 const DEFAULT_VOICE_MODE = 'hold_to_talk';
-
-// Free Conversation's overall session duration cap, in minutes -- a small
-// fixed preset list (not a free-form number) so an operator can't
-// accidentally type a value that starves the inactivity-warning timing
-// (see dashboard.html's FREE_CONV_SESSION_WARNING_LEAD_MS=30s -- anything
-// below that would fire the cap before its own warning could).
 const ALLOWED_SESSION_LIMIT_MINUTES = [2.5, 3, 5, 10];
 const DEFAULT_SESSION_LIMIT_MINUTES = 3;
-// Deployment contexts that may need a shorter/longer cap than the general
-// default -- e.g. a kiosk in a tasting room vs. a customer's own phone via
-// a table QR code. null in the override map means "use the general
-// default", not "use 0".
 const SESSION_LIMIT_CONTEXTS = ['kiosk', 'mobile_qr'];
+const START_INTENT_LANGUAGES = ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja'];
+const START_INTENT_IDS = ['choose_wine', 'pair_food', 'learn_wine', 'visit_winery'];
 
-// Scoped in-memory cache
 let cache = {
     activeProfileId: 'classic',
-    // Device-wide UX preference (Hold to Talk vs. Tap to Start), not tied
-    // to which persona profile is active — stored alongside activeProfileId
-    // in persona_active_state (or the file's top level), not inside a
-    // profile's `overrides` (which is persona content, not device UX).
     voiceMode: DEFAULT_VOICE_MODE,
     sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
     sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
@@ -41,6 +27,29 @@ let cache = {
     }
 };
 let loadError = null;
+let legacyCustomProfile = false;
+
+function cleanLoadedOverrides(overrides) {
+    const value = overrides && typeof overrides === 'object' ? overrides : {};
+    if (value.runtimeByProvider && typeof value.runtimeByProvider !== 'object') delete value.runtimeByProvider;
+    if (value.style && typeof value.style !== 'object') delete value.style;
+    if (value.identity && typeof value.identity !== 'object') delete value.identity;
+    if (value.startIntents && typeof value.startIntents !== 'object') delete value.startIntents;
+    return value;
+}
+
+function defaultCache() {
+    return {
+        activeProfileId: 'classic',
+        voiceMode: DEFAULT_VOICE_MODE,
+        sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
+        sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
+        profiles: {
+            classic: { overrides: {} },
+            warm_guide: { overrides: {} }
+        }
+    };
+}
 
 async function load() {
     loadError = null;
@@ -56,8 +65,6 @@ async function load() {
         }
         try {
             await client.query('BEGIN');
-
-            // 1. Create tables
             await client.query(`
                 CREATE TABLE IF NOT EXISTS persona_profile_settings (
                     profile_id TEXT PRIMARY KEY,
@@ -78,24 +85,17 @@ async function load() {
             await client.query('ALTER TABLE persona_active_state ADD COLUMN IF NOT EXISTS session_limit_minutes_kiosk NUMERIC;');
             await client.query('ALTER TABLE persona_active_state ADD COLUMN IF NOT EXISTS session_limit_minutes_mobile_qr NUMERIC;');
 
-            // 2. Check if active state exists
             const activeRes = await client.query("SELECT active_profile_id FROM persona_active_state WHERE state_key = 'default'");
-
             if (activeRes.rows.length === 0) {
                 console.log('[WineAI] Performing legacy singleton to profile-scoped settings database migration...');
-
                 let legacyRow = null;
                 try {
-                    const legacyRes = await client.query("SELECT * FROM persona_overrides WHERE id = 1");
+                    const legacyRes = await client.query('SELECT * FROM persona_overrides WHERE id = 1');
                     legacyRow = legacyRes.rows[0];
-                } catch (e) {
+                } catch {
                     console.log('[WineAI] Legacy persona_overrides table not found or empty, skipping migration of historical data.');
                 }
-
                 let activeProfileId = 'classic';
-                const nowStr = new Date().toISOString();
-
-                // Reconstruct overrides if legacy data exists
                 const legacyOverrides = {};
                 if (legacyRow) {
                     activeProfileId = legacyRow.base_profile_id || 'classic';
@@ -106,7 +106,6 @@ async function load() {
                     if (legacyRow.system_prompt) legacyOverrides.systemPrompt = legacyRow.system_prompt;
                     if (legacyRow.personality_prompt) legacyOverrides.personalityPrompt = legacyRow.personality_prompt;
                     if (legacyRow.mood) legacyOverrides.mood = legacyRow.mood;
-
                     if (legacyRow.style_overrides) {
                         try { legacyOverrides.style = JSON.parse(legacyRow.style_overrides); } catch {}
                     }
@@ -117,15 +116,12 @@ async function load() {
                         try { legacyOverrides.identity = JSON.parse(legacyRow.identity_overrides); } catch {}
                     }
                 }
-
-                // Insert active state
+                const nowStr = new Date().toISOString();
                 await client.query(
                     `INSERT INTO persona_active_state (state_key, active_profile_id, voice_mode, updated_at)
                      VALUES ('default', $1, $2, $3)`,
                     [activeProfileId, DEFAULT_VOICE_MODE, nowStr]
                 );
-
-                // Insert profile rows (without resolved defaults, only overrides)
                 await client.query(
                     `INSERT INTO persona_profile_settings (profile_id, overrides_json, created_at, updated_at)
                      VALUES ('classic', $1, $2, $2)`,
@@ -137,145 +133,87 @@ async function load() {
                     [JSON.stringify(activeProfileId === 'warm_guide' ? legacyOverrides : {}), nowStr]
                 );
             } else {
-                // Active state already exists. Idempotent Invariant Check:
-                // Ensure profile settings rows exist for both builtin profiles, repair if missing!
                 const nowStr = new Date().toISOString();
-                await client.query(
-                    `INSERT INTO persona_profile_settings (profile_id, overrides_json, created_at, updated_at)
-                     VALUES ('classic', '{}', $1, $1) ON CONFLICT DO NOTHING`,
-                    [nowStr]
-                );
-                await client.query(
-                    `INSERT INTO persona_profile_settings (profile_id, overrides_json, created_at, updated_at)
-                     VALUES ('warm_guide', '{}', $1, $1) ON CONFLICT DO NOTHING`,
-                    [nowStr]
-                );
+                for (const profileId of ['classic', 'warm_guide']) {
+                    await client.query(
+                        `INSERT INTO persona_profile_settings (profile_id, overrides_json, created_at, updated_at)
+                         VALUES ($1, '{}', $2, $2) ON CONFLICT DO NOTHING`,
+                        [profileId, nowStr]
+                    );
+                }
             }
 
-            // 3. Load active state and settings
             const activeState = (await client.query(
                 "SELECT active_profile_id, voice_mode, session_limit_minutes, session_limit_minutes_kiosk, session_limit_minutes_mobile_qr FROM persona_active_state WHERE state_key = 'default'"
             )).rows[0];
-            const profilesRows = (await client.query("SELECT profile_id, overrides_json FROM persona_profile_settings")).rows;
-
+            const profilesRows = (await client.query('SELECT profile_id, overrides_json FROM persona_profile_settings')).rows;
             await client.query('COMMIT');
-
-            const activeProfileId = activeState ? activeState.active_profile_id : 'classic';
-            const voiceMode = ALLOWED_VOICE_MODES.includes(activeState?.voice_mode) ? activeState.voice_mode : DEFAULT_VOICE_MODE;
-            const sessionLimitMinutes = ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes))
-                ? Number(activeState.session_limit_minutes)
-                : DEFAULT_SESSION_LIMIT_MINUTES;
-            const sessionLimitMinutesByContext = {
-                kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes_kiosk)) ? Number(activeState.session_limit_minutes_kiosk) : null,
-                mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes_mobile_qr)) ? Number(activeState.session_limit_minutes_mobile_qr) : null,
-            };
 
             const profiles = {};
             for (const row of profilesRows) {
-                const overrides = typeof row.overrides_json === 'object' ? row.overrides_json : JSON.parse(row.overrides_json || '{}');
-                if (overrides.runtimeByProvider && typeof overrides.runtimeByProvider !== 'object') {
-                    delete overrides.runtimeByProvider;
-                }
-                if (overrides.style && typeof overrides.style !== 'object') {
-                    delete overrides.style;
-                }
-                if (overrides.identity && typeof overrides.identity !== 'object') {
-                    delete overrides.identity;
-                }
-                profiles[row.profile_id] = { overrides };
+                const raw = typeof row.overrides_json === 'object' ? row.overrides_json : JSON.parse(row.overrides_json || '{}');
+                profiles[row.profile_id] = { overrides: cleanLoadedOverrides(raw) };
             }
-
-            // Repair cache if database has rows but missing registry definitions
             if (!profiles.classic) profiles.classic = { overrides: {} };
             if (!profiles.warm_guide) profiles.warm_guide = { overrides: {} };
-
             cache = {
-                activeProfileId,
-                voiceMode,
-                sessionLimitMinutes,
-                sessionLimitMinutesByContext,
+                activeProfileId: activeState?.active_profile_id || 'classic',
+                voiceMode: ALLOWED_VOICE_MODES.includes(activeState?.voice_mode) ? activeState.voice_mode : DEFAULT_VOICE_MODE,
+                sessionLimitMinutes: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes))
+                    ? Number(activeState.session_limit_minutes)
+                    : DEFAULT_SESSION_LIMIT_MINUTES,
+                sessionLimitMinutesByContext: {
+                    kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes_kiosk)) ? Number(activeState.session_limit_minutes_kiosk) : null,
+                    mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes_mobile_qr)) ? Number(activeState.session_limit_minutes_mobile_qr) : null,
+                },
                 profiles
             };
         } catch (err) {
-            await client.query('ROLLBACK');
+            try { await client.query('ROLLBACK'); } catch {}
             loadError = err;
             console.error('[WineAI] Database migration failed. Raising Service Unavailable:', err);
-            throw err; // DO NOT swallow the error, return 503 as requested!
+            throw err;
         } finally {
             client.release();
         }
     } else {
-        // Filesystem JSON migration (atomic replace)
         try {
-            if (fs.existsSync(FILE_PATH)) {
-                const raw = JSON.parse(fs.readFileSync(FILE_PATH, 'utf8')) || {};
-                const sessionLimitMinutes = ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutes))
-                    ? Number(raw.sessionLimitMinutes)
-                    : DEFAULT_SESSION_LIMIT_MINUTES;
-                const sessionLimitMinutesByContext = {
-                    kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutesByContext?.kiosk)) ? Number(raw.sessionLimitMinutesByContext.kiosk) : null,
-                    mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutesByContext?.mobile_qr)) ? Number(raw.sessionLimitMinutesByContext.mobile_qr) : null,
+            if (!fs.existsSync(FILE_PATH)) {
+                cache = defaultCache();
+                return getCached();
+            }
+            const raw = JSON.parse(fs.readFileSync(FILE_PATH, 'utf8')) || {};
+            const sessionLimitMinutes = ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutes))
+                ? Number(raw.sessionLimitMinutes)
+                : DEFAULT_SESSION_LIMIT_MINUTES;
+            const sessionLimitMinutesByContext = {
+                kiosk: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutesByContext?.kiosk)) ? Number(raw.sessionLimitMinutesByContext.kiosk) : null,
+                mobile_qr: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(raw.sessionLimitMinutesByContext?.mobile_qr)) ? Number(raw.sessionLimitMinutesByContext.mobile_qr) : null,
+            };
+            if (raw.profiles === undefined && (raw.baseProfileId !== undefined || raw.overrides !== undefined)) {
+                console.log('[WineAI] Performing legacy JSON to profile-scoped settings migration...');
+                const activeProfileId = raw.baseProfileId || 'classic';
+                const oldOverrides = cleanLoadedOverrides(raw.overrides || {});
+                if (!oldOverrides.mood && raw.mood) oldOverrides.mood = raw.mood;
+                cache = {
+                    activeProfileId,
+                    voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
+                    sessionLimitMinutes,
+                    sessionLimitMinutesByContext,
+                    profiles: {
+                        classic: activeProfileId === 'classic' ? { overrides: oldOverrides } : { overrides: {} },
+                        warm_guide: activeProfileId === 'warm_guide' ? { overrides: oldOverrides } : { overrides: {} }
+                    }
                 };
-                if (raw.profiles === undefined && (raw.baseProfileId !== undefined || raw.overrides !== undefined)) {
-                    console.log('[WineAI] Performing legacy JSON to profile-scoped settings migration...');
-                    const activeProfileId = raw.baseProfileId || 'classic';
-                    const activeMood = raw.mood || 'calm';
-                    const oldOverrides = raw.overrides || {};
-                    if (oldOverrides.runtimeByProvider && typeof oldOverrides.runtimeByProvider !== 'object') {
-                        delete oldOverrides.runtimeByProvider;
-                    }
-                    if (oldOverrides.style && typeof oldOverrides.style !== 'object') {
-                        delete oldOverrides.style;
-                    }
-                    if (oldOverrides.identity && typeof oldOverrides.identity !== 'object') {
-                        delete oldOverrides.identity;
-                    }
-                    if (!oldOverrides.mood && activeMood) oldOverrides.mood = activeMood;
-
-                    cache = {
-                        activeProfileId,
-                        voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
-                        sessionLimitMinutes,
-                        sessionLimitMinutesByContext,
-                        profiles: {
-                            classic: activeProfileId === 'classic' ? { overrides: oldOverrides } : { overrides: {} },
-                            warm_guide: activeProfileId === 'warm_guide' ? { overrides: oldOverrides } : { overrides: {} }
-                        }
-                    };
-                } else {
-                    const classicOverrides = raw.profiles?.classic?.overrides || {};
-                    const warmOverrides = raw.profiles?.warm_guide?.overrides || {};
-                    for (const o of [classicOverrides, warmOverrides]) {
-                        if (o.runtimeByProvider && typeof o.runtimeByProvider !== 'object') {
-                            delete o.runtimeByProvider;
-                        }
-                        if (o.style && typeof o.style !== 'object') {
-                            delete o.style;
-                        }
-                        if (o.identity && typeof o.identity !== 'object') {
-                            delete o.identity;
-                        }
-                    }
-                    cache = {
-                        activeProfileId: raw.activeProfileId || 'classic',
-                        voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
-                        sessionLimitMinutes,
-                        sessionLimitMinutesByContext,
-                        profiles: {
-                            classic: { overrides: classicOverrides },
-                            warm_guide: { overrides: warmOverrides }
-                        }
-                    };
-                }
             } else {
                 cache = {
-                    activeProfileId: 'classic',
-                    voiceMode: DEFAULT_VOICE_MODE,
-                    sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
-                    sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
+                    activeProfileId: raw.activeProfileId || 'classic',
+                    voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
+                    sessionLimitMinutes,
+                    sessionLimitMinutesByContext,
                     profiles: {
-                        classic: { overrides: {} },
-                        warm_guide: { overrides: {} }
+                        classic: { overrides: cleanLoadedOverrides(raw.profiles?.classic?.overrides || {}) },
+                        warm_guide: { overrides: cleanLoadedOverrides(raw.profiles?.warm_guide?.overrides || {}) }
                     }
                 };
             }
@@ -288,13 +226,9 @@ async function load() {
     return getCached();
 }
 
-function getLoadError() {
-    return loadError;
-}
-
-function getActiveProfileId() {
-    return cache.activeProfileId;
-}
+function getLoadError() { return loadError; }
+function getActiveProfileId() { return cache.activeProfileId; }
+function getProfilesOverrides() { return cache.profiles; }
 
 function getProfile(profileId) {
     const builtin = getProfileById(profileId);
@@ -309,19 +243,15 @@ function getProfile(profileId) {
     return resolveProfile(profileId, overrides, mood);
 }
 
-function getActiveProfile() {
-    return getProfile(cache.activeProfileId);
-}
+function getActiveProfile() { return getProfile(cache.activeProfileId); }
 
 function getCached() {
     const activeProfileId = cache.activeProfileId;
     const builtin = getProfileById(activeProfileId);
     const rawOverrides = cache.profiles[activeProfileId]?.overrides || {};
-    const hasMeaningfulOverrides = Object.keys(rawOverrides).some(key => {
+    const hasMeaningfulOverrides = Object.keys(rawOverrides).some((key) => {
         if (key === 'mood') return false;
-        if (key === 'style') return Object.keys(rawOverrides.style || {}).length > 0;
-        if (key === 'runtimeByProvider') return Object.keys(rawOverrides.runtimeByProvider || {}).length > 0;
-        if (key === 'identity') return Object.keys(rawOverrides.identity || {}).length > 0;
+        if (['style', 'runtimeByProvider', 'identity', 'startIntents'].includes(key)) return Object.keys(rawOverrides[key] || {}).length > 0;
         return rawOverrides[key] !== undefined && rawOverrides[key] !== null;
     });
     const overrides = { ...rawOverrides };
@@ -341,16 +271,78 @@ function getCached() {
     };
 }
 
-function getProfilesOverrides() {
-    return cache.profiles;
+function validateStartIntents(value) {
+    if (value === null) return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        const err = new Error('startIntents must be an object');
+        err.statusCode = 400;
+        throw err;
+    }
+    const clean = {};
+    for (const [lang, intents] of Object.entries(value)) {
+        if (!START_INTENT_LANGUAGES.includes(lang)) {
+            const err = new Error(`invalid_start_intent_language: ${lang}`);
+            err.statusCode = 400;
+            throw err;
+        }
+        if (!intents || typeof intents !== 'object' || Array.isArray(intents)) {
+            const err = new Error(`invalid_start_intent_language_block: ${lang}`);
+            err.statusCode = 400;
+            throw err;
+        }
+        const langBlock = {};
+        for (const [intentId, config] of Object.entries(intents)) {
+            if (!START_INTENT_IDS.includes(intentId)) {
+                const err = new Error(`invalid_start_intent_id: ${intentId}`);
+                err.statusCode = 400;
+                throw err;
+            }
+            if (!config || typeof config !== 'object' || Array.isArray(config)) {
+                const err = new Error(`invalid_start_intent_config: ${intentId}`);
+                err.statusCode = 400;
+                throw err;
+            }
+            const allowedFields = ['label', 'openingLine', 'context', 'enabled'];
+            for (const field of Object.keys(config)) {
+                if (!allowedFields.includes(field)) {
+                    const err = new Error(`invalid_start_intent_field: ${field}`);
+                    err.statusCode = 400;
+                    throw err;
+                }
+            }
+            const row = {};
+            if (config.label !== undefined) {
+                if (typeof config.label !== 'string') throw Object.assign(new Error('start_intent_label_must_be_string'), { statusCode: 400 });
+                row.label = config.label.trim().slice(0, 80);
+            }
+            if (config.openingLine !== undefined) {
+                if (typeof config.openingLine !== 'string') throw Object.assign(new Error('start_intent_opening_line_must_be_string'), { statusCode: 400 });
+                row.openingLine = config.openingLine.trim().slice(0, 500);
+            }
+            if (config.context !== undefined) {
+                if (typeof config.context !== 'string') throw Object.assign(new Error('start_intent_context_must_be_string'), { statusCode: 400 });
+                row.context = config.context.trim().slice(0, 3000);
+            }
+            if (config.enabled !== undefined) {
+                if (typeof config.enabled !== 'boolean') throw Object.assign(new Error('start_intent_enabled_must_be_boolean'), { statusCode: 400 });
+                row.enabled = config.enabled;
+            }
+            if (Object.keys(row).length) langBlock[intentId] = row;
+        }
+        if (Object.keys(langBlock).length) clean[lang] = langBlock;
+    }
+    if (JSON.stringify(clean).length > 50000) {
+        const err = new Error('start_intents_too_large');
+        err.statusCode = 400;
+        throw err;
+    }
+    return clean;
 }
 
 function validateAndMergeOverrides(current, patch) {
     const overrides = JSON.parse(JSON.stringify(current || {}));
-
     if (!patch) return overrides;
-
-    const allowedKeys = ['name', 'description', 'welcomeMessage', 'sommelierGender', 'systemPrompt', 'personalityPrompt', 'mood', 'style', 'runtimeByProvider', 'identity'];
+    const allowedKeys = ['name', 'description', 'welcomeMessage', 'sommelierGender', 'systemPrompt', 'personalityPrompt', 'mood', 'style', 'runtimeByProvider', 'identity', 'startIntents'];
     for (const key of Object.keys(patch)) {
         if (!allowedKeys.includes(key)) {
             const err = new Error('unsupported_override_field');
@@ -360,348 +352,195 @@ function validateAndMergeOverrides(current, patch) {
     }
 
     for (const key of ['name', 'description', 'welcomeMessage', 'systemPrompt', 'personalityPrompt', 'mood']) {
-        if (patch[key] !== undefined) {
-            const val = patch[key];
-            if (val === null) {
-                delete overrides[key];
-            } else if (typeof val === 'string') {
-                if (key === 'mood') {
-                    const allowedMoods = ['calm', 'warm', 'lively', 'expert'];
-                    if (!allowedMoods.includes(val)) {
-                        const err = new Error('invalid_mood');
-                        err.statusCode = 400;
-                        throw err;
-                    }
-                    overrides.mood = val;
-                } else {
-                    const limit = { name: 80, description: 400, welcomeMessage: 600, systemPrompt: 24000, personalityPrompt: 24000 }[key];
-                    overrides[key] = val.trim().slice(0, limit);
-                }
+        if (patch[key] === undefined) continue;
+        const val = patch[key];
+        if (val === null) {
+            delete overrides[key];
+        } else if (typeof val === 'string') {
+            if (key === 'mood') {
+                if (!['calm', 'warm', 'lively', 'expert'].includes(val)) throw Object.assign(new Error('invalid_mood'), { statusCode: 400 });
+                overrides.mood = val;
             } else {
-                const err = new Error(`Invalid type for field ${key}`);
-                err.statusCode = 400;
-                throw err;
+                const limit = { name: 80, description: 400, welcomeMessage: 600, systemPrompt: 24000, personalityPrompt: 24000 }[key];
+                overrides[key] = val.trim().slice(0, limit);
             }
+        } else {
+            throw Object.assign(new Error(`Invalid type for field ${key}`), { statusCode: 400 });
         }
     }
 
     if (patch.sommelierGender !== undefined) {
-        const val = patch.sommelierGender;
-        if (typeof val !== 'string' || !ALLOWED_GENDERS.includes(val)) {
-            const err = new Error('invalid_sommelier_gender');
-            err.statusCode = 400;
-            throw err;
-        }
-        overrides.sommelierGender = val;
+        if (typeof patch.sommelierGender !== 'string' || !ALLOWED_GENDERS.includes(patch.sommelierGender)) throw Object.assign(new Error('invalid_sommelier_gender'), { statusCode: 400 });
+        overrides.sommelierGender = patch.sommelierGender;
     }
 
-    if (patch.style !== undefined && patch.style !== null) {
-        if (typeof patch.style !== 'object') {
-            const err = new Error('style must be an object');
-            err.statusCode = 400;
-            throw err;
-        }
-        if (!overrides.style) overrides.style = {};
-
-        const allowedStyleKeys = [
-            'responseLength', 'humorLevel', 'tone', 'expertiseLevel', 'storytelling',
-            'proactiveSuggestions', 'toastStyle', 'conversationMode', 'askFollowUpQuestions',
-            'useHumor', 'talkAboutSelf', 'supportSmallTalk', 'softlyReturnToWine',
-            'useFictionalBiography', 'responseVariety'
-        ];
-
-        for (const [key, val] of Object.entries(patch.style)) {
-            if (!allowedStyleKeys.includes(key)) {
-                const err = new Error(`Unknown style field: ${key}`);
-                err.statusCode = 400;
-                throw err;
-            }
-            if (val === null) {
-                delete overrides.style[key];
-            } else if (['proactiveSuggestions', 'askFollowUpQuestions', 'useHumor', 'talkAboutSelf', 'supportSmallTalk', 'softlyReturnToWine', 'useFictionalBiography'].includes(key)) {
-                if (typeof val !== 'boolean') {
-                    const err = new Error(`${key} must be a boolean`);
-                    err.statusCode = 400;
-                    throw err;
-                }
-                overrides.style[key] = val;
-            } else if (key === 'responseLength') {
-                if (typeof val !== 'string' || !['brief', 'balanced', 'detailed', 'short'].includes(val)) {
-                    const err = new Error('invalid_response_length');
-                    err.statusCode = 400;
-                    throw err;
-                }
-                overrides.style[key] = val;
-            } else if (key === 'responseVariety') {
-                if (typeof val !== 'string' || !['stable', 'natural', 'expressive'].includes(val)) {
-                    const err = new Error('invalid_response_variety');
-                    err.statusCode = 400;
-                    throw err;
-                }
-                overrides.style[key] = val;
-            } else if (key === 'conversationMode') {
-                if (typeof val !== 'string' || !['strict', 'friendly', 'free'].includes(val)) {
-                    const err = new Error('invalid_conversation_mode');
-                    err.statusCode = 400;
-                    throw err;
-                }
-                overrides.style[key] = val;
-            } else {
-                if (typeof val !== 'string') {
-                    const err = new Error(`${key} must be a string`);
-                    err.statusCode = 400;
-                    throw err;
-                }
-                overrides.style[key] = val.trim().slice(0, 200);
-            }
-        }
-        if (Object.keys(overrides.style).length === 0) {
+    if (patch.style !== undefined) {
+        if (patch.style === null) {
             delete overrides.style;
+        } else {
+            if (typeof patch.style !== 'object' || Array.isArray(patch.style)) throw Object.assign(new Error('style must be an object'), { statusCode: 400 });
+            if (!overrides.style) overrides.style = {};
+            const allowedStyleKeys = ['responseLength', 'humorLevel', 'tone', 'expertiseLevel', 'storytelling', 'proactiveSuggestions', 'toastStyle', 'conversationMode', 'askFollowUpQuestions', 'useHumor', 'talkAboutSelf', 'supportSmallTalk', 'softlyReturnToWine', 'useFictionalBiography', 'responseVariety'];
+            const boolKeys = ['proactiveSuggestions', 'askFollowUpQuestions', 'useHumor', 'talkAboutSelf', 'supportSmallTalk', 'softlyReturnToWine', 'useFictionalBiography'];
+            for (const [key, val] of Object.entries(patch.style)) {
+                if (!allowedStyleKeys.includes(key)) throw Object.assign(new Error(`Unknown style field: ${key}`), { statusCode: 400 });
+                if (val === null) delete overrides.style[key];
+                else if (boolKeys.includes(key)) {
+                    if (typeof val !== 'boolean') throw Object.assign(new Error(`${key} must be a boolean`), { statusCode: 400 });
+                    overrides.style[key] = val;
+                } else if (key === 'responseLength') {
+                    if (typeof val !== 'string' || !['brief', 'balanced', 'detailed', 'short'].includes(val)) throw Object.assign(new Error('invalid_response_length'), { statusCode: 400 });
+                    overrides.style[key] = val;
+                } else if (key === 'responseVariety') {
+                    if (typeof val !== 'string' || !['stable', 'natural', 'expressive'].includes(val)) throw Object.assign(new Error('invalid_response_variety'), { statusCode: 400 });
+                    overrides.style[key] = val;
+                } else if (key === 'conversationMode') {
+                    if (typeof val !== 'string' || !['strict', 'friendly', 'free'].includes(val)) throw Object.assign(new Error('invalid_conversation_mode'), { statusCode: 400 });
+                    overrides.style[key] = val;
+                } else {
+                    if (typeof val !== 'string') throw Object.assign(new Error(`${key} must be a string`), { statusCode: 400 });
+                    overrides.style[key] = val.trim().slice(0, 200);
+                }
+            }
+            if (!Object.keys(overrides.style).length) delete overrides.style;
         }
     }
 
-    if (patch.runtimeByProvider !== undefined && patch.runtimeByProvider !== null) {
-        if (typeof patch.runtimeByProvider !== 'object') {
-            const err = new Error('runtimeByProvider must be an object');
-            err.statusCode = 400;
-            throw err;
-        }
-        if (!overrides.runtimeByProvider) overrides.runtimeByProvider = {};
-
-        for (const [providerId, providerBlock] of Object.entries(patch.runtimeByProvider)) {
-            if (providerId !== 'gemini' && providerId !== 'grok') {
-                const errCode = providerId === 'mock' ? 'unsupported_provider_capability' : 'unknown_provider';
-                const err = new Error(errCode);
-                err.statusCode = 400;
-                throw err;
-            }
-            if (providerBlock === null) {
-                delete overrides.runtimeByProvider[providerId];
-                continue;
-            }
-            if (typeof providerBlock !== 'object') {
-                const err = new Error(`${providerId} block must be an object`);
-                err.statusCode = 400;
-                throw err;
-            }
-
-            if (!overrides.runtimeByProvider[providerId]) overrides.runtimeByProvider[providerId] = {};
-
-            for (const [key, val] of Object.entries(providerBlock)) {
-                if (key !== 'voiceId') {
-                    const err = new Error('unsupported_runtime_field');
-                    err.statusCode = 400;
-                    throw err;
+    if (patch.runtimeByProvider !== undefined) {
+        if (patch.runtimeByProvider === null) {
+            delete overrides.runtimeByProvider;
+        } else {
+            if (typeof patch.runtimeByProvider !== 'object' || Array.isArray(patch.runtimeByProvider)) throw Object.assign(new Error('runtimeByProvider must be an object'), { statusCode: 400 });
+            if (!overrides.runtimeByProvider) overrides.runtimeByProvider = {};
+            for (const [providerId, providerBlock] of Object.entries(patch.runtimeByProvider)) {
+                if (!['gemini', 'grok'].includes(providerId)) {
+                    const errCode = providerId === 'mock' ? 'unsupported_provider_capability' : 'unknown_provider';
+                    throw Object.assign(new Error(errCode), { statusCode: 400 });
                 }
-                if (val === null) {
-                    delete overrides.runtimeByProvider[providerId][key];
-                } else {
-                    if (typeof val !== 'string') {
-                        const err = new Error(`${key} must be a string`);
-                        err.statusCode = 400;
-                        throw err;
+                if (providerBlock === null) {
+                    delete overrides.runtimeByProvider[providerId];
+                    continue;
+                }
+                if (typeof providerBlock !== 'object' || Array.isArray(providerBlock)) throw Object.assign(new Error(`${providerId} block must be an object`), { statusCode: 400 });
+                if (!overrides.runtimeByProvider[providerId]) overrides.runtimeByProvider[providerId] = {};
+                for (const [key, val] of Object.entries(providerBlock)) {
+                    if (key !== 'voiceId') throw Object.assign(new Error('unsupported_runtime_field'), { statusCode: 400 });
+                    if (val === null) {
+                        delete overrides.runtimeByProvider[providerId][key];
+                        continue;
                     }
+                    if (typeof val !== 'string') throw Object.assign(new Error(`${key} must be a string`), { statusCode: 400 });
                     if (providerId === 'gemini') {
                         const { GEMINI_VOICE_NAMES } = require('../geminiVoices');
-                        if (!GEMINI_VOICE_NAMES.includes(val)) {
-                            const err = new Error('invalid_voice_id');
-                            err.statusCode = 400;
-                            throw err;
-                        }
-                    } else if (providerId === 'grok') {
+                        if (!GEMINI_VOICE_NAMES.includes(val)) throw Object.assign(new Error('invalid_voice_id'), { statusCode: 400 });
+                    } else {
                         const { GROK_VOICES } = require('../grokVoices');
-                        const isValid = GROK_VOICES.some(v => v.id === val || v.name === val || v.name.toLowerCase() === val.toLowerCase());
-                        if (!isValid) {
-                            const err = new Error('invalid_voice_id');
-                            err.statusCode = 400;
-                            throw err;
-                        }
+                        if (!GROK_VOICES.some(v => v.id === val || v.name === val || v.name.toLowerCase() === val.toLowerCase())) throw Object.assign(new Error('invalid_voice_id'), { statusCode: 400 });
                     }
                     overrides.runtimeByProvider[providerId][key] = val;
                 }
+                if (!Object.keys(overrides.runtimeByProvider[providerId]).length) delete overrides.runtimeByProvider[providerId];
             }
-            if (Object.keys(overrides.runtimeByProvider[providerId]).length === 0) {
-                delete overrides.runtimeByProvider[providerId];
-            }
-        }
-        if (Object.keys(overrides.runtimeByProvider).length === 0) {
-            delete overrides.runtimeByProvider;
+            if (!Object.keys(overrides.runtimeByProvider).length) delete overrides.runtimeByProvider;
         }
     }
 
-    if (patch.identity !== undefined && patch.identity !== null) {
-        if (typeof patch.identity !== 'object') {
-            const err = new Error('identity must be an object');
-            err.statusCode = 400;
-            throw err;
-        }
-        if (!overrides.identity) overrides.identity = {};
-
-        const allowedIdentityKeys = ['background', 'creatorDescription', 'roleDescription', 'selfAdvantages', 'selfLimitations', 'wineAffinity', 'interests'];
-        for (const [key, val] of Object.entries(patch.identity)) {
-            if (!allowedIdentityKeys.includes(key)) {
-                const err = new Error(`Unknown identity field: ${key}`);
-                err.statusCode = 400;
-                throw err;
-            }
-            if (val === null) {
-                delete overrides.identity[key];
-            } else if (key === 'interests') {
-                if (!Array.isArray(val)) {
-                    const err = new Error('interests must be an array');
-                    err.statusCode = 400;
-                    throw err;
-                }
-                if (val.length > 15) {
-                    const err = new Error('interests array must not exceed 15 elements');
-                    err.statusCode = 400;
-                    throw err;
-                }
-                const cleanInterests = [];
-                for (const item of val) {
-                    if (typeof item !== 'string') {
-                        const err = new Error('interests elements must be strings');
-                        err.statusCode = 400;
-                        throw err;
-                    }
-                    const cleaned = item.trim().slice(0, 60);
-                    if (cleaned) {
-                        cleanInterests.push(cleaned);
-                    }
-                }
-                overrides.identity[key] = cleanInterests;
-            } else {
-                if (typeof val !== 'string') {
-                    const err = new Error(`${key} must be a string`);
-                    err.statusCode = 400;
-                    throw err;
-                }
-                overrides.identity[key] = val.trim().slice(0, 2000);
-            }
-        }
-        if (Object.keys(overrides.identity).length === 0) {
+    if (patch.identity !== undefined) {
+        if (patch.identity === null) {
             delete overrides.identity;
+        } else {
+            if (typeof patch.identity !== 'object' || Array.isArray(patch.identity)) throw Object.assign(new Error('identity must be an object'), { statusCode: 400 });
+            if (!overrides.identity) overrides.identity = {};
+            const allowedIdentityKeys = ['background', 'creatorDescription', 'roleDescription', 'selfAdvantages', 'selfLimitations', 'wineAffinity', 'interests'];
+            for (const [key, val] of Object.entries(patch.identity)) {
+                if (!allowedIdentityKeys.includes(key)) throw Object.assign(new Error(`Unknown identity field: ${key}`), { statusCode: 400 });
+                if (val === null) {
+                    delete overrides.identity[key];
+                } else if (key === 'interests') {
+                    if (!Array.isArray(val) || val.length > 15 || val.some(item => typeof item !== 'string')) throw Object.assign(new Error('invalid_interests'), { statusCode: 400 });
+                    overrides.identity[key] = val.map(item => item.trim().slice(0, 60)).filter(Boolean);
+                } else {
+                    if (typeof val !== 'string') throw Object.assign(new Error(`${key} must be a string`), { statusCode: 400 });
+                    overrides.identity[key] = val.trim().slice(0, 2000);
+                }
+            }
+            if (!Object.keys(overrides.identity).length) delete overrides.identity;
         }
+    }
+
+    if (patch.startIntents !== undefined) {
+        const clean = validateStartIntents(patch.startIntents);
+        if (clean === null || !Object.keys(clean).length) delete overrides.startIntents;
+        else overrides.startIntents = clean;
     }
 
     return overrides;
 }
 
-async function updateProfile(profileId, patch) {
-    const builtin = getProfileById(profileId);
-    if (!builtin) {
-        const err = new Error(`invalid_profile_id: ${profileId}`);
-        err.statusCode = 400;
-        throw err;
-    }
+function writeFileCache() {
+    fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
+    const tmpPath = FILE_PATH + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
+    fs.renameSync(tmpPath, FILE_PATH);
+}
 
+async function updateProfile(profileId, patch) {
+    if (!getProfileById(profileId)) throw Object.assign(new Error(`invalid_profile_id: ${profileId}`), { statusCode: 400 });
     if (db.isEnabled()) {
-        const pool = db.getPool();
-        const client = await pool.connect();
+        const client = await db.getPool().connect();
         try {
             await client.query('BEGIN');
-
-            const { rows } = await client.query(
-                'SELECT overrides_json FROM persona_profile_settings WHERE profile_id = $1 FOR UPDATE',
-                [profileId]
-            );
-            if (rows.length === 0) {
-                throw new Error(`Profile row ${profileId} not found in database`);
-            }
-
-            const currentOverrides = rows[0].overrides_json || {};
-            const merged = validateAndMergeOverrides(currentOverrides, patch);
-
+            const { rows } = await client.query('SELECT overrides_json FROM persona_profile_settings WHERE profile_id = $1 FOR UPDATE', [profileId]);
+            if (!rows.length) throw new Error(`Profile row ${profileId} not found in database`);
+            const merged = validateAndMergeOverrides(rows[0].overrides_json || {}, patch);
             await client.query(
-                `UPDATE persona_profile_settings
-                 SET overrides_json = $1, updated_at = $2
-                 WHERE profile_id = $3`,
+                `UPDATE persona_profile_settings SET overrides_json = $1, updated_at = $2 WHERE profile_id = $3`,
                 [JSON.stringify(merged), new Date().toISOString(), profileId]
             );
-
             await client.query('COMMIT');
-
             cache.profiles[profileId] = { overrides: merged };
         } catch (err) {
-            await client.query('ROLLBACK');
+            try { await client.query('ROLLBACK'); } catch {}
             console.error(`[WineAI] updateProfile transaction failed for ${profileId}:`, err);
             throw err;
         } finally {
             client.release();
         }
     } else {
-        try {
-            const current = cache.profiles[profileId]?.overrides || {};
-            const merged = validateAndMergeOverrides(current, patch);
-
-            cache.profiles[profileId] = { overrides: merged };
-
-            fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-            const tmpPath = FILE_PATH + '.tmp';
-            fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
-            fs.renameSync(tmpPath, FILE_PATH);
-        } catch (err) {
-            console.error(`[WineAI] File write failed in updateProfile for ${profileId}:`, err);
-            throw err;
-        }
+        const current = cache.profiles[profileId]?.overrides || {};
+        cache.profiles[profileId] = { overrides: validateAndMergeOverrides(current, patch) };
+        writeFileCache();
     }
     return getProfile(profileId);
 }
 
 async function resetProfile(profileId) {
-    const builtin = getProfileById(profileId);
-    if (!builtin) {
-        const err = new Error(`invalid_profile_id: ${profileId}`);
-        err.statusCode = 400;
-        throw err;
-    }
-
+    if (!getProfileById(profileId)) throw Object.assign(new Error(`invalid_profile_id: ${profileId}`), { statusCode: 400 });
     if (db.isEnabled()) {
-        const pool = db.getPool();
-        const client = await pool.connect();
+        const client = await db.getPool().connect();
         try {
             await client.query('BEGIN');
-            await client.query(
-                `UPDATE persona_profile_settings
-                 SET overrides_json = '{}', updated_at = $1
-                 WHERE profile_id = $2`,
-                [new Date().toISOString(), profileId]
-            );
+            await client.query(`UPDATE persona_profile_settings SET overrides_json = '{}', updated_at = $1 WHERE profile_id = $2`, [new Date().toISOString(), profileId]);
             await client.query('COMMIT');
             cache.profiles[profileId] = { overrides: {} };
         } catch (err) {
-            await client.query('ROLLBACK');
+            try { await client.query('ROLLBACK'); } catch {}
             console.error(`[WineAI] resetProfile transaction failed for ${profileId}:`, err);
             throw err;
         } finally {
             client.release();
         }
     } else {
-        try {
-            cache.profiles[profileId] = { overrides: {} };
-            fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-            const tmpPath = FILE_PATH + '.tmp';
-            fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
-            fs.renameSync(tmpPath, FILE_PATH);
-        } catch (err) {
-            console.error(`[WineAI] File write failed in resetProfile for ${profileId}:`, err);
-            throw err;
-        }
+        cache.profiles[profileId] = { overrides: {} };
+        writeFileCache();
     }
     return getProfile(profileId);
 }
 
 async function activateProfile(profileId) {
-    const builtin = getProfileById(profileId);
-    if (!builtin) {
-        const err = new Error(`invalid_profile_id: ${profileId}`);
-        err.statusCode = 400;
-        throw err;
-    }
-
+    if (!getProfileById(profileId)) throw Object.assign(new Error(`invalid_profile_id: ${profileId}`), { statusCode: 400 });
     if (db.isEnabled()) {
-        const pool = db.getPool();
-        const client = await pool.connect();
+        const client = await db.getPool().connect();
         try {
             await client.query('BEGIN');
             await client.query(
@@ -713,23 +552,15 @@ async function activateProfile(profileId) {
             await client.query('COMMIT');
             cache.activeProfileId = profileId;
         } catch (err) {
-            await client.query('ROLLBACK');
-            console.error(`[WineAI] activateProfile transaction failed:`, err);
+            try { await client.query('ROLLBACK'); } catch {}
+            console.error('[WineAI] activateProfile transaction failed:', err);
             throw err;
         } finally {
             client.release();
         }
     } else {
-        try {
-            cache.activeProfileId = profileId;
-            fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-            const tmpPath = FILE_PATH + '.tmp';
-            fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
-            fs.renameSync(tmpPath, FILE_PATH);
-        } catch (err) {
-            console.error(`[WineAI] File write failed in activateProfile:`, err);
-            throw err;
-        }
+        cache.activeProfileId = profileId;
+        writeFileCache();
     }
     return getProfile(profileId);
 }
@@ -738,40 +569,21 @@ function getVoiceMode() {
     return ALLOWED_VOICE_MODES.includes(cache.voiceMode) ? cache.voiceMode : DEFAULT_VOICE_MODE;
 }
 
-// Device-wide UX preference, persisted the same way as activeProfileId
-// (persona_active_state row / file top level) — NOT per-profile content,
-// so it deliberately does not go through updateProfile()/validateAndMergeOverrides().
 async function setVoiceMode(mode) {
-    if (!ALLOWED_VOICE_MODES.includes(mode)) {
-        const err = new Error('invalid_voice_mode');
-        err.statusCode = 400;
-        throw err;
-    }
-
+    if (!ALLOWED_VOICE_MODES.includes(mode)) throw Object.assign(new Error('invalid_voice_mode'), { statusCode: 400 });
     if (db.isEnabled()) {
-        const pool = db.getPool();
-        await pool.query(
+        await db.getPool().query(
             `INSERT INTO persona_active_state (state_key, active_profile_id, voice_mode, updated_at)
              VALUES ('default', $1, $2, $3)
              ON CONFLICT (state_key) DO UPDATE SET voice_mode = EXCLUDED.voice_mode, updated_at = EXCLUDED.updated_at`,
             [cache.activeProfileId, mode, new Date().toISOString()]
         );
-    } else {
-        cache.voiceMode = mode;
-        fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-        const tmpPath = FILE_PATH + '.tmp';
-        fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
-        fs.renameSync(tmpPath, FILE_PATH);
     }
     cache.voiceMode = mode;
+    if (!db.isEnabled()) writeFileCache();
     return getCached();
 }
 
-// Effective per-connection minutes: a context-specific override (kiosk /
-// mobile_qr) if one is set, otherwise the general default. context is
-// whatever the client declares itself as (see server.js's persona routes
-// and realtimeServer.js's session options) -- an unrecognized/missing
-// context always falls through to the general default, never throws.
 function getSessionLimitMinutes(context) {
     const general = ALLOWED_SESSION_LIMIT_MINUTES.includes(cache.sessionLimitMinutes) ? cache.sessionLimitMinutes : DEFAULT_SESSION_LIMIT_MINUTES;
     if (context && SESSION_LIMIT_CONTEXTS.includes(context)) {
@@ -783,14 +595,9 @@ function getSessionLimitMinutes(context) {
 
 async function setSessionLimitMinutes(minutes) {
     const value = Number(minutes);
-    if (!ALLOWED_SESSION_LIMIT_MINUTES.includes(value)) {
-        const err = new Error('invalid_session_limit_minutes');
-        err.statusCode = 400;
-        throw err;
-    }
+    if (!ALLOWED_SESSION_LIMIT_MINUTES.includes(value)) throw Object.assign(new Error('invalid_session_limit_minutes'), { statusCode: 400 });
     if (db.isEnabled()) {
-        const pool = db.getPool();
-        await pool.query(
+        await db.getPool().query(
             `INSERT INTO persona_active_state (state_key, active_profile_id, session_limit_minutes, updated_at)
              VALUES ('default', $1, $2, $3)
              ON CONFLICT (state_key) DO UPDATE SET session_limit_minutes = EXCLUDED.session_limit_minutes, updated_at = EXCLUDED.updated_at`,
@@ -798,32 +605,17 @@ async function setSessionLimitMinutes(minutes) {
         );
     }
     cache.sessionLimitMinutes = value;
-    if (!db.isEnabled()) {
-        fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-        const tmpPath = FILE_PATH + '.tmp';
-        fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
-        fs.renameSync(tmpPath, FILE_PATH);
-    }
+    if (!db.isEnabled()) writeFileCache();
     return getCached();
 }
 
-// value of null clears the override (falls back to the general default).
 async function setSessionLimitMinutesForContext(context, value) {
-    if (!SESSION_LIMIT_CONTEXTS.includes(context)) {
-        const err = new Error('invalid_session_limit_context');
-        err.statusCode = 400;
-        throw err;
-    }
+    if (!SESSION_LIMIT_CONTEXTS.includes(context)) throw Object.assign(new Error('invalid_session_limit_context'), { statusCode: 400 });
     const normalized = value === null || value === undefined ? null : Number(value);
-    if (normalized !== null && !ALLOWED_SESSION_LIMIT_MINUTES.includes(normalized)) {
-        const err = new Error('invalid_session_limit_minutes');
-        err.statusCode = 400;
-        throw err;
-    }
+    if (normalized !== null && !ALLOWED_SESSION_LIMIT_MINUTES.includes(normalized)) throw Object.assign(new Error('invalid_session_limit_minutes'), { statusCode: 400 });
     const column = context === 'kiosk' ? 'session_limit_minutes_kiosk' : 'session_limit_minutes_mobile_qr';
     if (db.isEnabled()) {
-        const pool = db.getPool();
-        await pool.query(
+        await db.getPool().query(
             `INSERT INTO persona_active_state (state_key, active_profile_id, ${column}, updated_at)
              VALUES ('default', $1, $2, $3)
              ON CONFLICT (state_key) DO UPDATE SET ${column} = EXCLUDED.${column}, updated_at = EXCLUDED.updated_at`,
@@ -831,41 +623,23 @@ async function setSessionLimitMinutesForContext(context, value) {
         );
     }
     cache.sessionLimitMinutesByContext = { ...cache.sessionLimitMinutesByContext, [context]: normalized };
-    if (!db.isEnabled()) {
-        fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
-        const tmpPath = FILE_PATH + '.tmp';
-        fs.writeFileSync(tmpPath, JSON.stringify(cache, null, 2), 'utf8');
-        fs.renameSync(tmpPath, FILE_PATH);
-    }
+    if (!db.isEnabled()) writeFileCache();
     return getCached();
 }
 
-let legacyCustomProfile = false;
-
-function setLegacyCustomProfile(val) {
-    legacyCustomProfile = !!val;
-}
-
-function isLegacyCustomProfile() {
-    return legacyCustomProfile;
-}
+function setLegacyCustomProfile(value) { legacyCustomProfile = Boolean(value); }
+function isLegacyCustomProfile() { return legacyCustomProfile; }
 
 async function save(body = {}) {
-    if (body.voiceMode !== undefined) {
-        await setVoiceMode(body.voiceMode);
-    }
-
-    if (body.sessionLimitMinutes !== undefined) {
-        await setSessionLimitMinutes(body.sessionLimitMinutes);
-    }
-    if (body.sessionLimitMinutesByContext !== undefined && typeof body.sessionLimitMinutesByContext === 'object') {
+    if (body.voiceMode !== undefined) await setVoiceMode(body.voiceMode);
+    if (body.sessionLimitMinutes !== undefined) await setSessionLimitMinutes(body.sessionLimitMinutes);
+    if (body.sessionLimitMinutesByContext && typeof body.sessionLimitMinutesByContext === 'object') {
         for (const context of SESSION_LIMIT_CONTEXTS) {
             if (Object.prototype.hasOwnProperty.call(body.sessionLimitMinutesByContext, context)) {
                 await setSessionLimitMinutesForContext(context, body.sessionLimitMinutesByContext[context]);
             }
         }
     }
-
     if (body.baseProfileId === null) {
         setLegacyCustomProfile(true);
     } else if (body.baseProfileId !== undefined) {
@@ -874,40 +648,25 @@ async function save(body = {}) {
             const currentActiveId = cache.activeProfileId;
             const currentActiveOverrides = cache.profiles[currentActiveId]?.overrides || {};
             const activeMood = currentActiveOverrides.mood || 'calm';
-
             await activateProfile(body.baseProfileId);
             await resetProfile(body.baseProfileId);
-            if (activeMood && activeMood !== 'calm') {
-                await updateProfile(body.baseProfileId, { mood: activeMood });
-            }
+            if (activeMood && activeMood !== 'calm') await updateProfile(body.baseProfileId, { mood: activeMood });
         }
     }
-
     if (body.reset) {
-        if (isLegacyCustomProfile()) {
-            const err = new Error('Cannot reset a custom profile');
-            err.statusCode = 400;
-            throw err;
-        }
+        if (isLegacyCustomProfile()) throw Object.assign(new Error('Cannot reset a custom profile'), { statusCode: 400 });
         await resetProfile(cache.activeProfileId);
         return getCached();
     }
-
-    const patch = { ...body.overrides };
-    const flatKeys = ['name', 'description', 'welcomeMessage', 'sommelierGender', 'personalityPrompt', 'systemPrompt', 'mood', 'style', 'runtimeByProvider', 'identity'];
-    for (const key of Object.keys(body)) {
-        if (flatKeys.includes(key)) {
-            patch[key] = body[key];
-        }
-    }
-    if (Object.keys(patch).length > 0) {
-        await updateProfile(cache.activeProfileId, patch);
-    }
+    const patch = { ...(body.overrides || {}) };
+    const flatKeys = ['name', 'description', 'welcomeMessage', 'sommelierGender', 'personalityPrompt', 'systemPrompt', 'mood', 'style', 'runtimeByProvider', 'identity', 'startIntents'];
+    for (const key of Object.keys(body)) if (flatKeys.includes(key)) patch[key] = body[key];
+    if (Object.keys(patch).length) await updateProfile(cache.activeProfileId, patch);
     return getCached();
 }
 
 function listProfileStates() {
-    return Object.keys(cache.profiles).map(id => ({
+    return Object.keys(cache.profiles).map((id) => ({
         id,
         hasCustomSettings: Object.keys(cache.profiles[id]?.overrides || {}).length > 0
     }));
