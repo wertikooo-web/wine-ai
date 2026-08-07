@@ -1,6 +1,7 @@
 export const CONVERSATION_STATES = Object.freeze({
   IDLE: 'idle',
   CONNECTING: 'connecting',
+  QUIETING_INPUT: 'quieting_input',
   READY: 'ready',
   OPENING_TURN: 'opening_turn',
   ASSISTANT_SPEAKING: 'assistant_speaking',
@@ -45,6 +46,17 @@ export class ConversationOrchestrator {
         await this.adapter.connect();
       }
       this.assertCurrent(token);
+
+      // A guided starter must own the first turn. If continuous listening is
+      // already active, quiet it before submitting the starter and re-arm it
+      // only after the assistant's opening reply has fully drained.
+      if (mode === 'tap_to_start' && this.adapter.isFreeConversationActive()) {
+        this.setState(CONVERSATION_STATES.QUIETING_INPUT, { mode });
+        await this.adapter.stopFreeConversation();
+        this.assertCurrent(token);
+        await this.adapter.waitForFreeConversationInactive();
+        this.assertCurrent(token);
+      }
 
       await this.adapter.waitForTextChannelReady();
       this.assertCurrent(token);
@@ -150,10 +162,16 @@ export function createDashboardDomAdapter(document) {
     async startFreeConversation() {
       const ptt = el('pttBtn');
       if (!ptt) throw new Error('ptt_button_missing');
-      // This is the single legacy boundary left in the adapter. It is invoked
-      // only AFTER the opening assistant turn has drained, so it can no longer
-      // race the starter. The orchestrator, not the UI button, owns ordering.
+      // Temporary compatibility boundary for the legacy dashboard IIFE.
+      // Ordering is owned by ConversationOrchestrator; this adapter is the
+      // only place that translates an orchestrator command to the old UI.
       if (!this.isFreeConversationActive()) ptt.click();
+    },
+
+    async stopFreeConversation() {
+      const ptt = el('pttBtn');
+      if (!ptt) throw new Error('ptt_button_missing');
+      if (this.isFreeConversationActive()) ptt.click();
     },
 
     isFreeConversationActive() {
@@ -163,6 +181,10 @@ export function createDashboardDomAdapter(document) {
 
     async waitForFreeConversationActive() {
       await waitUntil(() => this.isFreeConversationActive());
+    },
+
+    async waitForFreeConversationInactive() {
+      await waitUntil(() => !this.isFreeConversationActive());
     },
 
     async waitForHoldToTalkReady() {
