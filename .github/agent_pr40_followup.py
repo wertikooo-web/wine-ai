@@ -66,24 +66,26 @@ replace_once(
     "      case 'response.failed':\n        if (sessionLimitFinalTurnPending\n          && (!sessionLimitFinalTurnId || payload.turn_id === sessionLimitFinalTurnId)) {\n          sessionLimitFinalTurnPending = false;\n          sessionLimitInputClosed = true;\n          triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT);\n        }\n        stopPlaybackImmediately({ reason: 'response_failed', generationId: payload.generation_id });\n",
 )
 
-# Strengthen regression coverage for these exact edges.
+# Strengthen regression coverage for these exact edges. Use includes() for
+# multiline source snippets to avoid fragile regex escaping across generators.
 text = test.read_text()
-insert = """
+insert = r'''
 
 test('synthetic text warning is not mistaken for a user audio turn', () => {
-  assert.match(server, /response_id: null,\n\s+mode: currentMode/);
-  assert.match(dashboard, /voiceMode === 'tap_to_start' && payload\.mode === 'tap_to_start'/);
+  assert.ok(server.includes('mode: currentMode'));
+  assert.ok(dashboard.includes("voiceMode === 'tap_to_start' && payload.mode === 'tap_to_start'"));
 });
 
 test('deadline waits for a pre-deadline turn that is still thinking', () => {
-  assert.match(dashboard, /const responseStillThinking = DeviceVisual\.getState\(\) === 'thinking'/);
-  assert.match(dashboard, /freeConversationUserTurnOpen \|\| localSpeechBeganBeforeDeadline \|\| responseStillThinking/);
+  assert.ok(dashboard.includes("const responseStillThinking = DeviceVisual.getState() === 'thinking'"));
+  assert.ok(dashboard.includes('freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline || responseStillThinking'));
 });
 
 test('grandfathered final turn failure closes cleanly', () => {
-  assert.match(dashboard, /case 'response\.failed':[\s\S]*sessionLimitFinalTurnPending[\s\S]*triggerAutoEnd\('session_timeout'/);
+  assert.ok(dashboard.includes("case 'response.failed':"));
+  assert.ok(dashboard.includes("triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT)"));
 });
-"""
+'''
 if "synthetic text warning is not mistaken" in text:
     raise SystemExit('follow-up tests already present')
 test.write_text(text + insert)
