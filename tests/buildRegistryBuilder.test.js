@@ -556,6 +556,39 @@ async function run() {
         eq(d3.dimension, builder.EMBEDDING_DIMENSIONS, 'no schema -> config dimension');
     }
 
+    // --- embedMissing batches its calls under the provider limit ---
+    // Gemini's embedContent accepts at most 100 contents per call. The builder
+    // MUST fan out a large corpus in batches so a full build never trips the
+    // INVALID_ARGUMENT limit. The injected embedder counts how many chunks it
+    // is handed per call.
+    {
+        const COUNT = 73; // > one batch of EMBEDDING_BATCH_SIZE even
+        const sizes = [];
+        const countingEmbed = (chunks) => {
+            sizes.push(chunks.length);
+            return chunks.map((chunk, index) => Array.from({ length: 768 }, (_, i) => (chunk.id.length + index + i) / 10000));
+        };
+        const pool = new FakePool();
+        for (let i = 0; i < COUNT; i += 1) {
+            pool.chunks.push({
+                chunk_id: `c_${String(i).padStart(3, '0')}`,
+                build_id: 'build_1',
+                source_file: 'kos:doc_a',
+                title: null, doc_type: 'kos', language: 'ru', source: 'kos:doc_a',
+                confidence: 'unverified', entity_id: null, winery: null, region: null,
+                grape: null, date: null, enabled: true, chunk_index: i,
+                text: `Chunk body ${i}`, content_hash: `h${i}`, version_key: 'v', model: null,
+                embedding: null,
+            });
+        }
+        const res = await builder.embedMissing(pool, 'build_1', countingEmbed);
+        eq(res.embedded, COUNT, 'all chunks embedded');
+        a(sizes.every((s) => s <= builder.EMBEDDING_BATCH_SIZE), `every batch <= ${builder.EMBEDDING_BATCH_SIZE}: got ${JSON.stringify(sizes)}`);
+        a(sizes.length > 1, `expected multiple batches for ${COUNT} chunks, got ${sizes.length}`);
+        const embeddedCount = pool.chunks.filter((c) => c.embedding !== null).length;
+        eq(embeddedCount, COUNT, 'every chunk got a stored vector');
+    }
+
     console.log(`builder unit: ${assertions} assertions`);
     return { assertionCount: assertions };
 }
