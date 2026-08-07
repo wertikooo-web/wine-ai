@@ -1,3 +1,5 @@
+import { ConversationOrchestrator, createDashboardDomAdapter } from './ConversationOrchestrator.mjs';
+
 export const START_INTENTS = Object.freeze([
   { id: 'choose_wine', icon: '🍷' },
   { id: 'pair_food', icon: '🍽️' },
@@ -114,38 +116,6 @@ function currentUiLanguage(document) {
   return document.getElementById('uiLangSelect')?.value || document.documentElement.lang || 'en';
 }
 
-function waitUntil(document, tokenRef, token, predicate, timeoutMs = 120000) {
-  const startedAt = Date.now();
-  return new Promise((resolve, reject) => {
-    const check = () => {
-      if (tokenRef.current !== token) return reject(new Error('start_intent_superseded'));
-      const value = predicate();
-      if (value) return resolve(value);
-      if (Date.now() - startedAt >= timeoutMs) return reject(new Error('start_intent_timeout'));
-      setTimeout(check, 100);
-    };
-    check();
-  });
-}
-
-function waitForTextReady(document, tokenRef, token) {
-  return waitUntil(document, tokenRef, token, () => {
-    const input = document.getElementById('textInput');
-    const send = document.getElementById('textSendBtn');
-    return input && send && !input.disabled && !send.disabled ? { input, send } : null;
-  });
-}
-
-function waitForVoiceReady(document, tokenRef, token, mode) {
-  if (mode === 'tap_to_start') {
-    return waitUntil(document, tokenRef, token, () => isFreeConversationActive(document));
-  }
-  return waitUntil(document, tokenRef, token, () => {
-    const ptt = document.getElementById('pttBtn');
-    return ptt && !ptt.disabled;
-  });
-}
-
 export function mountStartIntentLauncher(options = {}) {
   const document = options.document || globalThis.document;
   if (!document || document.getElementById('startIntentLauncher')) return null;
@@ -164,8 +134,13 @@ export function mountStartIntentLauncher(options = {}) {
   root.append(title, grid);
   connect.parentNode.insertBefore(root, connect);
 
-  const tokenRef = { current: 0 };
   let selectedIntent = null;
+  const adapter = options.adapter || createDashboardDomAdapter(document);
+  const orchestrator = options.orchestrator || new ConversationOrchestrator(adapter, {
+    onStateChange(state) {
+      root.dataset.conversationState = state;
+    },
+  });
 
   function render() {
     const lang = currentUiLanguage(document);
@@ -189,42 +164,18 @@ export function mountStartIntentLauncher(options = {}) {
     const copy = getStartIntentCopy(intentId, currentUiLanguage(document));
     if (!copy) return;
     selectedIntent = intentId;
-    const token = ++tokenRef.current;
     root.classList.add('busy');
     render();
-
-    const mode = detectVoiceMode(document);
-    const ptt = document.getElementById('pttBtn');
-    const state = connect.dataset.state || 'disconnected';
-
-    if (mode === 'tap_to_start') {
-      // Free Conversation already owns auto-connect/provider-readiness. Reuse
-      // the same user-facing Start Conversation button so the mic remains
-      // open after Wine AI's first reply. If it is already active, keep it.
-      if (!isFreeConversationActive(document) && ptt) ptt.click();
-    } else if (state === 'disconnected') {
-      // Hold to Talk needs a connected provider, but should not start a mic
-      // capture until the user holds the round button after Wine AI replies.
-      connect.click();
-    }
-
     try {
-      const [{ input, send }] = await Promise.all([
-        waitForTextReady(document, tokenRef, token),
-        waitForVoiceReady(document, tokenRef, token, mode),
-      ]);
-      if (tokenRef.current !== token) return;
-      input.value = copy.starter;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      send.click();
-      root.classList.remove('busy');
+      await orchestrator.start({ starter: copy.starter, mode: detectVoiceMode(document) });
     } catch (error) {
+      console.warn('[WineAI] start intent failed:', error?.message || error);
+    } finally {
       root.classList.remove('busy');
-      if (error.message !== 'start_intent_superseded') console.warn('[WineAI] start intent failed:', error.message);
     }
   }
 
   document.getElementById('uiLangSelect')?.addEventListener('change', render);
   render();
-  return { root, start, getSelectedIntent: () => selectedIntent };
+  return { root, start, orchestrator, getSelectedIntent: () => selectedIntent };
 }
