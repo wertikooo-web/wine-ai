@@ -33,6 +33,8 @@ jobs:
           node tests/layeredKnowledgeToolContract.test.js
           node tests/wineMdCatalogStore.test.js
           node tests/startIntentLauncher.test.js
+          node tests/startIntentPersonaStore.test.js
+          node tests/startIntentPersistence.test.js
 
       - name: Server startup (no env vars required)
         run: |
