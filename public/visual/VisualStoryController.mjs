@@ -1,4 +1,4 @@
-import { mountStartIntentLauncher } from './StartIntentLauncher.mjs';
-export * from './VisualStoryController.core.mjs';
+import { mountStartIntentLauncher } from '/avatar-modules/StartIntentLauncher.mjs';
+export * from '/avatar-modules/VisualStoryControllerCore.mjs';
 
 mountStartIntentLauncher();

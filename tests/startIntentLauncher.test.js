@@ -5,7 +5,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 (async () => {
-  const moduleUrl = pathToFileURL(path.join(__dirname, '..', 'public', 'visual', 'StartIntentLauncher.mjs')).href;
+  const moduleUrl = pathToFileURL(path.join(__dirname, '..', 'public', 'avatar', 'StartIntentLauncher.mjs')).href;
   const { START_INTENTS, getStartIntentCopy, normalizeStartIntentLanguage } = await import(moduleUrl);
 
   assert.deepStrictEqual(
