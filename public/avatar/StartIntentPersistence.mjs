@@ -38,13 +38,27 @@ async function profileIds() {
   return ['classic', 'warm_guide'];
 }
 
-async function persistToProfiles(settings) {
-  const ids = await profileIds();
-  await Promise.all(ids.map((profileId) => fetchJson('/api/persona', {
+async function persistToProfiles(settings, ids = null) {
+  const targets = ids || await profileIds();
+  await Promise.all(targets.map((profileId) => fetchJson('/api/persona', {
     method: 'POST',
     body: JSON.stringify({ profileId, overrides: { startIntents: settings } }),
   })));
   return settings;
+}
+
+async function readServerSettings(ids) {
+  for (const profileId of ids) {
+    try {
+      const persona = await fetchJson(`/api/persona?profileId=${encodeURIComponent(profileId)}`);
+      const settings = persona?.overrides?.startIntents;
+      if (hasSettings(settings)) return settings;
+    } catch (error) {
+      if (error?.status === 400) continue;
+      throw error;
+    }
+  }
+  return {};
 }
 
 export async function createServerBackedStartIntentStorage(options = {}) {
@@ -88,12 +102,16 @@ export async function createServerBackedStartIntentStorage(options = {}) {
 
   const localSettings = safeParse(local?.getItem?.(START_INTENT_STORAGE_KEY));
   try {
-    const persona = await fetchJson('/api/persona');
-    const serverSettings = persona?.overrides?.startIntents;
+    const ids = await profileIds();
+    const serverSettings = await readServerSettings(ids);
     if (hasSettings(serverSettings)) {
       local?.setItem?.(START_INTENT_STORAGE_KEY, JSON.stringify(serverSettings));
+      // Keep the setting global from the operator's perspective even though
+      // the existing persona store persists JSONB per profile.
+      await persistToProfiles(serverSettings, ids);
     } else if (hasSettings(localSettings)) {
-      await persistToProfiles(localSettings);
+      // One-time migration from the browser-local v1 editor to PostgreSQL.
+      await persistToProfiles(localSettings, ids);
     } else {
       local?.setItem?.(START_INTENT_STORAGE_KEY, '{}');
     }
