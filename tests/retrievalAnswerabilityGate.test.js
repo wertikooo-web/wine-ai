@@ -86,7 +86,13 @@ async function run() {
     console.log('Testing: checkAnswerability() with no evidence is trivially not answerable...');
     {
         const result = await checkAnswerability('Вопрос?', [], {});
-        assert.deepStrictEqual(result, { answerable: false, reason: 'no_evidence' });
+        // claimClass/entityMatch are the answerability-gate sprint's added
+        // fields: with zero evidence there is nothing to classify against, so
+        // both are null and the gate falls back to its own deterministic
+        // claim-class classifier.
+        assert.deepStrictEqual(result, {
+            answerable: false, reason: 'no_evidence', claimClass: null, entityMatch: null,
+        });
     }
 
     // 2. The core regression case: 8 similar-but-irrelevant document

@@ -1,7 +1,40 @@
 'use strict';
 
 const { requireNonEmptyString, optionalString, setSearchBlock } = require('./toolHelpers');
-const { routeKnowledgeWithAnswerabilityGate } = require('../knowledge/layeredRouter');
+const { routeKnowledgeWithAnswerabilityGate, CLAIM_CLASSES } = require('../knowledge/layeredRouter');
+
+// A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
+// with no referent -- retrieval then searches for nothing in particular. The
+// realtime session already keeps `recentTurns` (realtimeServer.js), so the fix
+// is to reuse it, not to build a memory system: when the current turn reads as
+// referent-dependent, prepend the most recent USER turn text to the retrieval
+// query so the entities being discussed are actually in the search string.
+const REFERENT_DEPENDENT_RE = /(^|\s)(их|них|него|не[её]|это|этих|этот|эта|эти|том|тот|та|те|такое|такой|оно|он|она|они|acest|acel|ele|ei|them|it|this|that|those)(\s|$|[,?.!])/iu;
+const SHORT_FOLLOWUP_MAX_CHARS = 60;
+
+function looksReferentDependent(query) {
+    const text = String(query || '').trim();
+    if (!text) return false;
+    if (REFERENT_DEPENDENT_RE.test(text)) return true;
+    // "А какое легче?" / "И подешевле?" -- short, starts with a connective,
+    // names nothing.
+    return text.length <= SHORT_FOLLOWUP_MAX_CHARS && /^(а|и|но|ещ[её]|тогда|okay|ok|and|but|iar|și)\b/iu.test(text);
+}
+
+// Returns the query actually sent to retrieval. Never replaces the user's own
+// words -- it only appends prior USER turns as extra context, so proper nouns
+// in the current turn are still preserved exactly.
+function enrichQueryWithRecentTurns(query, toolContext) {
+    const turns = Array.isArray(toolContext?.recentTurns) ? toolContext.recentTurns : [];
+    if (!turns.length || !looksReferentDependent(query)) return { query, enriched: false };
+    const priorUserTurns = turns
+        .filter((turn) => turn && turn.role === 'user' && String(turn.text || '').trim())
+        .map((turn) => String(turn.text).trim())
+        .filter((text) => text !== String(query).trim())
+        .slice(-2);
+    if (!priorUserTurns.length) return { query, enriched: false };
+    return { query: `${priorUserTurns.join(' ')} ${query}`.slice(0, 600), enriched: true };
+}
 
 // Preserve the established public tool name. The realtime persona already
 // requires search_wine_knowledge for factual turns, so changing the name would
@@ -34,12 +67,13 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     return async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
         const language = optionalString(args.language, 8) || null;
+        const { query: retrievalQuery, enriched: queryEnriched } = enrichQueryWithRecentTurns(query, toolContext);
         // allowWeb stays true here (unchanged from before this gate existed)
         // -- the live assistant has always been permitted to reach the web;
         // routeKnowledgeWithAnswerabilityGate is what now decides WHEN that
         // permission is actually used (freshness, or evidence that doesn't
         // answer the question), same as it does for the eval tool.
-        const result = await routeImpl(query, {
+        const result = await routeImpl(retrievalQuery, {
             language,
             forceWeb: args.force_web === true,
             allowWeb: true,
@@ -52,8 +86,23 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             .filter((item) => item.level === 'web')
             .map((item) => ({ title: item.title, url: item.source }));
 
+        // Warm, honest sommelier voice -- NOT legalese. The refusal must sound
+        // like a professional who won't invent a number, and must always offer
+        // the next useful thing.
+        const GROUNDED_REFUSAL_INSTRUCTION = 'Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier\'s own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search.';
+        const GENERAL_KNOWLEDGE_INSTRUCTION = 'This is a general wine-knowledge question, not a claim about a specific named product. Answer it fully and confidently in your own sommelier voice from your professional knowledge -- do NOT refuse and do NOT say the information is unconfirmed. The fragments below (if any) are only loosely related; ignore them rather than forcing them in. The single hard limit: do not attribute any specific figure, vintage, award, price, or producer-stated spec to a specific named wine or winery unless it appears in the evidence.';
+        const ENTITY_MISMATCH_NOTE = ' Important: some retrieved material concerns a DIFFERENT producer or wine than the one asked about. Never transfer a fact from one producer or bottling to another; only state a fact if it is explicitly about the entity the user asked about.';
+
+        const claimClass = result.claim_class || null;
+        const isGeneralKnowledge = claimClass === CLAIM_CLASSES.GENERAL_KNOWLEDGE;
+        const entityMatch = result.evidence_entity_match || null;
+
         console.log('[search_wine_knowledge:layered]', JSON.stringify({
             query,
+            retrievalQuery: queryEnriched ? retrievalQuery : undefined,
+            queryEnriched,
+            claimClass,
+            entityMatch,
             language,
             queryIntent: result.query_intent,
             found: result.found,
@@ -72,16 +121,23 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         if (!result.found) {
             return {
                 found: false,
-                answerable: false,
+                // Retrieval finding nothing is not the same as the assistant
+                // being forbidden to answer. For a general wine-knowledge
+                // question the model's own training is a legitimate source and
+                // carries no risk of inventing a specific unverifiable fact.
+                answerable: isGeneralKnowledge ? true : false,
+                claimClass,
                 answerabilityReason: result.answerabilityReason || 'no_evidence',
                 webUsed: result.web_used === true,
-                status: 'not_found',
+                status: isGeneralKnowledge ? 'general_knowledge' : 'not_found',
                 evidence: [],
                 results: [],
                 conflicts: [],
                 answer_policy: {
                     ...result.answer_policy,
-                    final_instruction: 'Give a concise, honest answer that the specific fact cannot be reliably confirmed right now. Do not mention internal databases, retrieval levels, tool failures, or web search.',
+                    final_instruction: isGeneralKnowledge
+                        ? GENERAL_KNOWLEDGE_INSTRUCTION
+                        : GROUNDED_REFUSAL_INSTRUCTION,
                 },
             };
         }
@@ -110,12 +166,16 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 // collapsing both to false -- logs and the dashboard need to
                 // be able to tell "confirmed insufficient" apart from
                 // "we genuinely don't know".
-                answerable: result.answerable === true ? true : result.answerable,
+                answerable: isGeneralKnowledge
+                    ? true
+                    : (result.answerable === true ? true : result.answerable),
+                claimClass,
+                entityMatch,
                 answerabilityReason: result.answerabilityReason || null,
                 webUsed: result.web_used === true,
                 webReason: result.web_reason || null,
                 webSources,
-                status: 'insufficient',
+                status: isGeneralKnowledge ? 'general_knowledge' : 'insufficient',
                 evidence,
                 results: evidence,
                 used_levels: result.used_levels,
@@ -123,7 +183,9 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 conflicts: result.conflicts,
                 answer_policy: {
                     ...result.answer_policy,
-                    final_instruction: 'The evidence below is topically related but does not actually contain a direct answer to this specific question. Give a concise, honest answer that this specific fact cannot be reliably confirmed right now. Do not guess or answer from loosely-related evidence, and do not mention internal databases, retrieval levels, or web search.',
+                    final_instruction: isGeneralKnowledge
+                        ? GENERAL_KNOWLEDGE_INSTRUCTION
+                        : `The evidence below is topically related but does not actually contain a direct answer to this specific question. ${GROUNDED_REFUSAL_INSTRUCTION}${entityMatch === 'mismatch' ? ENTITY_MISMATCH_NOTE : ''}`,
                 },
             };
         }
@@ -131,6 +193,8 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         return {
             found: true,
             answerable: true,
+            claimClass,
+            entityMatch,
             answerabilityReason: result.answerabilityReason || null,
             webUsed: result.web_used === true,
             webReason: result.web_reason || null,
@@ -145,9 +209,10 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             conflicts: result.conflicts,
             answer_policy: {
                 ...result.answer_policy,
-                final_instruction: result.conflicts.length
+                final_instruction: (result.conflicts.length
                     ? 'Answer from the strongest and freshest evidence. Mention the specific uncertainty where sources conflict. Do not narrate the search process.'
-                    : 'Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful.',
+                    : 'Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful.')
+                    + (entityMatch === 'mismatch' || entityMatch === 'unverified_after_web' ? ENTITY_MISMATCH_NOTE : ''),
             },
         };
     };
