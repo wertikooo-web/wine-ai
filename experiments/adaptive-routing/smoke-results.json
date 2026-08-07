@@ -1,0 +1,60 @@
+{
+ "model": "gemini-2.5-flash",
+ "finished": "2026-08-07T19:09:33.134Z",
+ "results": [
+  {
+   "id": "ent-2",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Что такое Aurelius?",
+     "answer": "К сожалению, у меня нет подтверждённых данных о вине или винодельне под названием \"Aurelius\" в контексте молдавского виноделия.\n\nВозможно, вы имели в виду что-то другое? Могу рассказать о других интересных молдавских винах или сортах.",
+     "retrieval_ms": 6313,
+     "generation_ms": 2599,
+     "gate": {
+      "found": true,
+      "status": "insufficient",
+      "answerable": false,
+      "answerability_reason": "evidence_entity_mismatch",
+      "claim_class": "grounding_required",
+      "entity_match": "mismatch",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 4,
+      "final_instruction": "The evidence below is topically related but does not actually contain a direct answer to this specific question. Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search. Important: some retrieved material concerns a DIFFERENT producer or wine than the one asked about. Never transfer a fact from one producer or bottling to another; only state a fact if it is explicitly about the entity the user asked about."
+     }
+    }
+   ]
+  },
+  {
+   "id": "ent-3",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Расскажи про Vinaria din Vale.",
+     "answer": "Vinaria din Vale — это известная семейная винодельня из Молдовы. Она была основана Владимиром Давидеску, а сейчас ей управляют его дети, Елена и Андриан.\n\nИстория винодельни началась в 1999 году с создания компании Ceteronis, а торговая марка Vinaria din Vale была зарегистрирована в 2002 году.",
+     "retrieval_ms": 10617,
+     "generation_ms": 1798,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence provides specific details about Vinaria din Vale, including its founders, current management, and founding dates.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  }
+ ]
+}

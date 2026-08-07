@@ -94,7 +94,16 @@ function _isFactualQuestion(query) {
 // - 'off_topic_smalltalk': ordinary conversation with no factual content --
 //   web is never used; there is nothing to look up.
 function classifyQueryIntent(query, { knownEntityNames = KNOWN_WINERY_NAMES } = {}) {
-    if (isCatalogQuery(query) || _mentionsKnownEntity(query, knownEntityNames)) return 'own_entity';
+    // knownEntityNames stays authoritative (callers pass their own list, and
+    // safeFetch's ALLOWED_DOMAINS is kept in sync with it by name). The registry
+    // resolver is an ADDITIONAL signal, not a replacement: without it only 14 of
+    // the 109 known producers were visible here, so a bare "Расскажи про Vinăria
+    // din Vale" -- no wine vocabulary in the sentence -- fell through to
+    // off_topic_smalltalk and got no retrieval at all, producing a false refusal
+    // about a winery we actually know. Naming a registry entity IS wine-related.
+    if (isCatalogQuery(query)
+        || _mentionsKnownEntity(query, knownEntityNames)
+        || _resolvesToKnownEntity(query)) return 'own_entity';
     if (_isWineRelated(query)) return 'general_wine';
     return _isFactualQuestion(query) ? 'off_topic_factual' : 'off_topic_smalltalk';
 }
@@ -517,7 +526,22 @@ function classifyClaimDependency(query, { resolveEntityFn = resolveEntity } = {}
     return CLAIM_CLASSES.GROUNDING_REQUIRED;
 }
 
-function buildAnswerabilityPrompt(question, evidence) {
+// The registry knows things the grader cannot infer from the question alone --
+// "Aurelius" is a Purcari wine, not the German investment group the open web
+// returns first. Naming the resolved entity lets the grader recognise
+// off-domain fragments as a mismatch instead of scoring them "match".
+function resolvedEntityHint(question, resolveEntityFn = resolveEntity) {
+    try {
+        const r = resolveEntityFn(String(question || ''));
+        if (!r?.found || !r.canonicalName) return '';
+        return `\n\nRESOLVED ENTITY: the question refers to "${r.canonicalName}", a Moldovan wine producer/product in WINE AI's own entity registry. Judge "evidence_entity_match" against THAT entity. Fragments about an unrelated organisation, person or brand that merely shares the name are a "mismatch", not a "match".`;
+    } catch (error) {
+        return '';
+    }
+}
+
+function buildAnswerabilityPrompt(question, evidence, { resolveEntityFn = resolveEntity } = {}) {
+    const entityHint = resolvedEntityHint(question, resolveEntityFn);
     const fragments = evidence.slice(0, ANSWERABILITY_EVIDENCE_LIMIT).map((item, index) => {
         const text = String(item.text || '').slice(0, ANSWERABILITY_FRAGMENT_CHARS);
         return `[${index + 1}] ${item.title || 'Fragment'}\n${text}`;
@@ -538,7 +562,7 @@ function buildAnswerabilityPrompt(question, evidence) {
 Respond with ONLY strict JSON, no markdown, no prose outside the JSON:
 {"answerable": true or false, "claim_class": "general_knowledge" or "grounding_required", "evidence_entity_match": "match" or "mismatch" or "not_applicable", "reason": "one short sentence"}
 
-QUESTION: ${question}
+QUESTION: ${question}${entityHint}
 
 EVIDENCE:
 ${fragments}`;
