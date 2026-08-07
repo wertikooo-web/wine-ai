@@ -1,5 +1,6 @@
 import { ConversationOrchestrator, createDashboardDomAdapter } from './ConversationOrchestrator.mjs';
 
+export const START_INTENT_STORAGE_KEY = 'wineAi.startIntentSettings.v1';
 export const START_INTENTS = Object.freeze([
   { id: 'choose_wine', icon: '🍷' },
   { id: 'pair_food', icon: '🍽️' },
@@ -7,69 +8,71 @@ export const START_INTENTS = Object.freeze([
   { id: 'visit_winery', icon: '🏰' },
 ]);
 
+export const START_INTENT_LANGUAGES = Object.freeze(['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja']);
+
 const COPY = Object.freeze({
   ru: {
     title: 'С чего начнём?',
-    choose_wine: ['Выбрать вино', 'Помоги мне выбрать вино. Сначала задай один короткий вопрос, чтобы понять, что мне нужно.'],
-    pair_food: ['К еде', 'Хочу подобрать вино к еде. Сначала спроси, что я буду есть.'],
-    learn_wine: ['Узнать о вине', 'Хочу узнать больше о вине. Спроси, какое вино, сорт или регион меня интересует.'],
-    visit_winery: ['Винодельни', 'Хочу узнать о винодельнях Молдовы или выбрать поездку. Спроси, что мне интереснее.'],
+    choose_wine: { label: 'Выбрать вино', openingLine: 'Для какого случая выбираем вино?', context: 'Помоги пользователю подобрать вино. После первого вопроса уточняй только действительно нужные параметры и затем предложи подходящие варианты.' },
+    pair_food: { label: 'К еде', openingLine: 'Что вы собираетесь есть?', context: 'Помоги подобрать вино к блюду пользователя. Уточни блюдо, способ приготовления и важные вкусовые детали, если это нужно.' },
+    learn_wine: { label: 'Узнать о вине', openingLine: 'О каком вине, сорте или регионе хотите узнать?', context: 'Объясняй вино, сорт, регион или стиль простым живым языком и используй базу знаний Wine AI для конкретных фактов.' },
+    visit_winery: { label: 'Винодельни', openingLine: 'Хотите узнать о конкретной винодельне или подобрать место для поездки?', context: 'Помоги узнать о винодельнях Молдовы или выбрать винную поездку. Уточняй интересы пользователя и опирайся на базу знаний Wine AI.' },
   },
   ro: {
     title: 'Cu ce începem?',
-    choose_wine: ['Alege un vin', 'Ajută-mă să aleg un vin. Pune-mi mai întâi o întrebare scurtă ca să înțelegi ce caut.'],
-    pair_food: ['Pentru mâncare', 'Vreau să aleg un vin pentru mâncare. Întreabă-mă mai întâi ce voi mânca.'],
-    learn_wine: ['Despre vin', 'Vreau să aflu mai multe despre vin. Întreabă-mă ce vin, soi sau regiune mă interesează.'],
-    visit_winery: ['Crama', 'Vreau să aflu despre cramele din Moldova sau să aleg o excursie. Întreabă-mă ce mă interesează mai mult.'],
+    choose_wine: { label: 'Alege un vin', openingLine: 'Pentru ce ocazie alegem vinul?', context: 'Ajută utilizatorul să aleagă un vin potrivit și pune doar întrebările de clarificare cu adevărat necesare.' },
+    pair_food: { label: 'Pentru mâncare', openingLine: 'Ce veți mânca?', context: 'Ajută utilizatorul să asocieze vinul cu mâncarea și clarifică preparatul când este necesar.' },
+    learn_wine: { label: 'Despre vin', openingLine: 'Despre ce vin, soi sau regiune vreți să aflați?', context: 'Explică vinurile, soiurile, regiunile și stilurile clar și folosește baza de cunoștințe Wine AI pentru fapte concrete.' },
+    visit_winery: { label: 'Crama', openingLine: 'Vreți să aflați despre o cramă anume sau să alegem o vizită?', context: 'Ajută utilizatorul să descopere crame din Moldova sau să aleagă o excursie viticolă.' },
   },
   en: {
     title: 'Where shall we start?',
-    choose_wine: ['Choose a wine', 'Help me choose a wine. First ask one short question to understand what I need.'],
-    pair_food: ['With food', 'I want to pair wine with food. First ask what I am going to eat.'],
-    learn_wine: ['Learn about wine', 'I want to learn more about wine. Ask which wine, grape or region I am interested in.'],
-    visit_winery: ['Wineries', 'I want to learn about Moldovan wineries or plan a visit. Ask which direction interests me more.'],
+    choose_wine: { label: 'Choose a wine', openingLine: 'What occasion are we choosing the wine for?', context: 'Help the user choose a suitable wine. Ask only the clarifying questions that are genuinely useful, then recommend relevant options.' },
+    pair_food: { label: 'With food', openingLine: 'What are you going to eat?', context: 'Help the user pair wine with their dish. Clarify the dish, cooking method and important flavor details when useful.' },
+    learn_wine: { label: 'Learn about wine', openingLine: 'Which wine, grape or region would you like to learn about?', context: 'Explain wine, grapes, regions and styles in clear natural language and use the Wine AI knowledge base for specific facts.' },
+    visit_winery: { label: 'Wineries', openingLine: 'Would you like to learn about a specific winery or choose somewhere to visit?', context: 'Help the user learn about Moldovan wineries or choose a wine trip, using Wine AI knowledge where relevant.' },
   },
   fr: {
     title: 'Par où commencer ?',
-    choose_wine: ['Choisir un vin', 'Aide-moi à choisir un vin. Pose d’abord une courte question pour comprendre ce que je cherche.'],
-    pair_food: ['Avec un plat', 'Je veux choisir un vin pour un plat. Demande-moi d’abord ce que je vais manger.'],
-    learn_wine: ['Découvrir un vin', 'Je veux en savoir plus sur le vin. Demande quel vin, cépage ou région m’intéresse.'],
-    visit_winery: ['Domaines', 'Je veux découvrir les domaines moldaves ou préparer une visite. Demande ce qui m’intéresse le plus.'],
+    choose_wine: { label: 'Choisir un vin', openingLine: 'Pour quelle occasion choisissons-nous le vin ?', context: 'Aide l’utilisateur à choisir un vin adapté et ne pose que les questions de clarification vraiment utiles.' },
+    pair_food: { label: 'Avec un plat', openingLine: 'Qu’allez-vous manger ?', context: 'Aide l’utilisateur à accorder le vin avec son plat et précise le plat si nécessaire.' },
+    learn_wine: { label: 'Découvrir un vin', openingLine: 'Quel vin, cépage ou région souhaitez-vous découvrir ?', context: 'Explique clairement les vins, cépages, régions et styles en utilisant la base de connaissances Wine AI pour les faits précis.' },
+    visit_winery: { label: 'Domaines', openingLine: 'Souhaitez-vous découvrir un domaine précis ou choisir une visite ?', context: 'Aide l’utilisateur à découvrir les domaines moldaves ou à choisir une excursion viticole.' },
   },
   it: {
     title: 'Da dove iniziamo?',
-    choose_wine: ['Scegli un vino', 'Aiutami a scegliere un vino. Fammi prima una breve domanda per capire cosa cerco.'],
-    pair_food: ['Con il cibo', 'Voglio abbinare un vino al cibo. Chiedimi prima cosa mangerò.'],
-    learn_wine: ['Scopri il vino', 'Voglio saperne di più sul vino. Chiedimi quale vino, vitigno o regione mi interessa.'],
-    visit_winery: ['Cantine', 'Voglio conoscere le cantine moldave o organizzare una visita. Chiedimi cosa mi interessa di più.'],
+    choose_wine: { label: 'Scegli un vino', openingLine: 'Per quale occasione scegliamo il vino?', context: 'Aiuta l’utente a scegliere un vino adatto e fai solo le domande di chiarimento davvero utili.' },
+    pair_food: { label: 'Con il cibo', openingLine: 'Cosa mangerete?', context: 'Aiuta l’utente ad abbinare il vino al piatto e chiarisci il piatto quando serve.' },
+    learn_wine: { label: 'Scopri il vino', openingLine: 'Quale vino, vitigno o regione volete conoscere?', context: 'Spiega vini, vitigni, regioni e stili con linguaggio chiaro e usa la base Wine AI per i fatti specifici.' },
+    visit_winery: { label: 'Cantine', openingLine: 'Volete conoscere una cantina precisa o scegliere una visita?', context: 'Aiuta l’utente a conoscere le cantine moldave o a scegliere un viaggio del vino.' },
   },
   es: {
     title: '¿Por dónde empezamos?',
-    choose_wine: ['Elegir un vino', 'Ayúdame a elegir un vino. Primero hazme una pregunta breve para entender qué busco.'],
-    pair_food: ['Con comida', 'Quiero maridar vino con comida. Primero pregúntame qué voy a comer.'],
-    learn_wine: ['Conocer un vino', 'Quiero saber más sobre vino. Pregúntame qué vino, uva o región me interesa.'],
-    visit_winery: ['Bodegas', 'Quiero conocer bodegas de Moldavia o planear una visita. Pregúntame qué me interesa más.'],
+    choose_wine: { label: 'Elegir un vino', openingLine: '¿Para qué ocasión elegimos el vino?', context: 'Ayuda al usuario a elegir un vino adecuado y haz solo las preguntas aclaratorias realmente útiles.' },
+    pair_food: { label: 'Con comida', openingLine: '¿Qué va a comer?', context: 'Ayuda al usuario a maridar el vino con su plato y aclara el plato cuando sea necesario.' },
+    learn_wine: { label: 'Conocer un vino', openingLine: '¿Sobre qué vino, uva o región quiere saber más?', context: 'Explica vinos, uvas, regiones y estilos con claridad y usa la base de Wine AI para datos concretos.' },
+    visit_winery: { label: 'Bodegas', openingLine: '¿Quiere conocer una bodega concreta o elegir una visita?', context: 'Ayuda al usuario a conocer bodegas de Moldavia o elegir una ruta de vino.' },
   },
   de: {
     title: 'Womit beginnen wir?',
-    choose_wine: ['Wein auswählen', 'Hilf mir, einen Wein auszuwählen. Stelle zuerst eine kurze Frage, um zu verstehen, was ich suche.'],
-    pair_food: ['Zum Essen', 'Ich möchte Wein zum Essen auswählen. Frage mich zuerst, was ich essen werde.'],
-    learn_wine: ['Wein entdecken', 'Ich möchte mehr über Wein erfahren. Frage mich, welcher Wein, welche Rebsorte oder Region mich interessiert.'],
-    visit_winery: ['Weingüter', 'Ich möchte moldauische Weingüter kennenlernen oder einen Besuch planen. Frage mich, was mich mehr interessiert.'],
+    choose_wine: { label: 'Wein auswählen', openingLine: 'Für welchen Anlass wählen wir den Wein?', context: 'Hilf dem Nutzer, einen passenden Wein auszuwählen, und stelle nur wirklich nötige Rückfragen.' },
+    pair_food: { label: 'Zum Essen', openingLine: 'Was werden Sie essen?', context: 'Hilf dem Nutzer bei der Weinbegleitung zum Gericht und kläre das Gericht bei Bedarf.' },
+    learn_wine: { label: 'Wein entdecken', openingLine: 'Über welchen Wein, welche Rebsorte oder Region möchten Sie mehr erfahren?', context: 'Erkläre Wein, Rebsorten, Regionen und Stile klar und nutze die Wine-AI-Wissensbasis für konkrete Fakten.' },
+    visit_winery: { label: 'Weingüter', openingLine: 'Möchten Sie etwas über ein bestimmtes Weingut erfahren oder einen Besuch auswählen?', context: 'Hilf dem Nutzer, moldauische Weingüter kennenzulernen oder eine Weinreise auszuwählen.' },
   },
   zh: {
     title: '从哪里开始？',
-    choose_wine: ['选一款酒', '帮我选一款葡萄酒。先问我一个简短的问题，了解我的需求。'],
-    pair_food: ['配餐', '我想选一款配餐葡萄酒。先问我准备吃什么。'],
-    learn_wine: ['了解葡萄酒', '我想进一步了解葡萄酒。问我对哪款酒、葡萄品种或产区感兴趣。'],
-    visit_winery: ['酒庄', '我想了解摩尔多瓦酒庄或安排参观。问我更感兴趣的是哪一种。'],
+    choose_wine: { label: '选一款酒', openingLine: '这次选酒是为了什么场合？', context: '帮助用户选择合适的葡萄酒，只询问真正需要的补充信息，然后给出相关建议。' },
+    pair_food: { label: '配餐', openingLine: '您准备吃什么？', context: '帮助用户为菜肴搭配葡萄酒，必要时确认菜品和烹饪方式。' },
+    learn_wine: { label: '了解葡萄酒', openingLine: '您想了解哪款酒、葡萄品种或产区？', context: '用清晰自然的语言解释葡萄酒、品种、产区和风格，具体事实使用 Wine AI 知识库。' },
+    visit_winery: { label: '酒庄', openingLine: '您想了解某个具体酒庄，还是想挑选一个参观地点？', context: '帮助用户了解摩尔多瓦酒庄或选择葡萄酒旅行，并在需要时使用 Wine AI 知识库。' },
   },
   ja: {
     title: 'どこから始めますか？',
-    choose_wine: ['ワインを選ぶ', 'ワイン選びを手伝ってください。まず、希望を知るための短い質問を一つしてください。'],
-    pair_food: ['料理に合わせる', '料理に合うワインを選びたいです。まず何を食べるか聞いてください。'],
-    learn_wine: ['ワインを知る', 'ワインについてもっと知りたいです。どのワイン、品種、産地に興味があるか聞いてください。'],
-    visit_winery: ['ワイナリー', 'モルドバのワイナリーについて知るか、訪問を計画したいです。どちらに興味があるか聞いてください。'],
+    choose_wine: { label: 'ワインを選ぶ', openingLine: 'どんな場面のためにワインを選びますか？', context: 'ユーザーに合うワイン選びを手伝い、本当に必要な確認質問だけをして候補を提案する。' },
+    pair_food: { label: '料理に合わせる', openingLine: '何を召し上がる予定ですか？', context: '料理に合うワイン選びを手伝い、必要に応じて料理や調理法を確認する。' },
+    learn_wine: { label: 'ワインを知る', openingLine: 'どのワイン、品種、産地について知りたいですか？', context: 'ワイン、品種、産地、スタイルを分かりやすく説明し、具体的な事実には Wine AI の知識ベースを使う。' },
+    visit_winery: { label: 'ワイナリー', openingLine: '特定のワイナリーについて知りたいですか、それとも訪問先を選びたいですか？', context: 'モルドバのワイナリー情報やワイン旅行選びを手伝う。' },
   },
 });
 
@@ -78,17 +81,83 @@ export function normalizeStartIntentLanguage(language) {
   return COPY[value] ? value : 'en';
 }
 
-export function getStartIntentCopy(intentId, language) {
+export function readStartIntentSettings(storage = globalThis.localStorage) {
+  if (!storage) return {};
+  try {
+    const parsed = JSON.parse(storage.getItem(START_INTENT_STORAGE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeStartIntentSettings(settings, storage = globalThis.localStorage) {
+  if (!storage) return;
+  storage.setItem(START_INTENT_STORAGE_KEY, JSON.stringify(settings || {}));
+}
+
+export function getStartIntentConfig(intentId, language, storage = globalThis.localStorage) {
   const lang = normalizeStartIntentLanguage(language);
-  const row = COPY[lang][intentId];
-  if (!row) return null;
-  return { id: intentId, label: row[0], starter: row[1], title: COPY[lang].title, language: lang };
+  const base = COPY[lang][intentId];
+  if (!base) return null;
+  const saved = readStartIntentSettings(storage)?.[lang]?.[intentId] || {};
+  return {
+    id: intentId,
+    language: lang,
+    title: COPY[lang].title,
+    label: typeof saved.label === 'string' && saved.label.trim() ? saved.label.trim().slice(0, 80) : base.label,
+    openingLine: typeof saved.openingLine === 'string' && saved.openingLine.trim() ? saved.openingLine.trim().slice(0, 500) : base.openingLine,
+    context: typeof saved.context === 'string' && saved.context.trim() ? saved.context.trim().slice(0, 3000) : base.context,
+    enabled: saved.enabled !== false,
+  };
+}
+
+export function saveStartIntentConfig(intentId, language, patch, storage = globalThis.localStorage) {
+  const lang = normalizeStartIntentLanguage(language);
+  if (!START_INTENTS.some((item) => item.id === intentId)) throw new Error('invalid_start_intent');
+  const settings = readStartIntentSettings(storage);
+  settings[lang] ||= {};
+  const current = settings[lang][intentId] || {};
+  settings[lang][intentId] = {
+    ...current,
+    ...(patch.label !== undefined ? { label: String(patch.label).trim().slice(0, 80) } : {}),
+    ...(patch.openingLine !== undefined ? { openingLine: String(patch.openingLine).trim().slice(0, 500) } : {}),
+    ...(patch.context !== undefined ? { context: String(patch.context).trim().slice(0, 3000) } : {}),
+    ...(patch.enabled !== undefined ? { enabled: Boolean(patch.enabled) } : {}),
+  };
+  writeStartIntentSettings(settings, storage);
+  return getStartIntentConfig(intentId, lang, storage);
+}
+
+export function resetStartIntentConfig(intentId, language, storage = globalThis.localStorage) {
+  const lang = normalizeStartIntentLanguage(language);
+  const settings = readStartIntentSettings(storage);
+  if (settings[lang]) {
+    delete settings[lang][intentId];
+    if (Object.keys(settings[lang]).length === 0) delete settings[lang];
+  }
+  writeStartIntentSettings(settings, storage);
+  return getStartIntentConfig(intentId, lang, storage);
+}
+
+export function buildStartIntentStarter(config) {
+  return [
+    'Conversation start context:',
+    config.context,
+    `Your first spoken reply must be exactly this sentence, in the same language: "${config.openingLine.replace(/"/g, '\\"')}"`,
+    'Do not add a greeting, explanation, preface or second question before or after that opening sentence. Continue naturally after the user answers.',
+  ].join('\n');
+}
+
+// Backward-compatible helper used by existing tests/callers.
+export function getStartIntentCopy(intentId, language, storage = globalThis.localStorage) {
+  const config = getStartIntentConfig(intentId, language, storage);
+  if (!config) return null;
+  return { ...config, starter: buildStartIntentStarter(config) };
 }
 
 export function detectVoiceMode(document) {
-  return document?.getElementById('voiceModeTapBtn')?.classList?.contains('active')
-    ? 'tap_to_start'
-    : 'hold_to_talk';
+  return document?.getElementById('voiceModeTapBtn')?.classList?.contains('active') ? 'tap_to_start' : 'hold_to_talk';
 }
 
 export function isFreeConversationActive(document) {
@@ -118,6 +187,7 @@ function currentUiLanguage(document) {
 
 export function mountStartIntentLauncher(options = {}) {
   const document = options.document || globalThis.document;
+  const storage = options.storage || globalThis.localStorage;
   if (!document || document.getElementById('startIntentLauncher')) return null;
   const connect = document.getElementById('connectBtn');
   if (!connect || !connect.parentNode) return null;
@@ -137,9 +207,7 @@ export function mountStartIntentLauncher(options = {}) {
   let selectedIntent = null;
   const adapter = options.adapter || createDashboardDomAdapter(document);
   const orchestrator = options.orchestrator || new ConversationOrchestrator(adapter, {
-    onStateChange(state) {
-      root.dataset.conversationState = state;
-    },
+    onStateChange(state) { root.dataset.conversationState = state; },
   });
 
   function render() {
@@ -147,7 +215,8 @@ export function mountStartIntentLauncher(options = {}) {
     title.textContent = COPY[normalizeStartIntentLanguage(lang)].title;
     grid.innerHTML = '';
     for (const intent of START_INTENTS) {
-      const copy = getStartIntentCopy(intent.id, lang);
+      const copy = getStartIntentCopy(intent.id, lang, storage);
+      if (!copy?.enabled) continue;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'start-intent-btn';
@@ -158,11 +227,12 @@ export function mountStartIntentLauncher(options = {}) {
       button.addEventListener('click', () => start(intent.id));
       grid.appendChild(button);
     }
+    root.hidden = grid.children.length === 0;
   }
 
   async function start(intentId) {
-    const copy = getStartIntentCopy(intentId, currentUiLanguage(document));
-    if (!copy) return;
+    const copy = getStartIntentCopy(intentId, currentUiLanguage(document), storage);
+    if (!copy?.enabled) return;
     selectedIntent = intentId;
     root.classList.add('busy');
     render();
@@ -176,6 +246,7 @@ export function mountStartIntentLauncher(options = {}) {
   }
 
   document.getElementById('uiLangSelect')?.addEventListener('change', render);
+  globalThis.addEventListener?.('wineai:start-intents-changed', render);
   render();
-  return { root, start, orchestrator, getSelectedIntent: () => selectedIntent };
+  return { root, start, orchestrator, render, getSelectedIntent: () => selectedIntent };
 }
