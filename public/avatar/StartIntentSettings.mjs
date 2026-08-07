@@ -35,7 +35,9 @@ function injectStyles(document) {
     .intent-settings__actions{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
     .intent-settings__actions button{border:1px solid var(--border);border-radius:8px;padding:7px 10px;background:#fff;color:var(--ink);font:inherit;font-size:11px;font-weight:700;cursor:pointer}
     .intent-settings__actions button.primary{background:var(--wine);border-color:var(--wine);color:#fff}
+    .intent-settings__actions button:disabled{opacity:.55;cursor:wait}
     .intent-settings__status{font-size:11px;color:var(--muted)}
+    .intent-settings__status.error{color:var(--err)}
   `;
   document.head.appendChild(style);
 }
@@ -56,7 +58,7 @@ export function mountStartIntentSettings(options = {}) {
     <div class="intent-settings__head">
       <div>
         <div class="intent-settings__title">Старт разговора: 4 быстрых сценария</div>
-        <div class="intent-settings__sub">Здесь можно менять надпись на кнопке, точную первую реплику Wine AI, контекст дальнейшего разговора и временно отключать отдельные кнопки. Изменения применяются сразу после сохранения.</div>
+        <div class="intent-settings__sub">Надпись, первая реплика, контекст и видимость кнопок сохраняются на сервере и применяются на всех устройствах. Изменения вступают в силу сразу после сохранения.</div>
       </div>
       <label class="intent-settings__lang">Язык кнопок
         <select id="startIntentSettingsLanguage"></select>
@@ -110,7 +112,7 @@ export function mountStartIntentSettings(options = {}) {
     }
   }
 
-  grid.addEventListener('click', (event) => {
+  grid.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action]');
     if (!button) return;
     const card = button.closest('[data-intent-id]');
@@ -118,23 +120,35 @@ export function mountStartIntentSettings(options = {}) {
     const intentId = card.dataset.intentId;
     const lang = languageSelect.value;
     const status = card.querySelector('[data-role="status"]');
+    const buttons = [...card.querySelectorAll('button')];
+    buttons.forEach((item) => { item.disabled = true; });
+    status.classList.remove('error');
+    status.textContent = 'Сохраняю…';
 
-    if (button.dataset.action === 'reset') {
-      resetStartIntentConfig(intentId, lang, storage);
+    try {
+      if (button.dataset.action === 'reset') {
+        resetStartIntentConfig(intentId, lang, storage);
+      } else {
+        saveStartIntentConfig(intentId, lang, {
+          enabled: card.querySelector('[data-field="enabled"]').checked,
+          label: card.querySelector('[data-field="label"]').value,
+          openingLine: card.querySelector('[data-field="openingLine"]').value,
+          context: card.querySelector('[data-field="context"]').value,
+        }, storage);
+      }
+      if (typeof storage.flush === 'function') await storage.flush();
       render();
       notifyChanged();
-      return;
+      const updated = grid.querySelector(`[data-intent-id="${intentId}"] [data-role="status"]`);
+      if (updated) {
+        updated.textContent = 'Сохранено в PostgreSQL';
+        setTimeout(() => { if (updated.isConnected) updated.textContent = ''; }, 1800);
+      }
+    } catch (error) {
+      status.classList.add('error');
+      status.textContent = `Ошибка сохранения: ${error?.message || error}`;
+      buttons.forEach((item) => { item.disabled = false; });
     }
-
-    saveStartIntentConfig(intentId, lang, {
-      enabled: card.querySelector('[data-field="enabled"]').checked,
-      label: card.querySelector('[data-field="label"]').value,
-      openingLine: card.querySelector('[data-field="openingLine"]').value,
-      context: card.querySelector('[data-field="context"]').value,
-    }, storage);
-    status.textContent = 'Сохранено';
-    setTimeout(() => { if (status.isConnected) status.textContent = ''; }, 1400);
-    notifyChanged();
   });
 
   languageSelect.addEventListener('change', render);
