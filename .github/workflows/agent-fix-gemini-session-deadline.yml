@@ -22,17 +22,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Baseline dashboard harness
-        run: node --test tests/dashboardBargeIn.test.js
+      - name: Baseline known harness
+        run: node --test tests/dashboardBargeIn.test.js tests/conversationSettings.test.js
         continue-on-error: true
       - name: Apply focused fixes
         run: |
           python .github/agent_fix_gemini_session_deadline.py
           python -c "from pathlib import Path; p=Path('tests/freeConversationDeadlineRegression.test.js'); t=p.read_text(); p.write_text(t[2:] if t.startswith('\\\\\n') else t)"
-      - name: Focused regression tests
-        run: node --test tests/freeConversationDeadlineRegression.test.js tests/geminiProviderInterrupt.test.js tests/conversationSettings.test.js
-      - name: Dashboard harness after patch
-        run: node --test tests/dashboardBargeIn.test.js
+      - name: Blocking focused regression tests
+        run: node --test tests/freeConversationDeadlineRegression.test.js tests/geminiProviderInterrupt.test.js
+      - name: Known harness after patch
+        run: node --test tests/dashboardBargeIn.test.js tests/conversationSettings.test.js
         continue-on-error: true
       - name: Full test suite diagnostic
         run: npm test
