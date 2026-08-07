@@ -524,6 +524,19 @@ async function run() {
         eq(code, builder.ERROR.SOURCE_FETCH_FAILED, 'drifted DB text must abort (input pin at fetch time)');
     }
 
+    // --- trailing/leading whitespace in the DB is NOT a content change ---
+    // (manifest pins the canonical trimmed hash; the builder must hash the same
+    // bytes, otherwise identical documents get "drift" on every whitespace.)
+    {
+        const pool = seededTwoDocPool();
+        pool.sources[0].text = `\n${TEXTS.doc_a}\n\t `;
+        const report = await builder.runBuild({ pool, manifest: textFixtureManifest(), dryRun: false, createdBy: 'ws', embed: fakeEmbedder() });
+        eq(report.status, 'ready', 'whitespace-padded DB text still builds (shared canonical hash)');
+        const chunks = pool.getChunks(report.build_id).filter((c) => c.source_file === 'kos:doc_a');
+        a(chunks.length > 0, 'doc_a materialized');
+        a(!chunks.some((c) => c.text.includes('whitespace')), 'canonical text trimmed for chunking');
+    }
+
     // --- dimension detection is robust across pgvector versions ---
     {
         // pgvector 0.8.x: atttypmod is the raw dim, resolved_type gives vector(n)

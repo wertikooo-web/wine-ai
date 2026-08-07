@@ -19,6 +19,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { chunkDocument } = require('../src/knowledge/loader');
+// Shared source contract — manifests and the builder must hash the SAME bytes
+// (trimmed canonical body) so the build-time pin can never false-positive drift.
+const contract = require('../src/buildRegistry/sourceContract');
+const { canonicalText, canonicalTextHash } = contract;
 
 const OUT_DIR = path.resolve(__dirname, '..', 'docs', 'audits', 'corpus-manifest');
 const SOURCE_DIR = path.resolve(__dirname, '..', 'knowledge', 'source');
@@ -141,7 +145,7 @@ async function main(argv) {
             storage: 'postgres:kos_source_documents.normalized_text',
             hashes: {
                 content_hash_db: d.content_hash || null,
-                normalized_text_sha256: hasText ? sha256(d.normalized_text.trim()) : null,
+                normalized_text_sha256: hasText ? canonicalTextHash(d.normalized_text) : null,
             },
             text_size_chars: textLen,
             estimated_chunks: hasText ? estimateChunks(d.normalized_text) : 0,
@@ -199,7 +203,7 @@ async function main(argv) {
             storage: 'postgres:knowledge_documents.text',
             hashes: {
                 content_hash_db: d.content_hash || null,
-                text_sha256: hasText ? sha256(d.text.trim()) : null,
+                text_sha256: hasText ? canonicalTextHash(d.text) : null,
             },
             text_size_chars: textLen,
             estimated_chunks: hasText ? estimateChunks(d.text) : 0,
@@ -256,7 +260,7 @@ async function main(argv) {
             storage: 'filesystem:knowledge/source/' + file,
             hashes: {
                 raw_sha256: sha256(raw),
-                body_sha256: sha256(body),
+                body_sha256: sha256(canonicalText(body)),
             },
             text_size_chars: body.length,
             estimated_chunks: hasText ? estimateChunks(body) : 0,
