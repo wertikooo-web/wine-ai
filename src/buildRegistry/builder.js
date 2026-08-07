@@ -487,6 +487,11 @@ async function embedMissing(pool, buildId, embed = defaultEmbedder) {
 // Read the vector dimension from the actual schema (design §4 note): prefer the
 // legacy embedding column, else the registry column; refuse to run if it
 // disagrees with the configured model output.
+//
+// pgvector reports the dimension differently across versions: older builds put
+// `4 + 4*dim` in atttypmod, newer ones (e.g. 0.8.x) use the plain `dim`. To be
+// robust, parse the resolved type text `vector(<n>)` and fall back to atttypmod
+// arithmetic only when the type text has no explicit dimension.
 async function embeddingDimension(pool) {
     const candidates = [
         ['knowledge_chunk_embeddings', 'embedding'],
@@ -495,14 +500,21 @@ async function embeddingDimension(pool) {
     for (const [table, column] of candidates) {
         try {
             const { rows } = await pool.query(
-                `SELECT a.atttypmod
+                `SELECT a.atttypmod, format_type(a.atttypid, a.atttypmod) AS resolved_type
                  FROM pg_attribute a
                  JOIN pg_class c ON c.oid = a.attrelid
                  WHERE c.relname = $1 AND a.attname = $2 AND a.attnum > 0`,
                 [table, column]
             );
             if (rows.length > 0) {
-                return { dimension: (rows[0].atttypmod - 4) / 4, source: `${table}.${column}` };
+                const match = /vector\((\d+)\)/.exec(rows[0].resolved_type || '');
+                if (match) {
+                    return { dimension: Number(match[1]), source: `${table}.${column}` };
+                }
+                const dim = rows[0].atttypmod > 0 ? (rows[0].atttypmod - 4) / 4 : 0;
+                if (Number.isFinite(dim) && dim > 0) {
+                    return { dimension: dim, source: `${table}.${column}` };
+                }
             }
         } catch (_err) {
             // Table or extension may not exist yet; try the next candidate.
