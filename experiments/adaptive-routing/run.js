@@ -24,7 +24,10 @@ const MODEL = process.env.EXP_MODEL || 'gemini-2.5-flash';
 const JUDGE_MODEL = process.env.EXP_JUDGE_MODEL || 'gemini-2.5-flash';
 const CONCURRENCY = Number(process.env.EXP_CONCURRENCY || 3);
 const LIMIT = Number(process.env.EXP_LIMIT || 0);
-const OUT = path.join(__dirname, 'results.json');
+// EXP_OFFSET/EXP_OUT let the 110-item run execute in checkpointed batches -- a
+// single long unattended run is fragile, and analyze.js merges the parts.
+const OFFSET = Number(process.env.EXP_OFFSET || 0);
+const OUT = path.join(__dirname, process.env.EXP_OUT || 'results.json');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -251,6 +254,7 @@ async function runItem(item) {
 async function main() {
     const ds = JSON.parse(fs.readFileSync(path.join(__dirname, 'dataset.json'), 'utf8'));
     let items = ds.questions;
+    if (OFFSET) items = items.slice(OFFSET);
     if (LIMIT) items = items.slice(0, LIMIT);
     const results = [];
     let idx = 0;

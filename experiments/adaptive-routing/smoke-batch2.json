@@ -1,0 +1,202 @@
+{
+ "model": "gemini-2.5-flash",
+ "finished": "2026-08-07T19:13:26.742Z",
+ "results": [
+  {
+   "id": "unk-1",
+   "group": "unknown",
+   "steps": [
+    {
+     "question": "Расскажи про Lion Gri.",
+     "answer": "Вы знаете, у меня сейчас нет подтверждённых данных именно по винодельне Lion Gri.\n\nНо я могу рассказать про особенности вин из Молдовы в целом, или, возможно, про какой-то конкретный сорт, если вам интересно.",
+     "retrieval_ms": 1122,
+     "generation_ms": 1279,
+     "gate": {
+      "found": false,
+      "status": "not_found",
+      "answerable": false,
+      "answerability_reason": "no_evidence",
+      "claim_class": "grounding_required",
+      "entity_match": null,
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [],
+      "evidence_count": 0,
+      "final_instruction": "Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search."
+     }
+    }
+   ]
+  },
+  {
+   "id": "unk-2",
+   "group": "unknown",
+   "steps": [
+    {
+     "question": "Расскажи про винодельню Chateau Fabulescu.",
+     "answer": "Я не нашел подтвержденных данных о винодельне с названием Chateau Fabulescu. Возможно, вы имели в виду другую винодельню?\n\nЕсли хотите, я могу рассказать о других известных молдавских винодельнях или о каком-то конкретном сорте вина.",
+     "retrieval_ms": 5491,
+     "generation_ms": 1251,
+     "gate": {
+      "found": false,
+      "status": "not_found",
+      "answerable": false,
+      "answerability_reason": "no_evidence",
+      "claim_class": "grounding_required",
+      "entity_match": null,
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [],
+      "evidence_count": 0,
+      "final_instruction": "Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search."
+     }
+    }
+   ]
+  },
+  {
+   "id": "unk-3",
+   "group": "unknown",
+   "steps": [
+    {
+     "question": "Какая крепость у вина Timbrus Rara Neagra 2019?",
+     "answer": "Крепость вина Timbrus Rara Neagra 2019 составляет 13,5% алкоголя.",
+     "retrieval_ms": 18599,
+     "generation_ms": 693,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence directly states the alcohol percentage for the specified wine and vintage.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 1,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "unk-4",
+   "group": "unknown",
+   "steps": [
+    {
+     "question": "Какие награды получило вино Novak Riton в 2023 году?",
+     "answer": "К сожалению, у меня сейчас нет подтверждённых данных о наградах вина Novak Riton именно за 2023 год. Могу рассказать вам подробнее о винодельне Novak или о самом вине, если интересно.",
+     "retrieval_ms": 7431,
+     "generation_ms": 2208,
+     "gate": {
+      "found": true,
+      "status": "insufficient",
+      "answerable": false,
+      "answerability_reason": "evidence_entity_mismatch",
+      "claim_class": "grounding_required",
+      "entity_match": "mismatch",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 4,
+      "final_instruction": "The evidence below is topically related but does not actually contain a direct answer to this specific question. Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search. Important: some retrieved material concerns a DIFFERENT producer or wine than the one asked about. Never transfer a fact from one producer or bottling to another; only state a fact if it is explicitly about the entity the user asked about."
+     }
+    }
+   ]
+  },
+  {
+   "id": "unk-5",
+   "group": "unknown",
+   "steps": [
+    {
+     "question": "Кто главный винодел на винодельне Minis Terrios и с какого года?",
+     "answer": "Главным виноделом на винодельне Minis Terrios является Дан Присэкару. Он основал винодельню вместе со своей супругой Дианой Присэкару в 2013 году.",
+     "retrieval_ms": 5684,
+     "generation_ms": 1196,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence directly states the chief winemaker and the year the winery was founded.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 3,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "mt-1",
+   "group": "multiturn",
+   "steps": [
+    {
+     "question": "Покажи три Rară Neagră до 300 леев",
+     "answer": "К сожалению, у меня нет подтверждённых данных о наличии конкретных вин Rară Neagră до 300 леев прямо сейчас. Цены и наличие могут быстро меняться.\n\nНо я могу рассказать про сам сорт Rară Neagră. Это один из старейших молдавских автохтонных сортов, очень интересный и характерный. Хотите, расскажу о нём подробнее?",
+     "retrieval_ms": 208,
+     "generation_ms": 1352,
+     "gate": {
+      "found": false,
+      "status": "not_found",
+      "answerable": false,
+      "answerability_reason": "no_evidence",
+      "claim_class": "grounding_required",
+      "entity_match": null,
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [],
+      "evidence_count": 0,
+      "final_instruction": "Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search."
+     }
+    },
+    {
+     "question": "А какое из них легче?",
+     "answer": "К сожалению, у меня нет подтверждённых данных, чтобы точно сказать, какое из этих трёх вин будет легче. Информация о конкретном стиле и весе может сильно зависеть от урожая и технологии производителя.\n\nОднако, в целом, Rară Neagră обычно даёт вина средней плотности, с хорошей кислотностью и элегантными танинами. Они не бывают слишком тяжёлыми.",
+     "retrieval_ms": 10202,
+     "generation_ms": 2012,
+     "gate": {
+      "found": true,
+      "status": "insufficient",
+      "answerable": false,
+      "answerability_reason": "The evidence lists three wines but does not state which one is lighter.",
+      "claim_class": "grounding_required",
+      "entity_match": "not_applicable",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "The evidence below is topically related but does not actually contain a direct answer to this specific question. Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search."
+     }
+    },
+    {
+     "question": "А где находится второе?",
+     "answer": "К сожалению, я не смог найти три конкретных вина Rară Neagră, чтобы их перечислить. Поэтому я не могу сказать, где находится \"второе\" из них.\n\nЯ могу рассказать вам о регионах, где обычно выращивают этот сорт винограда, если хотите.",
+     "retrieval_ms": 1697,
+     "generation_ms": 1601,
+     "gate": {
+      "found": false,
+      "status": "not_found",
+      "answerable": false,
+      "answerability_reason": "no_evidence",
+      "claim_class": "grounding_required",
+      "entity_match": null,
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [],
+      "evidence_count": 0,
+      "final_instruction": "Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search."
+     }
+    }
+   ]
+  }
+ ]
+}

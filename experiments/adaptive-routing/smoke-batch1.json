@@ -1,0 +1,276 @@
+{
+ "model": "gemini-2.5-flash",
+ "finished": "2026-08-07T19:12:10.732Z",
+ "results": [
+  {
+   "id": "gen-1",
+   "group": "general",
+   "steps": [
+    {
+     "question": "Что такое яблочно-молочное брожение и зачем оно нужно?",
+     "answer": "Яблочно-молочное брожение, или как его ещё называют, малолактическая ферментация, — это вторичный биохимический процесс, который происходит в вине уже после основного спиртового брожения. В ходе этого процесса специальные молочнокислые бактерии, например *Oenococcus oeni*, преобразуют яблочную кислоту в молочную.\n\nЗачем это нужно? Главная цель — смягчить вкус вина. Яблочная кислота, которая содержится в винограде, довольно резкая и \"зелёная\", как в зелёном яблоке. Когда она превращается в молочную кислоту, вкус вина становится более мягким, округлым и кремовым. Это может придать вину характерные сливочные или маслянистые нотки, а также повысить его стабильность.\n\nОсобенно часто малолактическое брожение применяют для красных вин и некоторых белых, например, для шардоне, чтобы сделать их более насыщенными и гармоничными.",
+     "retrieval_ms": 8653,
+     "generation_ms": 3271,
+     "gate": {
+      "found": true,
+      "status": "general_knowledge",
+      "answerable": true,
+      "answerability_reason": "The evidence defines malolactic fermentation but does not explain its purpose.",
+      "claim_class": "general_knowledge",
+      "entity_match": "not_applicable",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "This is a general wine-knowledge question, not a claim about a specific named product. Answer it fully and confidently in your own sommelier voice from your professional knowledge -- do NOT refuse and do NOT say the information is unconfirmed. The fragments below (if any) are only loosely related; ignore them rather than forcing them in. The single hard limit: do not attribute any specific figure, vintage, award, price, or producer-stated spec to a specific named wine or winery unless it appears in the evidence."
+     }
+    }
+   ]
+  },
+  {
+   "id": "gen-2",
+   "group": "general",
+   "steps": [
+    {
+     "question": "Почему танины в вине ощущаются вяжущими?",
+     "answer": "Танины в вине ощущаются вяжущими, потому что они взаимодействуют с белками в нашей слюне.\n\nКогда это происходит, слюна становится менее смазывающей, и во рту возникает ощущение сухости и терпкости. Это и есть та самая вяжущая нота.",
+     "retrieval_ms": 6273,
+     "generation_ms": 1729,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence directly explains why tannins in wine feel astringent.",
+      "claim_class": "general_knowledge",
+      "entity_match": "not_applicable",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "gen-3",
+   "group": "general",
+   "steps": [
+    {
+     "question": "Зачем вино выдерживают в дубовой бочке?",
+     "answer": "Выдержка вина в дубовой бочке — это древняя и очень важная техника в виноделии. Она нужна по нескольким причинам, которые значительно влияют на вкус, аромат, текстуру и потенциал вина к хранению.\n\nВо-первых, дуб сам по себе придает вину новые ароматы и вкусы: это могут быть ноты ванили, тостов, дыма, кофе, специй или кокоса. Во-вторых, через поры дерева происходит очень медленное, контролируемое насыщение вина кислородом. Это помогает смягчить танины, особенно в красных винах, делая их более округлыми и гармоничными.\n\nТакже дуб способствует развитию более сложного букета и стабилизирует цвет вина. В итоге вино становится более комплексным, глубоким и способным к долгой выдержке в бутылке.",
+     "retrieval_ms": 8894,
+     "generation_ms": 3944,
+     "gate": {
+      "found": true,
+      "status": "general_knowledge",
+      "answerable": true,
+      "answerability_reason": "The evidence states that there are several key reasons for aging wine in oak barrels, but it does not list what those reasons are.",
+      "claim_class": "general_knowledge",
+      "entity_match": "not_applicable",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "This is a general wine-knowledge question, not a claim about a specific named product. Answer it fully and confidently in your own sommelier voice from your professional knowledge -- do NOT refuse and do NOT say the information is unconfirmed. The fragments below (if any) are only loosely related; ignore them rather than forcing them in. The single hard limit: do not attribute any specific figure, vintage, award, price, or producer-stated spec to a specific named wine or winery unless it appears in the evidence."
+     }
+    }
+   ]
+  },
+  {
+   "id": "gen-4",
+   "group": "general",
+   "steps": [
+    {
+     "question": "Чем Пино Нуар отличается от Каберне Совиньон по вкусу вина?",
+     "answer": "Пино Нуар и Каберне Совиньон — это два очень разных красных сорта винограда, и вина из них отличаются заметно.\n\n**Пино Нуар** обычно даёт более лёгкие или среднетелые вина с нежными танинами. В аромате и вкусе часто можно уловить ноты красных ягод, таких как вишня, клубника, малина, а также земляные оттенки, грибы, иногда фиалку или специи. Эти вина элегантные и тонкие.\n\n**Каберне Совиньон**, наоборот, известен своими полнотелыми винами с выраженными, порой довольно мощными танинами. В его букете преобладают тёмные фрукты — чёрная смородина, слива, ежевика. Часто встречаются ноты зелёного перца, кедра, табака, эвкалипта, а при выдержке в дубе — ваниль и специи.\n\nТаким образом, Пино Нуар более деликатный и фруктовый, а Каберне Совиньон — мощный, с более тёмными фруктами и выраженной структурой.",
+     "retrieval_ms": 10277,
+     "generation_ms": 3291,
+     "gate": {
+      "found": true,
+      "status": "general_knowledge",
+      "answerable": true,
+      "answerability_reason": "The evidence states that there are differences but does not provide the specific taste differences between Pinot Noir and Cabernet Sauvignon.",
+      "claim_class": "general_knowledge",
+      "entity_match": "not_applicable",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "This is a general wine-knowledge question, not a claim about a specific named product. Answer it fully and confidently in your own sommelier voice from your professional knowledge -- do NOT refuse and do NOT say the information is unconfirmed. The fragments below (if any) are only loosely related; ignore them rather than forcing them in. The single hard limit: do not attribute any specific figure, vintage, award, price, or producer-stated spec to a specific named wine or winery unless it appears in the evidence."
+     }
+    }
+   ]
+  },
+  {
+   "id": "gen-5",
+   "group": "general",
+   "steps": [
+    {
+     "question": "Какое вино подходит к утке?",
+     "answer": "К утке подходит довольно широкий спектр вин, это зависит от способа приготовления и соуса. Главное правило — вино должно быть достаточно ярким и с хорошей кислотностью, чтобы сбалансировать насыщенный вкус и жирность утиного мяса.\n\nОбычно хорошо подходят красные вина, но бывают варианты и с белыми, и даже с десертными. Хотите, расскажу подробнее о конкретных сортах?",
+     "retrieval_ms": 7913,
+     "generation_ms": 1974,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence states that a wide range of wines, including red, white, rosé, and even dessert wines, can pair with duck, depending on preparation and sauces, and provides the general rule that the wine",
+      "claim_class": "general_knowledge",
+      "entity_match": "not_applicable",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "ent-1",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Расскажи про винодельню Purcari.",
+     "answer": "Purcari — это одна из старейших и самых известных виноделен Молдовы, настоящий символ молдавского виноделия. Её история уходит корнями в XVIII век.\n\nХотите узнать подробнее о её истории или, может быть, о конкретных винах?",
+     "retrieval_ms": 13889,
+     "generation_ms": 1436,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence directly states that Purcari is one of the oldest and most famous wineries in Moldova, and its history dates back to the 18th century.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "ent-2",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Что такое Aurelius?",
+     "answer": "К сожалению, у меня нет подтвержденных данных об Aurelius в контексте молдавского вина.\n\nВозможно, вы имели в виду что-то другое или могли бы уточнить, с чем именно это связано? Я с удовольствием расскажу вам о молдавских винодельнях, сортах винограда или винных регионах.",
+     "retrieval_ms": 7832,
+     "generation_ms": 2069,
+     "gate": {
+      "found": true,
+      "status": "insufficient",
+      "answerable": false,
+      "answerability_reason": "evidence_entity_mismatch",
+      "claim_class": "grounding_required",
+      "entity_match": "mismatch",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "The evidence below is topically related but does not actually contain a direct answer to this specific question. Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier's own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search. Important: some retrieved material concerns a DIFFERENT producer or wine than the one asked about. Never transfer a fact from one producer or bottling to another; only state a fact if it is explicitly about the entity the user asked about."
+     }
+    }
+   ]
+  },
+  {
+   "id": "ent-3",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Расскажи про Vinaria din Vale.",
+     "answer": "Vinaria din Vale — это крупная семейная винодельня, расположенная на юге Республики Молдова. Она находится в Нижнем Прутулуй де Жос, это первый биосферный заповедник, охраняемый ЮНЕСКО, и недалеко от озера Белеу. Винодельня является одним из крупнейших производителей и экспортеров в регионе.",
+     "retrieval_ms": 7566,
+     "generation_ms": 1811,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence directly describes Vinaria din Vale, including its location and status as a large family winery.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 5,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "ent-4",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Что производит Cricova?",
+     "answer": "Cricova, известная молдавская винодельня, производит широкий ассортимент вин. Они выпускают как игристые, так и тихие вина.\n\nИгристые вина часто делают по классической технологии, с выдержкой на дрожжевом осадке.",
+     "retrieval_ms": 4795,
+     "generation_ms": 1816,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence explicitly states that Cricova produces a wide assortment of both sparkling and still wines.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 5,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  },
+  {
+   "id": "ent-5",
+   "group": "known_entity",
+   "steps": [
+    {
+     "question": "Расскажи про винодельню Gogu Winery.",
+     "answer": "Gogu Winery — это семейное предприятие, расположенное в городе Каушаны, Молдова, в винодельческом регионе Штефан-Водэ.\n\nИстория виноделия в семье Гогу насчитывает уже четыре поколения, а нынешний основатель и главный винодел, Илие Гогу, воплотил мечту своих предков в реальность.",
+     "retrieval_ms": 9538,
+     "generation_ms": 1765,
+     "gate": {
+      "found": true,
+      "status": "found",
+      "answerable": true,
+      "answerability_reason": "The evidence directly describes Gogu Winery, including its location, family history, and founder.",
+      "claim_class": "grounding_required",
+      "entity_match": "match",
+      "query_enriched": null,
+      "enriched_query": null,
+      "used_levels": [
+       "web"
+      ],
+      "evidence_count": 8,
+      "final_instruction": "Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful."
+     }
+    }
+   ]
+  }
+ ]
+}

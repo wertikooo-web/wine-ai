@@ -521,7 +521,7 @@ function classifyClaimDependency(query, { resolveEntityFn = resolveEntity } = {}
     // out of scope, so the extra stems are applied locally to this classifier
     // only.
     const wineTopic = _isWineRelated(query)
-        || /(vin(?:ul|uri|urile|uri)?\b|decant|танин|tanin|tannin|кислотност|aciditate|acidity|купаж|blend|терпк|послевкус|аромат|бро[жд]ени|ferment|выдержк в дуб|дуб[ае]\b|oak)/iu.test(norm);
+        || /(vin(?:ul|uri|urile|uri)?\b|decant|танин|tanin|tannin|кислотност|aciditate|acidity|купаж|blend|терпк|послевкус|аромат|бро[жд]ени|фермент|ferment|выдержк в дуб|дуб[ае]\b|oak)/iu.test(norm);
     if (wineTopic && GENERAL_EXPLANATION_RE.test(norm)) return CLAIM_CLASSES.GENERAL_KNOWLEDGE;
     return CLAIM_CLASSES.GROUNDING_REQUIRED;
 }

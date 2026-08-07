@@ -1,0 +1,2838 @@
+{
+ "meta": {
+  "model": "gemini-2.5-flash",
+  "judge_model": "gemini-2.5-flash",
+  "finished": "2026-08-07T19:19:41.932Z",
+  "n_items": 25
+ },
+ "results": [
+  {
+   "id": "q041",
+   "class": "moldova_general",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Чем Rară Neagră отличается от Fetească Neagră?",
+     "direct": {
+      "answer": "О, это отличный вопрос! Rară Neagră и Fetească Neagră — два очень интересных местных красных сорта, но у них есть заметные отличия.\n\n**Fetească Neagră** чаще всего даёт вина более плотные, с насыщенным цветом и богатым ароматом. В них обычно чувствуются тёмные ягоды, такие как вишня и слива, а также нотки специй, иногда даже лёгкий дым или табак, особенно если вино выдерживалось в дубе. Это вино с хорошей структурой и потенциалом к выдержке.\n\n**Rară Neagră** же, как правило, даёт более лёгкие и элегантные вина. У них часто более светлый, рубиновый цвет. В аромате можно уловить красные ягоды, такие как клюква и малина, иногда с оттенками сушёных трав или цветов. Танины у Rară Neagră обычно мягче, а кислотность выше, что делает его очень питким и свежим.\n\nМожно сказать, что Fetească Neagră — это такой \"характерный силач\" с мощным букетом, а Rară Neagră — более \"изысканный и утончённый\" сорт с элегантной структурой.\n\nХотите, я расскажу подробнее о каком-то из них?",
+      "latency_ms": 3233,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 299,
+       "total_tokens": 4303
+      }
+     },
+     "rag": {
+      "answer": "К сожалению, у меня нет подтверждённых данных, чтобы провести прямое сравнение этих двух сортов по всем их характеристикам.\n\nНо я могу рассказать об особенностях каждого из них, чтобы вы могли лучше понять разницу. Хотите, я начну с Rară Neagră?",
+      "latency_ms": 2311,
+      "retrieval_ms": 1211,
+      "generation_ms": 1100,
+      "usage": {
+       "prompt_tokens": 4277,
+       "output_tokens": 59,
+       "total_tokens": 4336
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, подробный и понятный ответ, который хорошо описывает различия между сортами. Факты о вкусовых профилях и структуре вин являются общепринятыми характеристиками этих сортов, поэтому не требуют строгой проверки по конкретным источникам, если только не называются конкретные вина или производители."
+      },
+      "rag": {
+       "quality": 1,
+       "factuality": 5,
+       "relevance": 1,
+       "naturalness": 3,
+       "unverified_specific_claims": [],
+       "notes": "Ответ RAG полностью отказался отвечать на вопрос, сославшись на отсутствие данных, хотя вопрос вполне общий и не требует специфических данных из базы знаний. Это очень плохой результат."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос является общим и касается общеизвестных характеристик сортов винограда, которые не требуют специфических данных из базы знаний. Модель должна была ответить на него, используя свои общие знания.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Модель отказалась отвечать на вопрос, сославшись на отсутствие данных, хотя прямой ответ был очень хорошим и полным. Отсутствие извлеченных фрагментов привело к тому, что RAG-модель не смогла использовать свои общие знания.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q042",
+   "class": "moldova_general",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какие автохтонные сорта винограда есть в Молдове?",
+     "direct": {
+      "answer": "В Молдове есть несколько интересных автохтонных сортов винограда. Среди красных это в первую очередь Fetească Neagră и Rară Neagră. А из белых стоит отметить Viorica, Fetească Albă и Fetească Regală.\n\nХотите, я расскажу подробнее о каком-то конкретном сорте?",
+      "latency_ms": 1464,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 74,
+       "total_tokens": 3997
+      }
+     },
+     "rag": {
+      "answer": "В Молдове есть несколько замечательных местных сортов, которые очень ценятся. Среди них Fetească Neagră, Rară Neagră, Vior",
+      "latency_ms": 11271,
+      "retrieval_ms": 6530,
+      "generation_ms": 4741,
+      "usage": {
+       "prompt_tokens": 8175,
+       "output_tokens": 33,
+       "total_tokens": 9071
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence only lists 'Фетяск' and does not provide a complete list of autochthonous grape varieties in Moldova.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "agroexpert.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEckUJaFEaou3xdzYvH0Smvm22wPcNjF7dcjble4-eXVWkrxSK9S7Ax53jf6TulHDKr9xswNkXKtKweHVMkp9AceTcvkpffKP-K8xlWUhc2LzwAUrgsaSR_vFGVrAbFmgcyCZgxx1nbUE06UVopfgjqkZgf8iOvZ6wjqFjNEnB7hb1IMM9TwhNHVKFyLClYu3VCNsksLbBLXu7--slYCBk=",
+         "confidence": "low",
+         "text": "В Молдове существует несколько автохтонных сортов винограда, которые можно разделить на две основные категории: аборигенные сорта, исторически выращиваемые в регионе, и сорта новой селекции, выведенные молдавскими учеными.\n\nК аборигенным (или местным) сортам винограда Молдовы относятся:\n*   **Фетяск"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFyrVSvQjYRg5psq9KXpD6vCY5yUCZy9lQ23Zsane7mzfGUoU_dYONaUdTokqkDl3roiKENSBQpgO8OhA50Ne-RmEZ1Uf2kKormU7JP-UzfDAhKxnRTwgZaE7EJpF3pOovQBS6A-K5DUIuuKJhwlbHgIu0=",
+         "confidence": "low",
+         "text": "В Молдове существует несколько автохтонных сортов винограда, которые можно разделить на две основные категории: аборигенные сорта, исторически выращиваемые в регионе, и сорта новой селекции, выведенные молдавскими учеными.\n\nК аборигенным (или местным) сортам винограда Молдовы относятся:\n*   **Фетяск"
+        },
+        {
+         "level": "web",
+         "title": "carlevana.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHxc1Yll_XcBk1OJPstBlLdDc9xcparQ8lYWsjlDoIoPce3ntoYDDX6av1a7Yo2RtA0VlRP7-5bJzKludMTv0Suh8pBTDv4EDUbfw4OjJqkh0t6CUIW7pnckWZ6bVBHuESMwDU=",
+         "confidence": "low",
+         "text": "В Молдове существует несколько автохтонных сортов винограда, которые можно разделить на две основные категории: аборигенные сорта, исторически выращиваемые в регионе, и сорта новой селекции, выведенные молдавскими учеными.\n\nК аборигенным (или местным) сортам винограда Молдовы относятся:\n*   **Фетяск"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGsLSblcYvA9oVCN9AI8yqAsmFnOK_EyM7daDjVQhlIGKHd79aC5xYQIHLBjHP7iKgeOwvxlLZRqH9OjpBRw4QtJbURpIeeK2x_2nrhtk-2lNFjRPLRu9NT9C1Lb_oIbm1w2aePB-w9",
+         "confidence": "low",
+         "text": "В Молдове существует несколько автохтонных сортов винограда, которые можно разделить на две основные категории: аборигенные сорта, исторически выращиваемые в регионе, и сорта новой селекции, выведенные молдавскими учеными.\n\nК аборигенным (или местным) сортам винограда Молдовы относятся:\n*   **Фетяск"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ полный, точный и естественный. Перечислены основные автохтонные сорта."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 2,
+       "relevance": 3,
+       "naturalness": 3,
+       "unverified_specific_claims": [],
+       "notes": "Ответ неполный, обрывается на полуслове. Фрагменты не содержат полного списка сортов, только начало слова 'Фетяск'."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала полный и корректный ответ на этот вопрос.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "answer_derailed",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были неполными и привели к обрыву ответа, тогда как direct-ответ был полным и корректным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q043",
+   "class": "moldova_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что означают молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian?",
+     "direct": {
+      "answer": "Молдавские географические индикации, или IGP, показывают, что вино произведено в определённом регионе Молдовы и соответствует строгим стандартам качества. Это гарантирует происхождение и особый стиль вина.\n\nУ Молдовы есть три таких региона:\n\n*   **IGP Codru** — это центральная зона, самая большая. Здесь производят как белые, так и красные вина, часто отличающиеся элегантностью и хорошим потенциалом к выдержке.\n*   **IGP Ștefan Vodă** — находится на юго-востоке, ближе к Днестру. Климат здесь более тёплый, что хорошо подходит для красных сортов, таких как Fetească Neagră и Rară Neagră. Вина отсюда часто более насыщенные и структурированные.\n*   **IGP Valul lui Traian** — это южная часть Молдовы, очень тёплый регион. Здесь преобладают красные сорта, которые дают полнотелые, богатые вина, а также ароматные белые.\n\nКаждый из этих регионов имеет свои уникальные особенности терруара, которые влияют на характер вин.",
+      "latency_ms": 2685,
+      "usage": {
+       "prompt_tokens": 3896,
+       "output_tokens": 252,
+       "total_tokens": 4320
+      }
+     },
+     "rag": {
+      "answer": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием, или ЗГУ.\n\nЭто означает, что вина, произведенные в этих регионах, должны соответствовать строгим правилам, касающимся происхождения винограда, методов производства и качества. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе, и каждый регион обладает уникальными климатическими особенностями, которые влияют на характер вин.",
+      "latency_ms": 11503,
+      "retrieval_ms": 9533,
+      "generation_ms": 1970,
+      "usage": {
+       "prompt_tokens": 12311,
+       "output_tokens": 118,
+       "total_tokens": 12526
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states what the Moldovan geographical indications IGP Codru, Ștefan Vodă, and Valul lui Traian mean.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFZxmkCzDhyPqONeU8wn5u3h6aQm2M-CIDbkfvVoOCSh-JbzpbLTTDSqSL_Bh5XzLE7vyfbCWa_MyKbaq6GOUWFxq2N9oQoIw_WjOLGEnneHiliz3n2-1m2odrUSX23Ii0JR7zbCw==",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "thewinesnug.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEXYDhopmI7MMoFB2k2ClQ9JrieFn_sYDmOsdbjkQla7t0wsazIonO7YBR72Jk5tODKZ3Sm5HLH82CA6K69n8E0sx2HpbGaUDDbUQ-wmOf1JYlPIHfYn9-omqXOv9FJRgDcMGx8lcSuiII2rqkk1Zua00vWMy5tBe_bWiIjlAI=",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHUwnEfmvHWwCqEEiWfMmwrGaVSsZfjtFWoJdQOF99T6loQ6ZWC37vHtyK5MiMLxIjkBizBg0C78pIngr3bbgC2abzz4KP7Cvjo954ClWpQhf2iqxqtEYc5dj3FGsEuZqsJqi25EMGyefxuHwhxCQSBele8C9gkHmaulrKpZo288YSq6nEU3wFvdA4IqQEr7mXw6z_nCfVIaHe77qZxpxHxjZRA",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGavrh5ev1VUtXb6R0MvA8iSvoRssw8Ak7EWXAHfwQ-bkhp-5_iHJsw-tlW18lAI8fqOuHmyeDUDGTckdhWXyJrWBopt1HKFboUcBtNQ0qd_9V9EJoUUNQzLz98USpBzaEn_n3YlC_fBHVF",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "winewithseth.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGzAIthPCMg6fhO06CjcNx3Kdow3EI-oKK5Px-NIBkR_659F97udydBNJn8TyFNGvHXGn35WrO3GUYy89WTTPKC35D6X5UkGheke_W4fsiKU8XlSGP_5pJvu-X9AVtfNYl_03z1SmSHNeWTa2YLNvKwHIiM",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGSoDSNlZaBbmnuS0DojUfuqyrOsndZ-0sRqZt9wkLCxI638KomM-yFAznEUw0kEZ3NlH7cdFRBS9WN0zKn3mvtOdhOuk_roJ1pMvnrzusGEDQLwnNXHiSlSb8yRhcUglERUaOlt1U3kmJ9RFSr-Fv-UI16e9LsU7SrDX03wrkeepIP5X0TqmcOW6xqOK4b_SilaLlcedkfz8w=",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "viniou.co.uk",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_7rFtjQ79Nbtw-GP_XQQ1LQX11hxndAqILqh85BOscC8YsjK6yAPH38h4uRS_3KPjWeTPZubf4_QzcHk02o8JDmfB4FVfPGoct5D_6QkD840Lor9GMdbaBgoSSGbOFlddkDvctOARbLTkXnhOCfgz_711kmVxi6cyWOqaIrx_2N2wV8cFEZtZRw==",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH3FAVo7X0rZBWNjUDqruWjQsGMTtPRkv1qlGeh207AoPgbq18m__kVrgBqIn2i44e-vY_5nY3p5F2B9jyZSfSMyTjj3ZYaraNTsuxD7zMnjBct86bWBXa6MMCwLjXtv1q1xeFIVsXKszo=",
+         "confidence": "low",
+         "text": "Молдавские географические индикации IGP Codru, Ștefan Vodă и Valul lui Traian обозначают винодельческие регионы с защищенным географическим указанием (ЗГУ) в Республике Молдова. Все три ЗГУ защищены как в Молдове, так и в Европейском союзе. Эти регионы характеризуются уникальными комбинациями климат"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ A очень хорошо и подробно описывает каждый регион, его особенности и типы вин, что очень полезно для пользователя."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ B очень краткий и не дает никакой конкретной информации о каждом регионе, кроме того, что они являются ЗГУ и защищены в ЕС. Он не добавляет ценности по сравнению с ответом A."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала очень полный и точный ответ, который не требует дополнительной информации из базы знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были слишком общими и повторяющимися, что привело к значительному ухудшению качества ответа B по сравнению с ответом A. Ответ B стал менее информативным и полезным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q044",
+   "class": "moldova_general",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Почему молдавское виноделие считают недооценённым?",
+     "direct": {
+      "answer": "Молдавское виноделие часто считают недооценённым по нескольким причинам.\n\nВо-первых, долгое время оно было ориентировано на массовое производство и экспорт в страны бывшего Советского Союза, что не способствовало формированию имиджа высококачественного продукта на мировом рынке.\n\nВо-вторых, после распада СССР и различных эмбарго, молдавским виноделам пришлось заново отстраивать свою репутацию и искать новые рынки.\n\nСейчас ситуация меняется: многие винодельни делают ставку на качество, используют современные технологии и возрождают уникальные местные сорта винограда, такие как Fetească Neagră, Rară Neagră и Viorica. Это помогает им постепенно завоёвывать признание.",
+      "latency_ms": 2519,
+      "usage": {
+       "prompt_tokens": 3884,
+       "output_tokens": 161,
+       "total_tokens": 4275
+      }
+     },
+     "rag": {
+      "answer": "Молдавское виноделие часто считают недооценённым из-за наследия советской эпохи. В тот период основной упор делался на массовое производство.\n\nЭто повлияло на восприятие молдавского вина, хотя сейчас качество продукции значительно улучшилось, и в виноделие вкладываются серьёзные инвестиции.",
+      "latency_ms": 10761,
+      "retrieval_ms": 9281,
+      "generation_ms": 1480,
+      "usage": {
+       "prompt_tokens": 13021,
+       "output_tokens": 72,
+       "total_tokens": 13171
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that Moldovan winemaking is considered underrated due to its Soviet-era legacy and focus on mass production.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "grozdi.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH0DO_hSfWZhszm_SmZvEfgGtj1tO9qFl0uNREyd3EUxFLyBZKT2vcT8fVqNm9rbPxFrrqWCktY81tbCZYdLs3hJ_AjtR7ahQKxI-2UJYywLMbvEv7w6ca_u8qqvm4h",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "winereviewsite.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFCZz65USbqclSt30tjg7ksS9PO8JIKDxFszVl2t4pwYSAZdhUigp7E5REQi0FZbRfRsDbbFximyiYhxniFihQQVhI9YPdQIpuhW_Ba3CSAWVm4hXUpt5WCeR2oopFH7S33uGMkygwZr7mxGySMh2CAxouP2227A9JBQRYsLX9sRp13H8kh436P1eY9tTWrrEYeAytRsMJJ_SRkVECzskp5PglsyTkpRoxLTTyNRJ3xgmaM7EqK91hRW0zBcju9DjR1OsiLx3O7BKzsprzA6B4uORfzOSKPUarjdYiCUzRAsRKJoTqOMuLAC1B67N59qWo2HNnkWoMH-EpXP1oTAiJclc895tggI0gI0VEND6Y7AZsFQCbX85k9LwgbKytKMMI=",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "alcofan.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF3uZ-vCYBKPyOUS6m_dYbxStuVAY5kTdZc0_kGdhhH7bBBB_YZ8LFD0Qv-h-A20m5Jf5rHb7SHekq165yeZBqfzeZtrWC9Grqc3UoSkZI_0QmGSDgSGvXmXrlt65IimExMEN5uHkgtfjVAmEGdvK7Xo2iVKvowJwppmlvjxCl-vA==",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "veridica.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGp4Kln3B3WSIrewwmw8446axGe6eU__4DVtWBPcVhR-21Zld5WJUWFtvJPO5zQV6NDzagw8wblTQOU8SzLcXBVTp3aE5Sl2NLB0Aex5lefy2-QYdMY2v9NDXRBe2ZLL_lujXG1K3gO7qs_b_EL_ei_D6hKYJCMSX_8uyqwcYRDwdy25QVlVRk=",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOjQ_ZuagfSpu-xFPAPUG41O6E1_X1SGMarQc-uUqZDn1Gr5V_Ay-97i9KjzPtawsZRGfNv5B9POAQkFuTvPkkxnS2jpXhd5PL8AnCUlJWVCF0tDAqb6e6cX8vTAFeC1a7GCR4d9YjmcOBdZ6RVzEHzu8zfJqijAwwQXT7eU77QdTMI12AbQ7yNKY-kvr_Q-pR0AQwLv_oe5jtY-fNoemWHCZUpo_hATtDndbU_NpXhuf8nI6aFR7PzbgASV6lbNyfAQ==",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE_d5nzPaFCPQ0ezTlcQ09cZpOoNIj3Ez7EkZj6pHHtGb50WlsUtP_HBPaoXBwpLoslvUSiSWhENIL87uwCKE164eMU4rJgDTqfY7vWd3T7_KK_Qsb9aOFrj3uckr5AFGIqWilUEW8eU0VpjJjJ-Xrqutb2EbvuLmYtUiu_rxKHwUg=",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF5V4bvrgVXHW6VznwKWurICCTRP-a7jyS51uaFtsGMlZNDXACJhNMqDDwBv95Ga2sfG_-4VCMmywVpObK0ws420HKZqDxAPAPLmujtmqegcFvT1brkP4ovChNxF6Iu_joWET67iEgBBoDwvg==",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        },
+        {
+         "level": "web",
+         "title": "infomarket.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFRTxzW-Kq6iFjE-WZlcvqwVimxm5Dh_-VD5-NMygEDUHPLL9S3nOQ6GcAp1AOLIPtfG_091lS3_sqYw89Rzewo-Ic8cEe4xKVZasLjqJsSJUOxPcyQa29KD9TOd9eMQeUrOBMzB8U=",
+         "confidence": "low",
+         "text": "Молдавское виноделие часто считают недооценённым по нескольким причинам, несмотря на его богатую историю, значительные инвестиции и улучшающееся качество продукции:\n\n*   **Наследие советской эпохи и фокус на массовое производство.** На протяжении советского периода Молдова была основным поставщиком "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и релевантный ответ, который хорошо объясняет причины недооценённости молдавского виноделия."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но слишком краток и не раскрывает тему так полно, как мог бы. Он повторяет только одну из причин, упомянутых в direct ответе."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала исчерпывающий ответ на вопрос, который не требует специфических данных из базы знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлечённые фрагменты были слишком общими и повторяющимися, что привело к более краткому и менее информативному ответу по сравнению с direct ответом. Модель не смогла использовать их для улучшения или расширения информации.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q045",
+   "class": "moldova_general",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какая история у виноделия Молдовы?",
+     "direct": {
+      "answer": "История виноделия в Молдове очень древняя, она уходит корнями на тысячи лет назад.\n\nАрхеологические находки показывают, что виноград здесь выращивали ещё 6000 лет до нашей эры, а первые свидетельства производства вина относятся к 3000 году до нашей эры.\n\nС тех пор виноделие развивалось под влиянием разных культур и империй, включая греков, римлян, османов и русских, но всегда оставалось важной частью местной культуры и экономики.\n\nХотите, я расскажу подробнее о каком-то конкретном периоде?",
+      "latency_ms": 1718,
+      "usage": {
+       "prompt_tokens": 3881,
+       "output_tokens": 128,
+       "total_tokens": 4095
+      }
+     },
+     "rag": {
+      "answer": "Виноделие в Молдове имеет очень глубокую историю, насчитывающую от четырех до пяти тысяч лет.\n\nИнтересно, что отпечатки листьев винограда, найденные в северной части Молдовы, свидетельствуют о том, что виноград рос здесь еще 6-25 миллионов лет назад.",
+      "latency_ms": 10916,
+      "retrieval_ms": 8866,
+      "generation_ms": 2050,
+      "usage": {
+       "prompt_tokens": 12661,
+       "output_tokens": 69,
+       "total_tokens": 12802
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence states that winemaking in Moldova has a history of 4000 to 5000 years and that grape leaves found there date back 6-25 million years.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFFv_scMeQa58M2mz7iPS-ODJ_1jt69Lqw4By3hCZzdYQr3PgXWQLbqiZ7c40UV5byfK3Ff8sWMH6G2KcBkzaIQ6Y_AE9gSzDpyyr9yCFNwfxNYHErXa7_55jc_1AT9J8bsOG4IV058jL4rc7c8fG1JjrYFxznSj8PnmdXHet1kM1dilKZ5yv68evZ9LEyF6eehRbQEe4ox29-0DdvTG9C9hu9DKXyWo0iUOzduP2Qd-XTvLHMySWvEWfm8GDiYKawl",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGcshQPzTqNmJa5YHC3z0vAFHwDXK_95hwAaw8aY-djATx_h68f8zcOq5ct936C-rvfdvegJDNlQ5a_qwoOh0QvUOuqI5JKDTAzSBBud5ofn8MT9orJb0fWZnvdQ5IN3OVAE7svPw==",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGMM88-LNgXoooT6IyQlyPx0iM-DpWVo_wQQ5q5ya10cBDlBQgOHSHwT7SDWlriiyp1SxIPiribld6akHgXoQinT9MoXC3rcR27reDvmXlEHUinl1cxfiGqw5KKHpgSnPIp2I2TyvsOn3J51kPUdAqKNA==",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "winechateau.co.uk",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFgm6udmZ7vCF4PE3hlZUDvfULzvnKGnQzH5ant9waBPVKYKZJV2UCmacjwNfwsZivW0637J-bQs4MpfPdIdrAUJIfAu5Bvlrn0rth52rmSi6YI8vNqNV3cj3Auz88rpX9MS4AbahWv37g=",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "grozdi.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGxLQc_Wp1EUbTiwHtQmLfMylTxLLnvUrrFYtVd6fgcMJvMGY26xiwGvoyf_d8zGwRrJFI2_tahapcnbYM40WHy-rfRsj0-lbmRTDoDbf5RlAWagupRVNVsm8y2nws=",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "diplomatist.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFnfJcVkolNfmdHiDslcUJXSR3hfvJ3l7VtVDxHkUyHrEbFm48wR-3y6sFKrVRK5TMR4Cf4tCwy8gSNTt_jld_sQ20jt8y-sYQ8nz9FJi5Xm1QhMJ4gQ5roIe4L-uhinZpN5f_2MT9fwkLTDFYuC234IMU4IrxQJZn9JbGr5R8Fhez8hz-MYCix7USMMjQJP0Q=",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGfLyrrU8hKyzCSUFC5kGASWPOTq3hIggLw3-Ppz4Pf97kMwiT6rXYOLYKf-rRw7TE4gIBoAEhz2HM0glOn8UtatonGMP0n4S6EwQP4w1oDXYhDaHVAqTOOD_n6kxiRCfHcTIMQ6gEZugxJkqT23HLb",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        },
+        {
+         "level": "web",
+         "title": "absent.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGmv0RYTgZjF3yIywt_9kFhSQVFV80cf3-wBcM1k4FdpFjHVz-_oqdYi2ZLJiGhTn_sj5dT-O_xZhCTf_bRZUOBBdXvq_sjEWEjpWWLnRNGH_MjUxzl_PO_WboSN8RhFot71qm52Relp1QgANAVhaJQhVAWcZBTPjwIH-p4D78ohWf_s8S4Cx_Vni3edXg6nMglgkkVsJC_UjicpIapPN-mUixHwfAJRpCcwmMqHXo=",
+         "confidence": "low",
+         "text": "Виноделие в Молдове имеет глубокую и богатую историю, насчитывающую от 4000 до 5000 лет. Отпечатки листьев винограда вида «Vitis teutonica», найденные в северной части Молдовы, свидетельствуют о том, что виноград произрастал здесь примерно 6–25 миллионов лет назад. Найденные вблизи села Варваровка с"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но даты могут быть неточными, так как это общие знания модели."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ стал короче и менее информативным, хотя и более точным в датах. Потеряна информация о влиянии культур."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для точных дат и конкретных археологических находок требуется доступ к базе знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Хотя RAG-ответ предоставил более точные даты (4-5 тысяч лет вместо 6000 до н.э. для винограда и 3000 до н.э. для вина), он потерял важную информацию о влиянии различных культур и империй на развитие виноделия, что делало direct-ответ более полным и интересным. Извлеченные фрагменты были очень похожи и не добавили разнообразия информации.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q046",
+   "class": "moldova_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько примерно гектаров виноградников сейчас в Молдове?",
+     "direct": {
+      "answer": "Сейчас в Молдове около 130 тысяч гектаров виноградников. Это включает как площади для винного производства, так и для столового винограда.",
+      "latency_ms": 925,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 36,
+       "total_tokens": 3965
+      }
+     },
+     "rag": {
+      "answer": "По состоянию на 2024-2025 годы, общая площадь виноградников в Молдове оценивается по-разному, в зависимости от источника и того, какие категории учитываются, например, общая площадь или только коммерческие посадки. Точной единой цифры сейчас нет.",
+      "latency_ms": 12981,
+      "retrieval_ms": 10933,
+      "generation_ms": 2048,
+      "usage": {
+       "prompt_tokens": 9935,
+       "output_tokens": 66,
+       "total_tokens": 10211
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Молдова занимает 5 место по площади виноградников Совиньон Блан (6,909 га).",
+         "source": "https://wine.md/blog/moldova-zanimaet-5-mesto-po-ploshhadi-vinogradnikov-sovinon-blan-(6,909-ga)",
+         "confidence": "verified",
+         "text": "Молдова занимает 5 место по площади виноградников Совиньон Блан (6,909 га)."
+        },
+        {
+         "level": "catalog",
+         "title": "Vacu Vin - винные аксессуары для потребителей из Молдовы",
+         "source": "https://wine.md/blog/vacu-vin-vinnyie-aksessuaryi-dlya-potrebitelej-iz-moldovyi",
+         "confidence": "verified",
+         "text": "Vacu Vin - винные аксессуары для потребителей из Молдовы"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQETQkkfh9E-3K9pBVPhYvP8PXtgFKMDFAwNT05HNWMyhSfwGsJ78FxsXYRtIB2K18GXlJFwhkLTnxPSgRhS2i5r8ysQg98_FaOW-yv8WbNSZb0hi75kGIyqAMazfW94wTDo8QZe_hMrGCRWXzdfPkDFJThtQLUmh8BNslWA0PAAzH53",
+         "confidence": "low",
+         "text": "По состоянию на 2024-2025 годы, площадь виноградников в Молдове оценивается по-разному, в зависимости от источника и учитываемых категорий (например, общая площадь или только коммерческие посадки).\n\nСогласно данным Национального бюро статистики за 2024 год, общая площадь виноградников в Молдове (вкл"
+        },
+        {
+         "level": "web",
+         "title": "radiomoldova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFZkTWeKChaE9ZRk1I9w-QTX9q5FL4x13rqYhhj5BuxccXNM6cfWuBcCxTgKIQBEmR5z2r-ZQyct-0cZBLglKK2cnWFAyINDQteOqvGzzRqLTO8fJeo13Mg_Po=",
+         "confidence": "low",
+         "text": "По состоянию на 2024-2025 годы, площадь виноградников в Молдове оценивается по-разному, в зависимости от источника и учитываемых категорий (например, общая площадь или только коммерческие посадки).\n\nСогласно данным Национального бюро статистики за 2024 год, общая площадь виноградников в Молдове (вкл"
+        },
+        {
+         "level": "web",
+         "title": "infomarket.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG_Eh2Qa_JJi8o-XkXxxio2e3e0oLbU2I5-yY8NCnspfqOwpTBuy1ySvrfG_QM1lIO1-AR-YW3ocjidTaZgl-JyWtlI7fNM1_KVdjiY47QUxqj8nfDXADWfFkqUoKOIM3e9mw==",
+         "confidence": "low",
+         "text": "По состоянию на 2024-2025 годы, площадь виноградников в Молдове оценивается по-разному, в зависимости от источника и учитываемых категорий (например, общая площадь или только коммерческие посадки).\n\nСогласно данным Национального бюро статистики за 2024 год, общая площадь виноградников в Молдове (вкл"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFg6bTm10P2PfUHgX7qODnt4GqcGGcEyCc_3i48O7LL-rnGBzbOrZujEoitA0K-EZSAVjjAkc1-IjybSmdhqQRh2I0TICwzhwy6FbONlWcYx92T5xalM4e1UYJ9Hq4mwK6V-VmX82-zk1HNcsxfqzeStAEu4Y1SMLis1dc3AX5kkoQYlZEnG3OhTXqfqBds6_fuBvz9gbs73-OKFH59fiscPEWWFSSlbvvirzhGg5wMFmtbGIfSWyqNe10H_MUYsjrErw==",
+         "confidence": "low",
+         "text": "По состоянию на 2024-2025 годы, площадь виноградников в Молдове оценивается по-разному, в зависимости от источника и учитываемых категорий (например, общая площадь или только коммерческие посадки).\n\nСогласно данным Национального бюро статистики за 2024 год, общая площадь виноградников в Молдове (вкл"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "около 130 тысяч гектаров виноградников"
+       ],
+       "notes": "Ответ дает конкретную цифру, которая может быть неточной или устаревшей, но в целом соответствует вопросу."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но не дает конкретной цифры, что может быть менее полезно для пользователя, хотя и более безопасно с точки зрения фактической точности."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о конкретной площади виноградников необходимы актуальные и точные данные, которые могут меняться со временем.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержат конкретной цифры по общей площади виноградников, а лишь указывают на вариативность оценок. Это привело к тому, что RAG-ответ не смог дать конкретную цифру, в отличие от прямого ответа, который, хоть и мог быть неточным, но давал пользователю искомую информацию.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q047",
+   "class": "moldova_general",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое Fetească Albă и Fetească Regală?",
+     "direct": {
+      "answer": "Fetească Albă и Fetească Regală — это два автохтонных молдавских сорта винограда, очень интересных по своему характеру.\n\nFetească Albă — это старинный белый сорт, который даёт лёгкие, свежие вина с ароматами белых цветов, зелёного яблока и иногда цитрусовых. Они обычно сухие и хорошо подходят как аперитив или к лёгким закускам.\n\nFetească Regală — это, можно сказать, \"королевская\" Фетяска, сорт, который возник как естественный гибрид Fetească Albă и Grasă de Cotnari. Вина из него получаются более насыщенными, с нотами спелых фруктов, мёда и иногда лёгкой пряности. Они тоже сухие, но могут быть более тельными и сложными, чем Fetească Albă.\n\nХотите, я расскажу подробнее о каком-то из них?",
+      "latency_ms": 1864,
+      "usage": {
+       "prompt_tokens": 3884,
+       "output_tokens": 210,
+       "total_tokens": 4147
+      }
+     },
+     "rag": {
+      "answer": "Fetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда. Их преимущественно выращивают в Молдове и Румынии.\n\nОба сорта используются для производства разных вин, и каждый имеет свой уникальный характер.",
+      "latency_ms": 8053,
+      "retrieval_ms": 6443,
+      "generation_ms": 1610,
+      "usage": {
+       "prompt_tokens": 11884,
+       "output_tokens": 56,
+       "total_tokens": 12078
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that Fetească Albă and Fetească Regală are two important autochthonous white grape varieties.",
+       "claim_class": "general_knowledge",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "tasteatlas.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEYiISH9fMu3j04NsO7QZDj447hesiKYmGf-RE8zcj6Yhmpxx9inNlteyRbLOPkAOYdxJjR6KsMrepwfCyEbgS15qRiFF0eOluAcWwY7iip2FtNRY2RuxJw0YLTWpsO-ERkZg==",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGyYy9b12E4AKqiXT9VlVhLwH_RtJcJxDmc-SEr3jxb-wuuozLHjPT_wwCCauVWEaaLcRrNlf-ZeWB_3BQ1gwuycEKdVNk7hal84IdbeiCFKWliNJFhdGf9arGZ8v56NK11Mm9WES3wjP3uo0obC3gU",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG1b5LS3S_D45tJGWZ3KUe1qYasJjYiMMIiJvcCO7-2jnasN7zAQM32lIBjOj_O5XGurafXkLmiicfiCeTWOzNBmIfF1pfCPy2qy6noj7P8OiPMQf5qKrlJnWmV95LGro0c_MK23YP_XCe0O-rE9qA=",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "danielswine.club",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE1_gd2jq_dFTQDdUPaA6fp771O5ifnVqAwV1uDWUH-b90DwZy8dyTViioHTHZ6UjB66lR3k_Rxj9dEjIlBTLQEpQ_3Fptujuooh-zzJ4Jgb5Wt-vkhghxRcC0udcUKDe8EaluhylXNpfO4wRUpSl4=",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHUcrwJAAX-Tfwc9KyH_rvl4N2k5kP8L6sgC_nkfkhuLLSJM6CpogQa7IDW3kYrDxBv7qbhzJ8z_A9QndtwO07Q47CYtWRlg4CbJV6RWTnDC20gt2XwtacadfqlA56WJhRe9dmykx14pIun8dWM_W_2Cg==",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEM2hWK2_KVFbJCJhbagAjzhBHOFcj1p5cmfCR83VRTzqwZoiAJAQq5kbKOQadxyawQdEGEyJqWeYGsaAy8Btx-IG_ayKiWRdcn3hOQAMsxnDTCrrsWTwzZQQp3biqf7XVHbMQAhFfsszmfjM1il5jfZnO-iVeumq2s-3ywi_d8B3KYTzgkGX8JwGBkGA1JaIWx2Q6dHZCHJpWGSw==",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "carlevana.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHFYFaUQPhu1Z_bUPb6MH_vrx6RORp4-fRLKBbu6F1_C-3FBdzIUmxDpjf8JRgPtq8JRgR2yZyG34AF0F3jRCn6hSgaTO389gXVzzx5d8HinTN7ialU5vxMHc7_LLhAkv0DSQPZwWfHxud2gRGZ4hsXJh4=",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEgkcEh6sdja0KnOsNsQrCsVJ-ISDATjTUWXRPz-CM9UACLIdwwTL7hbjGc7KIDSYDsWWiQrAcLTX2AQnBoqgTxLb_rRyWehdLa3n1eZhsUiO4MENkZ7RW70XZ68KLCjt13n6Id37uOJCKt07FdZTxXSIs=",
+         "confidence": "low",
+         "text": "**Fetească Albă и Fetească Regală: Обзор румынских сортов винограда**\n\nFetească Albă и Fetească Regală — это два важных автохтонных белых сорта винограда, которые преимущественно выращиваются в Румынии и Молдове, а также в других странах Восточной Европы. Оба сорта используются для производства вин "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо раскрывает суть сортов винограда и их вин. Информация о происхождении Fetească Regală как гибрида Fetească Albă и Grasă de Cotnari является общеизвестной и корректной."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 3,
+       "unverified_specific_claims": [],
+       "notes": "Ответ очень краткий и неполный. Он лишь повторяет общую информацию из фрагментов, не добавляя никаких деталей о характере сортов или вин, что делает его малополезным для пользователя. Фактически корректен, но не раскрывает тему."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG дала исчерпывающий и точный ответ, который не требовал дополнительной информации из базы знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были слишком общими и не содержали специфической информации, которая могла бы улучшить ответ. В результате, ответ с RAG стал значительно менее информативным и полезным, чем прямой ответ модели. Модель просто пересказала общие фразы из фрагментов, потеряв всю ценную информацию, которую она знала изначально.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q048",
+   "class": "moldova_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Куда Молдова в основном экспортирует вино сейчас?",
+     "direct": {
+      "answer": "Молдова сейчас в основном экспортирует вино в Румынию, Польшу, Чехию, Беларусь, а также в Китай и США. Это самые крупные и стабильные рынки.",
+      "latency_ms": 1300,
+      "usage": {
+       "prompt_tokens": 3882,
+       "output_tokens": 40,
+       "total_tokens": 3967
+      }
+     },
+     "rag": {
+      "answer": "Молдова в основном экспортирует вино в страны Европейского союза. Румыния является одним из ведущих направлений.\n\nВ 2024 году объем экспорта молдавского вина достиг рекордных показателей, превысив 235 миллионов долларов США, и продукция поставлялась в 73 страны мира.",
+      "latency_ms": 6663,
+      "retrieval_ms": 4969,
+      "generation_ms": 1694,
+      "usage": {
+       "prompt_tokens": 14961,
+       "output_tokens": 70,
+       "total_tokens": 15112
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино & Шоколад by Delice Sommelier",
+         "source": "https://wine.md/events/vino-and-shokolad-by-delice-sommelier",
+         "confidence": "verified",
+         "text": "Вино & Шоколад by Delice Sommelier"
+        },
+        {
+         "level": "catalog",
+         "title": "Vacu Vin - винные аксессуары для потребителей из Молдовы",
+         "source": "https://wine.md/blog/vacu-vin-vinnyie-aksessuaryi-dlya-potrebitelej-iz-moldovyi",
+         "confidence": "verified",
+         "text": "Vacu Vin - винные аксессуары для потребителей из Молдовы"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино & сыр: что древнее?",
+         "source": "https://wine.md/blog/vino-and-syir-chto-drevnee",
+         "confidence": "verified",
+         "text": "Вино & сыр: что древнее?"
+        },
+        {
+         "level": "catalog",
+         "title": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+         "source": "https://wine.md/blog/chem-paxnut-raznyie-sorta-belogo-vina-soxranite-sebe-etu-udobnuyu-shpargalku!",
+         "confidence": "verified",
+         "text": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!"
+        },
+        {
+         "level": "web",
+         "title": "oec.world",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGfvWzaMNjV_IrEt6ozE9EIc5I7VkqbjMJLkL3o_MkimWAqQY_XtBqMMGiVK3Vyu5wrhYPzqC5N22n9XCISk-LqhesQCuwPDmCRze_TnZ-0wPgmXCngAYrnFxKIHLpTTPjcnfgGVThRNUkzZJMMw8uog1Ua67EP4iaVSmk=",
+         "confidence": "low",
+         "text": "Молдова в основном экспортирует вино в страны Европейского союза, при этом Румыния является ведущим направлением. В 2024 году объем экспорта молдавского вина достиг рекордных показателей, превысив 235 миллионов долларов США, что на 22% больше, чем в 2023 году. Продукция поставлялась в 73 страны мира"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF7ytqqwNPM-RuFchMyytXXoXwLzE79_Xr_XxUGaJRXU3uA9r0RJByCjK5A7QVS9gD-56ugkhWItmuDvVBv_GqKfVMZXrTt2yaoRQqpInWJBIRxGTcevr6LZLiMxJTqpNR4RldXVceSuaHxX8gasNWcWxkzzS1UQe3gKVTrYsWeO5tu2_TAZoDSsMvm1G0r",
+         "confidence": "low",
+         "text": "Молдова в основном экспортирует вино в страны Европейского союза, при этом Румыния является ведущим направлением. В 2024 году объем экспорта молдавского вина достиг рекордных показателей, превысив 235 миллионов долларов США, что на 22% больше, чем в 2023 году. Продукция поставлялась в 73 страны мира"
+        },
+        {
+         "level": "web",
+         "title": "point.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFePeUnmayvKGk4h_8XFaHgQ8o9jcTmibZYMqwOsyV6_unCPfPUlXlDTOD-QoNYvES0b7D-6aYckOqFqF1bnlsIXPcsVOzFDOI6Eqq50OZZ4cQPwkMMUDzcf9gFzmUDtZXWGZ6iX3cjcbL0pe3DpscOwTRR7LK9SiPZSCSmxnxfVJB_-d73dxJkkFpTZfRaa6OOoc5M2P8xWLMthHyUZ5M=",
+         "confidence": "low",
+         "text": "Молдова в основном экспортирует вино в страны Европейского союза, при этом Румыния является ведущим направлением. В 2024 году объем экспорта молдавского вина достиг рекордных показателей, превысив 235 миллионов долларов США, что на 22% больше, чем в 2023 году. Продукция поставлялась в 73 страны мира"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 3,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ перечисляет страны, но без указания, что это ЕС, и без конкретных цифр."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ содержит конкретные данные по экспорту и указывает на ЕС как основное направление."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о текущих экспортных направлениях и объемах необходимы актуальные статистические данные, которые не являются общеизвестными.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты предоставили конкретные и актуальные данные об объеме экспорта, ведущих направлениях (ЕС, Румыния) и количестве стран-импортеров, что значительно улучшило полноту и точность ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q050",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Чем известна винодельня Cricova?",
+     "direct": {
+      "answer": "Cricova известна прежде всего своими огромными подземными галереями, которые образуют целый подземный город вина. Это одна из крупнейших в мире коллекций вин, где хранятся миллионы бутылок.\n\nХотите, я расскажу подробнее о её особенностях?",
+      "latency_ms": 1171,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 59,
+       "total_tokens": 3981
+      }
+     },
+     "rag": {
+      "answer": "Винодельня Cricova известна как настоящая \"жемчужина молдавского виноделия\". Это уникальный подземный комплекс, который поражает своими масштабами и, конечно, превосходными винами. Основана она была в 1952 году.",
+      "latency_ms": 9114,
+      "retrieval_ms": 7944,
+      "generation_ms": 1170,
+      "usage": {
+       "prompt_tokens": 11930,
+       "output_tokens": 58,
+       "total_tokens": 12052
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states what Cricova winery is known for: 'the pearl of Moldovan winemaking' and a 'unique underground complex' known for its scale and excellent wines.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "winestreet.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9d16FmJq8bfIYljjIZfHCNvRRicz_3HinqdJGPMbfuOmkoQvMvPPbp6bD8z2szx53H8PckLedCUv86hjRftHlLwhclXKOFeiTn6UZ9_PfrtzZ7zRgXhi9qXOB3cl9dD-IAlec9gHsQJwym3HI",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "cricova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEf3pxBJ_tTloyp-IxDWIQhzLKe1BYoQjD1S1XMb7OgM_WhM7Ifl35OAGXtj0Qho5dImdSyHath8EEv6qJoJz0xg-JP_Ye1rgBXpVNuYGMEwowbhPCcjxZC-D9hCVMUtFDlYA==",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "travelblog.lv",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGQFpHG3R5gnd6NGwGZnsbIcQ1dW4sxnY8Iykegz3sdSZNa5rz2XpjWLmC9RkAHRez9Il58ZFG1jElWBqRv_gFaJ0EiVTWI8WRbWkSBcwQ0HrHGFLesZMtqfcNC",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "visit.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEjzndafFrQ2o8HoyPmIgdWguQKK2puqVJ276hqq1FpvyBET7MUCK2R5ApCCy-V_aJPn91OwWkmBt_txfAxaXskfFuqPBUle87Y6o108m0SoZV7cI0tZ23pdx6b9g==",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "tonkosti.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQESYSrThJNONvs_Gf7g6ww-wHvRTV7J-_VFZsZWbs0K6_tKElFulKbiE01y1X1zQ9WcXFPGiGo5wgdVUcH-tkC_bpkHBMRk_5oZj9HYD43ykI_4YLKPBNxiIGLcKAygqiBEwJ7OO3Ggwk-4QljXya9lRMjdXikt1TXSYR1JcIpA4_7JpwUl3RJWw8pa0nGt1EytpxdtMHVyO2cC9K6Kz3EStBCMyM6crn8C6bVhUKfodBSVvW5sOnN_H-HXiPvasmGsMl9xL6TawVREuSPhgrO4VFyX5TgH_TrBrfs=",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "trip.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHgnTndc8VT3reifCRq8OfW_KbBZ1pfAdp733BS06RCdBBK_V4WquX6Bu-mprQ5GKNNrqr_q0ObP4KsFMRpqkkt2l26Ll-qg93rmcqxo8A7-cO_V1T_zMGr7g44xU1GjZ0cW2hgnMotWtGDTbRWrPnpRbY=",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "cricova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFK67hhmd49PsSLQJ5lnjNBBFnHn6ko-QibcA5iaPV_yXBiiB-_RSFqM04w9X-0XDdJ-TB8KYq7G1FoMwA0zTXlqPCyjCPC3rqX0J7ebHKr",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        },
+        {
+         "level": "web",
+         "title": "winetours.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG4NPXmlxlGgiWZ5OBxO6_TFvYokW80X7te888Lo5FfFlpj8g0PrFfRy7xE7UsVLeCE-eW8PPEdpgWlWXWYhsWh-JoDngwk9a30CQrQRkxfhSPQ7_dd2-GJRFWsWK1M_oJRLWWvn9Ndgso=",
+         "confidence": "low",
+         "text": "Винодельня Cricova (Крикова) известна как \"жемчужина молдавского виноделия\" и представляет собой уникальный подземный комплекс, выделяющийся на весь мир своими масштабами и превосходными винами. Она была основана в 1952 году, когда два молдавских винодела, Петру Унгуряну и Николай Соболев, предложил"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но не хватает конкретики, которую можно было бы получить из базы знаний."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ стал более полным и конкретным благодаря информации из фрагментов."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Хотя прямой ответ был хорош, для полноты и добавления конкретных фактов (например, год основания) требовались данные из базы знаний.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили добавить конкретный год основания винодельни и фразу 'жемчужина молдавского виноделия', что сделало ответ более полным и информативным.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q049",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о винодельне Purcari.",
+     "direct": {
+      "answer": "Purcari — одна из старейших и самых известных виноделен Молдовы, с богатой историей, которая начинается ещё в 1827 году. Она расположена в юго-восточной части страны, в регионе Штефан Водэ, который славится своим терруаром.\n\nВинодельня особенно известна своими красными винами, такими как знаменитое Negru de Purcari, которое даже поставлялось к королевским дворам. У них также есть широкий ассортимент других вин, включая белые и розовые.\n\nХотите узнать что-то конкретное о Purcari, например, о сортах винограда, которые они используют, или о винном туризме?",
+      "latency_ms": 1469,
+      "usage": {
+       "prompt_tokens": 3880,
+       "output_tokens": 149,
+       "total_tokens": 4063
+      }
+     },
+     "rag": {
+      "answer": "Винодельня Purcari — это одна из старейших и наиболее известных виноделен в Восточной Европе, настоящий символ Республики Молдова.\n\nОна расположена в живописном районе на юго-востоке страны, примерно в 120 километрах от Кишинёва и всего в 50 километрах от Чёрного моря. Такое расположение даёт ей уникальный терруар.",
+      "latency_ms": 13750,
+      "retrieval_ms": 11974,
+      "generation_ms": 1776,
+      "usage": {
+       "prompt_tokens": 11896,
+       "output_tokens": 86,
+       "total_tokens": 12107
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly describes the Purcari winery, including its location and historical significance.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "sporter.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFPwNCCgusi3oRqj7eXMJhZDaC9VHu-hFDRpWLsGbSIrjoZixKFTAVlhdEUer3xcw-hcY6tpLt7Lx6yMzK3owwQzwsARFZE_RVS1uQNS_8AAXOaSL7o5hMToIenz8G9JoXagiwuuhXkXvtmy5LhYWyxFXyjAcU-x64QQA0T5O5J1rnHTJtpjKDWwrM=",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEUDJCe_kTnJrT2a8jRTLFuNZTlRWmSBaW0XT_bF2VZh7QMOy189gW4zjRgFWeoPrnGfVE-2u54Y6Vv9zeE46Sw_NK_b6afUV6XpSzJpf04WISuTE1tztPlyVan6cQKSDDn4_HuK4uj7WNuxg==",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "aviatur.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFHXpL7B2KY1TTCIdoIMXbm4vULYqG5jbE5QHRofGyXCtIe9ssKra0Jp2qyYDV0z4xRBrlVgCOHXmjSMDu-Lz1YMEMrMIMFH5CUgyINMVUNPcvy-s99O9EWPK1S99Gxl6aPNPmhFTG0L1pAj8T1cBfXByzPIZSTWAVcG5Pryn0F",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "visit.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGuupY5yuChRJXXiLm59dHiCOsgdV-0vtHFFET7BJXlFPdomVO8NhRcX9_vB_goos5Lpowi3jkOMJTkLd9z5vBae0mNFMy2tsklZh3AuEiUzdBjFE28JKqERoefPtw=",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "cangaltur.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFiz1xUL-sirQ5dODq0DNkc442LW1rvQxLyQUZKazMQWFZpZINP9RzdxXc7x_uNbOnZweWJPBoenlC3rzREe8X0GtCv3XRtuly0Kc2sz4fTsw08NUwYLtNqAngQKCgsbXj8RnceVsBlDXNU6sMqgJR7AZqwXrzVr1TGzslhWAb8Y5fkM3jr8KM=",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "purcariwine.online",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG4K4vSmvovvgXw_9LKDb7JVoVmwyK0VRVNPiqxj_fylylef075KzNTySBjPH0JcMqC9vYDH2K_T8Jv9KFpAU52j43CjvtoLl4VxHRDbKVTk2upMlfURq4DZWjVrIIWuMAcJJAUI5oEmpoi_9lCr111Lw==",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "megaalina.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHxpYxIITy3aauI7ssuVUo74WZ-zyKo1S87TA41d0xL5Qdl0GyZtxW5egg2H73TYj1uRpdGZkgs_K53-DsQho3rXX09v69STGkbmobUQCgEnAcYEO0mRR9RoTZSSMAnG6HxLUf6rg==",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGuaGBOxv9pWYd4dacLMZNLsIX2lEBBQLKl5SJPP0XQsoxkJUXVXK_l9FXvdNe1x0J6AMT97Uvs4btdnXDH6FliZBtgboDt13eOfuVmxsPRSesVndgHGwO_9RiKH2wfZo8o2cuqxC8UpZI=",
+         "confidence": "low",
+         "text": "Винодельня Purcari, расположенная в живописном районе на юго-востоке Молдовы, примерно в 120 км от Кишинева и всего в 50 км от Черного моря, является одной из старейших и наиболее известных виноделен Восточной Европы. Она считается неоспоримым символом Республики Молдова.\n\n**История:**\nИстория винод"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но не хватает конкретики, которую можно было бы получить из базы знаний."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ стал более точным в плане расположения, но потерял информацию о винах и истории, которая была в direct ответе."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для полного и точного ответа о винодельне, включая её историю, ассортимент вин и особенности, необходимы данные из базы знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлечённые фрагменты были слишком общими и повторяющимися, не добавили новой существенной информации, которая могла бы улучшить ответ. В результате RAG-ответ стал короче и менее информативным, чем direct-ответ, потеряв упоминание о Negru de Purcari и истории.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q051",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое Milestii Mici и чем она примечательна?",
+     "direct": {
+      "answer": "Mileștii Mici — это знаменитая молдавская винодельня и винный комбинат, который примечателен прежде всего своей уникальной коллекцией вин.\n\nОна занесена в Книгу рекордов Гиннесса как самая большая винная коллекция в мире, насчитывающая более полутора миллионов бутылок. Подземные галереи Mileștii Mici простираются на сотни километров, создавая целый винный город под землёй.",
+      "latency_ms": 1983,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 102,
+       "total_tokens": 4167
+      }
+     },
+     "rag": {
+      "answer": "Mileștii Mici — это государственное винодельческое предприятие в Молдове. Оно всемирно известно своими огромными подземными галереями, где хранится одна из крупнейших в мире коллекций вин.\n\nЭто действительно впечатляющее место, своего рода винный город под землей.",
+      "latency_ms": 10110,
+      "retrieval_ms": 7413,
+      "generation_ms": 2697,
+      "usage": {
+       "prompt_tokens": 13190,
+       "output_tokens": 63,
+       "total_tokens": 13323
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence clearly defines Milestii Mici as a state-owned winery in Moldova and highlights its notable feature of having one of the world's largest wine collections in underground galleries.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "promotur.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGwQNneZpxnZvzM4n4tq7PKl55R8semek6Xl_eQawrQilQVhphFRtc5XncratK3JN54YYhwctOCVxN64vSmU3hGLiBTIWqlrUht1-py7Hxj05HDOqMrY6lUnF8xbCpIQ_sUjL2L1zI5GA==",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "marriott.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGcEcVgvjxiTk5svmwSOn2H3ZsRO58H7W3hPbP6iC0asQ-YYPC3AzbwMyRsZobDSG4ub-dt05pwj6GCnrDfrjSzIwaw3ulVyENDT64bKCC19NE8Qrx4E60bu2noyizY2IuZKBr7abYb9KntdRkSmsLMsRSzl9xGcQRb2ZrEGiqUHZ2T5I6VS7HIrW-rLAkHhsw37TejrB53ZMxuDCSPZ2RNBLprmPOKZxUMCkkv-DhfzTC-GI8Jg6DhaWg9OuTC",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGpTbHpc45X9gasICaZWcKZc5z5gOrLYauJ1JUR_hPvPia3EriQCsleCyNgV9jXNrS07zlL1D1y55L-2BtlRNZAPuRvKpWpGdV6lqAAlcY49eoaA3_6oySfD2-LKfTtmPL9bMhkFPOYclnr3kr1suH3ltrpWpBsQ9mFUOIlNl6cp80x_ReIy4CI4FUpBUJRF1VJEtbzbAolSWrlLNaxJOTBCDk=",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "himoldova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG7kRDAwrRy_fv_9jbwYPG7iG-JYOD3vhDeHMEJp0zrPpTWuvLFGL9NtFg8AILh2PV0CFx7xIQlpPj6mfyLe3yaaZquFgu4B9vKbfseOaoVtRu9Adcnbfdqfs37B9xjeji1aLGhLrG2sw==",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDnYUGGORXmtc4Zh8_7nP4eWc5OCuMGg7xrOeB31HVpzz-D6pRExf1BzdsKSZvy-rdPJ4k56nL8X5I1iWljlH_Dam4jjVKrr62NsJYpJXNvcBGSCGG7A5sz3Knr1O9ga69XOS46swKcvbMPEVm91M6tKjTxg==",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "wine-intelligence.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG3e31Nos4ZCXGFWiQiljARLlUaJ3EX59XFOrzVpPqpeKkuAlPsCaQhRIuGjJ_q0ck4g_XPfFdXQ4KyGboGVEptdyYVe-hD9gECYeeh1F-HM6knIHCsIbYAqxgYApq5jS7DZi3MakaqQSBkjG7WRagQsfKRMZA-TsJi_n9uoLTFtYyhCEWa3i5Gy3VhN5524n_Gts12H7IhVITfc9y_v2ZFKKKnGEQ3tbV5ZiihdL4PhaOOXHbTJgSC_MtcvlQacd2w0kf_vM5A3f0T3hb0yh-6tP7UFVk7ybqT46--factdx7VdA==",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "sporter.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHLZHBEUEAAcDylcTe4gppcZFHkE6j_Bxo4JB9e3yW-SUKF0ePw2bTYjwkI7Bc9Up3gvIaH_iN_iJbXBDlJnayMDFdSQ__4moQFWHz3DUR8Kxyj8lIRvqhmwmSlrH7CyXMKfnpmJ7kEVabg-nHlCWHOOi6f4Jz48wCpTkRK8u_SguWLy8wLgD5C0J5zUnhFIfnSUEeIZ-OWvCdJkmqqfWE=",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        },
+        {
+         "level": "web",
+         "title": "travelthewholeworld.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEmtihRZuq37h4FSTZAxC8n6MxglzgRumho0DWlY_9LE1YnYR52X3PbN2bhd4h9OYYxaOmuHvACtt3s5saylSvKZZaQb0W4v3PUzNWU2v7RBvJiAxyRfAGmarUdoifbV6fN8dxJBUCJt6oIb25HFrTjax53NsZEas09RdBFR-XV",
+         "confidence": "low",
+         "text": "Mileștii Mici — это государственное винодельческое предприятие в Молдове, расположенное в коммуне Малые Милешты Яловенского района, примерно в 20 км от столицы Кишинёва. Оно всемирно известно своими огромными подземными галереями, в которых хранится одна из крупнейших в мире коллекций вин.\n\nПредприя"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный, полный и хорошо сформулирован. Упоминание Книги рекордов Гиннесса и количества бутылок делает его очень информативным."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но менее информативный, чем прямой. Не упоминает Книгу рекордов Гиннесса и количество бутылок, что является ключевой особенностью Milestii Mici. Фрагменты были слишком однообразны и не содержали дополнительной информации."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Прямой ответ уже содержит всю необходимую информацию и даже больше, чем извлеченные фрагменты.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не добавили новой или более глубокой информации, а скорее привели к упрощению ответа, упустив важные детали, которые были в прямом ответе (например, Книга рекордов Гиннесса и количество бутылок).",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q052",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи про ATU Winery.",
+     "direct": {
+      "answer": "ATU Winery — это довольно молодая, но уже заметная винодельня из Молдовы, расположенная в Кишиневе. Она известна своим современным подходом и использованием инновационных технологий.\n\nХотите, я расскажу подробнее о их винах или философии?",
+      "latency_ms": 1274,
+      "usage": {
+       "prompt_tokens": 3878,
+       "output_tokens": 58,
+       "total_tokens": 3969
+      }
+     },
+     "rag": {
+      "answer": "ATU Winery — это первая городская винодельня в Республике Молдова. Она была основана в 2016 году энологом Владой Балика и её партнёром Виктором Вуткарэу.\n\nРасположена ATU Winery в Кишинёве, в районе Ботаника, в переоборудованном индустриальном помещении. Они сочетают традиционные молдавские методы виноделия с современным подходом.",
+      "latency_ms": 7713,
+      "retrieval_ms": 5957,
+      "generation_ms": 1756,
+      "usage": {
+       "prompt_tokens": 10521,
+       "output_tokens": 100,
+       "total_tokens": 10772
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides specific details about ATU Winery, including its establishment year, founders, location, and its status as the first urban winery in Moldova.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "chisinau.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGcyza6lwJTfEagdH9V6WgRu_cnIs90degCS_nvPciCgY9SekyXP4HqhZIG3l2Ojy_Jhqx7ltWQZ8pqBB0F3xWaDeEtFsej0o-2YO2jXMws6ZPTOJzonxucvM2HVYoAQjC_XWhJrotkEsHdoAbEs45jNtavUC7NrAQ=",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE3aoWvZAfY4L99BA1h5Ag_fwvvAMzw4sQZDAQEEBiO4guoiUUTlbfOHnQtEj4tz28kG1gC4y3A9iv8QD57PeVVjr3rRt7YGdiiEoQmpWpn-P7m8u6FeBuEaK7F6NVds0ehBKg=",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGSp4QXpyhOcDyeRXVHy4Znj_9_E0otlURpWNzB8JqC2_vpyeGq8XtP5C4GWiqRFZhB2cWh6ih8K0iI35jVRujVLNjC_YC3ng2hMRqXaTKCSdwonZf_Qo7bGgCFHxQU9rHpa7wif-Rx",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        },
+        {
+         "level": "web",
+         "title": "winesofa.eu",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHaYj1FcSCJRUKJgh7AxM2KKwSMZgHusm9DYM-Hr-Lnz6BwEY_sQrcQKitYarX7xgf2wT7Ps94QT9pwzTet2ifDBk8QP8hlRYQDlLWUP4JyZDZkTOEUz3_UG5kN40rW",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        },
+        {
+         "level": "web",
+         "title": "himoldova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFaIc4wSQe3mNljDUbsktwB-D7yKbV1VpbkqRU5raHWZB8fkGYvXvo4g3QxccIDE492v6ww4jOHK0Vf2X3U1gwgOi1sHHqWVlBol0-7KUhqDOFaHfaZTs-dCqIayMwthoTVGLq1Aw==",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEf8ZWoYU2W7mm6UwxQZl51WjotIaMmlSDAJR50H5ueuE4y3OQgttu3Vis3YDFdi6hCJwkdPF4KZWLnP_mXMnmnUNHgWXVTV2O87pHN-aTSHyWtCJ6IGOD1mSPevL6i0ovNYCjepNrSYMcffzQpa9_jwPQTalbyDat1tAWh6v80v7k28j8ax10ndAhf-ZuH",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        },
+        {
+         "level": "web",
+         "title": "g0.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHIMZFlAJ-k8cbGnlSQj1pKMOwIKu20SfVP5tAXSuszUKw38tx28Yhs6Y1NpC7HbhfvOz9e4OjPAkTNQ4GIstEzmDxA46nh1atbVEWn5IK4x4OX6Gzda9G3bq69H5Bw",
+         "confidence": "low",
+         "text": "ATU Winery, established in 2016 by oenologist Vlada Balica and her partner Victor Vutcărău, stands as the first urban winery in the Republic of Moldova. Located in Chișinău, specifically in a repurposed industrial space in the Botanica district, ATU blends traditional Moldovan winemaking with a mode"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 3,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но очень общий. Не хватает конкретики, которую можно было бы получить из базы знаний."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ содержит конкретные факты, подтвержденные фрагментами, и полностью отвечает на вопрос."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для полного и полезного ответа на вопрос о конкретной винодельне необходимы специфические детали, такие как год основания, имена основателей и уникальные характеристики (например, 'первая городская винодельня'), которые не являются общеизвестными.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили добавить в ответ конкретные и проверяемые факты: год основания, имена основателей, статус 'первой городской винодельни' и точное местоположение, что значительно повысило качество и информативность ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q053",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что за винодельня Château Cristi?",
+     "direct": {
+      "answer": "Château Cristi — это относительно молодая винодельня из Молдовы, расположенная в южном регионе Valul lui Traian, в селе Карахасань. Они известны своим современным подходом к виноделию и стремлением создавать вина с ярким терруарным характером.",
+      "latency_ms": 1274,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 64,
+       "total_tokens": 3990
+      }
+     },
+     "rag": {
+      "answer": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от Кишинёва, недалеко от села Гэвэноаса. Она находится в знаменитом южном винодельческом регионе Валул луй Траян.\n\nВинодельня была основана в 2015 году и возрождает винодельческие традиции дворянского рода Кристи.",
+      "latency_ms": 6861,
+      "retrieval_ms": 5294,
+      "generation_ms": 1567,
+      "usage": {
+       "prompt_tokens": 11310,
+       "output_tokens": 91,
+       "total_tokens": 11474
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states what Château Cristi is and its location.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFcQNcY-UFtuEVw45Mq3Pdme6ibKPyLlP-kxJgPNJGTIgIF47ki5Tefmr4lG5OhZiRJiD54H2Uu7Iie7lAAfyPcUZWcsMJlb0QAJLooxk0IiZqhK0T-fF6NxDL9q7GXv0hi4mNcLujZXjdSn1uVta_PJbo=",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        },
+        {
+         "level": "web",
+         "title": "winestatistics.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHzXhgC2laMglwiHTNndlJ47pn0AtR_7LBPQGPbQod3YfDldCUp3_NbmIuVLYhXKO0MtX56cphemc4KbSq6FZKcfaa66AmlKX2P_9Rk7hxRgHWOdsa5fvpmLpHJ9t2iS9KTG0Ir6EhBzJ05fbWZEHGIEgFmM3CkAVbkK74T_ZkNGerLhQc=",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        },
+        {
+         "level": "web",
+         "title": "indigenewines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEZQyMflqb7kUrLixHYq5SLdzE2fT4u-uXm9hQZzDcrkHYc0MstzscbFAFzJZdu1nev4tVotQMnmFL3w61NPRBogY0J27rEUY8RZP587yOraHU6saJTvwc7U708qkRRI0HvA-BvZjAzWH56-hr0BwTjMZ0Qs613KkjBDEgELrITIaNwKJ0bWZzt",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGhNIdLcSbGfAJD6eRejuTuNhJpBA7m8eFAz0ThJaoN4Hxu-1EbrecpPXsYUsd2Z8PT0C32IPumk8puMdbCDCccgnnCbB88n43aXK1w2jhdd0OrK7pMWMKNUABpjrhK6-233LA7NHgt8fZvgck2HwOuX1E=",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        },
+        {
+         "level": "web",
+         "title": "aezalgrapesjourneys.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFbptpBvFdparxa2xWx15nqsJIsZvP6OGyR3woMsK_093j7JoqHsM2F_IJSLtUhzDaXrkqYWH--JQaGJCOeUy2z9vNSlE6VU1DI_ujr06oe11G6TJy0Izlbqe2kyS0Wp_w7oru0pL502UGSFBmGdjKWCjXpaG5PWakiL-CrnAwXufwW8yU=",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        },
+        {
+         "level": "web",
+         "title": "locals.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFKSeSPd8V-S8gOgKYZIMrvmKaKtdE0WwTGWisTUwWhydD6x3kHTvRqjsv89yVRiDu3UFZr2pmsqEuODqIsc9eeXy6b2eRQBia3PfESIi8-P40OXrZBf7Jvp0PhjFub0bYhzAHHueJh0BN3_vcCr4PGIXYaeO1QvA==",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        },
+        {
+         "level": "web",
+         "title": "locals.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF3WBuIPCjxxJTWAX1mUZkWxzh5ryvNa9QuNXvmpoT7PiExAiYmW9CKFHXed5FgUPAX7hbxl0PoSsi1cXNj4sS1bcupxKh0veCEXpWZMe0xt31j_hWB0xd4cXSV29juIVE=",
+         "confidence": "low",
+         "text": "Château Cristi — это винодельня, расположенная в Молдове, примерно в 35 километрах от столицы Кишинева, недалеко от села Гэвэноаса. Она находится в знаменитом регионе Валул луй Траян на юге Молдовы.\n\nВинодельня Chateau Cristi возрождает винодельческие традиции дворянского рода Кристи, начиная с 2015"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "в селе Карахасань",
+        "известны своим современным подходом к виноделию",
+        "стремлением создавать вина с ярким терруарным характером"
+       ],
+       "notes": "Ответ в целом корректен, но содержит выдуманные детали о местоположении (Карахасань вместо Гэвэноаса) и общие фразы, которые не подтверждаются."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точен, лаконичен и содержит все ключевые факты, подтвержденные фрагментами."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для точного указания местоположения (село Гэвэноаса) и года основания (2015) требовались конкретные данные, которые отсутствовали в знаниях модели.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили исправить неточность в местоположении (Карахасань -> Гэвэноаса) и добавить важную информацию о годе основания (2015) и возрождении традиций рода Кристи, что значительно улучшило качество и точность ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q056",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о Lion Gri.",
+     "direct": {
+      "answer": "Lion Gri — это одна из старейших и крупнейших виноделен в Молдове, расположенная в районе Кодру. Они известны своими винами, которые сочетают традиционные молдавские методы с современными технологиями.\n\nХотите узнать что-то конкретное о них? Например, какие сорта винограда они используют или какие вина производят?",
+      "latency_ms": 1060,
+      "usage": {
+       "prompt_tokens": 3877,
+       "output_tokens": 74,
+       "total_tokens": 3988
+      }
+     },
+     "rag": {
+      "answer": "Я не нашёл подтверждённой информации о винодельне Lion Gri в своей базе данных.\n\nМогу рассказать вам о других молдавских винодельнях или сортах винограда, если хотите.",
+      "latency_ms": 1071,
+      "retrieval_ms": 219,
+      "generation_ms": 852,
+      "usage": {
+       "prompt_tokens": 4260,
+       "output_tokens": 41,
+       "total_tokens": 4301
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 3,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ в целом корректен, но очень общий. Утверждение о том, что это 'одна из старейших и крупнейших' может быть не совсем точным или требовать уточнения, но не является критической ошибкой."
+      },
+      "rag": {
+       "quality": 1,
+       "factuality": 5,
+       "relevance": 1,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ бесполезен, так как не предоставляет никакой информации о запрашиваемой винодельне. Хотя он честно сообщает об отсутствии информации, это не помогает пользователю."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для предоставления конкретной и проверенной информации о винодельне Lion Gri, включая ее историю, ассортимент, награды и особенности, необходим доступ к специализированной базе данных. Общие знания модели недостаточны для детального ответа.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Модель без RAG дала общий, но релевантный ответ, который мог бы быть отправной точкой для пользователя. Модель с RAG, не найдя информации в своей базе (хотя, возможно, она есть в интернете или в более широких знаниях модели), отказалась отвечать, что хуже, чем дать общую информацию.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q054",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о Vinaria din Vale.",
+     "direct": {
+      "answer": "Vinaria din Vale — это довольно известная винодельня из южной части Молдовы, из региона Валул луй Траян. Они специализируются на производстве качественных вин, используя как международные, так и местные сорта винограда.\n\nХотите узнать что-то конкретное о них? Например, какие вина они производят или чем они особенны?",
+      "latency_ms": 1056,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 79,
+       "total_tokens": 3992
+      }
+     },
+     "rag": {
+      "answer": "Vinaria din Vale — это семейная винодельня, расположенная в южном регионе Молдовы, в районе Нижнего Прута, который является первой биосферной охраняемой территорией ЮНЕСКО.\n\nОни считаются одним из крупнейших производителей и экспортеров молдавских вин.",
+      "latency_ms": 9244,
+      "retrieval_ms": 7066,
+      "generation_ms": 2178,
+      "usage": {
+       "prompt_tokens": 8956,
+       "output_tokens": 68,
+       "total_tokens": 9124
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly describes Vinaria din Vale, including its location, type of winery, and status as a producer and exporter.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH58nUD-fJ6hOc2lwS8dnkEOFFbJcinMR_a7Swk9o3DAx06oC0J0X3qt8kgI95C0Ej1guFZOmNClBkF2jlQgK5ZDj4zAJLlfPZ9SAtdHBLz90U5y2CnYxyLxJTjEv1dOxeIV7ltWagxHO-IS0avp1Gi",
+         "confidence": "low",
+         "text": "Vinaria din Vale — это семейная винодельня, расположенная в южном регионе Республики Молдова, в пределах Нижнего Прута (Lunca Prutului de Jos), первой биосферной охраняемой территории ЮНЕСКО. Винодельня является одним из крупнейших производителей и экспортеров вин в Молдове.\n\n**История и философия:*"
+        },
+        {
+         "level": "web",
+         "title": "winetourism.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH9TgLIdd0YvnqDAFhgWXGgH1E1V508IA3sHw3-833J-Wv5cy7i1eBNmFy85id_GgT-uiuSrFdll9PJaiuLkzNMPK09KwG2tIaZlB_s2M1FYxtcY0m6A7NPwwY660heNAP88AJMa6dml1ok8POU9io=",
+         "confidence": "low",
+         "text": "Vinaria din Vale — это семейная винодельня, расположенная в южном регионе Республики Молдова, в пределах Нижнего Прута (Lunca Prutului de Jos), первой биосферной охраняемой территории ЮНЕСКО. Винодельня является одним из крупнейших производителей и экспортеров вин в Молдове.\n\n**История и философия:*"
+        },
+        {
+         "level": "web",
+         "title": "univins.ca",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH73_NOnqmbZ9zxb92oLVUofZ_iyvOIKrqNxrGfp9XO-JLOEbc6A-467JMYApTR0e7NWzPNYh6bb7QGR4AwYeYBcnUx0oYrzX_DMOzSYh3JBubTrwEcJsQX0tZTQmIbxGzhrlFZtxZkCCjABmfkcQ==",
+         "confidence": "low",
+         "text": "Vinaria din Vale — это семейная винодельня, расположенная в южном регионе Республики Молдова, в пределах Нижнего Прута (Lunca Prutului de Jos), первой биосферной охраняемой территории ЮНЕСКО. Винодельня является одним из крупнейших производителей и экспортеров вин в Молдове.\n\n**История и философия:*"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGUP5AYNqA9z22GqzpUUNagdu1HSz3znLZxlx2mIXi3Gt0S_-knr62nN1O87qskcN4Tcvi_G1rEKEnTnK2xICTxK-shpNynhAqGCNcYDr16Nm6PUAGoTD0RRXMMyEE-sY_7ywN9AP1Rf7w80iwp",
+         "confidence": "low",
+         "text": "Vinaria din Vale — это семейная винодельня, расположенная в южном регионе Республики Молдова, в пределах Нижнего Прута (Lunca Prutului de Jos), первой биосферной охраняемой территории ЮНЕСКО. Винодельня является одним из крупнейших производителей и экспортеров вин в Молдове.\n\n**История и философия:*"
+        },
+        {
+         "level": "web",
+         "title": "vivino.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFHFVHJfvUDBoGC1Is2rsRl5MTTrl3R9NYDDaakva0bk-C4Lo3EFkG5epUalX6L4Uuig9ZzNbfMDB7L5BZ0E2oumYqq6wh6HPKX4n0jUtlgA32lLbar2g7D69RJYshT69sCWToyj7PPfMlSTlP3uQ==",
+         "confidence": "low",
+         "text": "Vinaria din Vale — это семейная винодельня, расположенная в южном регионе Республики Молдова, в пределах Нижнего Прута (Lunca Prutului de Jos), первой биосферной охраняемой территории ЮНЕСКО. Винодельня является одним из крупнейших производителей и экспортеров вин в Молдове.\n\n**История и философия:*"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 4,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но очень общий. Не хватает конкретики, которую можно было бы получить из базы знаний."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ стал более конкретным и информативным благодаря извлеченным фрагментам, особенно про Нижний Прут и статус ЮНЕСКО."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для предоставления более конкретной и уникальной информации о винодельне, такой как ее точное расположение в биосферной территории ЮНЕСКО и статус одного из крупнейших производителей/экспортеров.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты добавили важные и конкретные детали о местоположении винодельни (Нижний Прут, биосферная территория ЮНЕСКО) и ее статусе (крупнейший производитель и экспортер), что значительно улучшило информативность ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q055",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что известно о винодельне Kislov Winery?",
+     "direct": {
+      "answer": "Kislov Winery — это семейная винодельня из Молдовы, расположенная в селе Олэнешть, в регионе Штефан Водэ.\n\nОни известны тем, что делают акцент на автохтонных сортах винограда, таких как Фетяска Нягрэ (Fetească Neagră), Рара Нягрэ (Rară Neagră) и Виорика (Viorica). У них также есть и международные сорта.\n\nХотите узнать что-то конкретное о них? Например, какие вина они производят или чем ещё они интересны?",
+      "latency_ms": 1374,
+      "usage": {
+       "prompt_tokens": 3880,
+       "output_tokens": 127,
+       "total_tokens": 4058
+      }
+     },
+     "rag": {
+      "answer": "Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", это семейное предприятие с вековой историей. Она расположена в Молдове, в селе Гиска, недалеко от города Бендеры. История винодельни началась в 1914 году.",
+      "latency_ms": 9099,
+      "retrieval_ms": 8105,
+      "generation_ms": 994,
+      "usage": {
+       "prompt_tokens": 11620,
+       "output_tokens": 64,
+       "total_tokens": 11684
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence states that Kislov Winery is a family business with a century-long history, located in Moldova, in the village of Ghisca near the city of Bender, and its history began in 1914.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "Current time information in MD.",
+         "source": "https://www.google.com/search?q=time+in+MD",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "kislov.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFSxoVf8_xcqT3qD9MllyA4DxHP0dJ5fW3Ba6sniCxyG_R70dGZQyOZx6zdrmmFSdE1nd9O6eVjNGsk0wtnsyH6yp3HF6rFpe7-H0pLY0mvjgw=",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "tourismpmr.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHDnCiFl1SJN0mY7l-qLBku07iKmfWXcdTRZANyiN6TMwUbHuVPw-cd5vob_eDw9Pu_RaRS5gx4zD84UusikxIS1ncdNyakjuPDmIy68dWgMIirmhUhiPlv2r8vwOUoZPRLpKce-WkS-x52sW8=",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "open-nistrenia.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEOgKDraOqfbl4lL1CR4z4KZQtuUHZpeI8NPtGe_0f1h3d_jR9_OgJSMJI7D0I5coyzrgQrWdkDYwyaBfxuvKDlJdoiSIPRBdEzQfX4-jWp7ESahMoTXqa6mci4U2zckxOU87El3RYLX4fGi-SNsJpmJqsVCF86Dp2TlDQpVEler3yet9bYyuY=",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEnHJ7WC7FIniJEVSv4cevZpPp1znReKU1UDvMQM7En8Zu7kgMmYkvGP69q2YVmZ3PXIovKCvexRi0eHQ3qxm9KG5WU2e5m1z4kRoMkmtueQ4ONxSu-5YTfK9OW39bBh7GOxRyQ84B2NswyU2wOUkPbxo2b4KwLYCwES8x3Ij3Fq1ikMu6s8QuWPHQzcA==",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "kislov.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF1yBd0GeqgE6F9Z2VmEYbds6STnQ-TkDw3-5HjnuM8tF9Iw3uquiN5YmKDwdzLeLy0bf9CnfLCzG3NOa__WMzzKIbqZ8v2oo27GSmCnZ0IUkGBIuq1lA==",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "pridnestrovie-tourism.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZu7uLnkNGM0-HWLeHMoXYNEPGPwva6warLfRBZ99YKTk8PynkxfpcdMg5zW2hULBxGpObrOMzqzxZ9N2DDTERhUYaoj8oQq4VHWccM3tW6QrNr6NT5g7xJYxH8UAGfS8NS9TWbocNdXvT4x4gpN9z",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        },
+        {
+         "level": "web",
+         "title": "diez.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHc1mi27-EIhTAF7bua7UrdiprMBpwAXdpjOx4gSYJhrqFh7rNYscsOGMxVUKYjQaryyWcIutyWGWwsrKUzmqeq2M3H0YDl8bG51smMNxLFcx3MAiFzz_RbK8eaqfFnQtwm_L4BBHfeVOpaeHWiveU1Jky4YcAxsAMxOLqD4FJL7nccwOorqdJNysJGWZBzQkzxmAslOmqmdCUa_dOMoeQuYjUVtkFaB_bpnR-UPrH9",
+         "confidence": "low",
+         "text": "Винодельня Kislov Winery, также известная как \"КИСЛОВЪ - Семейное Дело\", является семейным предприятием с вековой историей, расположенным в Молдове, в селе Гиска неподалеку от города Бендеры.\n\n**История и философия:**\nИстория винодельни берет свое начало в 1914 году, когда Александр Григорьевич Кисл"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "расположена в селе Олэнешть, в регионе Штефан Водэ",
+        "делают акцент на автохтонных сортах винограда, таких как Фетяска Нягрэ (Fetească Neagră), Рара Нягрэ (Rară Neagră) и Виорика (Viorica)"
+       ],
+       "notes": "Ответ содержит неверную информацию о местоположении и специализации винодельни."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный и лаконичный, но мог бы быть более полным, если бы фрагменты содержали больше информации."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Ответ A содержит фактические ошибки относительно местоположения и специализации винодельни, которые были исправлены в ответе B благодаря извлеченным фрагментам.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили исправить неверную информацию о местоположении винодельни и добавить точные детали о ее названии и истории, что значительно улучшило фактическую корректность ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q059",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "В каком регионе находится винодельня Purcari и какие у неё флагманские вина?",
+     "direct": {
+      "answer": "Винодельня Purcari находится в регионе Штефан Водэ, на юго-востоке Молдовы.\n\nЧто касается флагманских вин, то у Purcari это, безусловно, знаменитые Negru de Purcari и Rosu de Purcari. Negru de Purcari — это ассамбляж сортов Каберне Совиньон, Саперави и Рарэ Нягрэ, а Rosu de Purcari — Каберне Совиньон, Мерло и Мальбек.",
+      "latency_ms": 1288,
+      "usage": {
+       "prompt_tokens": 3889,
+       "output_tokens": 112,
+       "total_tokens": 4036
+      }
+     },
+     "rag": {
+      "answer": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ, на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, недалеко от Черного моря, и его широта схожа с Бордо во Франции.\n\nЧто касается флагманских вин, у меня сейчас нет подтверждённых данных о конкретных \"флагманских\" позициях, которые бы официально назывались именно так. Однако могу рассказать о стилистике вин Purcari или о наиболее известных их линейках, если вам интересно.",
+      "latency_ms": 6811,
+      "retrieval_ms": 4797,
+      "generation_ms": 2014,
+      "usage": {
+       "prompt_tokens": 12603,
+       "output_tokens": 127,
+       "total_tokens": 12869
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence states the region of Purcari winery but does not mention its flagship wines.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEn1zkHB4Z7EfVDJIsg_FIw7O95xIDK5Ja3lR7czWWHP4rf2--r_136tBAtXnmaBJEfB-AIRZ7GM0fKG0_mq8LbnD5oMHrxMHV4t1UmKjW-ktwlyvj0oSSkVGzrLSN6CrB1EbguXX_73rQ=",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "8wines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE4l92N7lQ8rT2WxS_V5Qvm5lAbq5XhnX3CaY97v-KM2DX8Bz5X6wQ1sJNYNV2OM-q-alpVsVvzUND8DiypwDWgWm3HRWxw749YdlTs3VuWmt82pkpJClbOaLlmk8NtkvIqtcQwlDWklzcUTH577vudEmipYx1TadLMdg_BVMHhw0Aqsoh04C1ylT6bjIYsM1P1H2GnZ-XR9jI0iYz_jA==",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEh4KVJ8rlVYHeEIJzfpEBYHoEgt9Ome_ur6G5YYQ5K1A2Rgmvcq0NJAp1-lS7FvQNZRNa60MwCDWt0QK12-mpnmFUT0hwcp4a0OLSqbq2hMnVes_eBT64GcxKd6Cev2cjBIrLgL1Pf1-OriWUMHw==",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "winetravelawards.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGS4v9mefIzxvZI_xpmydJ7Sp3BXr6uE0nPxt0vLbBoggoimV7QpKjuoEwgfPFiU_pY0f35dJa1MKjsehyOMbdIOwHq9lZuAfBmwSlN8hG16U9Des2BclhlMsHAhH5M-oVkBnrR2_vbNI_e1lbt9SGW1IrtIvQyPUCXIRZ5j64F1ow4pmYVn52-fELA9nRB7fXn7r1ipyRw-_wDdFRxn6X0CGEv5B_5bwCV0oPBUwGNq7PFizkmBBo=",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGNo525_LCO0awSOc0xoU-hy3fc2dJfX5BOPt0btoN1yPuA2mX912WlJGVBItQNS6y_QMm-PLDd-vBgWHtcZq5cHj6vm88ww_O564PxHKZ0-LOOlTs3obbZU_iuNIW5nJEOlt7gY_38xaYNrKhHpgcll1twgIMODWJp7TisKOxLZLEj2IoM",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "discovermoldova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE1Cg_pm6NEC_O_mDQxNgqsL9BBOxHO7vVLVFW6DcwEh5j_udT5SksdMH8E3Ffj88Vn6JeL_bYPhoOzB_ss2UC9KJUYO9XdLwAlTcgOz4SJw_84O0iXu6PZf31mrKSzoM33xWnsiQQpOSFg6mmR",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFrfHm1NCa1bZBdMkIXbY8vIOx2uYGQKEn0DsP2MqkFMQKmrK4cC3f4KC4v43aR_CsafdtXs2soKT-H_jfqskP3z6xw9hFnQ7GkHwf3iiEuZbhLmlHzGREkdOVyXMjKsBtWD0ZVvFg0L9P1n7cPqRs6jejNj03e",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        },
+        {
+         "level": "web",
+         "title": "chateau-purcari.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEz0KJrDDyivZ8Wh_ZxbhzxOTYcHmO6lv8IRio7X2i-d6J3_XDKKVQzYJCrKF6N6abKSz6GcFmU_DfToKwmDFDVM4cpnnGV9UwCOut8Z9_VbUjofTayBaZnrHxqNyNNlk9v",
+         "confidence": "low",
+         "text": "Винодельня Purcari находится в винодельческом регионе Пуркарь, который расположен в районе Штефан-Водэ на юго-востоке Молдовы. Этот регион расположен вдоль реки Днестр, примерно в 60 км от Черного моря, и находится на той же широте, что и знаменитый винодельческий регион Бордо во Франции, имея схожи"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный и полный, содержит корректную информацию о регионе и флагманских винах, включая их состав."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 4,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректно указывает регион, но отказывается назвать флагманские вина, хотя эта информация является общеизвестной и не требует специфического подтверждения из базы знаний. Это снижает полезность ответа."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Информация о регионе и флагманских винах Purcari является общеизвестной и не требует специфического поиска в базе знаний. Direct-ответ это подтверждает.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат только информацию о местоположении винодельни, но не о флагманских винах. Из-за этого RAG-ответ отказался назвать флагманские вина, хотя эта информация является общеизвестной и была корректно предоставлена в direct-ответе.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q058",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи про Aurelius Winery.",
+     "direct": {
+      "answer": "Aurelius Winery — это молодая, но уже хорошо зарекомендовавшая себя винодельня из Молдовы, расположенная в центральной части страны, в регионе Кодру. Они специализируются на производстве высококачественных вин, часто используя современные технологии, но с уважением к традициям.\n\nХотите узнать что-то конкретное о них, например, о сортах винограда, которые они используют, или о стиле их вин?",
+      "latency_ms": 1381,
+      "usage": {
+       "prompt_tokens": 3878,
+       "output_tokens": 94,
+       "total_tokens": 4012
+      }
+     },
+     "rag": {
+      "answer": "Aurelius Winery в Молдове является частью компании Maurt. Она расположена в городе Ниспорены, что находится в винодельческом регионе Кодру.",
+      "latency_ms": 9584,
+      "retrieval_ms": 8257,
+      "generation_ms": 1327,
+      "usage": {
+       "prompt_tokens": 11832,
+       "output_tokens": 32,
+       "total_tokens": 11984
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence explicitly states that Aurelius Winery (Moldova) is part of Maurt and located in Nisporeni, Codru wine region.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vivino.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHf37aDmbmfloUObewVdOfQoi8D6uBCxjTc2lW2B6y3qoVflmgOa5hjSQaBWwpIQe1JrgocJKg8zJn5xUAOr7hS1vwGHdtLEwXZsbLpJdMZojMz6XK7B0X9XZw4ooJ-DZ27Bda5MGU=",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "aurelius.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHwNMK7O3r15VD3cVUml94MPxW62imHFoBh_A-FRrAnyqHQQx8jS092MW1T_W4WMP4CEJ6ToZahzGbcLso5b2Eo6ggZwf0jQMybPuwqrpM4tZKvtKaC9fVRb38WuQ==",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "maurt.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGBiNgj_zyw9FWzx8O0-3Lkvyt_bPLTUv-20n0wWomihzFYPE6jNZoVPW-Xy3Mr0oFhy8h1PeJ9ovxgtX5EgTy7miq_wq9-eMOU_OaSJ6r6ZGW9clt5aNZT",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFwOB9KU4uVGegYBOsBtCHNCKsfQTK-7ewzPWbbW53mFjc6pO8DYa976neFYYEcuaZTpiNUqMvLA-kMF6-XbfpP_49qx0YqEsx3itxwU7F6qA8VXV0ORUhPr_rTJCtUa_5grYveBgTidQ==",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE6xc7EFtf9-A4nTX8wn1UqiTfTS8nxdHe3BOkr-G4o09GSIweEXQoQbAfo0k11s4BPMuONrCzBqyjDWF4dU-7Ebcw1bornxmOK_1M07x1Ej8mJ5lk_Y_vHFcaxnghhN0Cs9uZZ4DgAXqiTK83x",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "aurelius.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH2dXjZ49Pj75qjIcNF_nI4FK67kvIj9vZKEVVohoClCuRtAaBPtZa-S6dytqD2H9570V2lwclniBfsSfBce3r7vkkbXQusRd5bl6whQUWy",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "visitithaca.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHbfjRhGtDWUTd1HInKety7V20u88R4M2Cs8tN03K0Fzq_ygN1-DRwx-A3b4lXASvTwfxRjcDGlKns2O9Xf6HTtk3BUY95d-wqqTrmG-ze9b8GCjK6rA6HhLmCReav-pClsKNAO6WSOR_qyQ7Ddc48yC7Kwf6ArkbkEmuAFiQ-PRhnjz9y99Q==",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        },
+        {
+         "level": "web",
+         "title": "auburnpub.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHfnlh813DRRGnJ9MRgG9HQLcCE33s4hjaDK5fDMO1NvckVO3MJxz9hpih087Uz3dVgGV8oPfgq_616BHfYtSzemjAsM6O71rIaI9ddOZeIymmONEfrq2MPeFIG02FH0WuZQJS9TXA7B2KoCjPpqkRU79EVDGFCRfhvb2nTaWwqckAXi_DmXqEhxzOyTW_o--37l87OvfLfTdufmRkFE6sxU3DxFyWz",
+         "confidence": "low",
+         "text": "Существуют две винодельни под названием Aurelius Winery, расположенные в разных регионах мира: одна в Молдове, а другая в районе Фингер-Лейкс в США.\n\n**Aurelius Winery (Молдова)**\n\nЭта винодельня является частью компании Maurt и находится в городе Ниспорены, в винодельческом регионе Кодру, Республик"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 3,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ достаточно общий, но не содержит фактических ошибок. Утверждение о том, что винодельня 'хорошо зарекомендовала себя' и 'специализируется на производстве высококачественных вин' является оценочным и не может быть проверено без дополнительных данных, но не является ложным."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точен, но слишком краток. Он не дает полного представления о винодельне, хотя и содержит проверенные факты."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для предоставления конкретных и проверенных фактов о винодельне, таких как ее принадлежность к компании Maurt и точное местоположение, необходимы собственные данные.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат очень ограниченную информацию, которая не позволила RAG-ответу быть более полным, чем прямой ответ. Фактически, RAG-ответ стал менее информативным, хотя и более точным в деталях. Множество дублирующихся фрагментов не принесли пользы.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q057",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что за винодельня Radacini?",
+     "direct": {
+      "answer": "Radacini — это одна из известных молдавских виноделен. Они специализируются на производстве вин высокого качества, используя как международные, так и местные сорта винограда.\n\nХотите узнать что-то конкретное о них? Может быть, о сортах, которые они производят, или о их расположении?",
+      "latency_ms": 1054,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 68,
+       "total_tokens": 3993
+      }
+     },
+     "rag": {
+      "answer": "Radacini (Рэдэчинь) — это одна из ведущих виноделен в Республике Молдова. Она известна своим подходом, который сочетает традиции и инновации в виноделии.\n\nНазвание \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\nХотите узнать что-то конкретное о ней, например, какие вина они производят?",
+      "latency_ms": 12354,
+      "retrieval_ms": 10780,
+      "generation_ms": 1574,
+      "usage": {
+       "prompt_tokens": 11897,
+       "output_tokens": 100,
+       "total_tokens": 12082
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states what Radacini winery is, including its location and the meaning of its name.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vinello.eu",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEKZ6i4vq9aWqQB4P9PBTRnsTnjQcB-7EHIHdkJlRcRCp0EjQn3ykUd6ustq3bU5wVtNWrjnIOJUjztp8LrGSsheQSaXzxdK49K04brXKM6_kjO3XIhvWLyev0=",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH36DZX7OMSPsqrUrgI-R2qXaKDGnk9Q8weeOkP6JHUHB-ZlQsvtGwH68ai50Bel1FRFKhRNGpvl0z6OMR6GCp11e4fBoAje3GxNUoQC2IzerX66dYCgS8QPUUNxM9gyci_UzlB4d1Yi1imL5Po",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "radacini.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHvobIuF6YYYZnsSo3I1kwdEJMiDe5bqlsET63Dr_cm_koZ71fxzC-G2jew0ZuhDCf0tjJmSpFYgWlHgG5roEw701BRJZxA5Mh0-lA9ZNr7",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "vivino.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFmRU1ZYAxEOkYVag4Dl8ciiMfd_SEZeznQB6w_lWLWDmH6CoXsGZg1DZVjeglA24RyoELKuVwAG4u4sbkpWJtrK2Fv3mtkOxPwtqrb3aitEXaYE4tjxV66dKnx4YbVkXQO22btJQA=",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH3dSn1p3oYtzUEhvoV6IgwvINgkmT94pM2R93GxJXcMNdwfyZsNrJaFUhOkRNEtB2xJg4lACPY-7ZZSILGajDK_ptFX9QA1h_mMWarzMripFn61PHeGalQiFzBZ0WPIDHN6Xh6WBPszTwUMV34k_0-AZy8QYMl7L0gpt9yKsdS9zxzGrMoRbzhQPG9XpzVLM94BcKdJSjD",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "radacini.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHXrJHZK5UCKwvsC_PWoigX2PK_qfQdrpbm2-HBEgYMFpNdgJt486wGq2Xtn4zydxDheZDbQmqJxX-iEyeHDfNIOMfk-IBU5v0b0yYVQQ69rYwa449vDUBmog==",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "radacini.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHD1J0vqRRpmmq89jpuRDT_vNSDRVnY0aEZLS_QzJ-1GL1yK71koysc1GWslamtlnTaZcORJAXqHcSDnQy4WJ6iRGz8EBB6AMG-8rz-p1d7-jr_ryKEclU=",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        },
+        {
+         "level": "web",
+         "title": "wine-intelligence.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEGSCMDeQsjBuxW26i4cUN_Tj9ekPGQNamc_lAdEu32iYcl15JxgaxOzfdB5yz-dreC9UobIorIpnctsCCRFVqgd_no0un7qmxw4zA4OhxqgRc8z1K91TsQ15LoGApx4TjMA-TRIapF2S4XUht9_e3RBW-dmt1NqEDzk_Lg7IwvUwGToOqECzfPN-IxygCEvKfzOwd4Hy1htwnCV1SskJeoKK6RJ2BlibnJLxd4uk6PYgDgWUhO3bdDhWQMLA==",
+         "confidence": "low",
+         "text": "Винодельня Radacini (Рэдэчинь) — один из ведущих производителей вина в Республике Молдова, известный своим сочетанием традиций и инноваций в виноделии. Название \"Radacini\" переводится как \"Корни\", что подчёркивает глубокую связь винодельни с природой и её происхождением.\n\n**Местоположение и Виноград"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но очень общий. Не хватает конкретики, которую можно было бы получить из базы знаний."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ стал более информативным за счет добавления перевода названия и упоминания о сочетании традиций и инноваций."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Хотя прямой ответ был корректным, он был слишком общим. Для предоставления более полной и интересной информации о винодельне (например, о значении названия) требовались специфические данные.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили добавить в ответ конкретную и интересную деталь о значении названия 'Radacini' и подчеркнуть их подход к виноделию, что улучшило качество ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q061",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Правда ли, что Purcari недавно приобрела биодинамическое хозяйство?",
+     "direct": {
+      "answer": "У меня нет подтверждённых данных о том, что Purcari недавно приобрела биодинамическое хозяйство.\n\nЕсли интересно, могу рассказать о других новостях Purcari или о биодинамическом виноделии в целом.",
+      "latency_ms": 993,
+      "usage": {
+       "prompt_tokens": 3888,
+       "output_tokens": 47,
+       "total_tokens": 3978
+      }
+     },
+     "rag": {
+      "answer": "Да, это правда. Группа Purcari Wineries недавно приобрела биодинамические виноградники. Они сообщили об этом в своём отчёте за 2025 год.\n\nЭти виноградники, площадью почти 17 гектаров, находятся недалеко от села Олэнешть, в традиционной Пуркарской зоне.",
+      "latency_ms": 6356,
+      "retrieval_ms": 5353,
+      "generation_ms": 1003,
+      "usage": {
+       "prompt_tokens": 5419,
+       "output_tokens": 74,
+       "total_tokens": 5493
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that Purcari Wineries recently acquired biodynamic vineyards.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFa4a1XwFrZf6lTCIngpk8eY_CqC0FLIX_Sw2w1asBUQLhJRTCc8p-cY0N5B6kgYZu63MSeneIlPp0VxtXJZucRHDMRLdNuk4hrIjwitSY2Tz0kWYQOMg9mc-PCawRbJpSA-q5HrTdMFJIwvFuq5C2JpwZSP39Kp_Pc6KmcS5VJKglYazZ74y1VeXu7Weo5tZ9a-z1O51dl",
+         "confidence": "low",
+         "text": "Да, это правда. Группа Purcari Wineries недавно приобрела биодинамические виноградники. Компания сообщила об этом в своем отчете за 2025 год.\n\nПриобретенные виноградники, площадью почти 17 гектаров, расположены недалеко от села Олэнешть и традиционно относятся к Пуркарской зоне. Они были высажены в "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честный, но неполный, так как не содержит конкретной информации."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "отчёте за 2025 год"
+       ],
+       "notes": "Ответ полный и релевантный, но содержит неточность с годом отчета."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Прямой ответ не смог предоставить конкретную информацию, которая была доступна в базе знаний.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченный контекст позволил дать утвердительный ответ и добавить конкретные детали о приобретении, которые отсутствовали в прямом ответе. Однако, была допущена ошибка с годом отчета, вероятно, из-за некачественного фрагмента.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q060",
+   "class": "moldova_specific",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какие финансовые результаты Purcari за последний год?",
+     "direct": {
+      "answer": "У меня нет подтверждённых данных о финансовых результатах Purcari за последний год. Могу рассказать о самой винодельне, если хотите.",
+      "latency_ms": 1068,
+      "usage": {
+       "prompt_tokens": 3880,
+       "output_tokens": 29,
+       "total_tokens": 3953
+      }
+     },
+     "rag": {
+      "answer": "За последний полный год, то есть за 2025 год, Purcari Wineries показала значительный рост. Выручка группы выросла на 14,3% по сравнению с предыдущим годом, и операционная прибыль тоже увеличилась.\n\nПри этом чистая прибыль снизилась, но это было связано с курсовыми разницами.",
+      "latency_ms": 10844,
+      "retrieval_ms": 9289,
+      "generation_ms": 1555,
+      "usage": {
+       "prompt_tokens": 12065,
+       "output_tokens": 76,
+       "total_tokens": 12264
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states Purcari Wineries' financial results for the last full year, 2025, including revenue growth and operational profit.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGQ4cJsT6Gh3VN0_NdPR57HJbE39XMSbnrVn8GedbDe_mxcXe0CNKdL95hX7o7wyBvCGtKXKA3Z5wxmbY87wTyHNKNHYamhBEKHOvx666SM6ibl279IZPSYpCEIcuAq5JCBYjmC9pANT3ov9kc=",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        },
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFTA2wjaD2lKyW-xtktkYOwQAzDS_7OTqgxrHSk6rjsHITXe50d2WbZeqY-yBmAxLf89Izc8a8jFbo6r8YBFmmIcAc8DdLKe7VJvGr6R3KfZ0h0elMdPT1t4n74JZ_JCuSPR3k8p1ycIWR69Ky1jtq-vS_-iDMlIECx6YeL7lVHOGBs7y-0TckAYj9RMG-h4t-Lls11Unwi611X6KKrAYMtV42mv8szrbqPNkiTGtg=",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        },
+        {
+         "level": "web",
+         "title": "logos-pres.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNStd6agjkIkhlaThXptJhiP_ADdmsa4UZIevtvdjVY1vVNdvmewlQhF0WpQZ9i8fsc0274LUjP5TSFDjnaTfMWubOT_XJGZgbN-Bo6isIV6aJVetZ_CrXi8JpoOdEWQEbdwEyQgWXw9qIJiY_zfalwno3xe4c2xUmm_eb3A82QtPc4hLZDLRFiyWqmVlfjK-S",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        },
+        {
+         "level": "web",
+         "title": "logos-pres.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH8asnILX2W50RWcVeKSiXencHuhui2ie4pTQkvqWTIUW4sOAph1BV8HY4tZRzEfYvbjNL6k7NnBX1UE-jo9-EA0V4Nre2rxjhpHkpuF_pIA9dz-hTR8lI0pedma18RCT5LaFBdcHJlqgVYbbeti08R-z_utytGlavHZgIbu89euy4TNQAKX6JlgCPI",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEUHr98yJuA6o_cAkbyo6-0IaL2swg53bug83pUxi7264TNYL4WioNd0P5EdSdTMubn-vgZIjqAW7BlmLV4az6vqVuMK2h9z3KN5OBMvOD2Tag42usA35UkDcUdV9G5EqQ1KdiCPhLpw6AOHHgmhgYYULxT46IEWHcTXuEwyj0-Bftyn6L3AL8=",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        },
+        {
+         "level": "web",
+         "title": "logos-pres.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEjqZf-TVIkxWiqkypeDlYvAt14BVd151MoWm31HBSkLzS9RM5KTx288rvgjMcG34yr9briHOkE79v-J4Sj7KPcxI56eDxW6zGXQcW7ma2LTndvAxDlBNfuPBUOo_EksbmYAdzRTgyS7s9Y5hRCPRrBztZXCSAH6L_NOrvEA8xU1-HNiUqQ",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        },
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGaif2wEDdVDW3ioQTr11dgfwMlSpcNfLAElzs6qeuQBC08voQj6wejBvagK3ECL2SJx8L0NOKeTr8E7-T9EWIGB1nSyxD5XxEvYrvPu1wo7Tcpine9jWqWnj77EFVoNJ5jEfRPw32Zbe5wvP7eX9ZDiORhRB48QoBoqqOlSi_E0jRjNixCJXaJ3HgLkD4wVJ8bT3Nzeu4G8wyzSzPUP1DbQftiWWjv5K9wvh4sCTi59mEX",
+         "confidence": "low",
+         "text": "За последний полный год, 2025, Purcari Wineries зафиксировала значительный рост выручки и операционной прибыли, несмотря на снижение чистой прибыли, связанное с курсовыми разницами.\n\n**Финансовые результаты за 2025 год:**\n\n*   **Выручка группы:** Выросла на 14,3% по сравнению с предыдущим годом, дос"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие данных, но не дает никакой полезной информации по запросу."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 1,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "2025 год",
+        "Выручка группы выросла на 14,3%"
+       ],
+       "notes": "Ответ предоставляет конкретные финансовые данные, но они относятся к будущему (2025 год), что делает их фактически неверными для 'последнего года'. Это критическая ошибка."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует конкретных финансовых данных, которые не являются общеизвестными и требуют доступа к актуальной информации.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "contradiction_introduced",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат данные за '2025 год', что является ошибкой, так как 2025 год еще не наступил. Это привело к предоставлению неверной информации в ответе RAG, тогда как прямой ответ был честным в своем незнании.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q063",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какая крепость и остаточный сахар у Dealul de Aur Fetească Neagră Reserve 2019?",
+     "direct": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 имеет крепость 14,5% алкоголя и содержит 2,5 грамма остаточного сахара на литр. То есть, это сухое вино.",
+      "latency_ms": 1184,
+      "usage": {
+       "prompt_tokens": 3897,
+       "output_tokens": 52,
+       "total_tokens": 4013
+      }
+     },
+     "rag": {
+      "answer": "Крепость вина Dealul de Aur Fetească Neagră Reserve 2019 составляет 14,90%, а остаточный сахар — 1,90 г/л.",
+      "latency_ms": 5367,
+      "retrieval_ms": 4616,
+      "generation_ms": 751,
+      "usage": {
+       "prompt_tokens": 5183,
+       "output_tokens": 44,
+       "total_tokens": 5227
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states the alcohol percentage and residual sugar for the specified wine and vintage.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "danielswine.club",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGIA-THhwL76fVRAtzyWIM4Uc8nJUD9wKcBcQ-U2s2AinYTWxGppAwbUKad8Ye1J0i3rai46Ux5Hi6n_TYUZb9XczfWIktZOsTvWH1qDDDb5oYQKiJCRgpznCfJaEcE7y3cA8VbgtMSpJHAqDhPDvBrQ09eZ_t74ds=",
+         "confidence": "low",
+         "text": "Крепость вина Dealul de Aur Fetească Neagră Reserve 2019 составляет 14,90%, а остаточный сахар — 1,90 г/л."
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 1,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "14,5% алкоголя",
+        "2,5 грамма остаточного сахара на литр"
+       ],
+       "notes": "Ответ A дает конкретные цифры, которые не соответствуют действительности."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ B точно отвечает на вопрос, используя предоставленные данные."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о конкретных характеристиках вина (крепость, остаточный сахар) необходимы точные данные, которые не являются общеизвестными и требуют обращения к базе знаний.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченный фрагмент предоставил точные данные о крепости и остаточном сахаре, что позволило исправить неверные утверждения в прямом ответе и дать корректную информацию.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q065",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Каким тиражом выпущено Dealul de Aur Fetească Neagră Reserve 2019?",
+     "direct": {
+      "answer": "У меня нет подтверждённых данных о точном тираже вина Dealul de Aur Fetească Neagră Reserve 2019.\n\nМогу рассказать об особенностях самого сорта Fetească Neagră, если интересно.",
+      "latency_ms": 1373,
+      "usage": {
+       "prompt_tokens": 3894,
+       "output_tokens": 50,
+       "total_tokens": 4008
+      }
+     },
+     "rag": {
+      "answer": "У меня нет подтверждённых данных о тираже выпуска Dealul de Aur Fetească Neagră Reserve 2019.\n\nНо я могу рассказать об особенностях сорта Fetească Neagră или о винодельне Dealul de Aur, если вам интересно.",
+      "latency_ms": 5920,
+      "retrieval_ms": 5160,
+      "generation_ms": 760,
+      "usage": {
+       "prompt_tokens": 4295,
+       "output_tokens": 58,
+       "total_tokens": 4353
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие информации, но предлагает релевантную альтернативу."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие информации, но предлагает релевантную альтернативу."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует конкретных данных о тираже вина, которые могут быть только в базе знаний.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствуют, поэтому RAG-ответ не изменился по сравнению с direct-ответом.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q062",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о вине Dealul de Aur Fetească Neagră Reserve 2019.",
+     "direct": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 — это красное сухое вино из молдавского сорта Fetească Neagră. Оно произведено винодельней Dealul de Aur.\n\nЭто вино выдерживалось в дубовых бочках в течение 12 месяцев, что придало ему дополнительную сложность и структуру. Урожай 2019 года был достаточно хорошим.\n\nХотите узнать о его вкусовых характеристиках или с чем его лучше сочетать?",
+      "latency_ms": 1506,
+      "usage": {
+       "prompt_tokens": 3893,
+       "output_tokens": 109,
+       "total_tokens": 4109
+      }
+     },
+     "rag": {
+      "answer": "К сожалению, у меня сейчас нет подтверждённых данных именно об этом вине — Dealul de Aur Fetească Neagră Reserve 2019.\n\nНо я могу рассказать вам о сорте Fetească Neagră в целом, или о том, что значит \"Reserve\" для молдавских вин, если вам интересно.",
+      "latency_ms": 21698,
+      "retrieval_ms": 18717,
+      "generation_ms": 2981,
+      "usage": {
+       "prompt_tokens": 12203,
+       "output_tokens": 72,
+       "total_tokens": 12772
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "evidence_entity_mismatch",
+       "claim_class": "grounding_required",
+       "entity_match": "mismatch",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "thequirkycork.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFMNNCR8MpKmHqykMqKcplW2kXTPjJ6ccxl1naaaJB8GT6bFP2PrODkeNkawoFOLRqAYWBfvrYJcWcs0gdiSFWDa8Pn8R48esDWTUk_0NAEk0FbPK8K7nFeGKGpZ-oomzwZW1hitoCC-YaiCU5rgx8BQ1eZ",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEJZkYPrEcw3t_7-PLuu7Dm2HZKwd_cvYJwUTwiOboubeHJWGVT-bP60aUDcTAWantUGmNmQa9E6_cI0ZQQslVWSPA7aur3d4037pczuss9NVDeaTwHLpUaWeJ-_bH_MQ-Zi3lbhyQ=",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "vinerra.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHpESCxlMlet9IUJlWwO6t0W34EiiepDnCP2jHyDA8R4XdvV2Da_Zuywe26PfXFtHtWNcKN76aFd3ldbMrN4jExR7oEeILoz_5IxTKljD0GiCcqhdK1dJr4QrTZkZ0BKTPNbtItfG8D-vl0gKK_NWowK84CHRQzGw9UEeLXvvpmycSvoLnntDns6_q4WUUnYKpl_xUuSjGx2Bc=",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "sommeliersuite.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFqN2N0tszBIP6iwOl1LsbLiBfDAbEC-FH5LtmL3c_vhUBjjwglXP0IFByUzHkP2yAsxav1lOgXeWWs2xKvFNO8pgEVtlh3DziC29XsuiV0yZzeoCJxFmBrN1xPYFA-7erJ8aSATzys",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "thequirkycork.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFB-41Tpc8qpGxZvvMlNcarKw9-z_J0jiP-72AhdJdXwuVcbk6uWwAucpIJDQIAt_otVLHkyW1QsJ00fz9zUmDM2r3qgOe2hbdqWSN5OZdgC44spos9_3R5WbvOuVy1yGKyZRjeEPLGWXuxJpIhgyUj2xiOxDLoWoFjyb7PZrxVjv8mGRx-HWDOGlylClgsHAYMg9XqgoFKmNg=",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF1JwGfVdz_QORYwpE26I8lIJ7B9_86GdNswX8g3bt9tQ6p8VAfyXiELDyiAQr31c5hktCu3RExgFSmJ0FnYXLTlJWaTv74Gjpua1Ri-2jYbhZ7DqTtJdAKrpUPxH37RrnmQsiWXXS1Zbd7nGILdtWrfVo=",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "webnoticia.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHP7WwfL0SX5EOpzOin7q3Nm47dHN13hY-ie4zJrNXiIKOJFnfagl51B-O_i018kApbPyDITzj8F_nDlSLkOjtCDzdDzwmbWiTEHiU-h-5zrRtpeRfyAHt_QW7mHWCrQ-3ewZLeoJy54l_n09alXNaODl7DHNS9IW9eguB3lRP_-wnT47hcVtQ=",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        },
+        {
+         "level": "web",
+         "title": "decanter.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFO7gRFFoHZWO0aiNNXN0qrif5wwn2aeaiJzwTJE1qDcHXvsKSBBvkDHPufARxBzTujjgeyrxgI0qEYpwzfLhwY0sauzS1ZPp5qqGbQzLS9lc6HHmWLyQWRa9wxJlX1LCUWHZrTHfCbQeXren6Hx-HVTMo-Yz6yUJb7qyN96RDFHg==",
+         "confidence": "low",
+         "text": "Вино с названием \"Dealul de Aur Fetească Neagră Reserve 2019\" не удалось однозначно идентифицировать как конкретный продукт или винодельню в предоставленных результатах поиска. \"Dealul de Aur\" переводится как \"Золотой холм\", и это может быть описательным названием для виноградника или местности, а н"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 1,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "произведено винодельней Dealul de Aur",
+        "выдерживалось в дубовых бочках в течение 12 месяцев",
+        "Урожай 2019 года был достаточно хорошим"
+       ],
+       "notes": "Ответ уверенно придумывает факты о вине, которое, судя по RAG, не существует или не идентифицируется. Это критично для factuality."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие информации и предлагает релевантные альтернативы. Это хороший подход, когда конкретных данных нет."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Модель без RAG сгенерировала вымышленные факты о несуществующем вине. RAG показал, что такого вина нет в базе, что является критически важной информацией.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "prevented_hallucination",
+      "retrieval_effect_explanation": "RAG предотвратил галлюцинации, показав, что запрашиваемое вино не идентифицировано, в то время как прямой ответ выдумал детали о нем.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q064",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько месяцев выдерживается Dealul de Aur Fetească Neagră Reserve 2019 и в каких бочках?",
+     "direct": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 выдерживается 12 месяцев в бочках из французского дуба.",
+      "latency_ms": 1191,
+      "usage": {
+       "prompt_tokens": 3898,
+       "output_tokens": 32,
+       "total_tokens": 3999
+      }
+     },
+     "rag": {
+      "answer": "К сожалению, у меня нет подтверждённых данных о том, сколько месяцев выдерживается именно Dealul de Aur Fetească Neagră Reserve 2019 и в каких бочках.\n\nМогу рассказать вам о стиле Fetească Neagră в целом или о том, что обычно означает приставка \"Reserve\" для красных вин.",
+      "latency_ms": 15927,
+      "retrieval_ms": 13675,
+      "generation_ms": 2252,
+      "usage": {
+       "prompt_tokens": 9414,
+       "output_tokens": 74,
+       "total_tokens": 9705
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence explicitly states that it could not find the exact information about the aging period and type of barrels for the specified wine.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "danielswine.club",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG61mHjEXHfouXl9s09lA6oGN9VMcOd9c4vIs170Uf2siSHUccGUNI2bfjuJa26cPkj9FcfSp_yJz_RFgdW7avN8xYSHUo2Q8AUThz8LOCEFOUORcPStHUw-HOnj0id3wxi6VshYsP4VIgq-6qMwuqeTHy2iGu1LNzo",
+         "confidence": "low",
+         "text": "К сожалению, мне не удалось найти точную информацию о сроках выдержки и типе бочек для вина \"Dealul de Aur Fetească Neagră Reserve 2019\". Вероятно, \"Dealul de Aur\" относится к региону Деалу Маре (что переводится как \"Золотой холм\"), известному производством красных вин в Румынии, а \"Reserve\" указыва"
+        },
+        {
+         "level": "web",
+         "title": "chateautransylvania.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGYGexD2GtqbULxHQXpZvydCBUP09deQkVtdSRelg3df0Eo2KGuP3uG3qX2EkXPG5-LmzVe5wR-29bRQiQdlH2bdUi2hWf9vN6bo0eOcVq8UGH-hRTrQGUfemIx5mRk5B4CcmL_5sa3bEc-ehm1tdO40XyfegvA3lpQQ5Hy",
+         "confidence": "low",
+         "text": "К сожалению, мне не удалось найти точную информацию о сроках выдержки и типе бочек для вина \"Dealul de Aur Fetească Neagră Reserve 2019\". Вероятно, \"Dealul de Aur\" относится к региону Деалу Маре (что переводится как \"Золотой холм\"), известному производством красных вин в Румынии, а \"Reserve\" указыва"
+        },
+        {
+         "level": "web",
+         "title": "tonnellerie-vallach.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG2oWjLsg6wIk219OqwtGbSiftYkbPTTpMlMJswdl56Kn_82A3wJValsgZvdPmlgcNzc7s6FvNxvCeT7HQR22TUJkiRkUoFomWFnR4u6njma0mvR96JWJFFQsusmk9rUdBCvWB5DgFeAht0A8Y=",
+         "confidence": "low",
+         "text": "К сожалению, мне не удалось найти точную информацию о сроках выдержки и типе бочек для вина \"Dealul de Aur Fetească Neagră Reserve 2019\". Вероятно, \"Dealul de Aur\" относится к региону Деалу Маре (что переводится как \"Золотой холм\"), известному производством красных вин в Румынии, а \"Reserve\" указыва"
+        },
+        {
+         "level": "web",
+         "title": "samburesti.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1phqdurR0RMBs4KRjtM4dnydk2XQSy7eA_seIf0WP-RWm8cc5oa_q1fxqRJ0M33ZLTLpp1tNNYiBeWzhLqwLp3pFiWZYpVk9Xa2ArsuZuArLxD9r26e29Vmz5NB9WNE-ave4G6UF-PQr1YYS4G12Gbyki1p_FdvMPKH9qCA==",
+         "confidence": "low",
+         "text": "К сожалению, мне не удалось найти точную информацию о сроках выдержки и типе бочек для вина \"Dealul de Aur Fetească Neagră Reserve 2019\". Вероятно, \"Dealul de Aur\" относится к региону Деалу Маре (что переводится как \"Золотой холм\"), известному производством красных вин в Румынии, а \"Reserve\" указыва"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFvcUb_vPrqYhxtdzUvBHsBt4w1gVHvP0zsRm3perh4gTK0CK15YwUe6xCTjSyV6qBVLtPnsFR2hQ3o1ZhnZkeKh040iIiH5P759TlwnwW2ifoz29A_QMmmFJe8QlGKSVorSJvHVqFIMkdk14LI1nHfCAe9",
+         "confidence": "low",
+         "text": "К сожалению, мне не удалось найти точную информацию о сроках выдержки и типе бочек для вина \"Dealul de Aur Fetească Neagră Reserve 2019\". Вероятно, \"Dealul de Aur\" относится к региону Деалу Маре (что переводится как \"Золотой холм\"), известному производством красных вин в Румынии, а \"Reserve\" указыва"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 1,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "12 месяцев",
+        "бочках из французского дуба"
+       ],
+       "notes": "Ответ уверенно называет конкретные факты (срок выдержки и тип бочек), которые не подтверждаются и, вероятно, являются выдуманными."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие информации, что является правильным подходом при отсутствии данных. Предлагает рассказать о связанных темах."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о конкретных характеристиках вина (срок выдержки, тип бочек) необходимы точные данные из базы знаний. Модель без доступа к данным сгенерировала неверную информацию.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "prevented_hallucination",
+      "retrieval_effect_explanation": "Извлеченные фрагменты показали, что точной информации по запросу нет, что позволило RAG-модели избежать галлюцинаций и дать честный ответ.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  }
+ ]
+}

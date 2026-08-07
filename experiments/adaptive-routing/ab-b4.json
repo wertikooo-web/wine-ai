@@ -1,0 +1,2784 @@
+{
+ "meta": {
+  "model": "gemini-2.5-flash",
+  "judge_model": "gemini-2.5-flash",
+  "finished": "2026-08-07T19:23:34.055Z",
+  "n_items": 20
+ },
+ "results": [
+  {
+   "id": "q092",
+   "class": "ambiguous_conversational",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "А что вообще у вас можно спросить?",
+     "direct": {
+      "answer": "Здравствуйте! Я цифровой эксперт по молдавскому вину. Могу рассказать вам о винодельнях, местных и международных сортах винограда, винодельческих регионах Молдовы, а также подсказать интересные гастрономические сочетания.\n\nЕсли интересует винный туризм, тоже с удовольствием поделюсь информацией. В общем, всё, что поможет вам лучше понять и оценить мир молдавского вина. Спрашивайте!",
+      "latency_ms": 1984,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 96,
+       "total_tokens": 4071
+      }
+     },
+     "rag": {
+      "answer": "Я с удовольствием расскажу вам о молдавском вине. Можете спрашивать про винодельни, сорта винограда, регионы, где их выращивают.\n\nТакже могу подсказать, с чем лучше сочетать разные вина, и рассказать о возможностях винного туризма в Молдове. Что вас интересует больше всего?",
+      "latency_ms": 3780,
+      "retrieval_ms": 2353,
+      "generation_ms": 1427,
+      "usage": {
+       "prompt_tokens": 4265,
+       "output_tokens": 68,
+       "total_tokens": 4333
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и естественный ответ, который хорошо описывает возможности ассистента."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Хороший ответ, но немного менее полный и естественный, чем прямой ответ. Фрагменты не были извлечены, поэтому ответ по сути является перефразированием прямого ответа."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос о возможностях ассистента не требует обращения к базе знаний о вине. Это мета-вопрос.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлечённых фрагментов не было, поэтому RAG-ответ по сути является перефразированием прямого ответа, без существенных изменений.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q093",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какое красное вино лучше всего раскрывает молдавский терруар?",
+     "direct": {
+      "answer": "Если говорить о красных винах, которые лучше всего раскрывают молдавский терруар, я бы выделил два автохтонных сорта: Fetească Neagră и Rară Neagră.\n\nFetească Neagră — это, пожалуй, самый яркий представитель. Вина из него получаются насыщенными, с ароматами тёмных ягод, сливы, иногда с нотами специй и дымка. Он прекрасно отражает местные почвы и климат, давая вина с хорошей структурой и потенциалом к выдержке.\n\nRară Neagră, хоть и менее известна за пределами Молдовы, тоже очень интересна. Она даёт более элегантные, питкие вина с тонкими ягодными ароматами, вишни, клюквы, часто с травяными или землистыми оттенками. Эти вина хорошо показывают особенности терруара региона Штефан Водэ, где этот сорт особенно хорошо себя чувствует.\n\nОба сорта уникальны для Молдовы и Румынии и прекрасно демонстрируют местный характер.",
+      "latency_ms": 3099,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 236,
+       "total_tokens": 4291
+      }
+     },
+     "rag": {
+      "answer": "Выбрать \"лучшее\" красное вино, которое раскрывает молдавский терруар, довольно сложно, ведь это очень субъективно. У меня нет подтверждённых данных о каком-то одном, однозначно лучшем вине.\n\nОднако, если говорить о местных сортах, которые прекрасно отражают характер Молдовы, я бы посоветовал обратить внимание на **Rară Neagră** и **Fetească Neagră**. Эти сорта очень хорошо приспособились к местным почвам и климату.\n\nХотите, я расскажу подробнее о характере этих сортов?",
+      "latency_ms": 12541,
+      "retrieval_ms": 9605,
+      "generation_ms": 2936,
+      "usage": {
+       "prompt_tokens": 10142,
+       "output_tokens": 126,
+       "total_tokens": 10612
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence describes the Moldovan terroir but does not name any specific red wine that best expresses it.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "carlevana.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHDOZSsW9sfLZj3AS3pBnynXl57AUid5StqiaQ7pbD02KmGjoZzKyHt5vAyIR9_z7mJtfz2zYYe1YXI8GT9UwOMT0RlK5KJymaVTuF-UEgwoyZolerF1cVbGKhssUVGKD64v1c=",
+         "confidence": "low",
+         "text": "Молдавский терруар, благоприятствующий производству красных вин с уникальными характеристиками, формируется благодаря сочетанию географического положения, разнообразных почв и умеренного континентального климата. Страна расположена между Карпатами и реками Днестр и Прут, недалеко от Черного моря, чт"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFoRM9QPRvXcEKOktoeQUGVYXmQowOraPewG3jG-R2UcsG1nXwePLHCttfTKxbXEaiXSeYWN0CPVRiNgP1REYr5m9eVzYf1FX-Od3DKBO5SIr25951D-hXTwFf4PCn7gnK28kohXHmYBCT-HGUW1GM7sVA=",
+         "confidence": "low",
+         "text": "Молдавский терруар, благоприятствующий производству красных вин с уникальными характеристиками, формируется благодаря сочетанию географического положения, разнообразных почв и умеренного континентального климата. Страна расположена между Карпатами и реками Днестр и Прут, недалеко от Черного моря, чт"
+        },
+        {
+         "level": "web",
+         "title": "moldova.travel",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHzveO7C5YKlrCY6z2m50WJYlZvToesdY99zE2WG497qWO-AwxrUPhgyB5jRTHoOi8zaEeYvVfc5b4EvHd9UcDk7UAsTWnmvjo9AP5RI1RYO-rZY3hdJ0yPR9AW6QIrIa0QXRAMTL5o8XgbDUNeeV3LUg==",
+         "confidence": "low",
+         "text": "Молдавский терруар, благоприятствующий производству красных вин с уникальными характеристиками, формируется благодаря сочетанию географического положения, разнообразных почв и умеренного континентального климата. Страна расположена между Карпатами и реками Днестр и Прут, недалеко от Черного моря, чт"
+        },
+        {
+         "level": "web",
+         "title": "logos-pres.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG0lKC3cjqkBVw6Iq9nmMzNKH6yOOBswRrruBr7NkMf-4-op_aDaionPQbEa5DrBtAr99APYUh63oQqSSmi1vscqzB5hmjdb4WqgQHaKGjdaVKNNE4EOKjahH05SlBailCwD3ffs6idg7PI9L-0vb-PQRFYCPqYbsk2A5jjoPrb6A==",
+         "confidence": "low",
+         "text": "Молдавский терруар, благоприятствующий производству красных вин с уникальными характеристиками, формируется благодаря сочетанию географического положения, разнообразных почв и умеренного континентального климата. Страна расположена между Карпатами и реками Днестр и Прут, недалеко от Черного моря, чт"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGx5QyTHSHauUnv5Mdi4z_xFAkwTIDYq0eV4UvD8ao56Na3iTiRDAk_piZayetiWE7J507DQ_jK2FMiDjd-yScYJY0amtdzX1pk9uAFUzzN5-9RRWxPR5uUwo1RW4bpMWwOpc4vtr_ch5qA7PINa5IommzDdrmYrt54w5c=",
+         "confidence": "low",
+         "text": "Молдавский терруар, благоприятствующий производству красных вин с уникальными характеристиками, формируется благодаря сочетанию географического положения, разнообразных почв и умеренного континентального климата. Страна расположена между Карпатами и реками Днестр и Прут, недалеко от Черного моря, чт"
+        },
+        {
+         "level": "web",
+         "title": "nokta.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGEQWjyp6befMlv8yq-NAL1y1oCExNyZr4y8FuQkXWCzWOy7qpcN-RHaVLHPOeq8nWMtZ9Es41qX1wm8qYoOPBugb9J2bu0ykro-JtAoO9b5UuCaO5FKK7ZenSntYgZeYdrp_P3rYEKxdclNHo_rPEdz_HafxjPMh9yrZUbxbshAeka6C4pTpCfsW7pDw0a5sfMC_VhPull",
+         "confidence": "low",
+         "text": "Молдавский терруар, благоприятствующий производству красных вин с уникальными характеристиками, формируется благодаря сочетанию географического положения, разнообразных почв и умеренного континентального климата. Страна расположена между Карпатами и реками Днестр и Прут, недалеко от Черного моря, чт"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, развернутый ответ, который полностью отвечает на вопрос и дает полезную информацию о двух ключевых автохтонных сортах."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ стал более осторожным, но менее информативным. Фрагменты не содержали информации о конкретных сортах, поэтому RAG не смог улучшить ответ, а скорее сделал его более общим."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала отличный и информативный ответ, который полностью удовлетворяет запросу пользователя.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были слишком общими и не содержали конкретной информации о сортах вина, которая могла бы улучшить или дополнить ответ. В результате, ответ с RAG стал более осторожным и менее детализированным, чем прямой ответ, хотя и не содержал фактических ошибок. Он стал 'тяжелее' за счет поиска, но без выгоды.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q094",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какой сорт винограда самый популярный в Молдове по площади посадок?",
+     "direct": {
+      "answer": "Самый популярный сорт винограда в Молдове по площади посадок — это белое виноградное Vitis vinifera **Fetească Albă**.",
+      "latency_ms": 878,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 33,
+       "total_tokens": 3965
+      }
+     },
+     "rag": {
+      "answer": "Самый популярный сорт винограда в Молдове по площади посадок — это столовый сорт \"Молдова\".\n\nЕсли говорить о технических, то есть винных, сортах, то среди них лидируют Каберне-Совиньон, Алиготе и Мерло.",
+      "latency_ms": 8636,
+      "retrieval_ms": 7193,
+      "generation_ms": 1443,
+      "usage": {
+       "prompt_tokens": 8667,
+       "output_tokens": 63,
+       "total_tokens": 8792
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states the most popular grape variety in Moldova by planted area.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG3N19-5CBtAasO3IdCcgozh_QI_jjHtghGEFruVoK7IqjC4okk_zViNWy45mBvBWB7MWrAr2AKub-tioH1jgOgkt-LCLFkMUCEP0G1fyk3tQFyu0DR6Q_36UbN1_6TNM_vVdFH_95NKBtUBkm43wppyXLIW6TUsCCa4fk00G5p",
+         "confidence": "low",
+         "text": "Самым популярным сортом винограда в Молдове по площади посадок является столовый сорт \"Молдова\", занимающий 5902 гектара по данным на май 2019 года.\n\nСреди технических (винных) сортов винограда лидируют следующие:\n*   Каберне-Совиньон – 3871 га\n*   Алиготе – 3683 га\n*   Мерло – 3593 га\n*   Совиньон-"
+        },
+        {
+         "level": "web",
+         "title": "agroexpert.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEYSVffd-uFqLKoWSB-sFDdNFhQoLq_R8DyPaydsqhFfn--uF_YSHi-k76xHsXO_-YAeyxLC12XG1W5z-BrfxtMu5ernRvCnfnTxAgrPiJ8q4bzS65vf5R7k2BbStVYWs40sEe5k6D3TX0sX1vR4W_6ndK8f14k9j8e465VJVy-NUN5-FzQUXncxshfJu3-Gc0MBdO4E_XJE0AokJ06a6o=",
+         "confidence": "low",
+         "text": "Самым популярным сортом винограда в Молдове по площади посадок является столовый сорт \"Молдова\", занимающий 5902 гектара по данным на май 2019 года.\n\nСреди технических (винных) сортов винограда лидируют следующие:\n*   Каберне-Совиньон – 3871 га\n*   Алиготе – 3683 га\n*   Мерло – 3593 га\n*   Совиньон-"
+        },
+        {
+         "level": "web",
+         "title": "newsmaker.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGzxHWEq7dxK9Mq_zPx_FfCvDLuXV3Ju1T19NU1WVSgJT2b9Y5s7bBbHQXZ1Kiz5RZS_KnKkfdLeG-XQVTNkfEtTBROYd8eVLXn9zqELw-CrbA3MiTNvKXA5L1jWTKLPKOHgpu6HnJdPw==",
+         "confidence": "low",
+         "text": "Самым популярным сортом винограда в Молдове по площади посадок является столовый сорт \"Молдова\", занимающий 5902 гектара по данным на май 2019 года.\n\nСреди технических (винных) сортов винограда лидируют следующие:\n*   Каберне-Совиньон – 3871 га\n*   Алиготе – 3683 га\n*   Мерло – 3593 га\n*   Совиньон-"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHzLDCIHkgYAP7utQe4xnAHYfcFdbePKFILgtztgJprtPkhTDRliMIFoIHn2CYuqVAzcC1TODZTqpcyTVpJcrtHC25pzKMAoH5KDH-M2508WfUXq8CqcHHZ3-n2GBMqYa48cd0U8QsBjkat6xdEpbz4BoE=",
+         "confidence": "low",
+         "text": "Самым популярным сортом винограда в Молдове по площади посадок является столовый сорт \"Молдова\", занимающий 5902 гектара по данным на май 2019 года.\n\nСреди технических (винных) сортов винограда лидируют следующие:\n*   Каберне-Совиньон – 3871 га\n*   Алиготе – 3683 га\n*   Мерло – 3593 га\n*   Совиньон-"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 1,
+       "factuality": 1,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "Fetească Albă"
+       ],
+       "notes": "Ответ A называет Fetească Albă, что не соответствует действительности. Это не самый популярный сорт по площади посадок."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ B корректно называет сорт 'Молдова' и уточняет информацию по техническим сортам, что очень полезно."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Модель без доступа к базе знаний дала неверный ответ, назвав Fetească Albă, тогда как правильный ответ - столовый сорт 'Молдова'.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили дать точный и полный ответ, включая информацию о столовых и технических сортах, а также их площади.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q091",
+   "class": "ambiguous_conversational",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Мне сегодня грустно, посоветуй что-нибудь.",
+     "direct": {
+      "answer": "Мне жаль слышать, что вам грустно. В такие моменты иногда хочется чего-то уютного и ароматного.\n\nЯ бы посоветовал попробовать Vior",
+      "latency_ms": 5800,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 35,
+       "total_tokens": 4779
+      }
+     },
+     "rag": {
+      "answer": "Мне очень жаль слышать, что вам грустно. В такие моменты иногда хочется чего-то уютного и согревающего.\n\nМогу предложить подумать о глинтвейне, или, как у нас его называют, Vin fiert. Это напиток, который традиционно пьют в холодное время, он очень ароматный и может создать такую тёплую, домашнюю атмосферу.\n\nЕсли интересно, могу рассказать, какое молдавское вино лучше всего подходит для глинтвейна.",
+      "latency_ms": 15300,
+      "retrieval_ms": 12748,
+      "generation_ms": 2552,
+      "usage": {
+       "prompt_tokens": 12160,
+       "output_tokens": 106,
+       "total_tokens": 12564
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "confirmed_via_web_fallback",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": null,
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Vin fiert: tot, ce trebuie să știți despre băutura de iarnă",
+         "source": "https://wine.md/blog/vin-fiert-tot,-ce-trebuie-sa-știți-despre-bautura-de-iarna",
+         "confidence": "verified",
+         "text": "Vin fiert: tot, ce trebuie să știți despre băutura de iarnă"
+        },
+        {
+         "level": "web",
+         "title": "skillbox.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEikFm-k69QMx_pn6OtowSLMwC_alqqMlor2UEqaNipxXD0uYX7ieT1jpySLGvINk8eV2CH4vcLtyeqlD5ovRziyf0-O8aYhw_Ob4SkYBaHBPzEnCi_eCRFMb3dyy-E7TF-xigNrs5xhw729btmfG8BPvhE",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        },
+        {
+         "level": "web",
+         "title": "eksmo.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGCDmMwjx8D7JSSdHBWgySKmfNO22HgcwRkfw7yzLQIxDz7LdLznukKqeLwbMVKLrufa5r76MuRy7CQDjWrsvbGS-f9yezNy2XMrultlc7X5bmSf56T7ix0sixF6cSQoqcSgyNUiI5C0FkRMOFnY2pWeBiEkjUuQE5HWPBHppFg",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        },
+        {
+         "level": "web",
+         "title": "t-j.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFQAWTMJF0h5usKmNpbFAZU7uPAtW7yMZ5BoU0BLbxJyEJB5dbVYuKk39xaXS6uSfqQPql7nw_a7OsSMA3xa8ZRIKuNVTqw-PJile76PuSiKUJLzKcC-mRUXfuPPE9mL0EGNhU=",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        },
+        {
+         "level": "web",
+         "title": "dszn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHDvZ4OXaCRHVL2lj8XrvMuyaOAF575jo-VwEx-Xpqr67z6GMfjoqNDJTao6dFLcRJgCc5Vs5jfmbNXkArAgY43l6-tUh7nzMdNYBI4agsA6ZTT9dBMt2cii_BPvHnxTvBo",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        },
+        {
+         "level": "web",
+         "title": "matzpen.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGViMlNqHupg4lpCtJdsve-8Qva-0mUI4carpg823te5-tN-kTyElK_pHf60zNwzQ1YOVNqjfGnyGqf9SzXmCLYL7O0yVnnLXt7-59CdBINp1hruAXeIzydoLK9UbirWwSACc6vnifJgRd1iLO6aDNIEp0wM6wkiiuAm5YN3NS-o29MlzXdjuhpH3QZUBLCArUN-UBCH5YRXFGpxMi6nLnoPw==",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        },
+        {
+         "level": "web",
+         "title": "lifehacker.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFdtbe6fBUsWBRS8UlCI0znQkt9iEZ_mybA8LSubpjy8fDgqy7et_kI1sbem_PaHkKDNQRFUZZHq6jVHY-7ESD1-wgf2b0SlrzviUsHN8UhcvltpB4jp0E-94z_zUvH9OPVZmursRHayy68Mw1iYR5Bwg==",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        },
+        {
+         "level": "web",
+         "title": "belokurikha-san.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHHdQdg7CRNhFlN4CV2uJ_EYGBDGZ5QgLiFOFPul4fRul7s3QP3N8vYUK6ighvOg52d70bzH4sqPLN9ikMMGPFEDuUnGsDsJMc8-mbwjldra-rjaiu2kbfho52ZK7m8EQ_LYyr3hvIJPWk=",
+         "confidence": "low",
+         "text": "Мне очень жаль слышать, что тебе грустно. Это совершенно нормально испытывать такие чувства, и важно позволить себе их прожить. Вот несколько советов, которые могут помочь тебе справиться с этим состоянием:\n\n**1. Прими свою грусть.**\nНе пытайся подавить свои чувства. Грусть — это естественная эмоция"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 1,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "Vior"
+       ],
+       "notes": "Модель предлагает вино 'Vior', но это название не является общеизвестным молдавским вином и, скорее всего, является галлюцинацией. Ответ не очень полезен, так как не дает конкретных рекомендаций, кроме выдуманного названия."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ предлагает глинтвейн (Vin fiert), что является уместной рекомендацией для грустного настроения и соответствует тематике винного сомелье. Предложение рассказать о молдавском вине для глинтвейна делает ответ более полезным и релевантным."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Прямой ответ галлюцинирует название вина, в то время как RAG-ответ предлагает релевантный и фактический совет, основанный на извлеченном фрагменте о Vin fiert.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченный фрагмент о 'Vin fiert' позволил модели дать конкретную, релевантную и фактическую рекомендацию, избегая галлюцинаций, присутствующих в прямом ответе.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q096",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какая винодельня в Молдове самая старая?",
+     "direct": {
+      "answer": "Самая старая винодельня в Молдове — это Purcari. Она была основана в 1827 году.",
+      "latency_ms": 820,
+      "usage": {
+       "prompt_tokens": 3882,
+       "output_tokens": 27,
+       "total_tokens": 3950
+      }
+     },
+     "rag": {
+      "answer": "Самой старой винодельней в Молдове является Chateau Purcari, основанная в 1827 году.",
+      "latency_ms": 5468,
+      "retrieval_ms": 4330,
+      "generation_ms": 1138,
+      "usage": {
+       "prompt_tokens": 6318,
+       "output_tokens": 25,
+       "total_tokens": 6384
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that Chateau Purcari is the oldest winery in Moldova and provides its founding year.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "records.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQElON8fBF8QcR4H_cDroEoQtMbqpEqWD5HHwcPgEgzMDl5eVRGHUvpgV8QH2qcGxXtp0CRwR2rlILsr_dxgjWsdeal3BDl_lv72N5VTANCNTEFcGRjKlpM4isl_Uy3rC2I7P5U9",
+         "confidence": "low",
+         "text": "Самой старой винодельней в Молдове является Chateau Purcari, основанная в 1827 году. История виноделия в Пуркарь берет свое начало в начале 19 века. Уже в 1847 году вина Пуркарь получили свою первую золотую медаль на Бессарабской сельскохозяйственной выставке. Поместье Пуркарь расположено на юго-вос"
+        },
+        {
+         "level": "web",
+         "title": "tonkosti.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH-54A6RepLUWcfp9qikdc-LXnMhWinhVV0C5wtqEx1OLyVWjEhLo90hxviYx8un162vx4aeJi_zU8807ue5gi8wOcNeNZeQflaEwmuf9OHmwPnEsamJKMHAWQPjhKmBjwobTkn0gL6jZBDAHSId-EC2W1mzQzR_RxzkpOpIi9gs0QDfbUM9RQod8-qK2Lg21KZdfGd7RJupOdcvIxGYGe4_86-x_2wANxAmg==",
+         "confidence": "low",
+         "text": "Самой старой винодельней в Молдове является Chateau Purcari, основанная в 1827 году. История виноделия в Пуркарь берет свое начало в начале 19 века. Уже в 1847 году вина Пуркарь получили свою первую золотую медаль на Бессарабской сельскохозяйственной выставке. Поместье Пуркарь расположено на юго-вос"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный и лаконичный."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный и лаконичный, полностью соответствует извлеченным фрагментам."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG дала полностью корректный и достаточный ответ.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтвердили информацию, которую модель уже знала, но не добавили новой существенной информации, которая бы улучшила ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q097",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какое молдавское вино самое титулованное на международных конкурсах?",
+     "direct": {
+      "answer": "Определить одно \"самое титулованное\" вино довольно сложно, потому что разные вина получают награды на разных конкурсах и в разные годы.\n\nОднако, если говорить о винодельнях, то Purcari часто выделяется своими многочисленными международными наградами, особенно за такие вина, как Negru de Purcari и Rosu de Purcari. Они регулярно получают высокие оценки и медали на престижных конкурсах.\n\nИнтересно, что Mileștii Mici известна как обладатель крупнейшей в мире коллекции вин, что само по себе является рекордом, но это не то же самое, что титулы для конкретных вин.\n\nХотите, я расскажу подробнее о наградах Purcari или о какой-то другой винодельне?",
+      "latency_ms": 1713,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 161,
+       "total_tokens": 4087
+      }
+     },
+     "rag": {
+      "answer": "Знаете, у меня нет подтверждённых данных о каком-то одном конкретном молдавском вине, которое можно было бы назвать \"самым титулованным\" за всю историю.\n\nОднако могу сказать, что Молдова в целом очень успешно выступает на международных конкурсах, завоевав более 6000 медалей. Среди виноделен, которые регулярно получают высокие награды, часто выделяют Fautor.",
+      "latency_ms": 9281,
+      "retrieval_ms": 6969,
+      "generation_ms": 2312,
+      "usage": {
+       "prompt_tokens": 11329,
+       "output_tokens": 88,
+       "total_tokens": 11578
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "evidence_entity_mismatch",
+       "claim_class": "grounding_required",
+       "entity_match": "mismatch",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "thecorkscrewconcierge.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGhn0yzUdZ2-q7nAT90rnoEvOY_bm4pRAEgdtJOJOtUU39CxQpjGsggg2ujUm_GRVZrkv1Uqj85nj3HsYsFMsGAzW3j0lpQX-tByD7sLP-9N3TkuMUe-B1ARs35k7epwvCbBzI2sYGc7JBS6w6pFBtGR55kKoRVhboTQ4muWbqu-EesRjJBBUndjyIW2v0rJHgC",
+         "confidence": "low",
+         "text": "Молдавские вина завоевали значительное количество наград на международных конкурсах, при этом Молдова является самой титулованной страной Восточной Европы, получив более 6000 медалей. Среди виноделен, постоянно демонстрирующих высокие результаты, выделяется винодельня Fautor.\n\nВ 2020 году винодельня"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEULCFGb3rj7hrrFbfUzslfk9QGuusMQ_RRdgmhZzmpxBxeuhbaF00nukFtjHZ0f_D_HChPZ-8TsD1o3jAPjnO-7KXgf9BWATeEds3WMcMQhZqiIKd_VEOW5cBSTY_G6tFTQQeBWF3PRQqztT3r7386-Cf59Aw1FEbXFnh9udJm0rMkw6piblKkEEHo0g2o3SXhn4MdaLtPDCnTThFOU8sFUdg81CKgSIcRB4xFoLQ7vwY4_1o4raa8qTPhse5qHPI0Lft-I0VTwUUCv77_cFn3nN-wDSPtNLxezc1MbaRX3ckrn5g-9QmYulLnX6COuDem_IGwJZGgix3nqCtsLMuJjk1INNXYvcyS8iapgkJCAxS-zYFq_p18adVlqa4=",
+         "confidence": "low",
+         "text": "Молдавские вина завоевали значительное количество наград на международных конкурсах, при этом Молдова является самой титулованной страной Восточной Европы, получив более 6000 медалей. Среди виноделен, постоянно демонстрирующих высокие результаты, выделяется винодельня Fautor.\n\nВ 2020 году винодельня"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHb6rBv2EBYjOfA_TBbjUfBZ67yuQaSdmgMNE2hVhVv9f3G7i9GsRRUrEasPOjo-xLHXwkE8X9KiLmhgHLla0t3sm3GY2JqcHyPcAD4rpRvccaLHnWbS0LbKSKqTLvtnYtA2iYVxID3Rmcb1P16vf6u6MMC9GwLsX5iL3nDzTDT",
+         "confidence": "low",
+         "text": "Молдавские вина завоевали значительное количество наград на международных конкурсах, при этом Молдова является самой титулованной страной Восточной Европы, получив более 6000 медалей. Среди виноделен, постоянно демонстрирующих высокие результаты, выделяется винодельня Fautor.\n\nВ 2020 году винодельня"
+        },
+        {
+         "level": "web",
+         "title": "nokta.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQExknotRYmebHv0PZGCm3oJTWQtUTEFIV9n5UllbrpTwqb8e_XHO3cwEFV90DCrwBN4_erLN-V6ZSQjaxrZygVsB71IIk_3xbIzu6OB-xM0uOKauhILXbc1UC1S0yWC-0Rtdg7nynLxT7gb-TgdCyZ2Cq5ArdZDo7G9vcMTllLeZztr4446Ik5K4xUFbnWZnovfDfv3p8Yy",
+         "confidence": "low",
+         "text": "Молдавские вина завоевали значительное количество наград на международных конкурсах, при этом Молдова является самой титулованной страной Восточной Европы, получив более 6000 медалей. Среди виноделен, постоянно демонстрирующих высокие результаты, выделяется винодельня Fautor.\n\nВ 2020 году винодельня"
+        },
+        {
+         "level": "web",
+         "title": "kp.media",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEmM7StVcxFB7iytRLVb6kYUJmpURqLouC4dKCaW-xt8xLV57Gho4y5_kkzy8jdaliG00_7ZjZ-plS4MA-dcU9hKTpgKYgmaRKQhHBpAsJhUXZEbfrrL5Or0I9lEO4KuKwhPDnEgPXo",
+         "confidence": "low",
+         "text": "Молдавские вина завоевали значительное количество наград на международных конкурсах, при этом Молдова является самой титулованной страной Восточной Европы, получив более 6000 медалей. Среди виноделен, постоянно демонстрирующих высокие результаты, выделяется винодельня Fautor.\n\nВ 2020 году винодельня"
+        },
+        {
+         "level": "web",
+         "title": "diez.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGqDKSXcbkrYwZO8RocdSPxSaMq_dsmXwlXBf19y2y_XFL2LyBSNyks5xyqMYGrqwRhKVUBNwkeJSN6_uWE6IZbBkuYlXXDg16rzgJdNAZt_nYY4h3-RW7Zwj357cXGw_bvFLQ-Ryh7shNaP-hLpTOp-9rc_aCyeBB1jcUPhW_GJaZ27xqnLjEdrZAbKNvTcIqCCvdKu2U=",
+         "confidence": "low",
+         "text": "Молдавские вина завоевали значительное количество наград на международных конкурсах, при этом Молдова является самой титулованной страной Восточной Европы, получив более 6000 медалей. Среди виноделен, постоянно демонстрирующих высокие результаты, выделяется винодельня Fautor.\n\nВ 2020 году винодельня"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хорошо объясняет сложность вопроса и предлагает релевантные примеры виноделен, которые известны своими наградами. Упоминание Mileștii Mici как обладателя крупнейшей коллекции вин является корректным фактом, хотя и не совсем по теме титулованности конкретных вин."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие данных о 'самом титулованном' вине, но предоставляет общую информацию о достижениях Молдовы и упоминает Fautor, что подтверждается фрагментами. Однако, он менее информативен, чем прямой ответ, так как не предлагает других известных примеров."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о 'самом титулованном' вине требуются конкретные данные о наградах, которые модель без RAG не может предоставить с полной уверенностью. Хотя прямой ответ и дает хорошие предположения, RAG мог бы подтвердить или опровергнуть их, или предложить более точные данные.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтверждают, что Молдова получила много наград и выделяют Fautor, но не дают информации о 'самом титулованном' вине, что не позволяет RAG-ответу быть более конкретным, чем прямой. RAG-ответ стал более осторожным и менее информативным, чем прямой, но при этом не ввел в заблуждение.",
+      "verdict": "AMBIGUOUS"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q095",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько стоит хорошее молдавское красное вино?",
+     "direct": {
+      "answer": "Хорошее молдавское красное вино может стоить по-разному, это зависит от производителя, сорта, выдержки и магазина.\n\nОбычно, если говорить о качественных винах, цены начинаются примерно от 150-200 леев за бутылку и могут доходить до 500-1000 леев и выше за более выдержанные или коллекционные экземпляры.\n\nЧтобы дать более точную рекомендацию, мне нужно знать, какой стиль вина вам нравится, или для какого случая вы его ищете.",
+      "latency_ms": 2273,
+      "usage": {
+       "prompt_tokens": 3881,
+       "output_tokens": 119,
+       "total_tokens": 4192
+      }
+     },
+     "rag": {
+      "answer": "Цены на хорошее молдавское красное вино могут очень сильно варьироваться. Это зависит от множества факторов: от конкретного производителя, сорта винограда, выдержки, а также от того, где вы покупаете вино — в самой Молдове или, например, за её пределами.\n\nК сожалению, у меня нет возможности назвать точную актуальную цену на \"хорошее молдавское красное вино\" в общем, так как это не конкретное вино, а целая категория.\n\nЕсли вы ищете что-то конкретное, я могу попробовать помочь с информацией о стиле или производителе.",
+      "latency_ms": 13952,
+      "retrieval_ms": 11071,
+      "generation_ms": 2881,
+      "usage": {
+       "prompt_tokens": 8468,
+       "output_tokens": 127,
+       "total_tokens": 8961
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино & Шоколад by Delice Sommelier",
+         "source": "https://wine.md/events/vino-and-shokolad-by-delice-sommelier",
+         "confidence": "verified",
+         "text": "Вино & Шоколад by Delice Sommelier"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино & сыр: что древнее?",
+         "source": "https://wine.md/blog/vino-and-syir-chto-drevnee",
+         "confidence": "verified",
+         "text": "Вино & сыр: что древнее?"
+        },
+        {
+         "level": "catalog",
+         "title": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+         "source": "https://wine.md/blog/chem-paxnut-raznyie-sorta-belogo-vina-soxranite-sebe-etu-udobnuyu-shpargalku!",
+         "confidence": "verified",
+         "text": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!"
+        },
+        {
+         "level": "catalog",
+         "title": "558 000 — бутылка вина продана за рекордную сумму",
+         "source": "https://wine.md/blog/558-000-—-butyilka-vina-prodana-za-rekordnuyu-summu",
+         "confidence": "verified",
+         "text": "558 000 — бутылка вина продана за рекордную сумму"
+        },
+        {
+         "level": "web",
+         "title": "pluang.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFf0Z8HadS4w4YWcy1WkkDygzqLOGifcj3ehA7PLYyag9YJxCfJkjEi4tthbfXcv783SY7fIM-r-90lImRYIIbCSZEwQwcFzR4siLrfsco4Zp5jBU3mdKGid-HY4IHW8jkpqDoSzS_jOFOwJGHrjaKJag==",
+         "confidence": "low",
+         "text": "Цены на хорошее молдавское красное вино могут значительно варьироваться в зависимости от места покупки (Молдова или Россия), бренда и качества вина.\n\nВ России стоимость молдавского красного вина обычно начинается от 350-400 рублей. Например, в магазинах можно найти:\n*   Красное сухое молдавское вино"
+        },
+        {
+         "level": "web",
+         "title": "coinbase.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFDDPJVL2A6st-bvZvUO3IeudYTB9iwx7LXAQ8ZI6TB7kdPwZNFYoWf1kVzqaDsLWSAFTLQrCE4cytncCS0chJGpbL1_HhNcZsK6PBexQGyxKHFSOEr0nrzZITHGAiwlxDFntx71fRNYg==",
+         "confidence": "low",
+         "text": "Цены на хорошее молдавское красное вино могут значительно варьироваться в зависимости от места покупки (Молдова или Россия), бренда и качества вина.\n\nВ России стоимость молдавского красного вина обычно начинается от 350-400 рублей. Например, в магазинах можно найти:\n*   Красное сухое молдавское вино"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 3,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "цены начинаются примерно от 150-200 леев за бутылку и могут доходить до 500-1000 леев и выше"
+       ],
+       "notes": "Ответ дает примерный диапазон цен, что полезно, но эти цифры не подтверждены и могут быть вымышленными."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но менее полезен, так как не дает никаких ориентиров по ценам. Извлеченные фрагменты не содержат полезной информации о ценах."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о ценах на вино необходимы актуальные данные из каталога или веб-источников.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержали полезной информации о ценах на молдавское красное вино, что привело к более осторожному и менее информативному ответу RAG, чем прямой ответ.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q098",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какой урожай Fetească Neagră был самым удачным за последние годы?",
+     "direct": {
+      "answer": "",
+      "latency_ms": 2125,
+      "usage": {
+       "prompt_tokens": 3887,
+       "output_tokens": null,
+       "total_tokens": 3887
+      }
+     },
+     "rag": {
+      "answer": "Определение \"самого удачного\" урожая всегда немного субъективно и зависит от конкретного производителя. Однако, урожай 2009 года для Fetească Neagră Hyperion был отмечен как лучший среди трёх винтажей этого производителя.",
+      "latency_ms": 8811,
+      "retrieval_ms": 7394,
+      "generation_ms": 1417,
+      "usage": {
+       "prompt_tokens": 11353,
+       "output_tokens": 53,
+       "total_tokens": 11518
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence states that the 2009 vintage for Fetească Neagră Hyperion was named the best among three vintages from that producer.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "printrevinuri.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGqUVZpFwbQLV33OtQkF5C1JM_ed0o_W6f-xQxlFla94UbSAsWIRYwmu17UP_0B2pZdnz6tZXphVV_JOPvdEOPSmfcV0AqujYLqIMfWEKuNQCzdZtxDxjRXPLjKdMy2MGpzDBKCPxHDmLsSpDUPxRHtYx_2FP0u0alKAHv-wA==",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEWAqkJHTwYGYrJ8NqX4ZItMr9pnhI3et7bF5hJU6nPMPH79A5Yj7h96saKXT9xTu1kfP6XlHAx6KjoaAV5o7-it9Qamy40OLYvoCOQeS45ZQmB4aQ5zEsB6RPu2gs4LpfTkllUaoNHi6gPbcceZC_gZj52QQNJOEBBKhjoprIS92Hy-maXvlXw",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        },
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHWiNP9nIkTajgOt_sjRqFdJkxtU6fHfIej5sbROeTcNIbyhx8zdVk7_hks77dX_4jkyZ63oDv5KXmTtrram_fKcK24lIkqliEZXW4oOPLqZhMcuzmd4dyrLEuAbyVZzjLL_GqSw-s=",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        },
+        {
+         "level": "web",
+         "title": "winestatistics.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHPXxVFoOlmRgKh91LqFkPic420ghMMHgMVyNTLTlCaMBL-i4UHo4Tm8PuGMwzySxEeFKubpHpwhz854lwLVwz_m5uxtJAbPIzHvAOWxjATzsggpQdAa5uU6-AIlIJD3MfU1iRSjp4lwuhW6Cjdz2GWSZdL4i86y3pV2kGSqM9Bir-IMpwxwrcN-9Zy17NmgRs00amU",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        },
+        {
+         "level": "web",
+         "title": "winestatistics.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFMSKnBgoCT6lxV7QpEezQdcu3dZxv1K3LPub8RreqScBa-j0G5kM6QHi4Ag-Qh0ULtd82cpwf0P5AMbYRJnIAUDvKQPhezmCa8s6nd0wd1XO86PsloBq8pwmTm-CyGEwPmpHEwTUkwqtmjJ7F1SGVaxjnlZsmaefHsvTs=",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        },
+        {
+         "level": "web",
+         "title": "decanter.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGFH0BTv_eUevBc9JfUnD73wlLG0eCxdn13teYKNeMMi3ru2FRHVmkdJVNs_LRJ6peCVjuXtjfc0MlggtfWcx9MxQL2thEaiUYOhAftnU1fN5JaqUTOu1UI5ajrA8X4jArqxIMhYCKGEzXT3IBMEcBmbcaJII4bPONeSexTaO1Lbw==",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        },
+        {
+         "level": "web",
+         "title": "vivino.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_gRpjIJxJfpIG87OJXm4zTxX0hOvd0KyRXPH_YNXVNwtfX254MUvNSj-samhoOy_gBCUJ6Ijsj6fAOqj_emLkFNG__DQeyJnPkjKxpMFCYdAzSSWVgI36IiQkXTIuh7Qu9aeFI_QEfc0XKgXc0yJnta87HAuAdjUZdSRi-__QsxWcAsoI3Z2Kl4UosLawNBNswhfwmm9v",
+         "confidence": "low",
+         "text": "Хотя определение \"самого удачного\" урожая Fetească Neagră может быть субъективным и зависеть от конкретного производителя и региона, некоторые винтажи последних лет получили заметное признание.\n\nУрожай 2009 года для Fetească Neagră Hyperion был назван лучшим среди трех винтажей этого производителя.\n"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "skipped": "missing_answer"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q101",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какое вино у вас самое дорогое?",
+     "direct": {
+      "answer": "Я не располагаю данными о каком-то одном, самом дорогом вине, так как цены могут сильно меняться.\n\nНо я могу рассказать о самых престижных и высококачественных молдавских винах, которые часто относятся к премиальному сегменту. Хотите, я расскажу о них?",
+      "latency_ms": 3435,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 63,
+       "total_tokens": 4477
+      }
+     },
+     "rag": {
+      "answer": "У меня нет подтверждённых данных о самом дорогом вине. Цены на вино могут сильно меняться, и это зависит от многих факторов, включая винтаж, редкость и место продажи.\n\nЕсли хотите, могу рассказать о винах, которые считаются престижными или представляют особую ценность в Молдове.",
+      "latency_ms": 2433,
+      "retrieval_ms": 1245,
+      "generation_ms": 1188,
+      "usage": {
+       "prompt_tokens": 4265,
+       "output_tokens": 67,
+       "total_tokens": 4332
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ вежливый, но не дает конкретной информации, что ожидаемо без доступа к базе знаний. Предлагает альтернативу."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ практически идентичен прямому, так как не было извлечено релевантных фрагментов. Также вежлив и предлагает альтернативу."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о 'самом дорогом вине' требуется доступ к актуальным ценам и каталогу, чего нет в базовых знаниях модели.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствуют, поэтому RAG-ответ не получил дополнительной информации и не изменился по сравнению с прямым ответом.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q100",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какая типичная крепость у молдавских красных резервных вин?",
+     "direct": {
+      "answer": "Обычно молдавские красные резервные вина имеют крепость в диапазоне от 13% до 14,5% алкоголя. Это позволяет им хорошо развиваться при выдержке и сохранять баланс вкуса.",
+      "latency_ms": 1429,
+      "usage": {
+       "prompt_tokens": 3888,
+       "output_tokens": 50,
+       "total_tokens": 4087
+      }
+     },
+     "rag": {
+      "answer": "Типичная крепость молдавских красных резервных вин обычно находится в диапазоне от 12.5% до 15% алкоголя.",
+      "latency_ms": 6370,
+      "retrieval_ms": 5115,
+      "generation_ms": 1255,
+      "usage": {
+       "prompt_tokens": 10233,
+       "output_tokens": 35,
+       "total_tokens": 10349
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states the typical alcohol content range for Moldovan red reserve wines.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "mold-nord.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEwabmtyDqPFSI7T1Lm-FtwiQJ2364kafLKI9DyRFYpI8XjEzbGNkF2Fw7cRqfMQ7JX_80XVQNWjqI5m8o-d3rNUTXrhxmEI5ENfIkrE2j0-lDN_HQPU_whRisG1mXlMU0LTvc=",
+         "confidence": "low",
+         "text": "Типичная крепость молдавских красных резервных вин обычно варьируется в пределах 12.5% — 15% алкоголя.\n\nНапример, красные резервные вина Denovi RESERVE Cabernet имеют крепость 12.5-13.5%, а Denovi RESERVE Merlot — 10.7-15%. Другие примеры включают Chateau Purcari Rara Neagra с 13.5% алкоголя, Chatea"
+        },
+        {
+         "level": "web",
+         "title": "mold-nord.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEoab_hYGm5IGCKSsQxR9VowDZj4VUbK2ybtKS_jju7heyR_ps39G87F0uGWXDNMWHazxMs9ratbJBT-w1HA-KD_DKn8Yv4NbtmdWKeRBF82rm7Ln8OHJ6iZM9SPw3XOqxT_aU=",
+         "confidence": "low",
+         "text": "Типичная крепость молдавских красных резервных вин обычно варьируется в пределах 12.5% — 15% алкоголя.\n\nНапример, красные резервные вина Denovi RESERVE Cabernet имеют крепость 12.5-13.5%, а Denovi RESERVE Merlot — 10.7-15%. Другие примеры включают Chateau Purcari Rara Neagra с 13.5% алкоголя, Chatea"
+        },
+        {
+         "level": "web",
+         "title": "8wines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHberKW8GA6lKOOrjgo_XGp837BN2Q4uGn9z89ouOfshODANkv6L9oO4mM3kVe1_quXA9ecT_RYQpOXScrCFQ1jHzZx2I31bWNTkUHkdJCIUMkWTiYoaY5ZEsFD",
+         "confidence": "low",
+         "text": "Типичная крепость молдавских красных резервных вин обычно варьируется в пределах 12.5% — 15% алкоголя.\n\nНапример, красные резервные вина Denovi RESERVE Cabernet имеют крепость 12.5-13.5%, а Denovi RESERVE Merlot — 10.7-15%. Другие примеры включают Chateau Purcari Rara Neagra с 13.5% алкоголя, Chatea"
+        },
+        {
+         "level": "web",
+         "title": "beer52.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGwKNf0tfzA6FeiNklbATeSi1P3-4XYR9UXWLhcRN8naNSvVMK1f5r32Pkw64p3En17QH1wsC27f0drT3kqCTfpyXWT0n7LQLiTQYZGaI4JVZfHnN2HWo-u4CN7SKZlOLNXdLfmnWVvROCO1pLHSb2j59Z3JuRZiA==",
+         "confidence": "low",
+         "text": "Типичная крепость молдавских красных резервных вин обычно варьируется в пределах 12.5% — 15% алкоголя.\n\nНапример, красные резервные вина Denovi RESERVE Cabernet имеют крепость 12.5-13.5%, а Denovi RESERVE Merlot — 10.7-15%. Другие примеры включают Chateau Purcari Rara Neagra с 13.5% алкоголя, Chatea"
+        },
+        {
+         "level": "web",
+         "title": "vinello.eu",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGcVCPCiSv8qMGCjwIFFKMzhQ5tSO7djGa2L9S-xt1vpfGHNM5mupfQdEQzLjze1tkLoU6Eo559t8VjTeebNa5zsonFp64wmbpnZNG2-LvNTAEkr7tvjbkfQG7z7EcxB949KmE=",
+         "confidence": "low",
+         "text": "Типичная крепость молдавских красных резервных вин обычно варьируется в пределах 12.5% — 15% алкоголя.\n\nНапример, красные резервные вина Denovi RESERVE Cabernet имеют крепость 12.5-13.5%, а Denovi RESERVE Merlot — 10.7-15%. Другие примеры включают Chateau Purcari Rara Neagra с 13.5% алкоголя, Chatea"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGVRkipPPIzm8_3KgKrfIeessJoqB4tmdx8MGUfLWjwnce8xqN921DqMTa8bKAsvdWslAmna6ahmEjWP5SKPPiz23ppt53bQKCsJKeUvaUuKh7-4aON5dP_hnyhXBn-nb9215joos1q1FqJUJYLo_r5pJmnPW0aCQVaIzs2fuisFdouRaEU0NoQIf_64kA6SHB3860Sak9T7vnsOUPioiBdy68YkRo=",
+         "confidence": "low",
+         "text": "Типичная крепость молдавских красных резервных вин обычно варьируется в пределах 12.5% — 15% алкоголя.\n\nНапример, красные резервные вина Denovi RESERVE Cabernet имеют крепость 12.5-13.5%, а Denovi RESERVE Merlot — 10.7-15%. Другие примеры включают Chateau Purcari Rara Neagra с 13.5% алкоголя, Chatea"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но диапазон крепости немного уже, чем в извлеченных фрагментах."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точен и полностью соответствует извлеченным фрагментам."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Прямой ответ был достаточно хорош, хотя и менее точен в диапазоне.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченный контекст помог уточнить диапазон крепости, сделав его более полным и точным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q099",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько лет можно хранить премиальную молдавскую Fetească Neagră?",
+     "direct": {
+      "answer": "Премиальную Fetească Neagră из Молдовы можно хранить от 5 до 10 лет, а иногда и дольше, если это вино высокого качества с хорошей структурой и потенциалом. Всё зависит от конкретного производителя, винтажа и условий хранения.",
+      "latency_ms": 1055,
+      "usage": {
+       "prompt_tokens": 3889,
+       "output_tokens": 60,
+       "total_tokens": 4009
+      }
+     },
+     "rag": {
+      "answer": "У меня нет точных подтвержденных данных о конкретном сроке хранения для всей премиальной Fetească Neagră.\n\nОднако, могу сказать, что премиальные молдавские вина из Fetească Neagră действительно обладают хорошим потенциалом к выдержке. Срок хранения может сильно варьироваться в зависимости от конкретного производителя и применяемых винодельческих технологий.",
+      "latency_ms": 10007,
+      "retrieval_ms": 8191,
+      "generation_ms": 1816,
+      "usage": {
+       "prompt_tokens": 8998,
+       "output_tokens": 82,
+       "total_tokens": 9249
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence states that storage times vary by producer and technology, and the variety is not well-studied for long-term development, so no specific duration is provided.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEi24DjhVVYirNtyFyS5JnITvrGhlp-i8_FYnKdh5vH93qDvq9wEyjZBx3U7b2Dy3IjfX5lOq0027e9J_if1zFjYXE-PoiDQwx6OgTbkW8LNUKMVJUrPNuDgFCWgq9XlfZ3VruDClZAa7foQyXmaXf2ZkjMA5A=",
+         "confidence": "low",
+         "text": "Премиальные молдавские вина Fetească Neagră обладают хорошим потенциалом к выдержке, однако точные сроки хранения могут варьироваться в зависимости от конкретного производителя и используемых винодельческих технологий. В Молдове этот сорт пока недостаточно изучен с точки зрения долгосрочного развити"
+        },
+        {
+         "level": "web",
+         "title": "revino.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEq-BnqoHKYO9m2n0CbvbuclGSk9OZX-xM2HwO-0ECP_DMmYAk3_a2NJRvuHOAm0wwWiILRXXepq8FGCUdTTFGLl13OS14Fel39bJXVz29y4yys3bd2HBZTnibbbG8sONZAWy4f0wmmKLEvg6DjrSegRBsTQXhWg9yLRTI=",
+         "confidence": "low",
+         "text": "Премиальные молдавские вина Fetească Neagră обладают хорошим потенциалом к выдержке, однако точные сроки хранения могут варьироваться в зависимости от конкретного производителя и используемых винодельческих технологий. В Молдове этот сорт пока недостаточно изучен с точки зрения долгосрочного развити"
+        },
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH034ak0z9q-yBT2u03hPm6rINjd93xObt65g_QXqY-V8sovUivXgASxYjy45_p5bVejVSijY3PMn6tTcASVlBCxTaWMw-Y9h6DUXs8GM8fff6RGdAiI2_aGT9JvkFlsmJbFj3yPF4=",
+         "confidence": "low",
+         "text": "Премиальные молдавские вина Fetească Neagră обладают хорошим потенциалом к выдержке, однако точные сроки хранения могут варьироваться в зависимости от конкретного производителя и используемых винодельческих технологий. В Молдове этот сорт пока недостаточно изучен с точки зрения долгосрочного развити"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEIYmIq2UHhFwexAkTfW-KnUulFtscccOIEPH4JujtlLBv19WkKEFnuvb4QISf4wSq27Gd5Xhsh8AkFc34L0_DDFeqIQvOkLfxzRq2Wp1sEsnoa-Tj9ZI9-BlaOfk787x3ElfuYW6zGavUPreQoMIb40g==",
+         "confidence": "low",
+         "text": "Премиальные молдавские вина Fetească Neagră обладают хорошим потенциалом к выдержке, однако точные сроки хранения могут варьироваться в зависимости от конкретного производителя и используемых винодельческих технологий. В Молдове этот сорт пока недостаточно изучен с точки зрения долгосрочного развити"
+        },
+        {
+         "level": "web",
+         "title": "etcetera.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFgvKoUZ36uIveibzBcy-b7gwX050FV89FGN-R6o3jFGcQNTAVfeKCjJfuFkXEmGdXscD6lk0CRkUjUw8PMrVRPTJI9UugsqBhkBR1W_ctzJQBhMm9_U6jqQsa4QSnJXasDmOJ-1bizpvQ=",
+         "confidence": "low",
+         "text": "Премиальные молдавские вина Fetească Neagră обладают хорошим потенциалом к выдержке, однако точные сроки хранения могут варьироваться в зависимости от конкретного производителя и используемых винодельческих технологий. В Молдове этот сорт пока недостаточно изучен с точки зрения долгосрочного развити"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "от 5 до 10 лет"
+       ],
+       "notes": "Ответ дает конкретный диапазон хранения, который не подтверждается и может быть выдуман."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие точных данных, но при этом дает общую информацию о потенциале выдержки, что полезно."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о сроках хранения конкретного вина требуются точные данные, которые не являются общеизвестными.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержат конкретных сроков хранения, что привело к тому, что RAG-ответ отказался давать конкретику, хотя direct-ответ попытался это сделать (пусть и с выдуманными данными). Фрагменты лишь подтверждают, что сорт имеет потенциал к выдержке, но не дают числовых значений.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q102",
+   "class": "tricky_looks_general",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Кто главный винодел в Purcari?",
+     "direct": {
+      "answer": "Сейчас главным виноделом в Purcari является Федерико Жирарди. Он приехал из Италии и имеет большой опыт в виноделии.",
+      "latency_ms": 1192,
+      "usage": {
+       "prompt_tokens": 3878,
+       "output_tokens": 32,
+       "total_tokens": 3955
+      }
+     },
+     "rag": {
+      "answer": "Главным виноделом Purcari по вопросам тихих вин является Федерико Джото. Он консультирует компанию с 2010 года.",
+      "latency_ms": 6262,
+      "retrieval_ms": 4510,
+      "generation_ms": 1752,
+      "usage": {
+       "prompt_tokens": 10065,
+       "output_tokens": 34,
+       "total_tokens": 10209
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence explicitly states that Federico Giotto is the chief winemaker for still wines at Purcari.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wine-intelligence.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHLvsg2BvKGgEnqtoE5ptFuel-SmY5lrcWIIuRcvA-MLim-x6Tnmw6nRNqE5o6FfJsFRks64JDKDJTloOEc-vzQG-19bFzA0_VUmxMEHOTq9NAMyvy9nktNRyYHvwT3d4OLfyh8cwrxNBgCgg8xC94L4rAhfycTkANHgIyxir--fJO1c1gY-njDdzXtWFRitT1cLQgqN_bdOS4fLVRvb2L9k4P9a0FRYt48Fks=",
+         "confidence": "low",
+         "text": "Главным виноделом Purcari по вопросам тихих вин является Федерико Джото, который консультирует компанию с 2010 года. Виктор Бостан, основатель и бывший генеральный директор Purcari Wineries Group (до начала 2025 года), также является дипломированным и опытным виноделом и в настоящее время выступает "
+        },
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEiFngLczuHnWUEru4EoS7uWPQtUdAAjAZAjpxBl0ahqRFhxGIGOX5hf4SDHv8cJJzCdo-vKgejh6lts-OCw_SXZYLNBteRhL6AoExBBOZJ2pCn7ySIP50ttXySv3dvf10IrYNreLdpgiLleLTMkFNo4mtGCprKvS4Cu8MtO6QQgzUddUdr",
+         "confidence": "low",
+         "text": "Главным виноделом Purcari по вопросам тихих вин является Федерико Джото, который консультирует компанию с 2010 года. Виктор Бостан, основатель и бывший генеральный директор Purcari Wineries Group (до начала 2025 года), также является дипломированным и опытным виноделом и в настоящее время выступает "
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFuNuqA9qTXj9KhhJI2p7GEBahqMnwyXtVDw9ke1pIz8xpwc7bTo_27N0LLkSEm30IMA_5YUJlmJbh_WLc9_6Lrqkl8ezI8F9bBLxuDQSrnGa9MtIg-DrI9wQ4sWBmge_o_i6LEkfU8HCHNJQP6GD97OykSXD33afARIBKbI_fqdcCwbPXbt-aVxUQo9LPz1gvq2OVXqmUQtB9b",
+         "confidence": "low",
+         "text": "Главным виноделом Purcari по вопросам тихих вин является Федерико Джото, который консультирует компанию с 2010 года. Виктор Бостан, основатель и бывший генеральный директор Purcari Wineries Group (до начала 2025 года), также является дипломированным и опытным виноделом и в настоящее время выступает "
+        },
+        {
+         "level": "web",
+         "title": "londonwinecompetition.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE34M4fkrFGa-epGCNi1kSuVsxfJ4HgUIbTKcHu5ETP6xf1fbulFTrGKOscMrpChgvE55HpjbvSKrPMFJEo7EuTzBBCxQz5ROSSPPCwwMx9wljGNqnlKwjIkwQYHTfp1rMMmNaJ2XlHmtdpMdsQLO2D6T8-Nrs8yxxEKU1vbsr-9GeuDnQfhmfQracocyIvq623Uz0qsIycr2t5F6V3BnmBmisUfIiUtwt1ESoDSt7GUxf9fAzHgd4l0emg8m51YJ0gUkuw-PZgC2ue_r_c4Amj8X5Z9sZXQbQY",
+         "confidence": "low",
+         "text": "Главным виноделом Purcari по вопросам тихих вин является Федерико Джото, который консультирует компанию с 2010 года. Виктор Бостан, основатель и бывший генеральный директор Purcari Wineries Group (до начала 2025 года), также является дипломированным и опытным виноделом и в настоящее время выступает "
+        },
+        {
+         "level": "web",
+         "title": "the-buyer.net",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFnZXtmR-MpIM-GVB2juKFQ8a6cFf60UJduYIDRdyKCUOgWcHmnfutCn2hH2dWLZL9pekH-CjGXHd4ZWloo-begCWV5hR8WZT1L_tOiwec0UIxxf3R__wTdjcVcIVML7Ka7j_5MnAN4HB1kzejh53A0W2sWnVanU35HkqvC2_3FtWjb",
+         "confidence": "low",
+         "text": "Главным виноделом Purcari по вопросам тихих вин является Федерико Джото, который консультирует компанию с 2010 года. Виктор Бостан, основатель и бывший генеральный директор Purcari Wineries Group (до начала 2025 года), также является дипломированным и опытным виноделом и в настоящее время выступает "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "Федерико Жирарди"
+       ],
+       "notes": "Модель назвала неверное имя винодела."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный и подтвержден источниками."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Прямой ответ содержал неверное имя винодела, что является критической фактической ошибкой для данного вопроса. Для корректного ответа требовалась актуальная информация из базы знаний.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили исправить фактическую ошибку в имени винодела и предоставить точную информацию.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q105",
+   "class": "followup_multiturn",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Чем Fetească Neagră отличается от Каберне Совиньон?",
+     "direct": {
+      "answer": "Fetească Neagră и Каберне Совиньон — это два очень разных сорта винограда, хотя оба дают красные вина.\n\nГлавное отличие — это их происхождение и характер. Каберне Совиньон — это международный, очень известный сорт, который даёт вина с мощными танинами, ароматами чёрной смородины, кедра и часто с оттенками зелёного перца. Он родом из Бордо, Франция.\n\nFetească Neagră — автохтонный молдавский сорт. Вина из него более элегантные, с мягкими танинами. В аромате можно уловить нотки красных и тёмных ягод, таких как вишня, слива, а также пряности, иногда фиалку или даже немного дымка. Он более фруктовый и менее танинный, чем Каберне Совиньон.\n\nХотите, я расскажу подробнее о каком-то из этих сортов?",
+      "latency_ms": 2233,
+      "usage": {
+       "prompt_tokens": 3887,
+       "output_tokens": 214,
+       "total_tokens": 4227
+      }
+     },
+     "rag": {
+      "answer": "Это хороший вопрос! Fetească Neagră и Каберне Совиньон — это два очень разных сорта винограда, хотя оба дают красные вина.\n\nFetească Neagră — это автохтонный молдавский и румынский сорт. Вина из него обычно более элегантные, с ароматами тёмных ягод, вишни, сливы, иногда с нотками фиалки, сухих специй и лёгкой дымности. Они могут быть среднетелыми, с умеренными танинами и хорошей кислотностью.\n\nКаберне Совиньон же — международный сорт, который известен своей мощью. Вина из него часто более полнотелые, с выраженными танинами, ароматами чёрной смородины, кедра, зелёного перца и табака.\n\nХотите, я расскажу подробнее о каком-то из этих сортов?",
+      "latency_ms": 1835,
+      "retrieval_ms": 203,
+      "generation_ms": 1632,
+      "usage": {
+       "prompt_tokens": 4281,
+       "output_tokens": 202,
+       "total_tokens": 4483
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо объясняет различия между двумя сортами винограда."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ также очень хороший, но не привносит ничего нового по сравнению с прямым ответом, так как не было извлечено никаких фрагментов."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель уже обладает достаточными общими знаниями о сортах винограда, чтобы дать качественный ответ на этот вопрос без обращения к базе знаний.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствовали, поэтому RAG-ответ по сути является переформулировкой прямого ответа без добавления новой информации.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А что из этого лучше подойдёт к баранине?",
+     "direct": {
+      "answer": "Оба сорта могут подойти к баранине, но выбор зависит от способа приготовления.\n\nДля более насыщенных блюд из баранины, например, жареной или тушеной баранины с яркими специями, я бы рекомендовал Каберне Совиньон. Его мощные танины и интенсивные фруктовые ноты хорошо справляются с жирностью и насыщенным вкусом мяса.\n\nЕсли же баранина приготовлена более деликатно, например, в виде лёгкого рагу или молодого ягнёнка с травами, то Fetească Neagră может быть очень интересным выбором. Его элегантность, ягодные и пряные оттенки дополнят блюдо, не перебивая его.\n\nЕсть ли у вас в виду какой-то конкретный рецепт баранины?",
+      "latency_ms": 3010,
+      "usage": {
+       "prompt_tokens": 4196,
+       "output_tokens": 179,
+       "total_tokens": 4618
+      }
+     },
+     "rag": {
+      "answer": "К баранине, которая обычно довольно насыщенная по вкусу, лучше подойдёт вино с более выраженной структурой и танинами.\n\nВ этом случае, скорее всего, **Каберне Совиньон** будет более удачным выбором. Его мощные танины и плотность хорошо справятся с жирностью и насыщенным вкусом баранины.\n\nFetească Neagră тоже может подойти, если это более плотная версия, возможно, с выдержкой в дубе. Но в целом, для классического сочетания с бараниной я бы рекомендовал Каберне Совиньон.",
+      "latency_ms": 3204,
+      "retrieval_ms": 1566,
+      "generation_ms": 1638,
+      "usage": {
+       "prompt_tokens": 4586,
+       "output_tokens": 134,
+       "total_tokens": 4720
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, развернутый и полезный ответ, учитывающий нюансы приготовления блюда."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Хороший ответ, но менее детализированный, чем прямой. Учитывая, что фрагменты не были извлечены, модель могла бы дать более развернутый ответ, как в прямом случае."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос о сочетании вина и еды является общим знанием в области сомелье и не требует специфических данных из базы знаний WINE AI, если только речь не идет о конкретных винах из каталога.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Фрагменты не были извлечены, поэтому RAG-ответ был сгенерирован на основе знаний модели, как и прямой ответ. Однако RAG-ответ оказался менее полным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q103",
+   "class": "followup_multiturn",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Покажи молдавские красные вина до 300 леев.",
+     "direct": {
+      "answer": "Конечно, я посмотрю.\n\nУ меня есть несколько отличных вариантов молдавских красных вин до 300 леев.\n\nНапример, из региона Кодру можно найти хорошее вино Fetească Neagră от винодельни Et Cetera или Rară Neagră от Gitana Winery. Они обычно отличаются насыщенным вкусом с нотами тёмных ягод.\n\nЕсли вы предпочитаете вина из региона Штефан Водэ, то Purcari предлагает их знаменитое Negru de Purcari в этом ценовом диапазоне, а также можно найти вина от Vinaria Bostavan.\n\nХотите, я расскажу подробнее о каком-то конкретном вине или сорте?",
+      "latency_ms": 2505,
+      "usage": {
+       "prompt_tokens": 3887,
+       "output_tokens": 149,
+       "total_tokens": 4198
+      }
+     },
+     "rag": {
+      "answer": "На молдавском рынке есть красные вина до 300 леев, и среди них можно найти интересные варианты. Например, это может быть Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra.\n\nВ этом ценовом диапазоне часто встречаются как вина из автохтонных сортов, таких как Rară Neagră или Fetească Neagră, так и ассамбляжи с международными сортами.",
+      "latency_ms": 8838,
+      "retrieval_ms": 6828,
+      "generation_ms": 2010,
+      "usage": {
+       "prompt_tokens": 13754,
+       "output_tokens": 97,
+       "total_tokens": 13967
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides an example of a Moldovan red wine under 300 lei.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "alcohall.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHvt3DJyxzitXzD-u_f1sgYMsDGGAgckP4OaaTIZ77oduidNG7ypAa5Hoz-__hxhlXGpxux7S-myZ4lOpignaylR50dlF1niVGeC8S2Dgo_HKKYbeUM3u2Uybgg9wBm",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "locals.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGSvGoYGX7kUyK1Vga_crRHxRuR0GxTz1lK8xeM2kJ1yVxbz-jrn9sK8-YJaDmpj81JhBY2mQoOPxojMHY-d8UKVH-4a9sm5F-SEIDw8QY3v0f2-SJExLux2KbMzqSYYvqJmqdbQknr0wZeiZ6r_ctt-z1sjXFyoDmNk0FpCc8kiGrj_dzqO2V-ElxF00mBWg==",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "cigarpro.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGkdT_8cDSsNde1rQl29FTeIIBxOSyeswAJeGDaTGCRafbo1C0Zv_s7qUvNhPjAM9fOm8gH8HCKM2LLKW3dsfluWMhY3E7pCgqB01cQcdhdCO2LGlCiCDiy0cRD-QeKuVi25byjIKeDv6bCwePZxFgTWPfO7QzVUcRrFdI=",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "wine-and-spirits.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFwPvaJhpTB6fowl5yDgjv0vY_Kx07pKuTZHnVzYajRV9r9VwJgAVWnReWvs6tgoDaAnuUuxZL1kkBti31P60muDJhQvXqffGQT8H7phXO6gvZbAu3KopULspRSSCVRZaqWx5kRIjIBalV1jmUeJWYasTNSIsnQrciW1gclKEIU",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "xxi.info",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEhxdzREEE0_Ncr6XtP9BKTZ0DRD4zwSHRdGoTPh_OjY-vjr19asRMvV8B5y8mfH172r0ddNYOxgPHhQ7PkfAOIx-_i9iIiBefgGki5CBR-etf4GWFnvRdVz3CSPasA-s3EikWIqZAbeseYAugL5r61n4LYU3IHDTPKUH16yn4z8W9QhikWdpYFFg2eSsz9EMwgwUQbaylBOESjCQDABYtPyCfUXLP0ZBBRYfveh1X0J5vrV5u18LpvQ_bI48CkoYesL7a5_6h2auSsLG1iOV2riv6sZbe5YlHnvcyeJZINDTacAQjm-utYQwldbcT_6SvNRSUsO_DApNqhXLza_YK4VjQjfC6NEaiBveB2MIId0RxlrZQ7xGBBzJAeJc-Hg36HcM4Oj5Y6ZNCFIqBs1GLWjbR8Vpab8b_WHjynBw_epL2XlA49jFBXFSpIfD8g9yqTcjOlUG1t71IWSx66FFIeBFgobwYAtFp54-ArsmGZ74Y6-OdPdJoA_Yc3sM0GovfzNEapf44=",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "cigarpro.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEiZljrijwQCR12pvWsfQ-JEGwHTFONCMDMAmddbzWDs9KBWdjbO6zpm2vGb4c_pw8RKvBQTQYJNL5EZTzg8J43gfS5HO3TlT9UDRKMwB9_VG0QkS6hxqiT7QOOHdDuQX2GPulBBydADpgfqQXlCvgyb0ko8RY=",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "alcomarket.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQExGilKI6ZaItesqVu0t8nZb-5z2-T7JSKm04CSGCNY8f5vvwV_tvsj0gh2z5sO3tNVLi2yIm3WciZN6heRLf1OFRvt6ejLTq-qFsBmFYVIGbOiKYuvw1f2smPaNhFpon2_TGe-m7ilX9Tt6FI6w0BnqyXIYZ8Bgoo1StyDjS048PA5Puqn7u1w4fn3",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        },
+        {
+         "level": "web",
+         "title": "carlevana.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGAALFYFDzbFiEk-YJeMNu6sy1bm4e7I9B8T4PiqR8VyyhaYVrKQjpc4a3yUOQhw6mXEhga9qaU_92rbB2NaE1XWo90_cSPKekhRON0L7-f35MB1kz52ZjeL_VXNVMbOU5q72A=",
+         "confidence": "low",
+         "text": "На рынке Молдовы доступен ряд красных вин стоимостью до 300 леев. Среди них можно найти как вина из автохтонных сортов винограда, так и купажи с международными сортами.\n\nПримеры молдавских красных вин до 300 леев:\n*   **Chateau Cristi Bravoure Cabernet-Merlot-Shiraz-Rara Neagra 0.75L** – это сухое к"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "Fetească Neagră от винодельни Et Cetera",
+        "Rară Neagră от Gitana Winery",
+        "Negru de Purcari в этом ценовом диапазоне",
+        "вина от Vinaria Bostavan"
+       ],
+       "notes": "Модель уверенно называет конкретные вина и винодельни, утверждая, что они доступны в указанном ценовом диапазоне, но это не подтверждается ни общими знаниями, ни предоставленными фрагментами. Это может быть правдой, но без подтверждения является галлюцинацией."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ B более осторожен и называет только одно конкретное вино, которое упоминается в извлеченных фрагментах. Однако, фрагменты обрываются, и не дают полной информации о вине, что ограничивает полезность ответа."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о конкретных винах в определенном ценовом диапазоне требуется доступ к актуальному каталогу или базе данных, так как цены и наличие постоянно меняются. Общие знания модели недостаточны для предоставления точных и полезных рекомендаций.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат очень общую информацию и лишь одно конкретное название вина, которое к тому же обрывается. Это не позволяет RAG-ответу быть значительно лучше прямого ответа, который, хотя и галлюцинирует, но предоставляет больше вариантов.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А какое из них легче по телу?",
+     "direct": {
+      "answer": "tool_code\nprint(search_wine_knowledge(\"легкие красные вина Молдовы до 300 леев\"))\nprint(search_wine_knowledge(\"Rară Neagră тело вина\"))\nprint(search_wine_knowledge(\"Chateau Cristi Bravoure тело вина\"))\ntool_code\nprint(search_wine_knowledge(\"легкие красные вина Молдовы до 300 леев\"))\nprint(search_wine",
+      "latency_ms": 5211,
+      "usage": {
+       "prompt_tokens": 4077,
+       "output_tokens": 99,
+       "total_tokens": 4969
+      }
+     },
+     "rag": {
+      "answer": "У меня нет подтверждённых данных, чтобы точно сказать, какое из этих вин будет легче по телу.\n\nОднако, если вы ищете что-то более лёгкое, я могу посоветовать обратить внимание на вина из сорта Rară Neagră. Они часто бывают более элегантными и менее танинными, чем, например, Каберне Совиньон или Шираз.",
+      "latency_ms": 3562,
+      "retrieval_ms": 1203,
+      "generation_ms": 2359,
+      "usage": {
+       "prompt_tokens": 4463,
+       "output_tokens": 83,
+       "total_tokens": 4791
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 1,
+       "factuality": 1,
+       "relevance": 1,
+       "naturalness": 1,
+       "unverified_specific_claims": [],
+       "notes": "The direct response is a tool code, not a natural language answer. It does not address the user's question."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "The RAG response correctly identifies that it cannot answer definitively based on the provided context (which was empty). It then provides a helpful general recommendation based on common characteristics of the Rară Neagră grape, which is a reasonable and factual suggestion for someone looking for a lighter-bodied red wine. The naturalness is excellent for a voice assistant."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "The user is asking for a comparison of specific wines previously mentioned, which requires access to detailed product information (body, tannins, etc.) from the WINE AI's knowledge base.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "No evidence was retrieved, so the RAG model had to rely on its general knowledge and conversational abilities to provide a helpful, albeit not definitive, answer. The direct response was just tool code, so the RAG response is significantly better by simply being a natural language answer.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q104",
+   "class": "followup_multiturn",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о вине Dealul de Aur Fetească Neagră Reserve 2019.",
+     "direct": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 — это красное сухое вино, выдержанное в дубе. Оно производится из молдавского автохтонного сорта Fetească Neagră.\n\nХотите узнать о его вкусе или гастрономических сочетаниях?",
+      "latency_ms": 1186,
+      "usage": {
+       "prompt_tokens": 3893,
+       "output_tokens": 65,
+       "total_tokens": 4026
+      }
+     },
+     "rag": {
+      "answer": "Вино Dealul de Aur Fetească Neagră Reserve 2019 производится из автохтонного румынского сорта винограда Фетяска Нягрэ.\n\nЭтот сорт, название которого переводится как \"Черная Дева\", является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Он известен своим насыщенным характером и глубиной.",
+      "latency_ms": 21471,
+      "retrieval_ms": 19703,
+      "generation_ms": 1768,
+      "usage": {
+       "prompt_tokens": 11836,
+       "output_tokens": 90,
+       "total_tokens": 12102
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that the wine is made from the Fetească Neagră grape, an indigenous Romanian variety, and describes the grape's characteristics.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "budureascawines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFMZGNfvXuSa_KiloYptI2cLsCtOcDEYDomw7TOxXyVLo3iscTQUETYN5Io6pU6sCFboDTIlgLGugnS6B2w6FlOlPIWrwCrUuZ-GPXKmyzPRzqr8QDK9pFkvFSIGjW9",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "danielswine.club",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFKDM_-dafXbpgzCJ1UB1IT0cKGG53MU4VvJmRGiEDumbitgVB2FVuWLpZahvMfZff3SD83sMiuoJIM-qaQiHPTPz-LEVU6QJomgQCWjoYxZXvGlsDHeJzoQsPw3_nZyTbBmJG25xGBpVTh5-SLThHQzjM=",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "vinerra.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHo3-t06xnm58oZSC0qz49zKEmLibGNhurUAIYmToVoVlB7wTBPbuGJpzoxZGRvxpIPAGgv6TzJ_5hitZkDLn5tLDiNNjItJ1oDdqONlHi24PY8sdF4f4IqKPwn1Nm0j2XzA6jQqW1skecV-_kIynhTvOD_c1CvRkuJww_rhh16cHJ4AJKfzZsocNRmqohJivtVl0avYO8gIyxN47XIIAIdJGM40oOwNg==",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF-K11vSAOiHMW9iZ_5NF436MCnvkSNDgiNs1WNUmMq151MF09Ubf0J6zKZiPucEvSebaTQHqkUKLyt7YANcj86UPh2xcsSoL9irYBux-aVit8IjxTn4giLthd6jqxr4ZMVH0KYBLaD",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFjx0COktBqLy6qsEA7gCUE4aG5KJfGpJRrXJamROI7uA_VhbMZVijTnv38FpgNlvRlWvxA5CZm3pLtcKMnPlVNu7KmHKkdNrHXFCebHqekJHADMyTnMu5pXsmv96m9trrMzCVO6YpiBqiTuM3jUeJVsawXkNTL1qFL9ihmKEX9tX5Kmi_tJnczwrixd_ALKMHLWgwIclidwG2U3s1lLg==",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "theliquorbarn.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEhl_CRiEOHQ0PvGBQLwzYkRhRLdgFEKqo-tAN_F-B6pwbirYB1_HTjkCfnK8KRvWdi_eQtQev8ejPmWDmPEfjo8rD3IIzX01nJMBWdeWdogMNnn6sb2w9vMlZivbkSUWSKtAnLk3_U1DFo1CCWxu5DZnlRN43jNEZiBKbPBo6NZM49IQ==",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "Current time information in Comuna Gura Vadului, RO.",
+         "source": "https://www.google.com/search?q=time+in+Comuna+Gura+Vadului,+RO",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE0KmB6q0ZDwZERc0ACbrlQd7Nqtr8j-ilmsFHIWJE7HjnhijxYrWWYUw0UXDoJvjqNnMS5_gB_c-O1BZU5zBGktw2V5veFBG2vg9bU8n1UNdzFgiWAIY3E20LOPEX0lpix4u5GSfdEM6p7-bESm8v5ouLj",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 относится к категории вин из автохтонного румынского сорта винограда Фетяска Нягрэ (Fetească Neagră), что в переводе означает \"Черная Дева\". Этот сорт является одним из старейших в Восточной Европе и считается флагманом среди красных вин Румынии. Виног"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 4,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но очень краток. Утверждение про молдавский автохтонный сорт не подтверждается фрагментами, но и не опровергается, и является общеизвестным для молдавского вина."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 2,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но очень краток. Утверждение про румынский автохтонный сорт противоречит общеизвестным данным о молдавском вине. Фрагменты не содержат информации о насыщенном характере и глубине, это может быть галлюцинацией."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для полноценного ответа о вине Dealul de Aur Fetească Neagră Reserve 2019 необходимы конкретные детали, такие как вкусовые характеристики, ароматы, рекомендации по подаче, награды, которые могут быть найдены только в базе знаний или каталоге.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "contradiction_introduced",
+      "retrieval_effect_explanation": "Извлеченные фрагменты утверждают, что Fetească Neagră - румынский автохтонный сорт, что противоречит общеизвестной информации о молдавском вине и утверждению в direct ответе. Это вносит фактическую ошибку в ответ RAG. Также, RAG добавил галлюцинацию про 'насыщенный характер и глубину', которой нет в фрагментах.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А сколько оно стоит?",
+     "direct": {
+      "answer": "У меня нет точных данных о текущей цене этого вина. Цены могут сильно меняться в зависимости от продавца и региона.\n\nЕсли вы хотите узнать актуальную цену, я могу попробовать проверить наличие и стоимость на сайте wine.md. Вам это интересно?",
+      "latency_ms": 2436,
+      "usage": {
+       "prompt_tokens": 4082,
+       "output_tokens": 53,
+       "total_tokens": 4449
+      }
+     },
+     "rag": {
+      "answer": "К сожалению, у меня сейчас нет подтвержденных данных о точной цене этого вина. Цены могут сильно меняться в зависимости от магазина и региона.\n\nМогу рассказать что-то ещё о его вкусе или особенностях производства, если вам интересно.",
+      "latency_ms": 5689,
+      "retrieval_ms": 4875,
+      "generation_ms": 814,
+      "usage": {
+       "prompt_tokens": 5052,
+       "output_tokens": 52,
+       "total_tokens": 5104
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The question asks for the price of a wine, but the evidence does not mention any specific wine or its price.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [
+        "catalog"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признает отсутствие информации о цене и предлагает дальнейшие действия."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ также признает отсутствие информации, но предлагает менее полезные дальнейшие действия, чем direct."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о цене конкретного вина необходимы актуальные данные из каталога или веб-источников, которые модель не имеет в своих общих знаниях.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "answer_derailed",
+      "retrieval_effect_explanation": "Извлеченный фрагмент абсолютно нерелевантен вопросу о цене и не помог улучшить ответ. Более того, он, вероятно, помешал модели предложить более полезные дальнейшие действия, как в direct ответе.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q106",
+   "class": "followup_multiturn",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о винодельне Cricova.",
+     "direct": {
+      "answer": "tool_code\nprint(search_wine_knowledge(query=\"винодельня Cricova\"))\nCricova — это одна из самых известных и, можно сказать, легендарных виноделен Молдовы, настоящая жемчужина нашего виноделия. Она знаменита своими огромными подземными подвалами, которые представляют собой целый город.\n\nДлина этих галерей превышает 120 километров, и там хранится уникальная Национальная коллекция вин, насчитывающая более полутора миллионов бутылок. Cricova производит как игристые вина по классическому методу, так и широкий ассортимент тихих вин, включая коллекционные.\n\nХотите, я расскажу подробнее о каких-то конкретных винах или о том, что можно увидеть в их подземном городе?",
+      "latency_ms": 3321,
+      "usage": {
+       "prompt_tokens": 3880,
+       "output_tokens": 170,
+       "total_tokens": 4401
+      }
+     },
+     "rag": {
+      "answer": "Cricova — это одна из самых известных молдавских виноделен, основанная в 1952 году. Она расположена к северу от Кишинёва, в центральном регионе Молдовы.\n\nЭто не просто производитель вина, но и крупная туристическая достопримечательность, признанная Национальным культурным достоянием Молдовы.",
+      "latency_ms": 12271,
+      "retrieval_ms": 10583,
+      "generation_ms": 1688,
+      "usage": {
+       "prompt_tokens": 11561,
+       "output_tokens": 77,
+       "total_tokens": 11786
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides specific details about the Cricova winery, including its location, founding year, and national recognition.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "the-passenger.de",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHoopDRMY5yw3eJF65s0Rv_UvWLVkWA8NE9W5ZivbNJXYSat6fRlNJFgFwF1FzKkOjlaV_1fHKxGGSeh0D0hCgedMB8Ww9dApf6ZUKt5VR69lTzE4_o05BT_qKtWpKbxGIHCRUdhbsQYRyu5-6m6QB8AYWLhvdC",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHRSybUlmqipxhtu-VO4F5dgjsU7km8trmmM5_Hv1AnH25Lu3cwEAzE_oPKtWy2FsowkowvpWfJBoOB-8YbtjKtRpHiM6aP6aNxvl1ZuGlk3bo0XwdwyvPV_fxm-_ZlUSWzoBVfl6clNrA=",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "cricova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH58nlxXuvppWBL_SSOONtA5zoWiTIAshE-a_qlY42OzSyWxvRxg7Zds63CJmbrE6Uubfkj3Dk1xMGaoNeO7-i5ui_YL6fjDgjowh1h3RE3N6HVoB261RGGGslpXSaLeZvQDKE=",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "smart-guide.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGCPuuNDgLGu90sViseLzKw45R4Wt10-pmrh-vl73LlGRnH0iZgDvTw-TuYlKD8IJFKfWDbGOZIcSNa-yfXuqZq1tZQ3DybcOKeZLWcEcj6F5Vkc9hJ7A7iy5bFpW5ff9n_JaMSSq5VcU5HlEHgPgihTCSTLftwHjvuvyUmNI3T2wGaNhk=",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "moldowein.ch",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFZTajEFUxkHTOAoozfLosBngWmxSrn85QXe1o2ifL8HnPv6NsSjkTIr3QkFkIRN2CNkr-Dmxm1Wg64jMRdtYy-ZTbEMiDrE6EcDzgkQ60staLEsEGGNF0c7X8w_Z-taS4WsIQ=",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "winetravelawards.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEdXPl9-9ZVrNhuB5URaj9_5u1HVSdljOEOfIuFQlAoIOKnQOoHhzHVnuOtU-duY3O_u9VrpJMtbyHvY8Mux7ZYXtAED_Og3arG-9w1ikvNY7-V22crTQexgQN0tHPv4wqxnUZqNl84qiAWLTLnCmu7Yw==",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "winemd.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEDG3secaAofWgG7Zy3LRuYlRxnst6L39-to74H6Wxk8HyL2njb92iC9zQTXrP8db-GnhmCyPwnp68QeoxFGiRsgS8FUWgvfgu_k-FsijzsVYoG2pDpF7CXrhHfX8adk8DoXy6QdPfxcIyFFrUg",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        },
+        {
+         "level": "web",
+         "title": "winewithseth.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHNbxr89R5MTGw-hUP6f27iaH9B6eVcLUyJ3-REl6y4BGa9GsIMYNLRaW6Une6WNGGssREMagGI1gQE953ZIclS24lGXIO6Rp2QyLXtroq5TfYdxSq6MWh-fgjpbOhsIz6gxISxFRAKmLQ=",
+         "confidence": "low",
+         "text": "Винодельня Cricova — это известный молдавский производитель вина и крупная туристическая достопримечательность, расположенная к северу от Кишинёва, в центральном регионе Республики Молдова. Основанная в 1952 году, она признана Национальным культурным достоянием Молдовы и является первым предприятием"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, подробный и живой ответ, который полностью удовлетворяет запрос пользователя."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но слишком краткий и неполный по сравнению с direct ответом. Он не добавляет существенной информации, кроме года основания и точного расположения, которые не являются критичными для общего описания."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Direct ответ уже предоставил достаточно полную и точную информацию о винодельне Cricova, включая ее основные характеристики и значимость. Дополнительные детали из RAG (год основания, точное расположение) не являются критически важными для общего описания и не улучшают ответ существенно.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "RAG ответ значительно короче и менее информативен, чем direct ответ. Он упустил важные детали о подземных подвалах, длине галерей, Национальной коллекции вин и ассортименте продукции, которые были в direct ответе. Извлеченные фрагменты были слишком общими и повторяющимися, не добавив уникальной или глубокой информации, которая могла бы улучшить direct ответ. В результате, RAG ответ стал беднее и менее полезным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А можно к ним приехать на экскурсию и сколько это стоит?",
+     "direct": {
+      "answer": "Да, конечно, в Cricova можно приехать на экскурсию. У них есть несколько разных туров, которые включают посещение подземных галерей, дегустации и знакомство с производством.\n\nЧто касается стоимости, то она зависит от выбранного пакета экскурсии и количества человек. У меня нет точных текущих цен, так как они могут меняться, но обычно есть варианты от базового тура до более расширенных с дегустациями разных вин.\n\nЕсли вы хотите узнать актуальные цены и забронировать тур, я бы рекомендовал посмотреть информацию на их официальном сайте или связаться с ними напрямую.",
+      "latency_ms": 1625,
+      "usage": {
+       "prompt_tokens": 4049,
+       "output_tokens": 132,
+       "total_tokens": 4230
+      }
+     },
+     "rag": {
+      "answer": "Конечно, в Cricova можно приехать на экскурсию. Это очень популярное направление для винного туризма.\n\nОднако, у меня сейчас нет подтверждённых данных о текущей стоимости экскурсий. Цены могут меняться, поэтому лучше уточнить их на официальном сайте винодельни или связаться с ними напрямую.",
+      "latency_ms": 6742,
+      "retrieval_ms": 5852,
+      "generation_ms": 890,
+      "usage": {
+       "prompt_tokens": 5620,
+       "output_tokens": 67,
+       "total_tokens": 5687
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "evidence_entity_mismatch",
+       "claim_class": "grounding_required",
+       "entity_match": "mismatch",
+       "status": "insufficient",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [
+        "catalog"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "catalog",
+         "title": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+         "source": "https://wine.md/blog/chem-paxnut-raznyie-sorta-belogo-vina-soxranite-sebe-etu-udobnuyu-shpargalku!",
+         "confidence": "verified",
+         "text": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но не дает конкретной информации о ценах, что ожидаемо без доступа к базе знаний."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ короче и менее информативен, чем прямой, хотя и корректен. Извлеченные фрагменты нерелевантны."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о стоимости экскурсий и их содержании необходимы актуальные данные, которые могут быть только в базе знаний или на сайте винодельни.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты абсолютно нерелевантны вопросу и не были использованы в ответе. Ответ RAG стал менее информативным, чем прямой, хотя и не содержит ошибок.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q107",
+   "class": "followup_multiturn",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Я не люблю терпкие вина.",
+     "direct": {
+      "answer": "tools_code\nprint(search_wine_knowledge(\"молдавские вина с низким содержанием танинов\"))\nprint(search_wine_knowledge",
+      "latency_ms": 5205,
+      "usage": {
+       "prompt_tokens": 3878,
+       "output_tokens": 33,
+       "total_tokens": 4774
+      }
+     },
+     "rag": {
+      "answer": "Понимаю. Если вы не любите терпкие вина, значит, вам, скорее всего, не нравятся вина с высоким содержанием танинов. Танины создают вяжущее ощущение во рту, похожее на крепкий чай. Они содержатся в кожице, косточках винограда и могут переходить в вино при выдержке в дубовых бочках.\n\nВ Молдове есть много отличных вин, которые будут мягче и менее терпкими. Могу посоветовать несколько вариантов, если интересно.",
+      "latency_ms": 17879,
+      "retrieval_ms": 15705,
+      "generation_ms": 2174,
+      "usage": {
+       "prompt_tokens": 12535,
+       "output_tokens": 114,
+       "total_tokens": 12838
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The question is a statement of preference, not a question that can be answered factually by the provided evidence.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "general_knowledge",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "xxi.info",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFOSMdzadQWFBD_qr7Df6c3wOb397R6BitR4hfOX_jrWGujeKb6yYlAa29GmsTeiOtaQnrmYwL4qnPXxpme8u8Gwt8JZSgaCv0WSu-aGrO83xTWf6zscLVhV0jCtONxWBgoZEiXDDXV65VexNFgh1KplKir6g8RR5olCxr2nx4pk7bE_jT8aI-d_JAw8jLrNQzEkwe0NVzgFlj1dz3XUL78ca3zEOsMKmGzzMRdGDhgdAdPKLiWighJkgQMN799k0r4DaETL6Rj52utu_9nL2yun4YA",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF4LWowzLusdzx3LiPgqAz8XzdjKzPPKIi-oKJXXxiMcDoItxEb4j4CQIN4pb1fLpmVif_7EdGxEgyhiSkIbYSXRat8ioH26uvfj3ee5B8Vsch1o1C-6cQeEOhEknZA8cDWSY7BQOZ9bKoNnpGQv69oghAUW1tC0Q==",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "winestyle.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6VBcO7hXKLewlKeWzt4zRQJ54rjFpxoO24FYmGpM05-Z7jtpQ5HAD3vQBW1WiA1KPUWlfKqckfeSeAjqwBdb73kfH6JeWbwQnuZ40_gTrah_P2x3SYqEFf4KJB02azUuoYiSSKGam4CbnQEadlvEBJA==",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "winestyle.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNbFamwQvc99FtjyodowAGCx0wEKQrHXWVA9Q80lB7GmncQXJEBSzvhU7gM_DVNxPlpj9d7KXLczZw_zNDuQ_h_FtBeaYzPyCxcdG4g0XEbMEpFeikPYF3829jBNgtEPJC8x9yU6k-gQGfmuH7oF1xfFGC4uc5FpGtl5qU",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "barrique.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF7-4XQ3eGy5SSxq_14NE3khJ-EFqjV-aX5RXGbDBXWu8FmjTIEfY5DVmtnGVgEaR_3dRvTWk4S8ZtqwlwSVxrbBWK6Md_x_AN80Wa4qZqkTToYCpdrJJf0TsCH0alv5LO7MPK76HpNIwHmY31UxeSz0__MKWfuFSfczsGGyTKK9r_rEH_fL1JqUClp-ABP7-MBOg==",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHaJkGyAks_qgndmkvLzk129Xx3sa2lp4zSOPg9_03uEKxaCWvHPc7Gpj35SjO35pmlpTQeb6lVcKeWKhg_qVO2R8zHy9wyWJ7xmcw5RfNvNXId7TGSV3CLMwqiWzu0eakL7cQ=",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "club-advokat.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFWookR1aXrHwU-HUXdynpQfuOlexn1Gnv0-agNsLKKdY8uI7N0zU5u7KDhJNg--n9M6JQS9w8oV_rikj7B5oAIqwhV-01fEuIXfrFpbjXre3XUeCl-wneeXrehAkueVwYGh5Ud",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        },
+        {
+         "level": "web",
+         "title": "ekowine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF4lsDdeg1gC9IV-JsOs7ttVoBBAjpwozeZglcYowOJM3IXNXmni_N8Jd-iZ9xIvPuEthUbuX4SSzVwGWlU4bg-LskbBuFiLV_sJPB-GnIV1FgC2WkmwA6XkufcG0RQhcQ=",
+         "confidence": "low",
+         "text": "Если вы не любите терпкие вина, значит, вам не нравятся вина с высоким содержанием танинов, которые создают вяжущее ощущение во рту, похожее на крепкий чай или горький шоколад. Танины содержатся в кожице, косточках и стеблях винограда, а также могут переходить в вино из дубовых бочек при выдержке.\n\n"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 1,
+       "factuality": 1,
+       "relevance": 1,
+       "naturalness": 1,
+       "unverified_specific_claims": [],
+       "notes": "The direct response is just a tool code, not a natural language answer."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "The RAG response correctly explains what tannins are and why they cause astringency, which is relevant to the user's preference. It also correctly states that Moldova has many wines that would be suitable. However, it doesn't actually suggest any specific wines, which would have made the answer more useful."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "The direct response was just a tool call. The RAG response provided a good explanation of tannins, which is helpful context for the user's preference, and also correctly stated that Moldova has suitable wines. While the explanation of tannins is general wine knowledge, the mention of Moldovan wines specifically benefits from the context of the 'WINE AI' project.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "The direct response was a tool call. The RAG response provided a helpful explanation of tannins and correctly framed the answer within the context of Moldovan wines, which is the project's focus.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "Тогда что мне взять к ужину с уткой?",
+     "direct": {
+      "answer": "",
+      "latency_ms": 4915,
+      "usage": {
+       "prompt_tokens": 4085,
+       "output_tokens": null,
+       "total_tokens": 4085
+      }
+     },
+     "rag": {
+      "answer": "К ужину с уткой хорошо подойдут красные вина с умеренными танинами и хорошей кислотностью, которая поможет сбалансировать жирность мяса.\n\nИз молдавских сортов я бы порекомендовал Rară Neagră. Это вино обычно достаточно элегантное, с нотами красных ягод, вишни и мягкими танинами. Оно не будет слишком терпким и прекрасно дополнит утку.\n\nЕсли хотите попробовать что-то ещё, можно рассмотреть и Пино Нуар, если его производят в Молдове.",
+      "latency_ms": 5041,
+      "retrieval_ms": 3789,
+      "generation_ms": 1252,
+      "usage": {
+       "prompt_tokens": 4475,
+       "output_tokens": 125,
+       "total_tokens": 4600
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "skipped": "missing_answer"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q108",
+   "class": "followup_multiturn",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какие автохтонные сорта есть в Молдове?",
+     "direct": {
+      "answer": "В Молдове есть несколько интересных автохтонных сортов. Среди белых это Viorica, Fetească Albă и Fetească Regală. Из красных — Fetească Neagră и Rară Neagră.\n\nХотите, я расскажу подробнее о каком-то из них?",
+      "latency_ms": 1116,
+      "usage": {
+       "prompt_tokens": 3881,
+       "output_tokens": 65,
+       "total_tokens": 3989
+      }
+     },
+     "rag": {
+      "answer": "У меня сейчас нет подтверждённых данных о конкретных названиях исключительно автохтонных сортов Молдовы.\n\nОднако, есть несколько местных сортов, которые очень характерны для молдавского виноделия и глубоко укоренились в регионе. Хотите, я расскажу о них?",
+      "latency_ms": 13339,
+      "retrieval_ms": 10137,
+      "generation_ms": 3202,
+      "usage": {
+       "prompt_tokens": 9359,
+       "output_tokens": 63,
+       "total_tokens": 9941
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence states that there are autochthonous varieties in Moldova but does not list any specific names of these varieties.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "newsmaker.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE4XP8Jb2t57L2rj2QqUn9p4PdEFrEJVrOZJA0yvewDz79BAO1yiqQnj1dxNw5ys4qfwgkfObr1zvbfWsjh5JodxCV-UXcwsP-5uzAXTmZtnY-k3u3PWFX1Mk9BpxoDKca23O9xh8HfZ1_IPHC3ib7Nnfb1x6OGvftPg8UBbOZQXi8oR9EFMSeIEK0q7UuoEhIwjI9KaYrm35vv",
+         "confidence": "low",
+         "text": "В Молдове существует ряд автохтонных сортов, в основном представленных виноградом, которые подразделяются на аборигенные сорта и сорта новой селекции, разработанные молдавскими учеными.\n\nК наиболее известным аборигенным сортам винограда, которые исторически выращивались в регионе и пережили эпифитот"
+        },
+        {
+         "level": "web",
+         "title": "agroexpert.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH9F60LuVVO7aEHkBpOME88tl8atGi_pE_bhBO-V9wVToYfPDqJ43QPIgZplY3ezYO9aoVq6sE8UGyOZZ8bmFKmru4kYI6A7BY5_ze9brzkUe3irkxf3i8-KT0RYIykjT_yiJlmMAb-yse_Oia99c1-ApuohTCJbtTM3EGh9HO82MLINfGesT_Ub-GPs1o2LlSnFwli5gj1YdDD1E6Y",
+         "confidence": "low",
+         "text": "В Молдове существует ряд автохтонных сортов, в основном представленных виноградом, которые подразделяются на аборигенные сорта и сорта новой селекции, разработанные молдавскими учеными.\n\nК наиболее известным аборигенным сортам винограда, которые исторически выращивались в регионе и пережили эпифитот"
+        },
+        {
+         "level": "web",
+         "title": "wineofmoldova.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEH71r28ZASnBf4Dchw8dy4oySf4U0GR3Cw1bhmxfViZfEpKqM0hQKq4JP6170j2fd4EaJ3sMESzDOdlSdRuFSlj6sYWmh-lZ4fF90X7lB6GEksw6YujmgiVdqBGojMhgTNHTEvG5dQqKZB0Z9S6dguXJo=",
+         "confidence": "low",
+         "text": "В Молдове существует ряд автохтонных сортов, в основном представленных виноградом, которые подразделяются на аборигенные сорта и сорта новой селекции, разработанные молдавскими учеными.\n\nК наиболее известным аборигенным сортам винограда, которые исторически выращивались в регионе и пережили эпифитот"
+        },
+        {
+         "level": "web",
+         "title": "carlevana.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEuy0GxX9htVmExMxsLyeI-PKTDdbQeHIylMhKET9gyUuf4bSNwNcGH2Syvr2Dl7apomdFnRjIiX4aQgsGA_37JpzOsvwwKMp2FUPGb9LR9Xfcdx7hxrTXHsroj8UscGMy6VdQ=",
+         "confidence": "low",
+         "text": "В Молдове существует ряд автохтонных сортов, в основном представленных виноградом, которые подразделяются на аборигенные сорта и сорта новой селекции, разработанные молдавскими учеными.\n\nК наиболее известным аборигенным сортам винограда, которые исторически выращивались в регионе и пережили эпифитот"
+        },
+        {
+         "level": "web",
+         "title": "winetime.com.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGD9fYcCjN5euJZyfiv26RWsHz8xmGhW6Vzjf4COGl_RfaV8LObggSi3nivHrQVOvyTXqHnjEBHMgKj6rJGfc_C0mIFyCLfbdHxoyc1aNVSfkD20poVHaYjhz_rgFNdlVYNu9zfvyLZY_bxj9oxBS0=",
+         "confidence": "low",
+         "text": "В Молдове существует ряд автохтонных сортов, в основном представленных виноградом, которые подразделяются на аборигенные сорта и сорта новой селекции, разработанные молдавскими учеными.\n\nК наиболее известным аборигенным сортам винограда, которые исторически выращивались в регионе и пережили эпифитот"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ A дает точный и полный список автохтонных сортов, разделяя их на белые и красные, что очень полезно. Предложение рассказать подробнее также хорошо."
+      },
+      "rag": {
+       "quality": 1,
+       "factuality": 1,
+       "relevance": 1,
+       "naturalness": 3,
+       "unverified_specific_claims": [],
+       "notes": "Ответ B полностью отказывается отвечать на вопрос, ссылаясь на отсутствие данных, хотя в действительности автохтонные сорта Молдовы хорошо известны и перечислены в ответе A. Извлеченные фрагменты не содержат конкретных названий сортов, что привело к такому отказу. Это очень плохой ответ."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG смогла дать корректный и полный ответ на вопрос, что указывает на отсутствие необходимости в дополнительных данных для этого конкретного запроса.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержали конкретных названий автохтонных сортов, что привело к тому, что модель с RAG отказалась отвечать на вопрос, хотя прямой ответ был возможен и корректен.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А у вас есть вино из Виорики?",
+     "direct": {
+      "answer": "Как цифровой эксперт, я сам не \"имею\" вина, но могу рассказать вам всё о сорте Виорика и винах из него.\n\nВиорика — это очень интересный и ароматный местный сорт, который стал визитной карточкой молдавского виноделия. Хотите узнать о нём подробнее?",
+      "latency_ms": 1883,
+      "usage": {
+       "prompt_tokens": 4029,
+       "output_tokens": 71,
+       "total_tokens": 4300
+      }
+     },
+     "rag": {
+      "answer": "Как искусственный интеллект, я не могу хранить или продавать вино.\n\nНо я с удовольствием расскажу вам о вине из сорта Виорика. Это очень интересный белый сорт, выведенный в Молдове, известный своим ярким ароматом.",
+      "latency_ms": 8101,
+      "retrieval_ms": 6706,
+      "generation_ms": 1395,
+      "usage": {
+       "prompt_tokens": 12707,
+       "output_tokens": 54,
+       "total_tokens": 12861
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence states that an AI cannot store or sell wine, which directly answers the question about availability.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "inshaker.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEglgOQ6G0_Pk_9gyRXenJUyBbXCe_GlD2_WNwAsEI69jtV_2euualJ-a1CiEOuc2TR2KRJOOfYQqATgNu3VPNJAh03Gbqw1CH1ttDkcUulejcbKrKXTrwnJTMXybSM_kfKd-6tbfeoF0JzzKuu-WpH2t0nEYlwdlPFXf5kLXvOLMo6qK8EFeYhrz8-4YQyKOtZTBH0CuSOTU5jaw==",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "vinlavin.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGTzdYi3e6FSxl9J6YP-16FfFTwsU112Wi9igs5FY-vZZFPI1lAtnIFddJ7OjRQ8LyYlpvjQvOOFXhWMLxS3zyMjRIdbjYu8D6MuxXAPsfPlKsbA8GtlTaacwljiYkBWV4w6Rg3kvsVs7RESWoy",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "wine-intelligence.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEnUxEwUxsg8Tdka_ztHEIpGJLg2DdMKTIzePMs8lm52Ux8YNUUOHIhXkLeKFX8bf_ay_NCZqCcOzrFCUDM4RJMtdxIA4_3eVKaBDf9vjatg04BPoRFaebm9bZqE-sH9v3SOoUs1DYJHrr8wxcswBKi55kMj8R0QkIjZYiG2sS_zjfoOkKhRmQShKcykCsatu1p4Migw5-izx04Leq5JYY58qs15GNpCOGfBIv7FxgbJGo=",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF8hTHYW-lEn53V9F0mBro5aDj5NmL-TZBKi-pQDH-ylIr0Ti0i-jfFcgiw-0HmJ92RlS4YHsKIutHfjh99RFRY9jY2ItWNgTjHvtoPB5LZG6x9WTRTRilawu4VKa8aVI8ymXc4qaOfuWTj0MJz3gaKV7j7Tw09TBfC4JvNtjLyUbFoM2nyRo9M0VSDlqRIXBAfk3m54oaJ2_zhRns=",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "tasteatlas.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGrqYPGDVE-2twVNC8KH3PF592zS_9jBGdrevVwUn6opBNnfZTIpXqhpDXWT-7gBYueah7EmqXn633xtG2xQW0h_HVsvBThNGktonihYm4izKeKf-b9q-9lWfDE8w==",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "winetime.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFkbZuagMZzAyc4NUKuDzOQnv7JHpl8s-0AJ00HffT19x0EhCAeZeMKTxjMJB8HJSiM_Np1M1s4pyvbU8ptcEoohySAnCnW4DgNOe5L3uUsBZQGlhhahXTX_xFajGRo8K5K35VcAPETkKCtjNThKWk=",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHjt4RWEgOg9SjUKRh6X_TAIcgMx3Rof-019QUrHtZlyq0r7iHXhodtT5WeGcgbSq1mU44RqhEC3EWA1vkaConhq8Z4gRAZEJUsLq5WUnuOhvDQARS1hv8LtLoWbYTkB6UNafLl4cq0IXjS",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGmw0XxkiAvyHpn2hKkerkZ1-cP9Smy2fyyezVJRlevEY9oyG0VI49uCKKd_gNEh4duYG9-FsTmcPqN7cz0S5cQt2MjaKMK-0hsmnA4xYoDivC26hRPN-KZmpPFJFdvMteXuShfsRjTm53hN1TzHQPPOxNUHgub0B7DcJiOJA==",
+         "confidence": "low",
+         "text": "Как искусственный интеллект, у меня нет возможности хранить или продавать вино. Однако я могу предоставить вам информацию о вине \"Виорика\".\n\nВиорика — это автохтонный (местный) сорт белого винограда, выведенный в Молдавии в 1969 году. Вино из сорта Виорика известно своим ярким ароматом и считается \""
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хорошо справляется с вопросом, объясняя, что ИИ не может иметь вина, но может предоставить информацию о сорте."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ аналогичен прямому, но добавляет год выведения сорта, что является полезной деталью."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Прямой ответ уже достаточно хорошо справляется с вопросом, объясняя, что ИИ не может иметь вина, но может предоставить информацию о сорте. Дополнительная информация из RAG не является критически необходимой для ответа на этот конкретный вопрос.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты добавили конкретную деталь о годе выведения сорта Виорика (1969), что немного улучшило информативность ответа, но не изменило его суть или качество кардинально. Ответ без RAG был бы также вполне приемлем.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q110",
+   "class": "followup_multiturn",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое декантация?",
+     "direct": {
+      "answer": "Декантация — это процесс переливания вина из бутылки в специальный графин, который называется декантером.\n\nОсновная цель — отделить вино от осадка, который может образоваться со временем, особенно в старых винах. А ещё декантация помогает вину \"подышать\", раскрыть свои ароматы и смягчить вкус.\n\nХотите, я расскажу подробнее, для каких вин это особенно полезно?",
+      "latency_ms": 1379,
+      "usage": {
+       "prompt_tokens": 3876,
+       "output_tokens": 93,
+       "total_tokens": 4047
+      }
+     },
+     "rag": {
+      "answer": "Декантация — это процесс переливания вина из бутылки в специальный графин, называемый декантером.\n\nОсновная цель — отделить вино от осадка, который может образоваться со временем, особенно в старых винах. А ещё это позволяет вину \"подышать\", раскрыть свои ароматы и смягчить вкус.",
+      "latency_ms": 8979,
+      "retrieval_ms": 7278,
+      "generation_ms": 1701,
+      "usage": {
+       "prompt_tokens": 12205,
+       "output_tokens": 73,
+       "total_tokens": 12419
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides a clear definition of decantation.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGjnWBPjxAAXYzZ1sNyq8BHch8yovGxJjjzZWilMY1UatpiXUn_GCvaeSqGOIe4FWYGf4i-raMLSGJgutbyypZ7o-hLgxW3j2evUVQYEqleiGk7-_C56FL8iqo-9YWrem1uum1H6vCOZeWBWJ64BlG0Nv1KIXxTjOUAYvFtPNv9hv4_blYXqW3p_UYWC1RMf6i7a89J",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "neftegaz.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGaB3hXabIpeHI9reTXLV3g6fXJUPvXF0aYOVyZW8Ug8TbD712UIU6ahFsZI91kgdhNynESWjyHTfVV8cIetjXu73KyEG16kGE5Fv8sExp_rTUVWVTQqh7HRRo5vipeBvh99ovslaC45d5MyPpWKuPJCWi3lgefKO6whWktXWAb4j0Y2RmAIUVCYWi7s_sS",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "himikatus.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEsie1u1Eisg-Hc1h1C9zO4qP3DFWJBQbAmSiCIzPbs6dVh5qT-mfdtoKbgQIXRdag1SIiYxEArOaEvi9SckbieiIe1950uM4fEoPIRO4g7zaM3gFklWLii7N0mYx3J3y5cmsWrI1v3qGA=",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHIrqRERCjcEJsUsCArxXGkLtyRmw5c_kGYzP-C_81L4EINJSQfP6sa_4KVQ205_NoVZ5eMVQXq95kwQjaoXru0gO-bpeiSvEZiGLUNhD48ue7fnrpGWKEmNI5X0O3Om9q2HSWMUIUqXaw2ayd_bvt-5_M0a6CWMQ1ehVlpni7glo0wOZ4=",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "alcomag.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH5dlGNqZLb36aET55Su7CjZM4BxMNIT5w6Hdxz6q32KVHiFtdig54JgW3EeOjn5PsZGCmRZFx7hLJjQ6YsNdkKR5iRHhBHGwFAtnmQK-HjWzd2RO89ZeZef3lCfFO4FSf2mJpzDpHQr8TGg2402AU5yVsNcTc=",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFyBQjsArsWf2LUmHreqPB4utTB-BWy_J_RZHbSI2EOMLoZgWZJYhaY-70HkzjuiDC8x_IYFVGXWpztKDcLUDL2FUSKM8sd8ZzK_G38mbxYsXaEgDtWsJMo9P36uJGBn8OzUtaTFvfLW0ssqwresxg6GV4oauc=",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH7hEeKwMkpSXLsO_j0t1XtkUiOEPTjVbI6YGkUQRn2SlbCvw9XfzgbcOqgw5rPETr1PKkG4FJu1YnLWJ0ugesbUcdkKVF20ew6rlR5frp43Ur8m-yTrXoJFycwU7dVsh4MAmYP0XmHXynBNhJpX5oj",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        },
+        {
+         "level": "web",
+         "title": "alkoteka.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG-VvegAosdFPClwHpIakeLTiAuQx_iskyLISlJy9JfHgh1PdCUOyj0en9c5TBAFbkzECgjc1Obau4BLNaIAU1rPgLH4BvQwvXnxRzCKn2cD5et-eQmyl1o96XOkNAS3LM2XkDSFcG6XiTpFZYy8n5nwL2oBOxWWmne",
+         "confidence": "low",
+         "text": "Декантация (или декантирование) — это механический процесс разделения неоднородных смесей, состоящих из жидкости и твердой фазы (суспензии), путем сливания жидкости с отстоявшегося осадка. Жидкость, которая была отделена таким способом, называется декантат.\n\n**Как это происходит:**\nОбычно перед дека"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который полностью раскрывает суть декантации и ее цели. Предложение продолжить диалог очень уместно."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Хороший ответ, но он практически идентичен ответу A, при этом не добавляет ничего нового, хотя извлеченные фрагменты могли бы дать более глубокое, хоть и более техническое, определение."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос о базовом понятии, которое хорошо известно модели. Дополнительная информация из базы знаний не требуется для адекватного ответа.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат очень общее, техническое определение декантации, которое не было использовано в ответе B. Ответ B практически полностью повторяет ответ A, что говорит о том, что извлеченный контекст не оказал существенного влияния.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А моему вину она нужна? Это Fetească Neagră 2019.",
+     "direct": {
+      "answer": "Fetească Neagră, особенно урожая 2019 года, не всегда требует декантации для отделения осадка, так как это относительно молодое вино.\n\nОднако, этому сорту часто идёт на пользу аэрация. Переливание в декантер поможет вину \"подышать\", смягчит танины и позволит ароматам лучше раскрыться. Я бы посоветовал попробовать декантировать его, чтобы оценить изменения во вкусе и аромате.",
+      "latency_ms": 2079,
+      "usage": {
+       "prompt_tokens": 4042,
+       "output_tokens": 104,
+       "total_tokens": 4339
+      }
+     },
+     "rag": {
+      "answer": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантации.\n\nFetească Neagră — это сорт, который часто даёт хорошо структурированные вина с заметными танинами, и несколько лет выдержки (с 2019 года) могли способствовать образованию осадка. Декантация поможет отделить его и позволит вину лучше раскрыться.",
+      "latency_ms": 8479,
+      "retrieval_ms": 6842,
+      "generation_ms": 1637,
+      "usage": {
+       "prompt_tokens": 12128,
+       "output_tokens": 92,
+       "total_tokens": 12336
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that Fetească Neagră 2019 would likely benefit from decanting.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "mycupofwine.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQENDqVeFZAj-PPje7TiOerIj343hEgrzXZlLiniI1EcEgB9_ZZ1CdcLMEiGkLDkMd80vCTlByMKCk_b-oZs8r6ZMl-4rEfAR4wxmwnRoVTd5s9lhckxOFbT358Z5nxoNVbuoNSFkvUzGg==",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGug1csFuGYZ7ztm9Cz_scaYpiqaKwd2Pelgo17ryiye3JepYZAz_R-IayNUH-gKGc4NOOSD4tW5g2flyDsyJN3boVEPvW9OiwpcGH294RhwBy7VFACrhG5X1TCFtFQaCADAcXsX3qf",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "revino.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFOJq3fSB3vyrlvW7cgkCAJKnrjD3MxL_m2jTSgle7i_-mipPSMb8zDFDXh5eOMfAeMT9xQeRh6_v8159OTKA18z34gJ6Z3j8KXbBsPfmacQlvRLUX0FPQhPcKrYbEonGssNqHGJr-ISdqOB_0YPVQb18Q9giZK9Vbhmd7X",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGfdPi86sf-GfarDKuXxFq1oglBYKp8KxSvSbnxSrweU02gkrk4dz35cWVamUs4CViypNHO6eO6diqynhK1ED1_lO9w7fPmp-bDi9s-rWdeLH9e8uN8GfsORUuaDiy024v9LHXWQ45YkxUHN9ByPCFaErV8",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "castelmimi.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFYfFo_beotKrl4i7rEuZWCYh0k-ExOKWW4r87SSDoE4Yj3eP8C3qDGy3AC0J7ZaSSWlXyP7IqBb3xWZVGDi0OEMz7xe0Tn2o1nXZXTPJJCbi4Q_PhQ2fOvnI55BDkO0SMg0N10dPQHi5lepw==",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "webnoticia.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEz_a6lfRqmOpIZVwK6WhNkeUhn0gK0XTqjlzNqadD7AXc9dEHL9NOpH6hb_txl4VBHov8Dkzbjbyuknn8uwiY7E5vaQ_kI1LWqhXXaDlir3o5RdYQK3yPi9ITAtRMGWwSOWLTuto9G--dEjVyfwcVXyV4_5gT7nK9ZFPqQALQq94-l_7w3vrin",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGtKVZpsa934sLd1WGzh9xRb4Ke9wIKocge7wm5YbYnfAYG9LK0iRHJtQoumqOoOsSEAapnDCx3HbmlOqgfVHn5PrqR0itTgxOmAE1_mjXyGFWnCxtMOEwH-VZp3awBn5U-Iyk_j5hYuwxT_4BCytpb7ouhYdDMK8eu2BtKgA==",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        },
+        {
+         "level": "web",
+         "title": "tewawines.co",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFh3KLcDoxFjYN5i-Ma6BOM9q_oPywlIU2vogZamn69i-jfHq3pXp5SKxdxF7ltyobsaXSw6wkUREyAsgkFbwlffbThfRRtr6dD9cqV7mhtxRPJwvrPqFnEhdwLrBWBTQE=",
+         "confidence": "low",
+         "text": "Да, ваше вино Fetească Neagră 2019, скорее всего, выиграет от декантирования.\n\nFetească Neagră — это автохтонный сорт красного винограда из Румынии и Молдовы, известный своей способностью производить хорошо структурированные вина с хорошей кислотностью и заметными танинами, что делает их пригодными "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но не даёт однозначного ответа, а предлагает попробовать. Это не плохо, но можно было бы быть более уверенным."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ более уверенный и конкретный, что лучше для голосового ассистента. Упоминание про осадок после нескольких лет выдержки - хорошее дополнение."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала достаточно хороший ответ, хотя и менее уверенный.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "RAG помог сделать ответ более уверенным и добавил конкретики про осадок, что улучшило качество ответа.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q109",
+   "class": "followup_multiturn",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи о Purcari.",
+     "direct": {
+      "answer": "Purcari — это одна из старейших и самых известных виноделен Молдовы, с богатой историей, которая начинается ещё в 1827 году. Она расположена в юго-восточной части страны, в микрозоне Штефан Водэ, которая известна своим уникальным терруаром.\n\nОни славятся своими красными винами, особенно купажом Negru de Purcari, который был создан ещё в 19 веке и получил признание на международных конкурсах. Также у них есть отличные вина из местных сортов, таких как Rară Neagră, и международных, как Каберне Совиньон и Мерло.\n\nХотите узнать что-то конкретное о Purcari, например, о каком-то вине или их истории?",
+      "latency_ms": 1788,
+      "usage": {
+       "prompt_tokens": 3877,
+       "output_tokens": 167,
+       "total_tokens": 4101
+      }
+     },
+     "rag": {
+      "answer": "Purcari — это одна из самых известных и титулованных виноделен Молдовы, расположенная в знаменитом винодельческом регионе Штефан Водэ. У неё очень богатая история, и она считается одним из наиболее значимых производителей вина в Центральной и Восточной Европе.\n\nХотите узнать подробнее о её истории или винах?",
+      "latency_ms": 12895,
+      "retrieval_ms": 11319,
+      "generation_ms": 1576,
+      "usage": {
+       "prompt_tokens": 11650,
+       "output_tokens": 72,
+       "total_tokens": 11812
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly identifies Purcari as a famous Moldovan winery with a rich history, located in the Stefan Voda district, and describes it as one of the most significant and awarded wine producer",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEouNpJ4uJjaaVm_j_vm6odRiRSMzzdyWGYtT5f0ML7wRfhQQEpUNdAv2ooNKvJVbRpOg1tnTieoG8OJ1YVldrcc29rx4YZkPAV5EC-vqE_uzsxX9rJgnPKzwJMPh6EpljrJO8moC17Ypc=",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "purcari.de",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH0VAyg_tF83x_2lgnjT09Kxy7uut3hfl3_D5kGoVC1L__DABa1b8z2PQ0btrc1r7DaY3Ufl-e1khKjUk3qvA5CNS_Z14oKOLFp2brWX4ujUY8KZJI=",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEnMCAd654bDsTqU46RDARQLlN1ml-J-r62b66vEECGLc-oXDST2MJsRGuC7OldzJ6-g1jmcCTr0xOP1TiBvs8qfkgLdt8o1OaHQVo3kNtWvd-x5n4Xc7qOGg0=",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "chateau-purcari.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGfc7YFnfFBS03mcJgxNpgSMfTk_h_O8QYdX4SDrqk5QfsixiaWpwPXyz6X5AM9NRoZhWPuN4TVeaRlR1cOL7QPvSWndPxB7XhXn-D4wbWon2FN_clbRkdCOSwj",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEmr0pZXHgOmwVio-V5OMCpuVWlR9zscGwJIqsdO58oFonmMctpfTgOZsu59ExHGSxfqquYZVJh3TutKFNn4E93nTWstRbZ8VzT3k5zcMrYDEAieJPVZzzkUo6QtT_H2KBLRXLeMSn1yd_utfKQ-jkO_VBD0SZq",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "purcariwineries.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFo1PT-jvJyjnpIF-86N07ZZkUs6I7sY4smHOfZtI4O9ydtWL1W0SrfNlV7RWf3swSKfyZcAh9LHty6X8YeBX38AL1KsiRHNPWxcNoKzGMKt6kn09fUYKtQnpcGPp3iR-_5xQ==",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "tasteatlas.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG1Cc7RlLyw6_gGj0VtE9v5G01Rij3nzHV5h-8b0Fe6zWUuzaI0GVWWGTbe010zRMBVMlggPL7p0um2zhvxdbFU1s71p6HMtHoZA9diKXH6jR9ots8FmlxIBMS0il7loMLsbpd_rw==",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        },
+        {
+         "level": "web",
+         "title": "winetravelawards.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEwLPxUhWwilfPBkax7aOU1BHM6atN-zOO_fjFSNAtcbirVusUcxUWGib1CCFfghR4eUUtOYdlzjpwqj9q_FLH5tBHpjV7nq94-dfMSIGrHgCAESCBJWvQ8xFGKGHJSTspwulCOvz_V4be5_RCsMr-N0IXe-kbEBqWuLOCq8kX0pGkxy2cE99qRIXwRPKbDym4ZNRuT-X0q_jFxuKi1ZomdYI374gpigcWxUvli9GmdkU-NoaOt628=",
+         "confidence": "low",
+         "text": "Purcari (Пуркарь) — это известная молдавская винодельня с богатой историей, расположенная в Штефан-Водском районе Республики Молдова. Она является одним из самых значимых и титулованных производителей вина в Центральной и Восточной Европе.\n\n**История:**\nИстория винодельни Purcari берет свое начало в"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо раскрывает тему Purcari."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ слишком короткий и не добавляет новой информации по сравнению с прямым ответом. Извлеченные фрагменты были слишком общими и неполными."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель уже обладает достаточными знаниями о Purcari, чтобы дать хороший ответ без дополнительного контекста.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были слишком общими и неполными, что привело к более короткому и менее информативному ответу по сравнению с прямым ответом модели. Модель могла бы дать более полный ответ, если бы не была ограничена этими фрагментами.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    },
+    {
+     "turn": 2,
+     "question": "А какой у них самый премиальный релиз и в какую цену?",
+     "direct": {
+      "answer": "Самым премиальным и легендарным вином Purcari традиционно считается Negru de Purcari. Это купаж из местных сортов винограда, который известен своей глубокой историей и высоким качеством.\n\nЧто касается цены, она может сильно варьироваться в зависимости от винтажа, места покупки и конкретного магазина. У меня нет актуальных данных о ценах в реальном времени, но это вино обычно находится в более высоком ценовом сегменте.\n\nЕсли интересно, могу рассказать подробнее о самом Negru de Purcari.",
+      "latency_ms": 1692,
+      "usage": {
+       "prompt_tokens": 4029,
+       "output_tokens": 115,
+       "total_tokens": 4271
+      }
+     },
+     "rag": {
+      "answer": "Я не вижу подтверждённой информации о том, какой именно релиз Purcari считается самым премиальным и в какую цену. У них есть несколько линеек вин, которые относятся к премиум-сегменту.\n\nМогу рассказать о каких-то конкретных винах Purcari или о их стилистике в целом, если интересно.",
+      "latency_ms": 16119,
+      "retrieval_ms": 14903,
+      "generation_ms": 1216,
+      "usage": {
+       "prompt_tokens": 4421,
+       "output_tokens": 72,
+       "total_tokens": 4493
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректно называет Negru de Purcari как традиционно премиальное вино, что является общеизвестным фактом. Отсутствие конкретной цены объяснено, что приемлемо."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 2,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ не смог назвать конкретный премиальный релиз, хотя это общеизвестный факт для Purcari. Отказ от ответа из-за отсутствия данных в извлеченных фрагментах, хотя модель могла бы использовать свои знания."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Информация о самом премиальном релизе Purcari (Negru de Purcari) является общеизвестной и не требует специфических данных из базы знаний для базового ответа. Конкретная цена, конечно, требует актуальных данных, но модель может это объяснить.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствовали, что привело к тому, что RAG-ответ отказался отвечать на вопрос, который Direct-ответ смог обработать, используя свои общие знания. RAG-ответ стал менее полезным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  }
+ ]
+}

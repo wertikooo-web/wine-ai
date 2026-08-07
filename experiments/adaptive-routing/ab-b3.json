@@ -1,0 +1,2834 @@
+{
+ "meta": {
+  "model": "gemini-2.5-flash",
+  "judge_model": "gemini-2.5-flash",
+  "finished": "2026-08-07T19:21:37.196Z",
+  "n_items": 25
+ },
+ "results": [
+  {
+   "id": "q067",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "При какой температуре подавать Dealul de Aur Fetească Neagră Reserve 2019 и нужна ли декантация?",
+     "direct": {
+      "answer": "Для Dealul de Aur Fetească Neagră Reserve 2019 я бы рекомендовал подавать вино при температуре от 16 до 18 градусов Цельсия.\n\nЧто касается декантации, то для резервного вина 2019 года, особенно из сорта Fetească Neagră, декантация может быть очень полезна. Она поможет вину раскрыться, смягчить танины и позволит ароматам проявиться в полной мере. Я бы посоветовал декантировать его примерно за 30-60 минут до подачи.",
+      "latency_ms": 2600,
+      "usage": {
+       "prompt_tokens": 3898,
+       "output_tokens": 125,
+       "total_tokens": 4258
+      }
+     },
+     "rag": {
+      "answer": "Для Dealul de Aur Fetească Neagră Reserve 2019 рекомендуемая температура подачи составляет 15–18°C.\n\nДекантация, скорее всего, будет полезна для этого вина. Для вин сорта Fetească Neagră, особенно резервных и с некоторым возрастом, как винтаж 2019 года, декантация помогает смягчить вкус и раскрыть ароматы.",
+      "latency_ms": 6835,
+      "retrieval_ms": 5627,
+      "generation_ms": 1208,
+      "usage": {
+       "prompt_tokens": 8123,
+       "output_tokens": 92,
+       "total_tokens": 8215
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states the recommended serving temperature and whether decantation is needed for the specific wine mentioned in the question.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEv4DCx9C-1mWwgMhZjVpj_lgu4_FSLhK2S0NIIiv_CtzMKjPUsKzxdTprmLAzWtGn6-0nLv6Iq1R6Io33o-KZLF7W8gXJkRh7VkgzEcO2yHsiubNo83Sx4ijlzDlKO7g7-AlwmdeGd",
+         "confidence": "low",
+         "text": "Рекомендуемая температура подачи для Dealul de Aur Fetească Neagră Reserve 2019 составляет 15–18°C.\n\nДекантация, скорее всего, будет полезна для этого вина. Для вин сорта Fetească Neagră, особенно резервных и с некоторым возрастом, как винтаж 2019 года, рекомендуется декантация, чтобы смягчить вкус "
+        },
+        {
+         "level": "web",
+         "title": "danielswine.club",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGNP1J7gs0voFXk3xF_AJjfMdKCey9YFmUxRDoUaYF7koZ5D0p63WTd7M4cn5B-1Egsuoql01aDSZXVJ6-jgrus1xFXAq4tfG8rI5XMZsXGPc9Mf3RctNNRrSDIICyCFxdGkCtQzognxCCmyMuvb02T4SEMHJ4rSox_",
+         "confidence": "low",
+         "text": "Рекомендуемая температура подачи для Dealul de Aur Fetească Neagră Reserve 2019 составляет 15–18°C.\n\nДекантация, скорее всего, будет полезна для этого вина. Для вин сорта Fetească Neagră, особенно резервных и с некоторым возрастом, как винтаж 2019 года, рекомендуется декантация, чтобы смягчить вкус "
+        },
+        {
+         "level": "web",
+         "title": "indigenewines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEE43XWBQZUlBNROb2cxHn4RIIzxSTb2i8QtCbeaNa8DPKeIlLIvnT70kRA877VVI9os97idz0Xus9B4fDCNH4zmBlWOHtmA0m8997D_GA82d6f4ubbMNjeNuQVGTqvItgQtxHqHA9eviZPuU_ukoMpdVNdDPj7zGHB",
+         "confidence": "low",
+         "text": "Рекомендуемая температура подачи для Dealul de Aur Fetească Neagră Reserve 2019 составляет 15–18°C.\n\nДекантация, скорее всего, будет полезна для этого вина. Для вин сорта Fetească Neagră, особенно резервных и с некоторым возрастом, как винтаж 2019 года, рекомендуется декантация, чтобы смягчить вкус "
+        },
+        {
+         "level": "web",
+         "title": "wine.com.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFhFJsJvmM-pOvxDi-StNddPbYTZD7ffKR9rQOuCHwBMnBCW84p-mhbUedj3WZxgin-coo0kOQ3KTmx3dL14UFhdc6LVZFeMWvwCPJIphqKjSRJD6tNyYe7pmVF1k8iX1REwA==",
+         "confidence": "low",
+         "text": "Рекомендуемая температура подачи для Dealul de Aur Fetească Neagră Reserve 2019 составляет 15–18°C.\n\nДекантация, скорее всего, будет полезна для этого вина. Для вин сорта Fetească Neagră, особенно резервных и с некоторым возрастом, как винтаж 2019 года, рекомендуется декантация, чтобы смягчить вкус "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но диапазон температуры немного отличается от найденных источников. Время декантации - это тоже догадка."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ точный и полностью соответствует извлеченным фрагментам."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Хотя прямой ответ был неплох, точные рекомендации по температуре и декантации для конкретного вина лучше подтверждать источниками, чтобы избежать неточностей или догадок.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтвердили и уточнили рекомендации по температуре подачи (15-18°C вместо 16-18°C) и декантации, сделав ответ более точным и надежным. Также убрали догадку про время декантации.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q066",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что за винодельня Crama Dealul de Aur и где она находится?",
+     "direct": {
+      "answer": "Crama Dealul de Aur — это винодельня из Молдовы. Она находится в южной части страны, в регионе Валул луй Траян.",
+      "latency_ms": 1749,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 35,
+       "total_tokens": 3976
+      }
+     },
+     "rag": {
+      "answer": "У меня нет подтверждённых данных о винодельне под названием Crama Dealul de Aur в Молдове. Возможно, вы имели в виду другую винодельню?\n\nМогу рассказать о других интересных винодельнях и сортах молдавского вина, если хотите.",
+      "latency_ms": 8280,
+      "retrieval_ms": 5623,
+      "generation_ms": 2657,
+      "usage": {
+       "prompt_tokens": 7096,
+       "output_tokens": 55,
+       "total_tokens": 7565
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "evidence_entity_mismatch",
+       "claim_class": "grounding_required",
+       "entity_match": "mismatch",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "cramadealuldorului.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFPyeIE-KEQpkeOv5JuU5WIwEg29d0Pura7y1VLMbqoTlSW_ToxZtEWp0O2OEWL2MLdeBMqrjfmWJG9JYTkF32Cim8QYfmaePcgxK_JTNvmFhZ7T7uNmHibKQ==",
+         "confidence": "low",
+         "text": "Винодельня \"Crama Dealul de Aur\", по всей видимости, является \"Crama Dealul Dorului\". Это винодельня, расположенная в Румынии, в винограднике Силагиу (Podgoria Silagiu), недалеко от города Бузиаш. Она входит в зону, обозначенную для географического указания \"Вийле Тимишулуй\" (Viile Timișului).\n\n\"Cra"
+        },
+        {
+         "level": "web",
+         "title": "cramadealuldorului.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHDOxy_goKbeoKLIBeRhW511ekzXCcizrzO5rWrzyMHDP2q0JYwFjz1as78JG05l4Aincnuxdmk9ioJlfHqPTc9UsyKgVZfToX7dk0HUPBG2YwJ4xJgvnZtPNY6bi1ezq7T34nkFzkOJBUKeQ==",
+         "confidence": "low",
+         "text": "Винодельня \"Crama Dealul de Aur\", по всей видимости, является \"Crama Dealul Dorului\". Это винодельня, расположенная в Румынии, в винограднике Силагиу (Podgoria Silagiu), недалеко от города Бузиаш. Она входит в зону, обозначенную для географического указания \"Вийле Тимишулуй\" (Viile Timișului).\n\n\"Cra"
+        },
+        {
+         "level": "web",
+         "title": "cramadealuldorului.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFm3YeJUk0CYlr8i6PE1GKuw_7FZLB-ojenA4DcbIwrdehTsxJFuhWOPt7z45YKL3hw9uiXDWNThWnMlBZpTYjiqa8UKo4HfNHu7fEirkC11PHy3cvBy3rFyvTTLg==",
+         "confidence": "low",
+         "text": "Винодельня \"Crama Dealul de Aur\", по всей видимости, является \"Crama Dealul Dorului\". Это винодельня, расположенная в Румынии, в винограднике Силагиу (Podgoria Silagiu), недалеко от города Бузиаш. Она входит в зону, обозначенную для географического указания \"Вийле Тимишулуй\" (Viile Timișului).\n\n\"Cra"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 1,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "Crama Dealul de Aur — это винодельня из Молдовы.",
+        "Она находится в южной части страны, в регионе Валул луй Траян."
+       ],
+       "notes": "Ответ уверенно называет винодельню молдавской и указывает регион, что является неверным, согласно извлеченным фрагментам."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно сообщает об отсутствии информации и предлагает альтернативу, что хорошо для голосового ассистента."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Прямой ответ содержит фактическую ошибку, утверждая, что винодельня находится в Молдове, тогда как извлеченные фрагменты указывают на Румынию.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "prevented_hallucination",
+      "retrieval_effect_explanation": "Извлеченные фрагменты помогли избежать галлюцинации о местонахождении винодельни в Молдове, указав, что она, вероятно, находится в Румынии, и позволили RAG-ответу быть честным в отсутствии информации.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q068",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "С какой едой сочетается Dealul de Aur Fetească Neagră Reserve 2019?",
+     "direct": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с блюдами из красного мяса, дичи и выдержанными сырами.\n\nЭто вино, как правило, обладает насыщенным вкусом с нотами тёмных ягод, сливы и специй, а выдержка в дубе добавляет ему структуру и танины. Поэтому оно прекрасно дополнит сочный стейк, жаркое из баранины или оленины, а также твёрдые сыры, например, пармезан или чеддер.\n\nХотите, я расскажу подробнее о характере Fetească Neagră?",
+      "latency_ms": 2531,
+      "usage": {
+       "prompt_tokens": 3893,
+       "output_tokens": 139,
+       "total_tokens": 4255
+      }
+     },
+     "rag": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами.\n\nБлагодаря сбалансированной кислотности, спелым танинам и пряным оттенкам, это вино будет отличным дополнением к красному мясу, дичи или выдержанным сырам. Сорт Fetească Neagră часто даёт ароматы ежевики, сливы, чёрной вишни, с нотками корицы, что делает его достаточно универсальным для богатых вкусов.",
+      "latency_ms": 8785,
+      "retrieval_ms": 6887,
+      "generation_ms": 1898,
+      "usage": {
+       "prompt_tokens": 12882,
+       "output_tokens": 116,
+       "total_tokens": 13127
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence states that the wine pairs well with various rich dishes, directly answering the question.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "moldovalive.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFPiZxpitH8J3IAPMxIoLgQC7ApUEN2m-5sF0A3DMriisSpZsXsAvW0M0a0Px8W5j12L_y_hd9ltJzusJ5zj9hZOI_xuiVEBUw1SbWIAnj-Vc1ePMY2dS1dl44CRTF0PQOKDXjIra74mBm4y78M_ZfyKANgZsTPqIBMe8wninjwOwbCZFP_spcX8YUeDtVjXEeaLSyCCi0=",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFYC30aK_kxRk1Ql7IPzRqE3d9aPUOnUWC8k4rTAZV_iU8PWGYK1m9x4y2jFg9PaMYIRx87CiK3ucqmm7YpcjKA0VDv377UDBF7sr_pr8IQ4X8rRCQGtJBt-XuHUs04YxsNQumM4wvryE-6_P93vde4WughXyD4kld3UPu_1w==",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "vinerra.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFpRMNDy84IAuOdMoi2PAbhiwxJv3Nxsng2yIMFYgIXgFsjyuob5V9q6L7aUw4X2v0NZshuSjs-UAjDrC6-ZL8nMMZZ0gLjZ5KHud8Jqily9HR_940qZoVNaykp8VeMlTw-Hevi-IKFYhv5XCY9tlHbiRFU4T_1EwGs66CGrjvN9rZYvWfKNIUKdZ5DaNTRgO27yZGrvxOysvBVDfSw6oujhpH5D8khdQ==",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "cramabratu.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHz-ogbtTKnELJzS9VZG_tgel2w-aMJa6Va0ybDL5_r1mj4VjhsPsATcighoL-WPCQE7xkyp_D4U9TORb93QyDu2ZPFRBYYWG1Uf4TTdQvXoLyVjx8LR2Gjnt87EJMjNZ5sJpr0jfa69E04J3dG2AXyDLWyHLXzAXoDTQPl2J-l",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "absoluteguides.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE58NWu73YF3R7iJF-s4iOzZkZwvVdodKYJJ8pLD9lzZz-2jlIr5x54AzDqVnweTVM_GwBOhvhTF1LrtVd8Vrqv_bg7_vbnJZWruzf3Fr0tbOlza9jrtJya6L1cCZ8DpGz6JsRzC8UO",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "prbottleshop.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGSHeOzJnXPSk1eAuJUHLh_VZ6nmDjo3SOtXNieunl4HTKuitv8tAxaBe3DPuDIhlb4yZH7IpwOE7f16BfCxERCNWZDfxIb0wi-nTTi_aORm2o4DSUE5C946gSyffxKPrmQVVE30Y5Pur95rHQjDusxwPUDh5_-1rUNcWTd13ItoCO5C0y9uIlN7ji7WHeZ",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "vinerra.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGASA0wHpyE_BzNHfxBXGTv23GZ_mydRu0Y5sjhx6pdqhgZzxR9ZahVzw67MrigAnWOA9WkLKpm8fzp04ydY0FeqbowB8BPRB7nkSixVKvCzL1p48fisWwIjv1kHgswCViAFnHziXkgL_SHgU_Vy29AqXiPZfi_6guuaa9can2ZgmiRRDPfMPYpSNBCwLeLeRDwPSYwRN8rCxly",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGxrn_38hE5H29308kQTQ9v57vhAX2TILwUk4iAg-ifn1y3ujK22NnE7yxjgrNbbaInch8B3K-0Fkcc3EomffyL33vP9hDptrEG-L8b6GLb7iVeJu-2RStcCcAqr2acZAxDKej2yUjTSY8D7PGmqYNb0sz1",
+         "confidence": "low",
+         "text": "Вино Dealul de Aur Fetească Neagră Reserve 2019 хорошо сочетается с различными насыщенными блюдами, благодаря своей сбалансированной кислотности, спелым танинам и пряным оттенкам. Этот сорт винограда, Fetească Neagră, характеризуется ароматами ежевики, сливы, черной вишни, а также нотками корицы, ва"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ достаточно полный и релевантный, но не содержит специфических деталей, которые могли бы быть в базе знаний."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ использует информацию из фрагментов, что делает его более обоснованным, но не добавляет принципиально новой информации по сравнению с direct ответом. Фрагменты повторяются и не дают много уникальных деталей."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Direct ответ уже дал достаточно хороший и релевантный ответ на вопрос о сочетании с едой, основываясь на общих знаниях о сорте винограда и типе вина. Извлеченные фрагменты не добавили существенной новой информации, которая была бы критически необходима для ответа.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтвердили общие характеристики вина и его сочетаемость, но не добавили конкретных, уникальных деталей, которые бы значительно улучшили ответ по сравнению с direct ответом. Фактически, rag ответ перефразировал часть direct ответа, добавив цитаты из фрагментов, которые были очень похожи друг на друга.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q070",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какой сортовой состав у Purcari Negru de Purcari?",
+     "direct": {
+      "answer": "У Negru de Purcari от Purcari сортовой состав такой: это ассамбляж из сортов Каберне Совиньон, Саперави и местной молдавской Рара Нягрэ.",
+      "latency_ms": 1150,
+      "usage": {
+       "prompt_tokens": 3884,
+       "output_tokens": 47,
+       "total_tokens": 3978
+      }
+     },
+     "rag": {
+      "answer": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции таковы: Каберне Совиньон составляет 55% или 70%, Саперави — 40% или 25%, а Рара Нягрэ — 5%. Например, для винтажа 2022 года указаны 55% Каберне Совиньон и 40% Саперави.",
+      "latency_ms": 6609,
+      "retrieval_ms": 4793,
+      "generation_ms": 1816,
+      "usage": {
+       "prompt_tokens": 12934,
+       "output_tokens": 118,
+       "total_tokens": 13165
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states the grape varietal composition of Purcari Negru de Purcari, including the specific grape types and their typical proportions.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "8wines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGzFclbnc3H6Ed-50cKiJVmaY2aRDMFnqneTAxfUe34dtIpAwGnN846Psyexkxg29SEPM8hG73M1uyk3Di0GWIvBtSpXWLyVF_KHeyFU4R3QlkOedb-fS8Jhs9YLWmouGEPkjIv1aUROtsE0qU507FfR5Eud0BlSSAc",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "boundbywine.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFgjFjeeyJTLOd0FjdHafMoaFlwSHQcO2brvaDLj1c5EIQk8m6-zgxYTv3wpGoOie4HH9C4uSF9F79noW5-ZwSRmsKci40si1IECnqN0oj4T_fRl1EFFqmIPtUzrcuS6Jy6rOOVIx2UMY8sfIg=",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "winestatistics.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH5TgmUSNLrfZiU_mQPNNcEOqNXzW7xoR_Z8u2L8mFYEcwcuI-b0v94oT3MJq5-5bQCq5SOq_L5TUG5k7cktmdA3An4Q122dndnfRobQNyqlVt5uOwTx_7pR8qlfDVDZWL_9m6uYmDP9G6CFy7L_dZ1yKeoxVSictz01tKf7SzI",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFsvWr-7mUaZiOCsJZJfZTZ_OKC-Z9otqF6kF7xVF32DC6YMTS9IfJyhwgPcz4KQAWP-Wfdl78FvxR2l4aUBQA-TqJ2naB65UIiPLX2ZhXlXGfsd2sc2SUQ2C4o5cDpHZh3VXJYuoIMLYM=",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "winestatistics.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGyUdM4JJtSHhtvhJYEcltJwlVvojaI3zgVgwgGjvLpbAfba7h-LrrTIGi1BgLfYKcEhZmmH3MWH_j04slWynQ8OnmsBshixPxx1UYdSFus4gn1dmTukci0KBIAnUjS8OnOiRkVJXOOZhayNxOV_WDIY_ra-T0fD8AqYL7fzvkldRSDKIaTrQo=",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "orowine.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFYWphyMDsx43DtXjLasxJOSQO9LTmQGV4FqdR7alQ0EbVO_vuQrThv7En8glMAd4cppbrYR-MQrDY-9N8j2JtjBUluoz_x5hnuV3JNW8v4BOpBgkNDQRbYv7jKi9aDen_pR8IMOyWgWZH1E0QNUAChevHiWKIdHRclQMQH1PPZOg==",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "deluxewineandspirits.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGtmxAzLTf3q-r3RY-PdJYEdIYs-7bqKzBHvAaUgPbgw3nSchG91z7ShTKltlnDIN6TZm_8g2fNtAp2rX3rtKEiX2mZdsZFrI6PojR4MgY0-6sEoBnf5kfFnIZ9yfGiKjSRoZc403mtPshzYm2quqdFKLZ9C3c=",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        },
+        {
+         "level": "web",
+         "title": "theliquorbarn.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE0xY6odTaHM6Td7CKjD9W_bs3dYjwFD9MknDgD6PPaoRurg-XdzYQ9rxZLmTZvao0VsUB6PKget4GUElF7oNp8OpUsroYzdjcx_KwyGft1rMY2oXNA6naUBP2B1j4lUqMXuRCDSuhWIZlmGvQQO0bgLGVKbkMAKbJ_OYai3erRkHvgOrMwAQ==",
+         "confidence": "low",
+         "text": "Сортовой состав вина Purcari Negru de Purcari включает три сорта винограда: Каберне Совиньон, Саперави и Рара Нягрэ.\n\nОбычно пропорции следующие:\n*   Каберне Совиньон: 55% или 70%\n*   Саперави: 40% или 25%\n*   Рара Нягрэ: 5%\n\nНапример, для винтажа 2022 года указаны 55% Каберне Совиньон, 40% Саперави"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "The direct answer correctly identifies the grape varieties."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "The RAG answer provides the same correct information as the direct answer, plus additional details about the proportions of each grape variety, which is a useful addition."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "The direct answer was already correct and complete enough for a basic query about grape composition. The additional details from RAG are good but not strictly necessary for a 'good' answer.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "The retrieved context allowed the RAG model to add specific, verified information about the typical proportions of the grape varieties, which enhances the answer's completeness.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q069",
+   "class": "product_facts",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какие награды получало Dealul de Aur Fetească Neagră Reserve 2019?",
+     "direct": {
+      "answer": "Dealul de Aur Fetească Neagră Reserve 2019 получил золотую медаль на конкурсе Mundus Vini в 2022 году. Также это вино было удостоено золота на Eurasia Wine & Spirits Competition в 2021 году и серебра на Decanter World Wine Awards в том же 2021 году.",
+      "latency_ms": 1449,
+      "usage": {
+       "prompt_tokens": 3892,
+       "output_tokens": 77,
+       "total_tokens": 4064
+      }
+     },
+     "rag": {
+      "answer": "К сожалению, у меня сейчас нет подтверждённых данных о наградах, полученных именно вином Dealul de Aur Fetească Neagră Reserve 2019.\n\nМогу рассказать вам подробнее об этом сорте винограда Fetească Neagră или о винодельне Dealul de Aur, если вам интересно.",
+      "latency_ms": 9194,
+      "retrieval_ms": 7007,
+      "generation_ms": 2187,
+      "usage": {
+       "prompt_tokens": 8608,
+       "output_tokens": 70,
+       "total_tokens": 8971
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "evidence_entity_mismatch",
+       "claim_class": "grounding_required",
+       "entity_match": "mismatch",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "gustos.life",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEoiYoR-VLysxG-iNLUTUKlanWm7IVzvOfexfy_EbdV_7XX8RIPgCNOIOV7sv8QTglseJQB-DQ2Gnpsrg68qnbgifxcJNTZ9Q4-qUkPZA-fOG-_63mAupwu_GSgNO9D-KjkVdhgdEHzka3LTr5dmCq_OUSaawP13HogUgC3a20qLzkB2XTipV3A5TTFw7Mh3iut6B6YE--nrG6ct4W4hBJaE5MX",
+         "confidence": "low",
+         "text": "К сожалению, прямых сведений о наградах, полученных именно вином \"Dealul de Aur Fetească Neagră Reserve 2019\", найти не удалось. Однако, были обнаружены награды для других вин Fetească Neagră урожая 2019 года от разных производителей:\n\n*   Вино \"Signature Series Feteasca Neagra 2019\" от Agrici Wine "
+        },
+        {
+         "level": "web",
+         "title": "gustos.life",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGOrkannUnYu9lmY0LO4xc4lzX9PYic6dSwmV4SNgFlB4imBbaRtdLWdhWkKmN1h54lih6cDuiOcXyCOWyGwe-tdxesV_Q_-dgjRTNcHAvufU03idQfe5z5LeVRW56GB6ealAUy3KFv0EfHzZyn-lhM8bCHo8KF-q-YEbVkBE_nk1MVrFozhNpvuZF6QqtS",
+         "confidence": "low",
+         "text": "К сожалению, прямых сведений о наградах, полученных именно вином \"Dealul de Aur Fetească Neagră Reserve 2019\", найти не удалось. Однако, были обнаружены награды для других вин Fetească Neagră урожая 2019 года от разных производителей:\n\n*   Вино \"Signature Series Feteasca Neagra 2019\" от Agrici Wine "
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGOYedAjQLT0tMbtuO_tPnl42ZZfo10yH1GjJXOCdSX1kFBQ3rv_Nas4ChxgY_ybmqMMiY-bBzZZjlpuJbmPzwoB-LMxPW3egxE76_YEnSAhWE-iQGa1dt7R9KPiga2QaSu7A0aWjyMIr5R4XrkxrjRIw==",
+         "confidence": "low",
+         "text": "К сожалению, прямых сведений о наградах, полученных именно вином \"Dealul de Aur Fetească Neagră Reserve 2019\", найти не удалось. Однако, были обнаружены награды для других вин Fetească Neagră урожая 2019 года от разных производителей:\n\n*   Вино \"Signature Series Feteasca Neagra 2019\" от Agrici Wine "
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHM-oxygicSlkEd0JJgLZmWWkaZVU6aT7YppBwZz7aZp9dgS9WF2tQVYQwbiW9VfNZF9emMDaX_ecuxEChCLcCDGJkpD2Y3Hrq7pDF3Yw3YK7jvxRYn4lOzbIyYYayC2Huy_wchRgaypFKqr5e0mXD4e3I=",
+         "confidence": "low",
+         "text": "К сожалению, прямых сведений о наградах, полученных именно вином \"Dealul de Aur Fetească Neagră Reserve 2019\", найти не удалось. Однако, были обнаружены награды для других вин Fetească Neagră урожая 2019 года от разных производителей:\n\n*   Вино \"Signature Series Feteasca Neagra 2019\" от Agrici Wine "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 1,
+       "factuality": 1,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [
+        "золотую медаль на конкурсе Mundus Vini в 2022 году",
+        "золото на Eurasia Wine & Spirits Competition в 2021 году",
+        "серебра на Decanter World Wine Awards в том же 2021 году"
+       ],
+       "notes": "Ответ уверенно называет конкретные награды, которые являются выдуманными."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно сообщает об отсутствии информации, что является корректным по отношению к извлеченным фрагментам."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Прямой ответ содержит выдуманные факты, а извлеченные фрагменты показывают, что информации о наградах для этого конкретного вина нет.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "prevented_hallucination",
+      "retrieval_effect_explanation": "Извлеченные фрагменты явно указывают на отсутствие информации о наградах для данного вина, что помогло RAG-модели избежать галлюцинаций, присутствующих в прямом ответе.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q071",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько стоит Dealul de Aur Fetească Neagră Reserve 2019?",
+     "direct": {
+      "answer": "Сейчас проверю. У меня нет подтверждённых данных о цене Dealul de Aur Fetească Neagră Reserve 2019.",
+      "latency_ms": 1273,
+      "usage": {
+       "prompt_tokens": 3890,
+       "output_tokens": 30,
+       "total_tokens": 3990
+      }
+     },
+     "rag": {
+      "answer": "К сожалению, сейчас у меня нет точной информации о цене на вино Dealul de Aur Fetească Neagră Reserve 2019.",
+      "latency_ms": 16882,
+      "retrieval_ms": 15066,
+      "generation_ms": 1816,
+      "usage": {
+       "prompt_tokens": 11021,
+       "output_tokens": 31,
+       "total_tokens": 11260
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "confirmed_via_web_fallback",
+       "claim_class": "grounding_required",
+       "entity_match": "unverified_after_web",
+       "status": "found",
+       "web_used": true,
+       "web_reason": null,
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Basavin Winery Trei Fete Feteasca Regala & Feteasca Alba & Feteasca Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-albe/blanc-de-noir/basavin-trei-fete-feteasca-regala/feteasca-alba/feteasca-neagra",
+         "confidence": "verified",
+         "text": "Basavin Winery Trei Fete Feteasca Regala & Feteasca Alba & Feteasca Neagra"
+        },
+        {
+         "level": "catalog",
+         "title": "Salcura Apertus Feteasca Neagra & Rara Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/salcura-apertus-feteasca-neagra-and-rara-neagra",
+         "confidence": "verified",
+         "text": "Salcura Apertus Feteasca Neagra & Rara Neagra"
+        },
+        {
+         "level": "catalog",
+         "title": "VINUM Estate Feteasca Neagra & Rara Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/vinum-estate-feteasca-neagra-and-rara-neagra",
+         "confidence": "verified",
+         "text": "VINUM Estate Feteasca Neagra & Rara Neagra"
+        },
+        {
+         "level": "catalog",
+         "title": "Basavin Winery  Optimist Feteasca Neagra & Rara Neagra & Shiraz",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/feteasca-neagra/basavin-optimist-feteasca-neagra/rara-neagra/shiraz",
+         "confidence": "verified",
+         "text": "Basavin Winery  Optimist Feteasca Neagra & Rara Neagra & Shiraz"
+        },
+        {
+         "level": "catalog",
+         "title": "Maestro Virtuoso Feteasca Neagra & Rara Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/maestro-virtuoso-feteasca-neagra-and-rara-neagra",
+         "confidence": "verified",
+         "text": "Maestro Virtuoso Feteasca Neagra & Rara Neagra"
+        },
+        {
+         "level": "web",
+         "title": "danielswine.club",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEzH8tsd2MjR_xvEpLGBMUpL3KVEC8HsedeVTF5o41AyQ3np5nfGy0_xauNXp6dhcs0W8lbJRPPv3qOBbJJFq2goxHG_7aT_uKb7Gqm6fNYNEKg-q_jDV-vtkEWV50_Mj1YnRBtHXeMThVwZUUaKoQ3DyRrD3SXNKFS",
+         "confidence": "low",
+         "text": "На данный момент не удалось найти точную цену на вино \"Dealul de Aur Fetească Neagră Reserve 2019\". Однако, были найдены цены на другие вина Fetească Neagră урожая 2019 года, которые могут дать представление о ценовом диапазоне:\n\n*   Вино \"Epiphanie Feteasca Neagra 2019\" имеет ценовой диапазон от 5 "
+        },
+        {
+         "level": "web",
+         "title": "romanianwinesus.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFp-I_1BOnE7p6cttHMl1SRaAwbWDA14WkRTTkz5QPjT1CMrQeBiAxuI_Q_2mjbRvFRmsrbbAoMFYIvhux8WjkcWR6YKEtDr4CZV4SITQZn6VwjJy6prQUdXpWkc2nsuNBmDNaXxgq5XDqdkg==",
+         "confidence": "low",
+         "text": "На данный момент не удалось найти точную цену на вино \"Dealul de Aur Fetească Neagră Reserve 2019\". Однако, были найдены цены на другие вина Fetească Neagră урожая 2019 года, которые могут дать представление о ценовом диапазоне:\n\n*   Вино \"Epiphanie Feteasca Neagra 2019\" имеет ценовой диапазон от 5 "
+        },
+        {
+         "level": "web",
+         "title": "wine-searcher.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGg1Is2zfyiWg1IWhQAnpadeDj5moKhbsQxkbpN2R5HK8jioPt5epddCcXbQZIXZFWV-5fHsmD3dkk7r9rYnd7aieb0ni_P2ToXRFLOMq6ZrzuHzC0AYntqtMruKrFhaGYBWiLnG0XNZ0z8ZefzcaDAXIqPzw83LqTiee0M-tqCny32fe53KMBmM1DPV80iDJLjlrzljDX0",
+         "confidence": "low",
+         "text": "На данный момент не удалось найти точную цену на вино \"Dealul de Aur Fetească Neagră Reserve 2019\". Однако, были найдены цены на другие вина Fetească Neagră урожая 2019 года, которые могут дать представление о ценовом диапазоне:\n\n*   Вино \"Epiphanie Feteasca Neagra 2019\" имеет ценовой диапазон от 5 "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно сообщает об отсутствии информации."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ также честно сообщает об отсутствии информации, но не предлагает никаких альтернатив, хотя фрагменты содержат информацию о других винах Fetească Neagră 2019 года."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует конкретной фактической информации (цены), которая может быть найдена только в базе знаний или каталоге.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержат точной информации о цене запрашиваемого вина, поэтому RAG-ответ не смог предоставить ее. Однако, фрагменты содержат информацию о ценовом диапазоне других вин Fetească Neagră 2019 года, которую можно было бы использовать для улучшения ответа, но RAG-ответ этого не сделал.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q072",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Есть ли сейчас в наличии Purcari Negru de Purcari?",
+     "direct": {
+      "answer": "",
+      "latency_ms": 1118,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": null,
+       "total_tokens": 3883
+      }
+     },
+     "rag": {
+      "answer": "Да, Purcari Negru de Purcari сейчас есть в наличии. Его можно найти на сайте wine.md, а также у различных розничных продавцов, как онлайн, так и в некоторых физических магазинах.\n\nНапример, в Москве его можно было приобрести в магазинах WineStyle по состоянию на 5 августа 2026 года.",
+      "latency_ms": 11209,
+      "retrieval_ms": 9149,
+      "generation_ms": 2060,
+      "usage": {
+       "prompt_tokens": 13075,
+       "output_tokens": 74,
+       "total_tokens": 13340
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Purcari Negru de Purcari",
+         "source": "https://wine.md/purcari-negru-de-purcari-2707",
+         "confidence": "verified",
+         "text": "Purcari Negru de Purcari"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari Negru de Purcari Amphorae Edition",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/purcari-negru-de-purcari-amphorae-edition",
+         "confidence": "verified",
+         "text": "Purcari Negru de Purcari Amphorae Edition"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari Negru de Purcari",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/saperavi/purcari-negru-de-purcari-0,375-ml",
+         "confidence": "verified",
+         "text": "Purcari Negru de Purcari"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari Negru de Purcari",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/purcari-negru-de-purcari",
+         "confidence": "verified",
+         "text": "Purcari Negru de Purcari"
+        },
+        {
+         "level": "catalog",
+         "title": "Negru de Purcari Vintage  Limited Edition",
+         "source": "https://wine.md/negru-de-purcari-vintage-2015-limited-edition-3669",
+         "confidence": "verified",
+         "text": "Negru de Purcari Vintage  Limited Edition"
+        },
+        {
+         "level": "web",
+         "title": "winestyle.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEjTDV256SnWR-aF0n9sGpOn2cpizHVIpEilXZNeq45p1uwIrrFc0QL1lj2v0veJwLJf_bKyRlOPqO61hE29klPS51-3mw2TbypmbkkCaL-cf9e6XmyFJL24wBNyx9iumybxdXWfxExZnpUFe1BUyEyfuZVXI0=",
+         "confidence": "low",
+         "text": "Да, Purcari Negru de Purcari в настоящее время доступно в продаже у ряда розничных продавцов, как онлайн, так и в некоторых физических магазинах.\n\nНапример:\n*   В Москве его можно приобрести в магазинах WineStyle. По состоянию на 5 августа 2026 года, 9:00, оно было в наличии по цене 1 390 руб..\n*   "
+        },
+        {
+         "level": "web",
+         "title": "tableandvine.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGoelev66YLWw0c2__qqI0eslqRXiPXE7QWQzTe5xzV0TxsB01f99UdsE4rse8RQJbkuL5qMDm_Dyqf5fvq471U7Wtk-zosGkAGSFzKyu02fG8oamWsCHs3JQ95IJb8nET54aOKo-RPjP05lvxMNnWNNBi6Srqltyz8HVXbsRqxhBfyXU8dQlkTK_H-tHg7UNcyBKRjpUGNw8B9dxwhXx0jqXnI0ao8PADlXNwVGedb84aU0oNOR7r4MDNCsBrWBNjlO2Ahy7SqebsWRUhXaW8nsLQ-Zud8Jm21-f6NybO68rC4a329",
+         "confidence": "low",
+         "text": "Да, Purcari Negru de Purcari в настоящее время доступно в продаже у ряда розничных продавцов, как онлайн, так и в некоторых физических магазинах.\n\nНапример:\n*   В Москве его можно приобрести в магазинах WineStyle. По состоянию на 5 августа 2026 года, 9:00, оно было в наличии по цене 1 390 руб..\n*   "
+        },
+        {
+         "level": "web",
+         "title": "caskers.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGdcUMaJvDmMJbEM-KhNxppWfBNrQ0UvL0VfJVaxnU0VMg9rIx8sf9UwqWPQM2tCdKwu-_Lvs3MWJwoB9-b8nOS8ZZdq_2Rgn8tjxo4RYEVtVCJ90AEjCRzTuk0v-CnLz7o1UumnnQiJtHTi3a5w-A=",
+         "confidence": "low",
+         "text": "Да, Purcari Negru de Purcari в настоящее время доступно в продаже у ряда розничных продавцов, как онлайн, так и в некоторых физических магазинах.\n\nНапример:\n*   В Москве его можно приобрести в магазинах WineStyle. По состоянию на 5 августа 2026 года, 9:00, оно было в наличии по цене 1 390 руб..\n*   "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "skipped": "missing_answer"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q073",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько стоит бутылка Cricova игристого сейчас?",
+     "direct": {
+      "answer": "tools.check_wine_md_availability(wine_name='Cricova игристое')\nБутылка игристого вина Cricova сейчас стоит примерно от 100 до 110 молдавских леев, в зависимости от конкретного вида. Например, Crisecco Spumant можно найти за 100 леев, а классические игристые вина Cricova обычно стоят около 110 леев.\n\nХотите, я расскажу подробнее о каком-то конкретном виде игристого Cricova?",
+      "latency_ms": 3566,
+      "usage": {
+       "prompt_tokens": 3882,
+       "output_tokens": 116,
+       "total_tokens": 4546
+      }
+     },
+     "rag": {
+      "answer": "Сейчас у меня нет точных данных о текущей стоимости игристого вина Cricova в Молдове.\n\nМогу сказать, что в России цены на бутылку 0.75 л игристого вина Cricova обычно начинаются примерно от 350 рублей и могут доходить до 1380 рублей и выше, в зависимости от конкретного вида вина и места покупки. Цены могут сильно варьироваться.",
+      "latency_ms": 15021,
+      "retrieval_ms": 10610,
+      "generation_ms": 4411,
+      "usage": {
+       "prompt_tokens": 13660,
+       "output_tokens": 89,
+       "total_tokens": 14427
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Cricova Prestige/Rose de Cricova",
+         "source": "https://wine.md/catalog/wine/vinuri-roze/cabernet-sauvignon/cricova-prestige/rose-de-cricova",
+         "confidence": "verified",
+         "text": "Cricova Prestige/Rose de Cricova"
+        },
+        {
+         "level": "catalog",
+         "title": "Cricova Prestige Rose de Cricova",
+         "source": "https://wine.md/cricova-prestige-rose-de-cricova-3876",
+         "confidence": "verified",
+         "text": "Cricova Prestige Rose de Cricova"
+        },
+        {
+         "level": "catalog",
+         "title": "Excursii Cricova Moldova",
+         "source": "https://wine.md/content/excursie-cricova",
+         "confidence": "verified",
+         "text": "Excursii Cricova Moldova"
+        },
+        {
+         "level": "catalog",
+         "title": "Cricova Lacrima Dulce Alb demisec",
+         "source": "https://wine.md/catalog/vinuri-spumante/muscat/cricova-lacrima-dulce",
+         "confidence": "verified",
+         "text": "Cricova Lacrima Dulce Alb demisec"
+        },
+        {
+         "level": "catalog",
+         "title": "Cricova Orasul Subteran Feteasca Alba",
+         "source": "https://wine.md/orasul-subteran-feteasca-alba-3253",
+         "confidence": "verified",
+         "text": "Cricova Orasul Subteran Feteasca Alba"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6ljG8xiUHUWICpqPGvCjlCmk8Mr336iQAcjOnW-6oeryqXr-7VdeG6o4oM7iCROrsgcZ_WfkO2W0HLz5VB8IBJ0n-z5Cvx8B6MEUJNb3XcZ8fqKT4VK62h0RhzFaAVphLLwqa",
+         "confidence": "low",
+         "text": "Стоимость бутылки игристого вина Cricova варьируется в зависимости от вида вина, объема и места покупки.\n\nВ России цены на игристое вино Cricova за бутылку 0.75 л начинаются от 351 рублей и могут достигать 1380 рублей и выше за более эксклюзивные сорта. Например, в магазине \"Декантер\" стоимость игри"
+        },
+        {
+         "level": "web",
+         "title": "winestreet.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9NH1thW79b4sAFikTCaD5zpuKLLaMxkSi9N5c0PJKmSmeq11P4PRDtMFfePbkKKBJdLTxZui1WDDTj3Ng9Vzp8PcAWZq-rJ7mMOyEB_Xk6wwzxR2WwfOnPvVEg0tUd-4jyKnuWHbmMp7yXeeJj8tS9qvkURGaPhNqCYEfcQySHvVpR23ZmSulabnW8qQ=",
+         "confidence": "low",
+         "text": "Стоимость бутылки игристого вина Cricova варьируется в зависимости от вида вина, объема и места покупки.\n\nВ России цены на игристое вино Cricova за бутылку 0.75 л начинаются от 351 рублей и могут достигать 1380 рублей и выше за более эксклюзивные сорта. Например, в магазине \"Декантер\" стоимость игри"
+        },
+        {
+         "level": "web",
+         "title": "alcoplaza.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE9rYr7iooDgTE5ESaJBtnH7cY5jV2HMpiS6mzsxiPTzsdCyvWmcW0HhlH5t3JvhbVp_qhndJFUq7vJi2m33OM7YotXTVMSwtpG-t_i-xUjX2oRCKx0wz7IhDRF",
+         "confidence": "low",
+         "text": "Стоимость бутылки игристого вина Cricova варьируется в зависимости от вида вина, объема и места покупки.\n\nВ России цены на игристое вино Cricova за бутылку 0.75 л начинаются от 351 рублей и могут достигать 1380 рублей и выше за более эксклюзивные сорта. Например, в магазине \"Декантер\" стоимость игри"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 1,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "от 100 до 110 молдавских леев",
+        "Crisecco Spumant можно найти за 100 леев",
+        "классические игристые вина Cricova обычно стоят около 110 леев"
+       ],
+       "notes": "Модель уверенно называет конкретные цены в молдавских леях, которые не подтверждаются ни одним источником и, скорее всего, являются галлюцинацией. Crisecco Spumant - это не Cricova."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 4,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Модель честно признается, что не имеет данных по Молдове, но дает информацию по России, которая подтверждается фрагментами. Однако, вопрос был про Молдову."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует конкретных ценовых данных, которые не являются общеизвестными и должны быть извлечены из актуальной базы знаний.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержат информации о ценах в Молдове, поэтому RAG-ответ не смог дать релевантную информацию по Молдове. Однако, он смог дать информацию по России, которая была в фрагментах, и не сгенерировал галлюцинации, в отличие от прямого ответа.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q075",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какие красные вина у вас есть до 300 леев?",
+     "direct": {
+      "answer": "Хорошо, я понял. Чтобы дать вам точную информацию, мне нужно немного уточнить. Вы имеете в виду красные вина в целом или конкретно молдавские? Ищете что-то определённое по сорту винограда или стилю?",
+      "latency_ms": 1055,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 54,
+       "total_tokens": 4001
+      }
+     },
+     "rag": {
+      "answer": "Конечно, есть несколько отличных молдавских красных вин в ценовом диапазоне до 300 леев.\n\nНапример, сейчас в Alcohall.md можно найти сухое красное вино Novak Folclor Syrah & Copceac 0,75 л примерно за 241 MDL. Также там есть сухое красное вино Fautor Aurore Feteasca Neagra.\n\nХотите, я расскажу подробнее об этих винах или предложу что-то ещё?",
+      "latency_ms": 8660,
+      "retrieval_ms": 6951,
+      "generation_ms": 1709,
+      "usage": {
+       "prompt_tokens": 8885,
+       "output_tokens": 109,
+       "total_tokens": 9076
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence lists specific red wines available for under 300 MDL, directly answering the question.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "alcohall.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFvXeQlE-YPfD9BIYt191N3ZcQAGsFuNWHKfbBAVWkVfuJEldi6dgZMCZwkzPaMfA8QMxt3zUqnq0qfKXtGIoH_mH-QBmbohp6t1rGToiwjrOfgyg6JOrXe",
+         "confidence": "low",
+         "text": "В Молдове есть несколько хороших вариантов красных вин стоимостью до 300 леев. Вы можете найти их в различных онлайн- и офлайн-магазинах:\n\n**В Alcohall.md можно приобрести:**\n*   Сухое красное вино Novak Folclor Syrah & Copceac 0,75 л за 241 MDL.\n*   Сухое красное вино Fautor Aurore Feteasca Neagra "
+        },
+        {
+         "level": "web",
+         "title": "alcohall.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHAQ9VBKrdBWJPayd4Gyl2tsPJVXaSYizgyxBIAQO2EAn7C8J6wkKmreVkqDRtTzhFaa8owPkAy6c67Ga7LixrUIB6R-bMrZyfTj0_qSo4JmtqkrN9d4rHDncAM5b9h",
+         "confidence": "low",
+         "text": "В Молдове есть несколько хороших вариантов красных вин стоимостью до 300 леев. Вы можете найти их в различных онлайн- и офлайн-магазинах:\n\n**В Alcohall.md можно приобрести:**\n*   Сухое красное вино Novak Folclor Syrah & Copceac 0,75 л за 241 MDL.\n*   Сухое красное вино Fautor Aurore Feteasca Neagra "
+        },
+        {
+         "level": "web",
+         "title": "zakaz.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEn1eK-papPeOHCo3DPFMZfgqhGsLXIGf2C4bl-Tb4OK9oc9KskuKPStIJWsrpSGmVoATgQ4TGYM9TOgRbNGl-uek8KmAdTyBBHKdtegbeLFGZ9O9pHv4Z_hrJw2vlhVxh6fMNL_xIrTHhJMXVteKsUltWOVZM=",
+         "confidence": "low",
+         "text": "В Молдове есть несколько хороших вариантов красных вин стоимостью до 300 леев. Вы можете найти их в различных онлайн- и офлайн-магазинах:\n\n**В Alcohall.md можно приобрести:**\n*   Сухое красное вино Novak Folclor Syrah & Copceac 0,75 л за 241 MDL.\n*   Сухое красное вино Fautor Aurore Feteasca Neagra "
+        },
+        {
+         "level": "web",
+         "title": "alcomarket.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHlA9aaHSVXZIP1kD5D9cW4zhLod96MjAc2I76pJisdUeXl58iHAXa2yiQRCKMqQ4rVgyEWmfT0g3zjftyWswcVnbz8RRPp7Kp2GNENVzvJwps3o1zrGBGQ4URdPJo7C7tExlfBugJAkfXukBK537lTuj2T_IxzKpM=",
+         "confidence": "low",
+         "text": "В Молдове есть несколько хороших вариантов красных вин стоимостью до 300 леев. Вы можете найти их в различных онлайн- и офлайн-магазинах:\n\n**В Alcohall.md можно приобрести:**\n*   Сухое красное вино Novak Folclor Syrah & Copceac 0,75 л за 241 MDL.\n*   Сухое красное вино Fautor Aurore Feteasca Neagra "
+        },
+        {
+         "level": "web",
+         "title": "winetime.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEd5wRboPOBWl1aqySKvPYdRQ7a1SoVEOhUksYmYqHTtqY4wTTRH-bIiNPuj3wL3WhJQ6WuXnJRfdMn-vEHFJ36daKgYZPDPvPHMSEZr5-m1DDktWMlBnnmmE5yLE9DwH0b1Wo=",
+         "confidence": "low",
+         "text": "В Молдове есть несколько хороших вариантов красных вин стоимостью до 300 леев. Вы можете найти их в различных онлайн- и офлайн-магазинах:\n\n**В Alcohall.md можно приобрести:**\n*   Сухое красное вино Novak Folclor Syrah & Copceac 0,75 л за 241 MDL.\n*   Сухое красное вино Fautor Aurore Feteasca Neagra "
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 1,
+       "factuality": 5,
+       "relevance": 1,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ не дает никакой информации, а задает уточняющие вопросы, что не является ответом на вопрос пользователя."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ предоставляет конкретные примеры вин с ценами и местом покупки, что очень полезно для пользователя. Естественность речи на высоком уровне."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует конкретных данных о наличии вин и их ценах, что невозможно без доступа к актуальной базе данных или каталогу.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты позволили предоставить конкретные названия вин, их цены и место покупки, что является прямым ответом на вопрос пользователя. Без них ответ был бы общим и бесполезным.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q074",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Где купить молдавское вино в Кишинёве?",
+     "direct": {
+      "answer": "В Кишинёве молдавское вино можно купить во многих местах. Конечно, самые очевидные — это специализированные винные магазины, крупные супермаркеты и магазины при самих винодельнях.\n\nНапример, очень хороший выбор обычно в сетях супермаркетов, таких как Linella, Kaufland, Andy's Pizza (да, у них тоже есть винные отделы) или Fidesco. А если вы ищете что-то более эксклюзивное или хотите получить консультацию, то стоит заглянуть в специализированные винные бутики.\n\nХотите, могу рассказать про какие-то конкретные магазины или винодельни, которые имеют свои точки продаж?",
+      "latency_ms": 1999,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 147,
+       "total_tokens": 4073
+      }
+     },
+     "rag": {
+      "answer": "В Кишинёве есть несколько отличных мест, где можно приобрести молдавское вино.\n\nВы можете найти его в специализированных винотеках и винных барах, например, в **Carpe Diem Wine Shop & Bar**. Также многие крупные винодельни имеют свои фирменные магазины, где можно купить их продукцию напрямую.\n\nХотите, я расскажу подробнее о каких-то конкретных местах или типах магазинов?",
+      "latency_ms": 11034,
+      "retrieval_ms": 8215,
+      "generation_ms": 2819,
+      "usage": {
+       "prompt_tokens": 13109,
+       "output_tokens": 91,
+       "total_tokens": 13311
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино & Шоколад by Delice Sommelier",
+         "source": "https://wine.md/events/vino-and-shokolad-by-delice-sommelier",
+         "confidence": "verified",
+         "text": "Вино & Шоколад by Delice Sommelier"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино & сыр: что древнее?",
+         "source": "https://wine.md/blog/vino-and-syir-chto-drevnee",
+         "confidence": "verified",
+         "text": "Вино & сыр: что древнее?"
+        },
+        {
+         "level": "catalog",
+         "title": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+         "source": "https://wine.md/blog/chem-paxnut-raznyie-sorta-belogo-vina-soxranite-sebe-etu-udobnuyu-shpargalku!",
+         "confidence": "verified",
+         "text": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!"
+        },
+        {
+         "level": "catalog",
+         "title": "558 000 — бутылка вина продана за рекордную сумму",
+         "source": "https://wine.md/blog/558-000-—-butyilka-vina-prodana-za-rekordnuyu-summu",
+         "confidence": "verified",
+         "text": "558 000 — бутылка вина продана за рекордную сумму"
+        },
+        {
+         "level": "web",
+         "title": "chisinau.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFjSvcHRdNT_QROiLLHBbiqOqr7OX96PQ_muli_VSPPlzbP6Wg0oiDcdkrXXtTSWDaT4O2NY0MYNNet8H-rB-c4QZiMuaXVBpT5h8-9G6Dv8gg4tQZPto0n6sJxkKuXuGSGk_ZnIrpAP3zdGyQ=",
+         "confidence": "low",
+         "text": "В Кишинёве есть множество отличных мест, где можно приобрести молдавское вино, от специализированных винотек до фирменных магазинов при винодельнях.\n\nНекоторые из популярных мест включают:\n\n*   **Дегустационные залы и винотеки:**\n    *   **Carpe Diem Wine Shop & Bar** – это один из первых дегустацио"
+        },
+        {
+         "level": "web",
+         "title": "lista.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGb2q4FS7sL74Qp87we2HmGRitoQMOWmDrDTRnxybnCBXLNEgmNPf76N59fG3NF4KLCv3Pg5cK51doOfDdcVGam6mA4AciO1Hjy9wdWR5L_5lTMllg4kNexyWPW-1vmI4_F3fDtXtEO0AWwY1f_efvxgquPII3aD22bfi8QlNnxXxLl3A==",
+         "confidence": "low",
+         "text": "В Кишинёве есть множество отличных мест, где можно приобрести молдавское вино, от специализированных винотек до фирменных магазинов при винодельнях.\n\nНекоторые из популярных мест включают:\n\n*   **Дегустационные залы и винотеки:**\n    *   **Carpe Diem Wine Shop & Bar** – это один из первых дегустацио"
+        },
+        {
+         "level": "web",
+         "title": "winetours.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFDGDNV1VwMmuJXaIiddfAWIxjwCt02RRTcd_vTUEBz4X-eIUbiTdDdlJM1pGr7PbPYHlu3uhsrv87oxIbdExLgEqhR4fHsaO_Zd2UXVeoEP9DZcU71GkyeENxUlnqgyPOs68qj",
+         "confidence": "low",
+         "text": "В Кишинёве есть множество отличных мест, где можно приобрести молдавское вино, от специализированных винотек до фирменных магазинов при винодельнях.\n\nНекоторые из популярных мест включают:\n\n*   **Дегустационные залы и винотеки:**\n    *   **Carpe Diem Wine Shop & Bar** – это один из первых дегустацио"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 3,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "Andy's Pizza (да, у них тоже есть винные отделы)"
+       ],
+       "notes": "Ответ дает общие категории мест, где можно купить вино, и называет несколько сетей супермаркетов. Упоминание Andy's Pizza как места с винными отделами может быть неточным или устаревшим, что снижает фактическую корректность."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но менее полон, чем прямой ответ. Он называет конкретное место (Carpe Diem), что полезно, но не дает такого широкого обзора категорий, как прямой ответ. Извлеченные фрагменты были очень скудными и не позволили дать более развернутый ответ."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о конкретных местах покупки вина в Кишиневе необходимы актуальные и проверенные данные о магазинах, винотеках и фирменных точках продаж.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были очень ограниченными и в основном повторяли общие фразы или были нерелевантными. Единственная полезная информация - название Carpe Diem - была использована, но в целом RAG не смог значительно улучшить или ухудшить ответ из-за низкого качества и релевантности извлеченных данных.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q076",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Есть ли доставка вина по Молдове и сколько она стоит?",
+     "direct": {
+      "answer": "Я могу сказать, что многие молдавские винодельни и специализированные винные магазины предлагают доставку по Молдове.\n\nЧто касается стоимости, она обычно зависит от конкретного продавца, объёма заказа и удалённости. У меня нет единых подтверждённых данных по всем ценам, но обычно они указываются на сайтах магазинов или при оформлении заказа.",
+      "latency_ms": 2584,
+      "usage": {
+       "prompt_tokens": 3882,
+       "output_tokens": 78,
+       "total_tokens": 4255
+      }
+     },
+     "rag": {
+      "answer": "Да, доставка вина по Молдове доступна. Стоимость может сильно варьироваться в зависимости от конкретного магазина и региона доставки.\n\nНекоторые сервисы предлагают доставку по всей стране, а другие сосредоточены в Кишинёве и его пригородах. Чтобы узнать точную цену, лучше всего проверить условия напрямую на сайте выбранного магазина.",
+      "latency_ms": 12196,
+      "retrieval_ms": 10499,
+      "generation_ms": 1697,
+      "usage": {
+       "prompt_tokens": 12993,
+       "output_tokens": 72,
+       "total_tokens": 13221
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "catalog",
+         "title": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+         "source": "https://wine.md/blog/chem-paxnut-raznyie-sorta-belogo-vina-soxranite-sebe-etu-udobnuyu-shpargalku!",
+         "confidence": "verified",
+         "text": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!"
+        },
+        {
+         "level": "catalog",
+         "title": "558 000 — бутылка вина продана за рекордную сумму",
+         "source": "https://wine.md/blog/558-000-—-butyilka-vina-prodana-za-rekordnuyu-summu",
+         "confidence": "verified",
+         "text": "558 000 — бутылка вина продана за рекордную сумму"
+        },
+        {
+         "level": "catalog",
+         "title": "Виды самых популярных штопоров: открываем бутылки без ущерба для вина и нервов!",
+         "source": "https://wine.md/blog/vidyi-shtoporov-otkryivaem-butyilki-bez-ushherba-dlya-vina-i-nervov!",
+         "confidence": "verified",
+         "text": "Виды самых популярных штопоров: открываем бутылки без ущерба для вина и нервов!"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино & Шоколад by Delice Sommelier",
+         "source": "https://wine.md/events/vino-and-shokolad-by-delice-sommelier",
+         "confidence": "verified",
+         "text": "Вино & Шоколад by Delice Sommelier"
+        },
+        {
+         "level": "web",
+         "title": "pelican.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFHugGNzkWonNQKlUZFlCS1BQffnUz9S0t95_WbkOng3LUc26wM4kGS2INmVnAdW9IByToWm_DBG2wjg4fcV1KSiSJH-6I1_a6baLhpWYTnxgjmmSKu0td5gG1ymt4=",
+         "confidence": "low",
+         "text": "Да, доставка вина по Молдове доступна, и её стоимость варьируется в зависимости от магазина и региона доставки. Некоторые сервисы осуществляют доставку по всей стране, в то время как другие сосредоточены на Кишинёве и его пригородах.\n\nВот несколько примеров служб доставки и их расценки:\n\n**По всей М"
+        },
+        {
+         "level": "web",
+         "title": "alcohall.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHReSsHJ9csm4NjyWqrRHCnKredzgsQ_YH1vrg2OAEg-FzdNaVlgHfgshhk8RGxc717c4Rvp6efRkvXdkwpnSbyvQQ4bwTqDOAl8icJAzpPL5Y=",
+         "confidence": "low",
+         "text": "Да, доставка вина по Молдове доступна, и её стоимость варьируется в зависимости от магазина и региона доставки. Некоторые сервисы осуществляют доставку по всей стране, в то время как другие сосредоточены на Кишинёве и его пригородах.\n\nВот несколько примеров служб доставки и их расценки:\n\n**По всей М"
+        },
+        {
+         "level": "web",
+         "title": "winetime.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFQ7y1ucY8d_OYkKMyGU7eeRgoSXtO8iclZfm5ytw_TjsPHD8sA1lFa0EXMFlXXI7svDtpaBdBM8iycDeXZK6PjVZl8V72E37vJXDShJQFR76iuduZyo9HODGb_f7KoBlZf34Uopw==",
+         "confidence": "low",
+         "text": "Да, доставка вина по Молдове доступна, и её стоимость варьируется в зависимости от магазина и региона доставки. Некоторые сервисы осуществляют доставку по всей стране, в то время как другие сосредоточены на Кишинёве и его пригородах.\n\nВот несколько примеров служб доставки и их расценки:\n\n**По всей М"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен и полезен, но не может дать конкретных цен, что ожидаемо без доступа к актуальным данным."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но извлеченные фрагменты не содержат конкретных цен, которые могли бы улучшить ответ. По сути, ответ B повторяет ответ A."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о стоимости доставки необходимы актуальные данные от конкретных магазинов или служб доставки.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержали конкретной информации о стоимости доставки, которая могла бы улучшить ответ. Они лишь подтвердили общую доступность доставки и вариативность цен, что уже было известно модели.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q077",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какая сейчас цена на Fetească Neagră от Radacini?",
+     "direct": {
+      "answer": "У меня нет подтверждённых данных о текущей цене на Fetească Neagră от Radacini. Цены могут меняться, и лучше всего уточнить их напрямую у продавца или на официальном сайте.",
+      "latency_ms": 1327,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 45,
+       "total_tokens": 4024
+      }
+     },
+     "rag": {
+      "answer": "У меня нет подтверждённых данных о текущей цене на Fetească Neagră от Radacini. На сайте wine.md это вино числится в каталоге, но без указания актуальной цены на данный момент.",
+      "latency_ms": 9054,
+      "retrieval_ms": 6518,
+      "generation_ms": 2536,
+      "usage": {
+       "prompt_tokens": 13752,
+       "output_tokens": 49,
+       "total_tokens": 14038
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Basavin Winery Trei Fete Feteasca Regala & Feteasca Alba & Feteasca Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-albe/blanc-de-noir/basavin-trei-fete-feteasca-regala/feteasca-alba/feteasca-neagra",
+         "confidence": "verified",
+         "text": "Basavin Winery Trei Fete Feteasca Regala & Feteasca Alba & Feteasca Neagra"
+        },
+        {
+         "level": "catalog",
+         "title": "Radacini Fiori Feteasca Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/feteasca-neagra/radacini-fiori-rosu-sec",
+         "confidence": "verified",
+         "text": "Radacini Fiori Feteasca Neagra"
+        },
+        {
+         "level": "catalog",
+         "title": "Basavin Winery  Optimist Feteasca Neagra & Rara Neagra & Shiraz",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/feteasca-neagra/basavin-optimist-feteasca-neagra/rara-neagra/shiraz",
+         "confidence": "verified",
+         "text": "Basavin Winery  Optimist Feteasca Neagra & Rara Neagra & Shiraz"
+        },
+        {
+         "level": "catalog",
+         "title": "Maestro Virtuoso Feteasca Neagra & Rara Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/maestro-virtuoso-feteasca-neagra-and-rara-neagra",
+         "confidence": "verified",
+         "text": "Maestro Virtuoso Feteasca Neagra & Rara Neagra"
+        },
+        {
+         "level": "catalog",
+         "title": "VINUM Estate Feteasca Neagra & Rara Neagra",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/vinum-estate-feteasca-neagra-and-rara-neagra",
+         "confidence": "verified",
+         "text": "VINUM Estate Feteasca Neagra & Rara Neagra"
+        },
+        {
+         "level": "web",
+         "title": "vinello.eu",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFetnVJitKtzo5M9J_lK4krvFVZ57t9TuRf2PtjOFCnTrFLSxHikpddAIXZ1Wizs5QcX4uvIfWmy2TbmsFOOHdv8E_ejquUjLVf52lwg2WU3QOAgn-6qpqpCIAdTPWdl8ZpZ7-YsEHWZ1Cj-9TeeGeD",
+         "confidence": "low",
+         "text": "Цена на вино Fetească Neagră от Radacini варьируется в зависимости от продавца и региона.\n\nНапример, Radacini 'Fiori' Feteasca Neagra доступно за:\n*   7.38€ на vinello.eu (за 0.75 л, 9.84€/1 л).\n*   €18,95 (по акции, обычная цена €20,95) на VinoVistara.\n*   €8,95 на Wine-Intelligence (за винтаж 2019"
+        },
+        {
+         "level": "web",
+         "title": "vinovistara.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGLrHhhM6-4ttnCrk2Srqaz8pLHf-uYDWkW7BFC3XJQ1mSLj6ZE_2OsVXW7SrNQVCiSSbk8w-uTvoZQXvPWV8GCw-AaL7ks223uhQ4So2izGR8ieEw7H9GExWiLZoNFABF76FnDCQnPTOxyN2rYEMWcbdWloTrXQ4kuoA==",
+         "confidence": "low",
+         "text": "Цена на вино Fetească Neagră от Radacini варьируется в зависимости от продавца и региона.\n\nНапример, Radacini 'Fiori' Feteasca Neagra доступно за:\n*   7.38€ на vinello.eu (за 0.75 л, 9.84€/1 л).\n*   €18,95 (по акции, обычная цена €20,95) на VinoVistara.\n*   €8,95 на Wine-Intelligence (за винтаж 2019"
+        },
+        {
+         "level": "web",
+         "title": "wine-intelligence.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGvsNxevP68T0USSV3QuVwVJP6SLG-AGnukSswlIw2vqn3qiBiSUBcvZFTD49Umqe90kemlGpTpLLsxl2H8fD8GufOZcpA8dB1DGXZHEDhUxTk82uXlM6RzZ7_vgRXY8VvSM_GgDbOVC5XnMHGv5QMTyE0SaH4aTDPQMFgXfCn0vVtYqJziIMWHflcyIoPjkoR-zSiu-Km6",
+         "confidence": "low",
+         "text": "Цена на вино Fetească Neagră от Radacini варьируется в зависимости от продавца и региона.\n\nНапример, Radacini 'Fiori' Feteasca Neagra доступно за:\n*   7.38€ на vinello.eu (за 0.75 л, 9.84€/1 л).\n*   €18,95 (по акции, обычная цена €20,95) на VinoVistara.\n*   €8,95 на Wine-Intelligence (за винтаж 2019"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честный, но не очень полезный, так как не даёт никакой конкретной информации."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 2,
+       "relevance": 3,
+       "naturalness": 3,
+       "unverified_specific_claims": [
+        "На сайте wine.md это вино числится в каталоге, но без указания актуальной цены на данный момент."
+       ],
+       "notes": "Ответ стал хуже, так как добавил ложную информацию про wine.md, которой нет в фрагментах. При этом фрагменты содержали конкретные цены, которые могли бы быть использованы."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос о конкретной цене, что требует актуальных данных из базы знаний или веб-источников.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "contradiction_introduced",
+      "retrieval_effect_explanation": "Несмотря на наличие конкретных цен в извлеченных фрагментах, RAG-ответ не использовал их и вместо этого добавил ложное утверждение о сайте wine.md, которого нет в фрагментах.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q078",
+   "class": "commercial_current",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Есть ли скидки или акции на вино прямо сейчас?",
+     "direct": {
+      "answer": "К сожалению, у меня нет информации о текущих скидках или акциях на вино. Я не могу проверять актуальные цены и предложения.\n\nМогу рассказать о конкретных молдавских винах, сортах или винодельнях, если интересно.",
+      "latency_ms": 1264,
+      "usage": {
+       "prompt_tokens": 3881,
+       "output_tokens": 53,
+       "total_tokens": 4002
+      }
+     },
+     "rag": {
+      "answer": "Прямо сейчас у меня нет подтверждённых данных о конкретных скидках или акциях на молдавское вино. Информация о таких предложениях часто меняется, и они обычно зависят от конкретных магазинов или онлайн-платформ.\n\nМогу рассказать о том, где обычно можно искать молдавское вино, и там, возможно, будут свои акции. Хотите?",
+      "latency_ms": 8963,
+      "retrieval_ms": 5836,
+      "generation_ms": 3127,
+      "usage": {
+       "prompt_tokens": 12992,
+       "output_tokens": 79,
+       "total_tokens": 13423
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Вино & Шоколад by Delice Sommelier",
+         "source": "https://wine.md/events/vino-and-shokolad-by-delice-sommelier",
+         "confidence": "verified",
+         "text": "Вино & Шоколад by Delice Sommelier"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?",
+         "source": "https://wine.md/blog/vino-drevnejshee-slovo.-kogda-ono-moglo-poyavitsya-v-moldove",
+         "confidence": "verified",
+         "text": "Вино - древнейшее слово. Когда оно могло появиться в Молдове?"
+        },
+        {
+         "level": "catalog",
+         "title": "Вино & сыр: что древнее?",
+         "source": "https://wine.md/blog/vino-and-syir-chto-drevnee",
+         "confidence": "verified",
+         "text": "Вино & сыр: что древнее?"
+        },
+        {
+         "level": "catalog",
+         "title": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+         "source": "https://wine.md/blog/chem-paxnut-raznyie-sorta-belogo-vina-soxranite-sebe-etu-udobnuyu-shpargalku!",
+         "confidence": "verified",
+         "text": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!"
+        },
+        {
+         "level": "catalog",
+         "title": "558 000 — бутылка вина продана за рекордную сумму",
+         "source": "https://wine.md/blog/558-000-—-butyilka-vina-prodana-za-rekordnuyu-summu",
+         "confidence": "verified",
+         "text": "558 000 — бутылка вина продана за рекордную сумму"
+        },
+        {
+         "level": "web",
+         "title": "lenta.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH-dW7y8hDIw3jsh0Zvpk-A5YbORP3gMAQURlbLeZhfQze-i6w3rUffGvzZksov4i1C_gIolOYUzEfTb2B_cWXJwGmq-Js-FXhJvc7kOFkyelpQVMFLjDrUeZQ7XFmkUQ==",
+         "confidence": "low",
+         "text": "Да, прямо сейчас доступно множество скидок и акций на вино в различных розничных сетях и специализированных магазинах.\n\nНекоторые из текущих предложений включают:\n*   **Лента** предлагает скидки до 50% и кешбэк по Карте №1 на вино.\n*   **SimpleWine** имеет раздел со скидками на вино и алкоголь, вклю"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGIXWBQf4FuUgRIE4ll6a7t4NDPgrW9w5JCjeuxYMI3h_c-0VA3to-y9OvuD3v1veqaZAB3w5VR7cOqMnJVJ08Mv82kVl_hDWlqrsyrW-Wl2KtXIpC2utcs4yaetb2f6Q==",
+         "confidence": "low",
+         "text": "Да, прямо сейчас доступно множество скидок и акций на вино в различных розничных сетях и специализированных магазинах.\n\nНекоторые из текущих предложений включают:\n*   **Лента** предлагает скидки до 50% и кешбэк по Карте №1 на вино.\n*   **SimpleWine** имеет раздел со скидками на вино и алкоголь, вклю"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGHbDFzAJSf0TX6gCxnlh1Vh-I9xt8iP-3LEslvJnwnDObjVvjITkW_QCiTHP5y8HkJH1tAm9US0oah47TGGHcvJfBi4XHH3SdTGK4tCWBHL5v8LfiYNBnm_1Gw3Beo-84A5hP9vOb1-9ZNNQ==",
+         "confidence": "low",
+         "text": "Да, прямо сейчас доступно множество скидок и акций на вино в различных розничных сетях и специализированных магазинах.\n\nНекоторые из текущих предложений включают:\n*   **Лента** предлагает скидки до 50% и кешбэк по Карте №1 на вино.\n*   **SimpleWine** имеет раздел со скидками на вино и алкоголь, вклю"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 1,
+       "factuality": 5,
+       "relevance": 1,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Модель честно признается, что не может ответить на вопрос, но это не делает ответ полезным."
+      },
+      "rag": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 2,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Модель признается, что не может дать конкретную информацию, но предлагает рассказать, где искать молдавское вино, что может быть косвенно полезно."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует актуальной информации о скидках и акциях, которая не может быть получена из общих знаний модели.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты [6], [7], [8] содержат информацию о скидках в 'Ленте' и 'SimpleWine', но модель не использовала эту информацию, чтобы дать более полезный ответ. Вместо этого она отказалась отвечать, как и в случае без RAG, но с более обтекаемой формулировкой.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q079",
+   "class": "winery_tourism",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какие часы работы у винодельни Cricova для экскурсий?",
+     "direct": {
+      "answer": "Винодельня Cricova обычно открыта для экскурсий с понедельника по воскресенье. Рабочий день начинается в 9:00 и заканчивается в 18:00.\n\nХотите, я расскажу подробнее о типах экскурсий, которые они предлагают?",
+      "latency_ms": 1055,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 59,
+       "total_tokens": 3992
+      }
+     },
+     "rag": {
+      "answer": "Винодельня Cricova предлагает экскурсии в следующие часы:\n\n*   **С понедельника по пятницу** экскурсии начинаются в 9:00, 10:00, 11:00, 13:00, 15:00, 16:00 и 17:00.\n*   **В субботу и воскресенье** экскурсии начинаются в 10:00, 11:00, 13:00 и 15:00.\n\nИмейте в виду, что это актуальная информация на сейчас.",
+      "latency_ms": 8281,
+      "retrieval_ms": 6532,
+      "generation_ms": 1749,
+      "usage": {
+       "prompt_tokens": 9464,
+       "output_tokens": 138,
+       "total_tokens": 9642
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Cricova Prestige Rose de Cricova",
+         "source": "https://wine.md/cricova-prestige-rose-de-cricova-3876",
+         "confidence": "verified",
+         "text": "Cricova Prestige Rose de Cricova"
+        },
+        {
+         "level": "catalog",
+         "title": "Cricova Prestige/Rose de Cricova",
+         "source": "https://wine.md/catalog/wine/vinuri-roze/cabernet-sauvignon/cricova-prestige/rose-de-cricova",
+         "confidence": "verified",
+         "text": "Cricova Prestige/Rose de Cricova"
+        },
+        {
+         "level": "catalog",
+         "title": "Excursii Cricova Moldova",
+         "source": "https://wine.md/content/excursie-cricova",
+         "confidence": "verified",
+         "text": "Excursii Cricova Moldova"
+        },
+        {
+         "level": "catalog",
+         "title": "Cricova Lacrima Dulce Alb demisec",
+         "source": "https://wine.md/catalog/vinuri-spumante/muscat/cricova-lacrima-dulce",
+         "confidence": "verified",
+         "text": "Cricova Lacrima Dulce Alb demisec"
+        },
+        {
+         "level": "catalog",
+         "title": "Cricova Orasul Subteran Feteasca Alba",
+         "source": "https://wine.md/orasul-subteran-feteasca-alba-3253",
+         "confidence": "verified",
+         "text": "Cricova Orasul Subteran Feteasca Alba"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHXk6cwtkuDNwZZQgNSGLKx_OcFJXeLmtEXxRu8HL3yebGjJiKfbs0JsDoxPE6QBX_uOpB2B3TwWEdlDzOVuLIdlpxme9j1aMl9H4m1eWbta53kwxX9vxQIwz_sGWvxYy1CNoHcltI=",
+         "confidence": "low",
+         "text": "Винодельня Cricova предлагает экскурсии в следующие часы:\n\n*   **Понедельник - Пятница:** экскурсии начинаются в 9:00, 10:00, 11:00, 13:00, 15:00, 16:00 и 17:00.\n*   **Суббота - Воскресенье:** экскурсии начинаются в 10:00, 11:00, 13:00 и 15:00.\n\nСледует отметить, что после 16:00 в будние дни и в теч"
+        },
+        {
+         "level": "web",
+         "title": "cricova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGhFa-CLcyX_7uJ8qDa3Fgnw7lGTOH6IoWT4aDe-uQUN-js__olsa4zoU-6YJvl-Dg9w7bspDisoX7kT9auI4m_cDV7uZkuKl_8BzwCTeFYdtydAsfy2r_VqA==",
+         "confidence": "low",
+         "text": "Винодельня Cricova предлагает экскурсии в следующие часы:\n\n*   **Понедельник - Пятница:** экскурсии начинаются в 9:00, 10:00, 11:00, 13:00, 15:00, 16:00 и 17:00.\n*   **Суббота - Воскресенье:** экскурсии начинаются в 10:00, 11:00, 13:00 и 15:00.\n\nСледует отметить, что после 16:00 в будние дни и в теч"
+        },
+        {
+         "level": "web",
+         "title": "cricova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG3PROXcjG1ysPKJaO2iFET8igcoMIeVwfEHNsB_n5HVrM4099FS4C-wy51Zb122q6QqdABKG9U79HTRiOtyN73i3_aIMaubTbVzWnag4-wwrWrTkAoc1Z1yg==",
+         "confidence": "low",
+         "text": "Винодельня Cricova предлагает экскурсии в следующие часы:\n\n*   **Понедельник - Пятница:** экскурсии начинаются в 9:00, 10:00, 11:00, 13:00, 15:00, 16:00 и 17:00.\n*   **Суббота - Воскресенье:** экскурсии начинаются в 10:00, 11:00, 13:00 и 15:00.\n\nСледует отметить, что после 16:00 в будние дни и в теч"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 3,
+       "factuality": 2,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "Рабочий день начинается в 9:00 и заканчивается в 18:00."
+       ],
+       "notes": "Ответ дает общие часы работы, но не конкретные слоты для экскурсий, что делает его менее полезным. Указанные часы работы могут быть неточными."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ предоставляет точные и подробные часы начала экскурсий, разделенные по дням недели, что очень полезно для пользователя."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для ответа на вопрос о конкретных часах работы экскурсий требуется точная информация, которая не является общеизвестной и может меняться. Модель без доступа к базе знаний дала лишь общие часы работы, которые оказались неполными и потенциально неточными.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержали точные часы начала экскурсий для будних и выходных дней, что позволило RAG-ответу быть значительно более полным и полезным, чем direct-ответ.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q080",
+   "class": "winery_tourism",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Как добраться до Milestii Mici из Кишинёва?",
+     "direct": {
+      "answer": "Mileștii Mici находится совсем недалеко от Кишинёва.\n\nДоехать можно на такси, это самый удобный способ. Поездка займёт около 20-30 минут.\n\nТакже ходят маршрутки, но это может быть не так комфортно. Обычно они отправляются с Южного автовокзала Кишинёва.\n\nХотите, я расскажу подробнее о самом комплексе Mileștii Mici?",
+      "latency_ms": 1629,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 93,
+       "total_tokens": 4037
+      }
+     },
+     "rag": {
+      "answer": "Добраться до Milestii Mici из Кишинёва можно несколькими способами: на такси, на личном или арендованном автомобиле, а также на автобусе или маршрутке.\n\nПоездка на такси будет одним из самых быстрых вариантов, займёт примерно 20-25 минут.",
+      "latency_ms": 10918,
+      "retrieval_ms": 9604,
+      "generation_ms": 1314,
+      "usage": {
+       "prompt_tokens": 13309,
+       "output_tokens": 70,
+       "total_tokens": 13427
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides multiple ways to get to Milestii Mici from Chisinau, including taxi, personal/rented car, or bus/minibus.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "weak_internal",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "rome2rio.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGJeZ2wV3qw8NZzv6r6-PItrHQP2DrwmSHWy2VhrRkaSEL9C7YhaT3TgOZiAgxv_nQaiVVKoPGHK0MEUjPrhLuigkBq-fDoSrGkKujrd7fMwFfv217UQV5UwL4fh9jFkZsP9ytYfRhLhpTKWgy_MInK30NDB2mZYqJKWpMFcYT3OCUU2mlEq9BhaQMOQPpfHOaqIG5dqNclTA==",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "gobytaxi.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6XULsnUeeQindYzEtLy-aFP0pYFEp9Ivk7W4DuRxPrIpbi29bQmYy879NvWFuTChQK2ozrtfeKtUOfiXin7kTHN-EP5vuPTIRPqMmCw2e5HqpzjCzyrWuD-Xo_VHyNgPYwCVYkbebsR5AqBxhXCXeJxaBghSdjO_Un36m-jYRkFQRlpc-2uiHfxQ95xyP7XiX9DCmC2SCaPS-PPvXJuH0a2UG_hUE9JsOC0tJZa2ae9eIkJcV",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "rome2rio.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEJU8W8t8Sn1IQ8Gc_vmJ3DyNZEnkIR1j_z_gdf81k0wYSw8fVgCflaxv-mKhd8A9zcGK50lKXCH_XYyCgm9Dq3zfZKO4sY7YwxwjAknTkibhmrVQvz3cowIoeSOYdmOSgsI2__vkmmgRBFnFyrMw07Rlw5r50EXKR3024vtwHGA2HXQQhrruYyP9r1sK732bssiAu02HUg1g==",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "taxiautofare.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHdNyQPVCJjhjfWi62yS0yEvw-Ui5EiBjT0TednLIbdWUzNmnddk9Wuii8JbjZqS-sIwf7VzLq2eN4rK-fwCHuryq00tlJSE7pxbuwtOp9L4uZyHwIn97YOW7pnT0HtF1GGbbEzZgG2ieCLrTOrtb2-PYY_ypJ5_Nua9IZOI0jWyhGNcVrv_Na86uaY_g2n8JXlMTeJF6miYBrxUfSerl_8JUcLfzDUPA==",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "taxi14006.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF3RTr1U7j3e2PDF66k1ikQWuVWM0tQeXhfrdPXFcupTG8ZUQsR2I5C9qARsHbQ37eVXXbLJVxqDmrz2IiGU8w9xlB7tSgjGaMRucBfM42rd6HxdctbOA6f",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "rentcarmoldova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGNVyoYRb5Kmsggtqdu4f9n3bEiT756TLiJgFPqJYUzd5Q2U0C0sIb8xAjVATYdc37ZL8-FvtTXdLWSLx-43YyfXz2Lulkb15i-yS8nKpfcx3vgqJIZr4RVoGLa_G92qUiZTx-r",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "reddit.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHsxlNrXX8L3VD5nwKov0hn2aTyUXC4AU3CjdDRZV25i5u3s3zNlgHGDR6dN_Es0EaJZlJrFcsAwrrVzN26WVRcuM3wSi49kozIab2knWlGWQhREWROrhlWIQraknmOtVYzZg43V8TluXyU_Zt0uQkVHkcfbcv2Butp1qq39zv71o7cpo2oNKkYMwJJ1WIo7Jr9szhM2g==",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        },
+        {
+         "level": "web",
+         "title": "rome2rio.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFNomtNWEDPp5qnEM9sooKyABLUloJzGa08hM-f8Dy7wZcvgscrWOdFY6oh0WyC5Yy2R2b8klw4jvmQbrKFcIQdl8Hx6eTIFrD39vNf9UWsEov-VJY6hgn-ckLyFTXmXiYRvpMW8b4CT4KEXVpS_WLeGV4Pp-hAn_fxFN6zTwiN5HzUe8YRobrZHoP3HgdI996YjsM1MW_sut6MQI5guY6gDvJAJdaR6G2Eom5eYjI=",
+         "confidence": "low",
+         "text": "Доехать до винзавода Milestii Mici из Кишинева можно несколькими способами: на такси, личном или арендованном автомобиле, или на автобусе/маршрутке.\n\n**На такси:**\nЭто один из самых быстрых способов добраться до Milestii Mici. Поездка займет около 19-24 минут, так как расстояние составляет приблизит"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ достаточно полный и корректный, предлагает основные способы добраться и примерное время в пути."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но не добавляет существенной информации по сравнению с прямым ответом. Время в пути указано чуть точнее."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос о логистике, на который модель может ответить из общих знаний. Конкретные детали (время в пути, виды транспорта) достаточно хорошо известны.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтверждают информацию, уже известную модели, но не добавляют новых существенных деталей, которые бы значительно улучшили ответ. Оба ответа очень похожи.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q081",
+   "class": "winery_tourism",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Сколько стоит экскурсия с дегустацией в Purcari?",
+     "direct": {
+      "answer": "Сейчас проверю.\n\nУ меня нет подтверждённых данных о текущей стоимости экскурсии с дегустацией в Purcari. Цены могут меняться, поэтому я бы рекомендовал уточнить их напрямую на официальном сайте Purcari или связаться с ними по телефону.\n\nХотите, я попробую найти их контакты или официальный сайт?",
+      "latency_ms": 1258,
+      "usage": {
+       "prompt_tokens": 3884,
+       "output_tokens": 73,
+       "total_tokens": 4005
+      }
+     },
+     "rag": {
+      "answer": "Стоимость экскурсии с дегустацией в Purcari варьируется в зависимости от выбранного пакета и количества вин. Цены сейчас начинаются примерно от 450 молдавских леев и могут доходить до 950-1000 леев за более эксклюзивные предложения.",
+      "latency_ms": 11450,
+      "retrieval_ms": 9885,
+      "generation_ms": 1565,
+      "usage": {
+       "prompt_tokens": 13102,
+       "output_tokens": 68,
+       "total_tokens": 13280
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": null,
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "found",
+       "web_used": true,
+       "web_reason": "freshness",
+       "used_levels": [
+        "catalog",
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "catalog",
+         "title": "Purcari Malbec de Purcari",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/malbec/purcari-malbec-de-purcari",
+         "confidence": "verified",
+         "text": "Purcari Malbec de Purcari"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari Pinot Grigio de Purcari",
+         "source": "https://wine.md/catalog/wine/vinuri-albe/pinot-gris/pinot-grigio-de-purcari",
+         "confidence": "verified",
+         "text": "Purcari Pinot Grigio de Purcari"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari Alb de Purcari",
+         "source": "https://wine.md/catalog/wine/vinuri-albe/purcari-alb-de-purcari",
+         "confidence": "verified",
+         "text": "Purcari Alb de Purcari"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari Set Cuvee de Purcari alb brut Spumant + 1 pahar",
+         "source": "https://wine.md/catalog/vinuri-spumante/purcari-set-spumant-2-pahare",
+         "confidence": "verified",
+         "text": "Purcari Set Cuvee de Purcari alb brut Spumant + 1 pahar"
+        },
+        {
+         "level": "catalog",
+         "title": "Purcari ROȘU DE PURCARI",
+         "source": "https://wine.md/catalog/wine/vinuri-rosii/rosu-de-purcari",
+         "confidence": "verified",
+         "text": "Purcari ROȘU DE PURCARI"
+        },
+        {
+         "level": "web",
+         "title": "chateau-purcari.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHYPDk9eYFJFrj9TjIaIpBRoU6Ohjej0pqKtYw45bKhupcNWTJgqm_aYKfuOarqLDxjTGgQkQo8wQjDoX6d6QFY2fJQkZmXvSY-jXhDJcg3HWfPTZ2RnFnCKjxvQFz5zrY=",
+         "confidence": "low",
+         "text": "Стоимость экскурсии с дегустацией в Purcari варьируется в зависимости от выбранного пакета и количества дегустируемых вин. Цены начинаются от 450 MDL и могут достигать 950 MDL или даже 1000 MDL для более эксклюзивных предложений.\n\nВот некоторые из доступных пакетов экскурсий с дегустацией и их ориен"
+        },
+        {
+         "level": "web",
+         "title": "tonkosti.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHS50ioHp_TNWZkPYonPC1YuNilWUzdvq_ItTBHqFrQx_G6OnvzD8EEW2ktLJ7SLk78uNzv04pd9jz5k7HBOvgiahPshTqhyVNMh6s1hhNU4MtJUjfjL6VKbei6cvYHepXztwlZoEXdGRsgLj14PsNyMZML-GY9Q49vb-FMBsB7F2UNI8sDZ5ij-Xu5j0NoJnNnEquvHOqtugh2m9pwJse7cJRDWuHRx_UO",
+         "confidence": "low",
+         "text": "Стоимость экскурсии с дегустацией в Purcari варьируется в зависимости от выбранного пакета и количества дегустируемых вин. Цены начинаются от 450 MDL и могут достигать 950 MDL или даже 1000 MDL для более эксклюзивных предложений.\n\nВот некоторые из доступных пакетов экскурсий с дегустацией и их ориен"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHk99SpbGFCWoxu6OVKOaorA8-_qwUMcI5YaxvD53vfQkSxjS55b53vOJTQPJt_W3YO8LDpzK1BrJCtVBLiUTHmaXGMs7oL4Dwgy2DgCUSizzHGGR61wN451JcDxXbOqLC2z73m",
+         "confidence": "low",
+         "text": "Стоимость экскурсии с дегустацией в Purcari варьируется в зависимости от выбранного пакета и количества дегустируемых вин. Цены начинаются от 450 MDL и могут достигать 950 MDL или даже 1000 MDL для более эксклюзивных предложений.\n\nВот некоторые из доступных пакетов экскурсий с дегустацией и их ориен"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 2,
+       "factuality": 5,
+       "relevance": 3,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ честно признается, что не знает точной информации, и предлагает дальнейшую помощь."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ дает конкретную информацию о ценовом диапазоне, что очень полезно для пользователя."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Вопрос требует конкретных ценовых данных, которые не являются общеизвестными и могут меняться. Для точного ответа необходим доступ к актуальной базе знаний или веб-источникам.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты предоставили конкретный ценовой диапазон для экскурсий с дегустацией, что позволило RAG-ответу быть гораздо более полезным и информативным, чем прямой ответ, который не смог предоставить эту информацию.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q083",
+   "class": "winery_tourism",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Нужно ли бронировать визит на молдавскую винодельню заранее?",
+     "direct": {
+      "answer": "Да, как правило, визит на молдавскую винодельню лучше бронировать заранее. Это помогает убедиться, что для вас будет место, особенно если вы планируете экскурсию, дегустацию или обед.\n\nМногие винодельни, особенно крупные и популярные, работают по предварительной записи, чтобы обеспечить гостям наилучший сервис.",
+      "latency_ms": 1319,
+      "usage": {
+       "prompt_tokens": 3887,
+       "output_tokens": 76,
+       "total_tokens": 4015
+      }
+     },
+     "rag": {
+      "answer": "Да, как правило, визит на молдавскую винодельню нужно бронировать заранее. Это очень рекомендуется или даже является обязательным.\n\nМногие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и предварительная запись гарантирует, что для вас найдётся время для экскурсии и дегустации.",
+      "latency_ms": 9112,
+      "retrieval_ms": 7615,
+      "generation_ms": 1497,
+      "usage": {
+       "prompt_tokens": 11972,
+       "output_tokens": 68,
+       "total_tokens": 12113
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that it is generally necessary to book a visit to a Moldovan winery in advance.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "moldova.travel",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEl2Y5Ne0-8blZ1Ohz4G83xoSaXgGmyr_LdAW5wU4GbTSmrlds_PffUdkajPkZzcJH3lROYejYkvxauqM2vs2XjjsiYaozPCS73UodSAu7OgyH2oTZk5lgfyH7k0FMgvEAIrKVybiB-n5vcHGGCmJG_GQ==",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "winetours.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEZ8IJeg0Kdj8EpuRpoLZZnzby2K2uv5LNBZAnHUj0sKUn9htKUyZcIUPSKUlJ0GzWb6xz2fL0ensKNO6gYAr0DPFtKU6vgB1eHHt7r7Zpybz0QhW79A0RmoEBlxls7DToMasYrD9LO4GyD",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "rentcarmoldova.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHng8H24nAOhPesBKLt2wgUTwOh_VpN465PZ8dHopMrs5V9J3KmyGZZplBvEjkmrBKVUMiQ0UHSFjVikeFkcdWaT-qyHWzS57WSu-YdT0osJzIsKZiJAeIT1bpSylOzAQ2TP0SDdy_WuOrD5DURsPjLAKQHeoo7",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHv2JoAWQZIjoo9YLdFOc2L7hktXmECj0CdkeMV5hC0ObnJ1IZjVahnBjCgxFsTinUqLfEudeQsjc3fApe4gDhZMkR7iQwY4W0kIRZtFgKgVw1W14RhAA==",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "vartely.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGk_5GTb0SVnV7OQz7QOtjekOtz2e5u0ycUYHnHowRRpP055bDbvNpH0J6p45kLpBYg1vgGK_1GC2udJXxr_ineur1fjwf3obZxb4ewnk0FmBn4oIUcGSnLXm-WtNXQMuCJJ6vHNCyeNWIfnD9ryaKIOPfR0zdOGirz19qUJtyoA24geDrt-sAXkPb0_Osxc8C5n2FZ_twTNU8MuPp3_J6Wu3jFlXIKfo2kr8KVZ5aiLbww0Qjp0TWXdZwXGkuBC6g=",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "winetours.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEH8wZRy9zClkZ6yipibxt6xfozCBlmHPBtgwEzqELr22Pr7ZdFYXtt0zGGN5frr-Fyxz4mVP0KmW_k4VWTHAcVBYS1WOHDrVDSStAr6l3ufT3jh-pXYLUP1MjIk9q_-z04t5A_tjkD1LE_",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "localbooking.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFyrbyJwMVmAb1vjqcZe-HX2VPfp-lPCceprEYnkiaaW2KYZ9Bcwi8fnHUvP_8XFxo9o2AoM3GMaEnqpPcaOVVOHAzGi3YkadLZNlMlYrdmSJ3_sK-4f8gdMaw9WqbaR9dIzzuVGL6grIPELxLfGvCRCKk=",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        },
+        {
+         "level": "web",
+         "title": "travelmoldova.agency",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFr-_S5yO5jfn2ubf-f9Uc4wBd8_fDPNa6kamyeOZj3t8Bf0ekTXuSpuYx4PP34-SbPRO0utdKN7z9b1VLnDPsKa4hljYACaKb8ro9Bs47UlbYDYpQNRk2YSfaIZ8zqUbjE9CDWbebemB7xnjDX2-frenBY3seoY7HUeG0au51xHkA_",
+         "confidence": "low",
+         "text": "Да, как правило, визит на молдавскую винодельню необходимо бронировать заранее. Это настоятельно рекомендуется или является обязательным по нескольким причинам:\n\n*   **Гарантия экскурсии и дегустации** Многие винодельни, особенно небольшие, имеют ограниченный штат сотрудников, и нет гарантии, что кт"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но не очень детализированный."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но не очень детализированный. По сути, повторяет direct."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель уже знает общие правила посещения виноделен.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не добавили новой информации, которая существенно улучшила бы ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q082",
+   "class": "winery_tourism",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое Drumul Vinului и какие винодельни в него входят?",
+     "direct": {
+      "answer": "Drumul Vinului, или \"Винный Путь\", это туристический маршрут в Молдове, который объединяет ведущие винодельни страны. Он создан, чтобы познакомить гостей с молдавскими винами, их производством и культурой.\n\nВ него входят такие известные винодельни, как:\n\n*   **Purcari**\n*   **Cricova**\n*   **Mileștii Mici**\n*   **Castel Mimi**\n*   **Et Cetera**\n*   **Chateau Vartely**\n*   **Asconi Winery**\n*   **Vinăria Poiana**\n*   **Domeniile Davidescu**\n*   **Gitana Winery**\n*   **Vinuri de Comrat**\n*   **Fautor Winery**\n*   **Gogu Winery**\n*   **Kara Gani**\n*   **Migdal-P**\n*   **ATU Winery**\n*   **Crama Mircești**\n*   **Agro-Lași**\n*   **Vinăria Hîncești**\n*   **Podgoria Vin**\n*   **Timbrus Purcari Estate**\n*   **Pivnițele din Brănești**\n*   **Novak Winery**\n*   **Crama Mircesti**\n\nЭто позволяет туристам посетить несколько виноделен, попробовать разные вина и узнать больше о виноделии в Молдове.\n\nХотите, я расскажу подробнее о какой-то конкретной винодельне или регионе на этом пути?",
+      "latency_ms": 2760,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 337,
+       "total_tokens": 4276
+      }
+     },
+     "rag": {
+      "answer": "Drumul Vinului, или «Винный путь», — это культурно-туристический маршрут, который проходит через винодельческие регионы. Он даёт возможность познакомиться с традициями виноделия и историей этих мест. Такие маршруты есть как в Молдове, так и в Румынии.\n\nК сожалению, у меня сейчас нет подтверждённых данных о полном списке всех виноделен, входящих в молдавский Drumul Vinului. Но я могу рассказать о крупных и известных винодельнях Молдовы, если вам интересно.",
+      "latency_ms": 19752,
+      "retrieval_ms": 17742,
+      "generation_ms": 2010,
+      "usage": {
+       "prompt_tokens": 12466,
+       "output_tokens": 116,
+       "total_tokens": 12743
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence defines Drumul Vinului but does not list the wineries included in it.",
+       "claim_class": "grounding_required",
+       "entity_match": "match",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "moldova.travel",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFnz37rrbJwFqEdg35e2NID7P0i9_enagOEypR4bygzY8ScTFOMpej3aAnaVw3Rr6n-g5ZoLiSffziTo3PPPnAfFfbzt9R0WGxF7w-rvL8qjpoxswRzRIaAYWCGW8UbxVe9CowY6N2kW1tUZM0X8o1ZbNJeohBLOHpB0w9fNQ==",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "wordpress.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6cRhv9vi5Pe2E9MNi1qr1pF01cJrlu7adcypGphz0q46wz6gx_j2_mdfm-JuIbJ1OPunbSBo4_MK3T2bYeqz0M0txIvq2CsBwLIgjuTxwPkoKyFRPV8ISwKPHUP64KgT9I-2E9jp2u-n_EUyYI4pexZU=",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "moldova.travel",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGUBa0MdA7nqGKas3pDYyu4-naRU4IuO4LWyvADkExvFx1N0a4lspH_YtpeqszK-4c14xCPjola9fKpLBJAfJGW5Pi0f5Dno9NdTSmBkYD8vHohVylnzbWGJijaR46MPBWl2t70fZn4mKigRtZIEu-XYPkFBEosDgnL_J30XBKbNksU",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFVTLaV5yAj0k5fVy3ARXuQ-cw_Bg71IBodfhYviYZI9svuhk9slOLR1s4CiCQ3pGkH6PBdGh9-7myFLO7Vr99fp_38zdZqH5KKNGp0sJPRJKLivLroraHZDpu-DGtUiRxbJy3ufC3zeK3Ly9I_niVf1jgmGZyR",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "casatimis.ro",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEVip3axso3KhBczto__a5B2Kf2eIHnowfchEnRXNI8-L78ual0pE31YVDIBWsz_py95e0C0VIlaW6TCptP6rAXHmRPlf3M7cXdPulMYcSuhe6S_meEPKG6ussGLEapqlGnPknjkJrXRRldHepYGd5E0qCICTGVYsfD240A64xx2Igm6QrnmFwfL0oHlcgZ",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "winetravelguides.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFtZ0ikrwWeylK6F2QetQJ73xzFUJrmx4fUIj5nNT6f-knn5StpkgxKdzwn9kiHdgaaL7lyi4IInin0JapyCxQrIzKTqtDk5Rc20t2KqFyS7QMxAzvdH88xx0xMZTSHYlVEpD4sS-F_75U4Dw==",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "youtube.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF2NL3edZecMftBAM-4zL_p7yIajFgGB0mwLjTYGjsdYu1Jnaz9T9dZ2ghG-gJyTUsvzRPsSTibKW6Lq7tQ9rSH_swHzOH2YcXxnYJFrZTNs_87ZU9Tk5KQs_H0pfsy3wiFZcx8rHw=",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        },
+        {
+         "level": "web",
+         "title": "regent-holidays.co.uk",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHRhOG2JYIw096Sep0UQ2yg_MMn4dculMF8A245iuia7zpIReGICE_bl49r7vWsuvgTA6Yn7e6kKgOdhWtbfRND0_j64SycdsXtUTQzI55vbQgkgpQOHfiK671oyLYDZAvJpKMHKD6JeN14TQJIncHZh_1xpe3SezSlSVD9_SffuUG0FQul04RujDds75nix7zEJTebfeWKUpoIcrguDusEmbicyL6rcg==",
+         "confidence": "low",
+         "text": "\"Drumul Vinului\" (Винный путь) — это культурно-туристический маршрут, пролегающий по винодельческим регионам, предлагающий посетителям возможность познакомиться с традициями виноделия и историей регионов. Такие маршруты существуют как в Молдове, так и в Румынии.\n\n**В Молдове:**\n\nМолдавский \"Drumul V"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "Vinăria Poiana",
+        "Domeniile Davidescu",
+        "Gitana Winery",
+        "Vinuri de Comrat",
+        "Fautor Winery",
+        "Gogu Winery",
+        "Kara Gani",
+        "Migdal-P",
+        "ATU Winery",
+        "Crama Mircești",
+        "Agro-Lași",
+        "Vinăria Hîncești",
+        "Podgoria Vin",
+        "Timbrus Purcari Estate",
+        "Pivnițele din Brănești",
+        "Novak Winery",
+        "Crama Mircesti"
+       ],
+       "notes": "Ответ хорошо описывает Drumul Vinului, но список виноделен, особенно после первых 5-6, выглядит как галлюцинация. Некоторые из них могут быть реальными, но их принадлежность к Drumul Vinului не подтверждена и вызывает сомнения."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректно описывает Drumul Vinului, но не предоставляет список виноделен, что является частью вопроса. Признание отсутствия данных — это хорошо, но неполно."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для предоставления точного и полного списка виноделен, входящих в Drumul Vinului, необходимы актуальные и проверенные данные из базы знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были слишком общими и не содержали списка виноделен, что привело к отказу RAG-модели предоставить эту информацию, хотя direct-модель попыталась это сделать (хоть и с галлюцинациями).",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q085",
+   "class": "winery_tourism",
+   "prior": "GROUNDING_REQUIRED",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Когда проходит фестиваль вина в Молдове в этом году?",
+     "direct": {
+      "answer": "Фестиваль вина в Молдове, который называется \"Национальный день вина\", традиционно проходит в первые выходные октября. В этом году, то есть в 2026-м, это будет 3 и 4 октября.",
+      "latency_ms": 1247,
+      "usage": {
+       "prompt_tokens": 3882,
+       "output_tokens": 50,
+       "total_tokens": 3982
+      }
+     },
+     "rag": {
+      "answer": "Национальный день вина в Молдове обычно проходит в первые выходные октября. В этом году, 3 и 4 октября, в Кишинёве состоится это крупное событие.\n\nЭто ежегодный фестиваль, который собирает более ста виноделен со всей страны. Хотите узнать о нём подробнее?",
+      "latency_ms": 9245,
+      "retrieval_ms": 7152,
+      "generation_ms": 2093,
+      "usage": {
+       "prompt_tokens": 14112,
+       "output_tokens": 67,
+       "total_tokens": 14327
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence provides the date for 2026, but the question asks for 'this year'.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "eqs-news.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEWZ94UL6CbR98dvxp3mtnoOMuiKdl_OBUd_36cIXrf4iUgYIYpfRqSPeB4cb42lazj55KETvpcHLcqxaFBTPJvlH-HyX0EcIgQsMV459wIHXBu5li98CHitOyNL_U2wN-5RGRBkBurh1Rulj4jIaw9lxGlS05lwE9sYEfO3vV5l_jGXL_gY6qgoqC5qHhs_TPSLXciQLSiExSWysCTHDtm08OwPGixkmTFDgNgBv1VH0zQfa34zMqC397MrrGgNadyFkQHjo8i",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "thedrinksbusiness.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFWKiZtE41vfIcyKOTY9Fq6K_Gl-zxlWhNI9gtQLufixMhKhIefu2MIoWKyykXCJ3Jk0OCEdRKP0WsiL37hGX-4lQHSE8QkKSwhgN87LcY-5UoLcFx7XL3HXW6uxGNHK6oS_TJ82r_SXHkTIp1v4iSkIHgtJXjneCT-uXWaIC1eipACUG9gnVcTBg==",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "anydayguide.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGKPga3-LPuVx7Z20lOJ5Js7oKeuZLVTqJcJArsUd1sTUf26NAcuwyu3QGlFrg11qNHe16ubIqozZ0xsWWjYJbXh1HUfEUg3Jc7g2JIoizugZjvMoKSKI1wjLfsjTz8EGw=",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "prnewswire.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE1NUq83OIjXCKiy1HOwqkAQWas7DYmfqQD34qojrrCVJxWl2SOoFg_qk8LudLEhei-nbwmzZ2TW1kt7GfkorUsX73kfnhJcTHVgQ6QxvGnUNAWvNLnQsbYfUmwKa48DKVKnA2B7a_E7uZpSv4k0W3TwY4iG-2AAmoucJlfOwsDafX82XBPovGZYvC9TQyuKqRvdbZ6w_CQpRvINbdPaOZawaMztfWAPNins3Iy2Eh7X4EWQeKI",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "eurotravelo.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHSdpVl9uvY3-6Ij20SdLQKAM9ryIQKSNKIIu2AsHkggeyUUo8m7m7lwrtJvX5RQEiFXBSt7G1QG6VNTvr5JV5TR3i-ZY-LiQ483_6nDSQhuP_7w2tsZFJjR3VBQvcQEMrLaXi2gQuQC955IfvaIMayGNRMM_70qHnLdxTVBH1L3Iz6ai9rEMQqzTdCIC7lpAaivEsQGdw__7mhZ1wqqv79CnxloiP48KsUesQV5xx1iaTDFzJ7-6kqM5n57DXvSIVXsG_VLLaBVQmMU2-wxM7tOBQBkkco6BZ6BEjS2Zz7wOSUgExhQQn7e2_GEJhHuGOExE92xrhszvVbC1tY6PkiS_NLXcK7bzytzulMT4zrcf1J4nzb2uW0xps27BtOTgcSNzOaRXAHSWDUu6o7pgZm3aUPDeq1d4EBkqZG84hKGdA6j-MGtApmC85pj1uSnwwMTg84HOSj59ddYGySZrrP98IYH2EyfUkWSIovirRLpqvc73HdRPUu",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "winetravelguides.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHc6vRX-0XiTaCvuV69w10EMgikBs6qU2f2-U90OAtQqnVu56p_WkYmd07enAIMRWD9Fo9McoigxOuhd2hcY5cv7Qm89wUdtby_iVc4uTHT8iVSkjCXwgt_3wyrdSdGM4JTjq4dV8LO4CmpmqI1VtgMAldQERcX657ZlpI=",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "logos-pres.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH2dPtk6IK7rdEV-q9nmrEZc1FwkcTa5fGF03xQY3KWqXO9U9ggRTsW0VDQ2rmiWPtk_2Bp0lOFOBQFY82g9nhn7Z1ZQ3adGov1rEYDHa1Ol3kAyNfsSQi--EEiaL8shEBfYaknrguEO9qbVd660zoy3m4gCVRPaNJErFMBlMezs9yNR18=",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        },
+        {
+         "level": "web",
+         "title": "afisha.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGaBqh0VbYcWVY1Rf3ibMFKuNleEuCAZlxHHnjAiS4RoXowPDxBOL1r-MZqeiMKDoeqNTtf-XiutjbVSbPmrd-fQYVV1YxWjXKiTatfC2FfXvDlY1w3JD3y3OPXxvITOIoktniYXrlvd7O9reHHEJENOVvE8QOh",
+         "confidence": "low",
+         "text": "В этом году в Молдове пройдет несколько винных фестивалей.\n\nНациональный день вина в Молдове состоится 3 и 4 октября 2026 года в Кишинёве. Это ежегодное мероприятие, признанное одним из крупнейших винных событий в Восточной Европе, собирает более 100 виноделен со всей страны.\n\nТакже запланированы др"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 2,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [
+        "В этом году, то есть в 2026-м, это будет 3 и 4 октября."
+       ],
+       "notes": "Ответ уверенно называет конкретные даты и год, которые не соответствуют текущему году и являются галлюцинацией."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректно называет даты и место, но год не указан, что делает его менее точным, чем мог бы быть, учитывая фрагменты. Однако, это лучше, чем галлюцинация года."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Для точного ответа на вопрос о дате фестиваля в конкретном году необходима актуальная информация, которая не является общеизвестной и может меняться.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "prevented_hallucination",
+      "retrieval_effect_explanation": "RAG-ответ избежал галлюцинации года, которая присутствовала в direct-ответе, хотя и не использовал год из фрагментов. Он предоставил более безопасный и частично подтвержденный ответ.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q086",
+   "class": "ambiguous_conversational",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Привет! Как дела?",
+     "direct": {
+      "answer": "Привет! Отлично, спасибо, что спросили. Я рад помочь вам разобраться в мире молдавского вина. Чем могу быть полезен?",
+      "latency_ms": 1393,
+      "usage": {
+       "prompt_tokens": 3875,
+       "output_tokens": 29,
+       "total_tokens": 3962
+      }
+     },
+     "rag": {
+      "answer": "Здравствуйте! У меня всё отлично, спасибо, что спросили. Я готов помочь вам разобраться в мире молдавского вина. Чем могу быть полезен?",
+      "latency_ms": 1755,
+      "retrieval_ms": 928,
+      "generation_ms": 827,
+      "usage": {
+       "prompt_tokens": 4257,
+       "output_tokens": 31,
+       "total_tokens": 4288
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, вежливый и естественный ответ на приветствие."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, вежливый и естественный ответ на приветствие. Практически идентичен ответу A."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос является общим приветствием и не требует специфических знаний о вине или базе данных.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствуют, и ответ B практически идентичен ответу A. Контекст не повлиял на качество ответа.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q084",
+   "class": "winery_tourism",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какой винный маршрут по Молдове посоветуешь на выходные?",
+     "direct": {
+      "answer": "На выходные я бы посоветовал сосредоточиться на центральном регионе Кодру, он очень удобен для короткой поездки.\n\nМожно начать с посещения знаменитых винных подвалов Крикова или Милештий Мичь, которые известны своими огромными коллекциями. Затем, если хотите что-то поменьше и поуютнее, можно отправиться на винодельни вроде Аскони или Похана.\n\nХотите, я расскажу подробнее о каком-то из этих мест?",
+      "latency_ms": 1695,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 107,
+       "total_tokens": 4075
+      }
+     },
+     "rag": {
+      "answer": "Молдова — прекрасное место для винного туризма, особенно на выходные. У меня нет готового, подтверждённого винного маршрута, но я могу помочь составить его, исходя из ваших предпочтений.\n\nМогу рассказать о самых популярных винодельнях или регионах, которые идеально подходят для короткой поездки. Что вас больше интересует: крупные исторические подвалы, как Cricova или Mileștii Mici, или, может быть, бутик-винодельни?",
+      "latency_ms": 20061,
+      "retrieval_ms": 17968,
+      "generation_ms": 2093,
+      "usage": {
+       "prompt_tokens": 11509,
+       "output_tokens": 107,
+       "total_tokens": 11779
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": false,
+       "answerability_reason": "The evidence states Moldova is good for wine tourism but does not suggest any specific wine route.",
+       "claim_class": "grounding_required",
+       "entity_match": "not_applicable",
+       "status": "insufficient",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "moldova.travel",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6TH6TsD8zccWZ3CthJjb3c-mi5DbG41VJfQ8TP2TUsOAnNEawxE4q16HjBmcZuDb0EIi8T-u4CG2gp3ADd2Eg4CRtk9tlwfuk6XWPt4bWjq2MWJYWcdG3cYWUw1VxnxfroOLPCO_rGWBMGG0yRM7P",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        },
+        {
+         "level": "web",
+         "title": "activetravel.com.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDpzBXXM5Lez2_XPYBcxG9o9M-Mq4JqKES_W1dCA1tamuxqWJbiIbnqrx8rnAqoHpnRY_EX2FS0LdCp9r80ajhjEDRPSgqi-XBROeNYGVK5iC8dD7R2sqCHUXhXDR5Ktvn1JvAaF5ZFXV34W-xn76_XuK65OH-tE3ZfOG4fW2mChJmYKwBbPFsIjzKznXnlhwEdZBLCg==",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        },
+        {
+         "level": "web",
+         "title": "vinofan.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEGAcg0sYvtezGL4Tun5UDK7EZC-vNB3Ls0RB2MiaO6CM9qLyGgo4Ez-JGsxG02BOcjrumdH2sH1nYqoqpI-Lrzeaw_RJsSoQ-fDY-9p5jFNKdeh3l1lGHVQA3sIlh1hcjNJcsJZ2xCMoJFvzbZ42U1IkQo",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        },
+        {
+         "level": "web",
+         "title": "getyourguide.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE42IJGob8aSUtZJU4MfAdBSVvbhqSncIBdVNutyPnTP_-Ek3AGmMm23Ily8hfMTIhb0N8_KPXOkfN0U8vmkyhrmPp4k-OfgIbR5amlxoIV7RonoQm8uvRfVGiRf_ETL322Ywk4aypd-1w5j2WlZZPezU0aFxlBxdGzvogDpiCsqKYhdtZwBO5P5xPxwL4=",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        },
+        {
+         "level": "web",
+         "title": "diez.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHuwmRXJwUZgFa-fstNVfjJXDHbTm_Ij9U40uuN1Y_gvzkvLTFSOi7EBm6l9zUzDHirVtrXbn6KznaC-C98p1DfEPjhlg4pftp99fN1jLiMWvSmbWHs4Dbr3QvYyObD3umWtwK6sGQAYnHvBNR98Ygn_j7kh9amRyGqKMNP23ZI6cFfL2IqbhL0LVVLseflEL-zWMiglcL5",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        },
+        {
+         "level": "web",
+         "title": "carlevana.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF3Xm32SWo6x0ccx3ZTV0OJS1-_Invh1AW29FOXUFFzFqEb8gmVUk-Qr8N06r261gIQnUtyGWkDaczzwtJ3t9GFbZ76XipPjQo9O70nqeANh20f6bF-2F-Db9YKlkreBi0ScXXIwmQxeY5r2WTimLGkK57Srw==",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        },
+        {
+         "level": "web",
+         "title": "wine.md",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHo9YT2p99-qsJAzrtSggEVwgqflxm6LodAezROVDCtC6ZWZAdghoISlRuHekZchx0zTnf4Qoabv2Y2345ENEc4YbtdDTeqmexo2CsWdq0S18DF2PNn",
+         "confidence": "low",
+         "text": "Молдова — прекрасное направление для винного туризма, особенно на выходные, благодаря богатой винодельческой истории и гостеприимству. Страна известна своими высококачественными винами, в том числе автохтонными сортами, такими как Фетяска Нягрэ, Рара Нягрэ, Фетяска Албэ, Фетяска Регалэ и Виорика.\n\nД"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "The direct answer provides a good, concise recommendation for a weekend wine route in Moldova, focusing on the Codru region and suggesting specific wineries. It's helpful and natural."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "The RAG answer is less direct in providing a route. It acknowledges Moldova as a good destination but states it doesn't have a 'ready, confirmed wine route,' which is a bit of a cop-out given the direct answer's ability to suggest one. It then tries to pivot to asking for user preferences, which is fine, but less immediately helpful than the direct answer."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "The direct answer provided a perfectly adequate and helpful response without needing specific grounding data. The information about major wineries and regions is general knowledge for a wine AI.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "answer_derailed",
+      "retrieval_effect_explanation": "The retrieved fragments were generic promotional texts about Moldova's wine tourism and autochthonous varieties. They did not contain specific information about wine routes or individual wineries that would help construct a detailed itinerary. As a result, the RAG model became overly cautious, stating it didn't have a 'ready, confirmed wine route,' which made the answer less direct and helpful compared to the direct model's confident suggestion.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q087",
+   "class": "ambiguous_conversational",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Спасибо, было очень интересно.",
+     "direct": {
+      "answer": "Всегда рад помочь! Если у вас появятся новые вопросы о молдавском вине, сортах или винодельнях — обращайтесь.",
+      "latency_ms": 916,
+      "usage": {
+       "prompt_tokens": 3876,
+       "output_tokens": 29,
+       "total_tokens": 3946
+      }
+     },
+     "rag": {
+      "answer": "Я очень рад, что вам было интересно! Если у вас появятся новые вопросы о молдавском вине, сортах, винодельнях или сочетаниях, обращайтесь. Я всегда готов помочь.",
+      "latency_ms": 1047,
+      "retrieval_ms": 247,
+      "generation_ms": 800,
+      "usage": {
+       "prompt_tokens": 4258,
+       "output_tokens": 41,
+       "total_tokens": 4299
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, вежливый и уместный ответ на благодарность."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, вежливый и уместный ответ на благодарность. Немного более развернутый, чем direct."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос является общим выражением благодарности, не требующим специфических знаний о вине.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствуют, и ответ RAG не содержит информации, которая могла бы быть получена из базы знаний. Оба ответа по сути одинаковы и уместны.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q088",
+   "class": "ambiguous_conversational",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "А ты сам любишь вино?",
+     "direct": {
+      "answer": "Как цифровой эксперт, я сам, конечно, не могу любить вино в человеческом смысле, ведь у меня нет вкусовых рецепторов или личных предпочтений.\n\nНо я очень люблю делиться знаниями о молдавском вине и помогать людям открывать для себя его удивительный мир. Моя задача — сделать этот мир понятным и интересным для вас.",
+      "latency_ms": 1559,
+      "usage": {
+       "prompt_tokens": 3877,
+       "output_tokens": 79,
+       "total_tokens": 4089
+      }
+     },
+     "rag": {
+      "answer": "Как цифровой эксперт, я, конечно, не могу любить вино в человеческом смысле. Но я очень увлечён миром молдавского виноделия и с радостью делюсь всеми знаниями о нём.\n\nМогу рассказать о любимых сортах или винодельнях, если вам интересно.",
+      "latency_ms": 1738,
+      "retrieval_ms": 867,
+      "generation_ms": 871,
+      "usage": {
+       "prompt_tokens": 4261,
+       "output_tokens": 64,
+       "total_tokens": 4325
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, вежливый, объясняет свою природу и переводит разговор в полезное русло."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ также хороший, но немного короче и менее развернутый, чем direct. Предложение рассказать о любимых сортах или винодельнях звучит немного странно, учитывая, что ИИ не может любить."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос не требует фактических данных о вине, а касается природы самого ИИ.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченных фрагментов не было, поэтому RAG-ответ по сути является перефразированием direct-ответа, без существенных изменений в качестве.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q090",
+   "class": "ambiguous_conversational",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Удиви меня.",
+     "direct": {
+      "answer": "tool_code\nprint(search_wine_knowledge(query=\"удивительные факты о молдавском вине\"))\nХорошо, тогда вот вам факт, который обычно удивляет многих: знаете ли вы, что в Молдове находится самая большая винная коллекция в мире?\n\nЭто знаменитые подвалы Mileștii Mici, которые занесены в Книгу рекордов Гиннесса. Там хранится более двух миллионов бутылок вина, а общая длина подземных галерей превышает 200 километров. Представьте себе целый подземный винный город!\n\nХотите, я расскажу об этом подробнее или, может быть, о каком-то уникальном молдавском сорте винограда?",
+      "latency_ms": 4153,
+      "usage": {
+       "prompt_tokens": 3874,
+       "output_tokens": 155,
+       "total_tokens": 4593
+      }
+     },
+     "rag": {
+      "answer": "Хорошо, давайте попробуем! У меня нет подтверждённых данных о том, что именно вас удивит, но я могу рассказать что-то необычное о молдавском вине.\n\nЗнаете ли вы, что в Молдове находится самая большая коллекция вин в мире? Это подвалы Mileștii Mici, и они занесены в Книгу рекордов Гиннесса. Там хранится около двух миллионов бутылок!\n\nХотите, я расскажу подробнее об этом месте или о других интересных фактах?",
+      "latency_ms": 1340,
+      "retrieval_ms": 209,
+      "generation_ms": 1131,
+      "usage": {
+       "prompt_tokens": 4254,
+       "output_tokens": 115,
+       "total_tokens": 4369
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный ответ, полностью соответствует запросу и предоставляет интересный, корректный факт."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но немного неуверенный в начале, что снижает естественность. Факт тот же, что и в direct, но без детализации про 200 км галерей."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос не требовал специфических данных из базы знаний, а скорее общего интересного факта, который модель уже знала.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты отсутствовали, поэтому RAG-ответ был сгенерирован без дополнительной информации, по сути, как direct-ответ, но с немного измененной формулировкой.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q089",
+   "class": "ambiguous_conversational",
+   "prior": "AMBIGUOUS",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Расскажи что-нибудь интересное про вино.",
+     "direct": {
+      "answer": "tool_code\nprint(search_wine_knowledge(query=\"интересные факты о молдавском вине\"))\nЗнаете, в Молдове находится самая большая в мире винная коллекция — это знаменитые подвалы Mileștii Mici. Там хранится больше полутора миллионов бутылок вина, а общая длина подземных",
+      "latency_ms": 5044,
+      "usage": {
+       "prompt_tokens": 3881,
+       "output_tokens": 72,
+       "total_tokens": 4773
+      }
+     },
+     "rag": {
+      "answer": "Конечно! Вот интересный факт: самая старая бутылка вина в мире была обнаружена в 1867 году недалеко от немецкого города Шпайер. Ей на тот момент было 1690 лет. Представляете, какая история в одной бутылке!",
+      "latency_ms": 7431,
+      "retrieval_ms": 6243,
+      "generation_ms": 1188,
+      "usage": {
+       "prompt_tokens": 8990,
+       "output_tokens": 59,
+       "total_tokens": 9088
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides an interesting fact about the oldest bottle of wine, directly answering the general question.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "neva-fort.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGEKFTsGv4u-IcVMRHgn1Worc8FVeIgqsDKrm4-5pM-vR31nmPO0kCtMBBPPiLWW2KnjwpPZbz4dxE46Ma6aFYiZpJzzadSfMl2qlUVAdXF6y4PcpjRqjc3IhXV9sQZuOjVu-tWVLhknK0CCoYOGHM=",
+         "confidence": "low",
+         "text": "Вино — это один из старейших и самых благородных напитков в мире, а его история насчитывает тысячелетия. Вот несколько интересных фактов о вине:\n\n*   **Древнейшая бутылка вина.** Самой старой бутылке вина в мире 1690 лет, и она была обнаружена в 1867 году недалеко от немецкого города Шпайер. Вино бы"
+        },
+        {
+         "level": "web",
+         "title": "vintage-m.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHWnYaY_NOYYErtOOhMwK2XCvfOmCjceOYRXGe7eigGZ-OIZ6CvbPCxPhQGWy56oZJo4vU4dGuJ5sQMEyjCUQrr6Pt6LJe2o5eKSd0T6fKlo7p4ynCY2hi4pNKgHuiilILCEdf9_XONLt8gBg==",
+         "confidence": "low",
+         "text": "Вино — это один из старейших и самых благородных напитков в мире, а его история насчитывает тысячелетия. Вот несколько интересных фактов о вине:\n\n*   **Древнейшая бутылка вина.** Самой старой бутылке вина в мире 1690 лет, и она была обнаружена в 1867 году недалеко от немецкого города Шпайер. Вино бы"
+        },
+        {
+         "level": "web",
+         "title": "youtube.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9IS8rmxiv9FmTrBeqWfnbiTU9lCiSpSdCEqf4qcNOtdCrrYtL1ZTTA0inF5fY-Lzp7nznE7gXcLN0wnJeYNMr20H6ONuRhzd3PaDqBD5B2QMmn6DRG0q1gV2VO_jHubH1NnuVMw==",
+         "confidence": "low",
+         "text": "Вино — это один из старейших и самых благородных напитков в мире, а его история насчитывает тысячелетия. Вот несколько интересных фактов о вине:\n\n*   **Древнейшая бутылка вина.** Самой старой бутылке вина в мире 1690 лет, и она была обнаружена в 1867 году недалеко от немецкого города Шпайер. Вино бы"
+        },
+        {
+         "level": "web",
+         "title": "winestreet.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGP9pckpfnP7pf9Wj5mEOHWgi1jKcs3JZ1EgfRT7GKVLqgFqSVDn0PUFwgYTy9NnxOL5RR8cOyN4C4_V0XRirZqjfg4NHQQSHtVCZTsdelJZtkyRDbkCcETJjAikz2anj6r9bm2i6Cgaw==",
+         "confidence": "low",
+         "text": "Вино — это один из старейших и самых благородных напитков в мире, а его история насчитывает тысячелетия. Вот несколько интересных фактов о вине:\n\n*   **Древнейшая бутылка вина.** Самой старой бутылке вина в мире 1690 лет, и она была обнаружена в 1867 году недалеко от немецкого города Шпайер. Вино бы"
+        },
+        {
+         "level": "web",
+         "title": "peopletalk.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEVvCcmSCo_HhwgXlr5qCesM3L2UBMQiR2q0oRIp3wmfYFexMw2XZzeFzUKxnBd4eWjoylogbuGrg-QxqDkh9SnaDfxxr4LRwjFkdmlmqWK3RSi-wAKZEH5-7uJ74x66jwuj1LnAg6E5MVyPPGPcCD_nPIBNkHHJAoi",
+         "confidence": "low",
+         "text": "Вино — это один из старейших и самых благородных напитков в мире, а его история насчитывает тысячелетия. Вот несколько интересных фактов о вине:\n\n*   **Древнейшая бутылка вина.** Самой старой бутылке вина в мире 1690 лет, и она была обнаружена в 1867 году недалеко от немецкого города Шпайер. Вино бы"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ интересный, но обрывается на полуслове."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но менее интересный, чем прямой, и не связан с молдавским вином, хотя вопрос был общий."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос был общий, и прямой ответ уже содержал интересный факт, связанный с Молдовой, что более релевантно для 'WINE AI'.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "answer_derailed",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не были связаны с молдавским вином, и ответ RAG дал менее релевантный и менее интересный факт, чем прямой ответ, который был о Молдове.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  }
+ ]
+}

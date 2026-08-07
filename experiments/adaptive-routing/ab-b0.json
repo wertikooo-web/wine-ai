@@ -1,0 +1,1797 @@
+{
+ "meta": {
+  "model": "gemini-2.5-flash",
+  "judge_model": "gemini-2.5-flash",
+  "finished": "2026-08-07T19:15:40.456Z",
+  "n_items": 15
+ },
+ "results": [
+  {
+   "id": "q001",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Чем Каберне Совиньон отличается от Мерло по вкусу и структуре?",
+     "direct": {
+      "answer": "Каберне Совиньон и Мерло — два классических сорта, но у них есть заметные отличия.\n\nКаберне Совиньон обычно более полнотелый, с выраженными танинами и хорошей кислотностью. Во вкусе часто можно уловить ноты чёрной смородины, кедра, зелёного перца и иногда мяты. Это вино, которое часто нуждается в выдержке, чтобы стать мягче и сложнее.\n\nМерло же, как правило, более мягкий и округлый, с меньшим количеством танинов и более нежной кислотностью. В его аромате и вкусе преобладают красные фрукты, такие как вишня и слива, а также шоколад или ваниль, если вино выдерживалось в дубе. Оно обычно более питкое в молодом возрасте.\n\nЕсли коротко, Каберне Совиньон — это мощь и структура, а Мерло — мягкость и фруктовость.",
+      "latency_ms": 2624,
+      "usage": {
+       "prompt_tokens": 3889,
+       "output_tokens": 217,
+       "total_tokens": 4212
+      }
+     },
+     "rag": {
+      "answer": "Я не вижу подтвержденной информации, которая бы точно сравнивала Каберне Совиньон и Мерло по вкусу и структуре в контексте молдавского вина.\n\nНо могу рассказать об общих характеристиках этих сортов, которые часто встречаются в Молдове. Хотите?",
+      "latency_ms": 2485,
+      "retrieval_ms": 1162,
+      "generation_ms": 1323,
+      "usage": {
+       "prompt_tokens": 4285,
+       "output_tokens": 60,
+       "total_tokens": 4345
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо объясняет различия между двумя сортами винограда."
+      },
+      "rag": {
+       "quality": 1,
+       "factuality": 5,
+       "relevance": 1,
+       "naturalness": 3,
+       "unverified_specific_claims": [],
+       "notes": "Ответ не дает никакой информации по существу вопроса, ссылаясь на отсутствие данных, хотя вопрос был об общих характеристиках сортов, а не конкретно о молдавских винах."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос касается общих характеристик сортов винограда, а не специфических данных о молдавских винах, которые могли бы быть в базе знаний.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Модель отказалась отвечать на вопрос, который могла бы решить без извлечения, ссылаясь на отсутствие данных в базе знаний, хотя вопрос не требовал специфических данных из базы.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q002",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое танины в вине и откуда они берутся?",
+     "direct": {
+      "answer": "Танины — это природные вещества, которые придают вину терпкость и структуру. Они отвечают за то самое вяжущее ощущение во рту, которое вы чувствуете, например, когда пьёте крепкий чёрный чай.\n\nБерутся они в основном из кожицы, косточек и гребней винограда, а также из дубовых бочек, если вино в них выдерживается.",
+      "latency_ms": 1744,
+      "usage": {
+       "prompt_tokens": 3884,
+       "output_tokens": 91,
+       "total_tokens": 4049
+      }
+     },
+     "rag": {
+      "answer": "Танины в вине — это группа фенольных соединений, которые придают ему структуру, текстуру и ощущение терпкости или сухости во рту. Это похоже на ощущение, которое вы получаете от крепкого чая или незрелых фруктов.\n\nБерутся они в основном из кожицы, косточек и гребней винограда, особенно при производстве красных вин. Также танины могут попадать в вино во время выдержки в дубовых бочках.",
+      "latency_ms": 9390,
+      "retrieval_ms": 6690,
+      "generation_ms": 2700,
+      "usage": {
+       "prompt_tokens": 12512,
+       "output_tokens": 105,
+       "total_tokens": 12929
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence defines what tannins are but does not explain where they come from.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "general_knowledge",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vinograd.info",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEKX2qxfyz8yajgNDHadTgqgZShDpPGcILW5qgggqeHAkeHvCKJIv7zBQ5vgSLbbDipqDsVF0JVWbseE0dGeU54Laogze7UXHCF6i4rSKcs678wUmiXj-yW2eUCymLYH021QcwbFAzfR2XTo-nS_85PFEYlpS3vGYi2BDuiyg==",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "vinograd-krasohina.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHzB3VVGHxVhHmjU4JiYy9UNt_DXvSEuaQEYd_OOHwaLamWxg348rfN-7AAjVIt1tsMDY8DesaixewDVBqZ4vrfQzB3Hh7KSY-0fbn3xa82TAlU1Cdjr3mqLokSaIwB327v4-ykB4hc-Q99xQBWQ_jLDIa5yNEX9sYoib1yC5DNv6jekoDjkkrmeh1lTvwNrrKqjhhK3Tfkbxz8N3vdd9AN4lKOpRNvFpTg_boxT8m5F8wZdMLYbdezOLFA5XXsl7_qmdTWCeOY",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "butyl.shop",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGzwJmzCC7EPVfl4ZNShfdenbr79opFEYIiHucoN9nmz29HYlU_nzIc-OruBeetRFCVXA_jYiZ_bwxn4Vqq2DqTmvQfjtcXIoWvOYybvMcdUueNapYssX0xe90ZZHa3fs7vYd-J-ZxhGyFCqrijNWh0PyeNgCGVQ3QyivbOGw==",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "winebutik.com.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFB_NY7nWCyNiNJAwi0lDPiUh_GuCokCu0HJv3D_Q--E_7g48GzBVJbSFdDUEo6RiMv8kD730YRT99jtb9bnIchcndTbg-jTkSEak1Zb01Peug7U2krzfIddfJWdSJa5ZPg",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "amwine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFhbaUz4wpw-OoGlqwHWGPcEI6GGQPOO4ZPE65hNyYwxdeiUWi3Z01od8qH3O6GeLjyxOs0EPrOj1Y-ccZdAS64szKNSPjoFac70-Igcq62wt5EITqQ0csocdUrUi1rUeoSR7SE5bTl5nD7khX_WBdE4nRlR4PYklPBOWs=",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "zbtour.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE_P20p5EWC06-TXk6JsC2vGMW1MHJafdF9t1LjIblZSM6ydqtJulEQRxoezzscSyPyCIsRqAei7oJfujSLuLTIAnQwu1-Hx1pSWyBbjCNIGxZybnrSdshCCw6GK3P2uhI=",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHJ8ls8z0T9EsOGUV4J2-BXQaPR8PSAGnqlq5C1JEfsRsJFlDI2qTC9kdkfBWwQxhKlDW_t9FgnYpqhgQkLNfKntPrJ-Ax9whoSFe4EJ9mmvNd0l7a9waACUougH_IM6zTfwM53B81Dt1AjihChpiLO0NaOm9Umhb8mMv2zI9qo",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        },
+        {
+         "level": "web",
+         "title": "luding.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG8Ace-o3FgArqhMl2FC4nVNjZkX4zw-CNOlVZa_BbdzdtQcyFXkn1SqZiAFJX_9v_hIgz6zfXZ5zx-2fAwRHY-KT1UsPs9jW-GPYtmqE5uJjQI1apkkEHDAhbCqZwK63XKww64UDBJVrW5YCOcPbqBV0Z_6d14i-qODdYtSVATEGjTHumJW3eB110XcNfGZaTSGT1V9p241A==",
+         "confidence": "low",
+         "text": "Танины в вине — это группа горьких и вяжущих фенольных соединений, которые придают вину текстуру, вкус, ощущение веса и структуры. Они вызывают характерное ощущение сухости или терпкости во рту, подобное тому, которое возникает от крепкого чая или незрелых фруктов. Танины связываются с белками слюны"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": ""
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": ""
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Direct answer is already good enough.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "The retrieved fragments provided similar information to what the model already knew. The RAG answer is slightly more concise but doesn't add significant new value or correct any inaccuracies.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q003",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "В чём разница между вином из Старого и Нового Света?",
+     "direct": {
+      "answer": "Разница между винами Старого и Нового Света довольно интересная и глубокая.\n\nЕсли коротко, то вина Старого Света — это традиционные европейские регионы, такие как Франция, Италия, Испания, а также Молдова. Они часто делают акцент на терруаре, традициях и строгих правилах производства.\n\nВина Нового Света — это страны за пределами Европы, например, США, Австралия, Чили, Аргентина. Здесь виноделы чаще экспериментируют, используют новые технологии и фокусируются на сорте винограда.\n\nХотите, я расскажу подробнее о каких-то конкретных аспектах?",
+      "latency_ms": 2747,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 140,
+       "total_tokens": 4241
+      }
+     },
+     "rag": {
+      "answer": "Основное различие между винами Старого и Нового Света — это их географическое происхождение. Это влияет на стиль виноделия, традиции, климат и, конечно, на характеристики самих вин.\n\nК Старому Свету относятся регионы с многовековой историей виноделия, такие как Франция, Италия, Испания, Германия, а также и Молдова. Вина Нового Света — это страны, где виноделие развивалось позже, например, США, Австралия, Чили, Аргентина.\n\nХотите, я расскажу подробнее о стилистических отличиях?",
+      "latency_ms": 11074,
+      "retrieval_ms": 9389,
+      "generation_ms": 1685,
+      "usage": {
+       "prompt_tokens": 12099,
+       "output_tokens": 127,
+       "total_tokens": 12309
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states the main difference between Old and New World wines is their geographical origin, which impacts winemaking style, traditions, climate, and wine characteristics.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGsu6W7H2y43lEesXO541lrmgPBrvONRLuJmd1DWj3qLlLfgFdRz5re15lYoF2R-hfbHJecC1kOjtwqY_4r5zjk8Hl9vLdPQCEVR9dqbFM0VSF7v_BQL_79Ln7oLjef1zeftfiUomyM_Klg7fD_OgCoDTIzUFrY2oMTlMgbE1I3vkBvK2tC3IuPnChUtnG2RH-NsntBI98=",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "cru.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGGQcd24IkJwWIR0eMYCePhp_JjcNrZXIJR6n-th4f5CLCspou9yeZ3xChjNqKnm9ugISivsADBueF7n3U71iVGQ8ShxC1TWJua-_JL5gZKuNkTEdJlvSoP8U0zO_T3F8-FypU0zaCnW3TCXFqZt9LE_W19LpVVrjKuIsaHVT2i4hxwfQw7",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "cincinfest.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEN6-op6vj5xaiABGBzNHwtZ4reByeAMzUGPAWrv-lV6MwVegybCqThBK1NUuy6xx8lFKU8HQZUsQtgzzvFVO2b79Ao4772OJ70ZLLsrWHHw1dR6MQwHdn1hMECizZEmH5t-jQwP4ry8r3_acrBtcPWMA==",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "best-guide.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFCGrCDCfzvSLSjMKagU1qP0zuqLXGbP9DgU-GbSdnEsRsEulkeNp4OrRRH2Gtk_AacsZYT2NOwqmSs2cBG94PfOvrzeDBOY8oMOi7cg2EHV58eKZ4B6No=",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "arba.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFnfAZ3D9qQxRWd7uh8-CeF78RSQLI9Qt3Edraaz7CdBzbumXus_V43GeFTW4vwu3Dueoybv-gzv-Zr2q9KhnxrJ8b2xU3achQxidRL6hPf4CB8iZYqcC7z4g==",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "wineproof.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFK9wn5_dvHKdRBwwCtuW9b9mK_HDf8FEKCq4yKdm6778JBPAbIOeB0zBi_yuNp5MoJPxvN9Au3VsuonAB9T60S-QjeIbJ3p6VIzUtO_xaULOumWk29ew8wdcSlE2E18KxW2zvdLW79wwC1JfzG-K-pm3BPePV7FdvRzgY99nW0CZSLG2gLERlY",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "winestreet.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG_8c-f0kFDejy3XsXvopRzdTOd0y13Zupn2pauvxDKrzs3PwVzg_uN45yjAXMNjQFzNgyARn_lbpkVPAx7N3p0lQNbvC6ZRuUVIr950fudtgBIhn5vcJaNDpyacrWIQMgycISyL6klkiYR5EMD1Q==",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        },
+        {
+         "level": "web",
+         "title": "cheers.su",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG_m5fmFyk24bn7jeN3Q56KMn0MS-Mtc9Fk9NcqP3_r4vPIoVZgN_HhfcS2hbv1lE1me08roerUL1_AOtkSBMMi4aHad81Nq16bP0AZ6sy5flkavevkJ_w_N2EPw0cYX5IPt39p6tt6_L5-6EMcTZZxSQLY8VCPmwiMg9Q=",
+         "confidence": "low",
+         "text": "Основное различие между винами Старого и Нового Света заключается в их географическом происхождении, которое, в свою очередь, влияет на стиль виноделия, традиции, климат и характеристики самих вин.\n\n**Вина Старого Света:**\n*   **География и история:** К Старому Свету относятся регионы с многовековой"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хорошо объясняет разницу, приводит примеры стран и основные характеристики каждого типа вин."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но немного более формальный, чем direct. Фрагменты не добавили существенной новой информации, так как direct уже дал хорошее объяснение."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель уже обладает достаточными знаниями для ответа на этот общий вопрос о классификации вин.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат очень общую информацию, которая уже была в знаниях модели. Они не добавили новых деталей или уточнений, которые бы улучшили ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q006",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Чем метод шампенуаз отличается от метода Шарма?",
+     "direct": {
+      "answer": "Главное отличие в том, где происходит второе брожение, которое создаёт пузырьки.\n\nПри **методе Шампенуаз**, или традиционном методе, второе брожение происходит прямо в каждой отдельной бутылке. Это более трудоёмкий процесс, который даёт вину сложный аромат и тонкий перляж.\n\nПри **методе Шарма** второе брожение происходит в больших герметичных стальных резервуарах, а уже потом вино разливается по бутылкам. Этот метод быстрее и экономичнее, и вина получаются более свежими, с яркими фруктовыми нотами.",
+      "latency_ms": 2675,
+      "usage": {
+       "prompt_tokens": 3882,
+       "output_tokens": 134,
+       "total_tokens": 4222
+      }
+     },
+     "rag": {
+      "answer": "Я не вижу подтверждённой информации именно о таком сравнении в моей базе знаний.\n\nНо я могу рассказать вам об особенностях каждого метода по отдельности, если хотите. Это поможет понять их различия.",
+      "latency_ms": 1185,
+      "retrieval_ms": 219,
+      "generation_ms": 966,
+      "usage": {
+       "prompt_tokens": 4271,
+       "output_tokens": 42,
+       "total_tokens": 4313
+      },
+      "retrieval": {
+       "found": false,
+       "answerable": false,
+       "answerability_reason": "no_evidence",
+       "claim_class": "grounding_required",
+       "entity_match": null,
+       "status": "not_found",
+       "web_used": false,
+       "web_reason": null,
+       "used_levels": [],
+       "evidence": []
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо объясняет разницу между двумя методами."
+      },
+      "rag": {
+       "quality": 1,
+       "factuality": 5,
+       "relevance": 1,
+       "naturalness": 3,
+       "unverified_specific_claims": [],
+       "notes": "Модель отказалась отвечать, сославшись на отсутствие информации, хотя вопрос является общеизвестным и не требует специфических данных из базы знаний WINE AI."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Вопрос является общеизвестным и не требует специфических данных о молдавском вине или конкретных продуктах из базы знаний WINE AI. Модель должна была ответить на него без извлечения.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "refused_though_answerable",
+      "retrieval_effect_explanation": "Модель отказалась отвечать на вопрос, который является общеизвестным и не требует специфических данных из базы знаний. Это ухудшило пользовательский опыт, так как прямой ответ был отличным.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q004",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Почему белое вино подают холоднее, чем красное?",
+     "direct": {
+      "answer": "Белое вино подают холоднее, чтобы лучше раскрыть его свежесть, фруктовые и цветочные ароматы, а также подчеркнуть его кислотность. Низкая температура помогает сделать вкус более хрустящим и чистым.\n\nКрасные вина, наоборот, обычно имеют более сложный букет и танины, которые лучше раскрываются при более тёплой температуре. Холод может сделать красное вино слишком терпким и закрытым.\n\nХотите, я расскажу подробнее о рекомендуемых температурах для разных типов вин?",
+      "latency_ms": 2442,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 116,
+       "total_tokens": 4202
+      }
+     },
+     "rag": {
+      "answer": "Белое вино подают охлаждённым, потому что низкая температура помогает подчеркнуть его свежесть, фруктовые и цветочные ароматы, а также освежающую кислотность. Холод также делает вино более хрустящим и живым.\n\nКрасное же вино, наоборот, обычно подают при более тёплой температуре, чтобы дать возможность раскрыться его сложным ароматам и вкусам. Танины в красном вине становятся мягче и приятнее, а фруктовые ноты и специи проявляются ярче. Если красное вино слишком холодное, оно может показаться терпким и закрытым.\n\nВажно помнить, что \"комнатная температура\" для красного вина — это не температура в жаркой комнате, а скорее прохладная погребная температура, примерно 16-18 градусов Цельсия.",
+      "latency_ms": 12006,
+      "retrieval_ms": 8881,
+      "generation_ms": 3125,
+      "usage": {
+       "prompt_tokens": 13421,
+       "output_tokens": 184,
+       "total_tokens": 13839
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence states that white wine is served chilled due to temperature affecting its chemical composition and perception of taste and aroma, but it does not explain why red wine is served warmer or ",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "general_knowledge",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "liebherr.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEcd7JyqiyK0ku6X7mmfSTljYTpgcbBoQA9RuDn2IxhqFVkB1HMNl8WdOhO1Op9x66I1JXwRFyQSD72Axmui-SA9Ue8ynzgt34oncGd1dFw7TuVHUYr5pqi6RROxjVF_1TkWIRuIYNDyeYEMxRsim2jjAhqSduRTyVna4Y2tIG-T5yhuNsUSG_G_8uEvwG_G9NnWa7fCwrx6RkaTPDvCyd5EbGNLWtN9piw2DKqAeqlYqsiAlxM7c47MZfUXUtjLl3ju1LhoWvsQHvUQ3l0AVDI8WYYdlCNRO3ifGE84kW_rCR9arTyG8ef-obKr9iAXqQF1NqCdaZSn_79XZvqGTlRA7pORxeWQzwFuPbdhW0qF3-SnQnMODY1KhQylca0La1PQliQBVSttyGHpM5M7pJf-urk3mcikHMeT6lLO9xEIuVcIK13PIOEz99UzWNJofHic6o97EZlUD5ooukwRswaHM9UR0p3CQeUjmSP3Po_hOaKB9gdCJ-Yhe_342Jj--9H5mNzwjptXCzaBtkp6ptuxQ==",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "dobro.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQExiJv32FAH61Qsrz_T5tcoIgD6ZJFDHRwsnJ8iri2oTrfn5-hvwXfCgPAWp1k0wF2EP7TeWcCCnS7ZneEEvnN7IAvjHKmqoqOt8s3I7mg663pnxoYigOb4atGA3MFQfPknOD9l93aKv559Cf3F84_swtCJZUmMdjc3gymzgA==",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHE1JatUw_O0HPR9nzVSGeOzgGuN5VBWkffilkOU230zs_kPcTCWErfcCtPTXsk7QQytlKk__6VZ7oGFpubdeccNTsrBQXBMm0Es3l3MoWCpoRDTeRlBki8fcECWnbNgPpTde7dkMigfygsQ4QFj_KU",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "vk.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHm2mTbNhFLeCUsurK7iVdjlKT5-QQmABF7DW2aQ6EK2Xx7mO5GJmX6u903K5r5dfSL-L8hOOxgDHs1xNCVDgNTpFWlYVwb2MxSa_tFNvaTWVDlhMmOZjemKrJoqPQ=",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "winestyle.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGLBao7EUfjGE6dSJqMSAchTH_Tje4Q3O9Qk_2c6XFYZzANXnZ49Cbs8iEIV8cK5CT94IqrcVjpqtPXDQGfjDSvuL7HExOhmDD0_rtifBuGpvj4I3MUAnKFRYzOR6G35I-27wWjKj8UlnDm7zf5-mYYqbBWaApL13KsGm-jAo2GfXIFfA==",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "reddit.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH8dpf6_nqIaOOB_pqnqh24yB6czFEltvV-jM-tT6unONn6UeYfR3aXqHF51wmzmfyZVAQ9H-lt9va8b9HtbLuMRGF1ccHRDa1bft2i-ihh6xQcVuU2tGOsBFkcn8R4s-Zea0g6bj5wJp6fAU-LBer2dO9mBTLWS-Fzh0dhQoRVjKWdzRFGioDv83or0hm74C9pjsMGqtKTCS-osA==",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "gourmetshop.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGpaS-qngSOnh38IPhkAFyrPIeCy09Otb_zDzhHYivmjDoxkY8j3EirnEFBZN7bPd7Susq9dCuB7YRBmI4w_JdMVQQ74U9UKA8ObFUM1wUci8h_iEDP5VqLG15932okzWUsk7zpNYDo-58abFxnwA==",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        },
+        {
+         "level": "web",
+         "title": "levelvan.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH5UNC9KWb5RzLu3FcNAxBv221U8Khpy_Lx56HmBDe6JL2tm-fTF8VF5kjpbOvnNR9E1UwyCrahBIvRwXkkTDbYqLLgzBiLhj5dwQ5fEvZfQaokEWrxpnC8ZTVA5uMJApUZE_D0aVFhgMM7Ceq6Qw==",
+         "confidence": "low",
+         "text": "Белое вино принято подавать охлажденным по нескольким причинам, связанным с тем, как температура влияет на его химический состав и, как следствие, на восприятие вкуса и аромата. В целом, чем легче, проще, моложе и слаще вино, тем холоднее его следует подавать.\n\n**Влияние температуры на белое вино:**"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и естественный ответ."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и естественный ответ. Добавлена полезная информация про 'комнатную температуру'."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала исчерпывающий и корректный ответ на вопрос.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "RAG добавил полезное уточнение про 'комнатную температуру' для красного вина, что улучшило ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q005",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что означает термин «терруар»?",
+     "direct": {
+      "answer": "Терруар — это совокупность всех природных факторов, которые влияют на виноградную лозу и, в конечном итоге, на характер вина.\n\nСюда входят климат, состав почвы, рельеф местности, экспозиция склонов и даже местные традиции виноделия. Все это вместе формирует уникальный отпечаток, который отличает вино из одного места от вина из другого.",
+      "latency_ms": 1560,
+      "usage": {
+       "prompt_tokens": 3879,
+       "output_tokens": 83,
+       "total_tokens": 4068
+      }
+     },
+     "rag": {
+      "answer": "Терруар – это комплекс природных факторов и иногда человеческого влияния, которые формируют уникальный характер сельскохозяйственной продукции. Чаще всего этот термин используют в виноделии.\n\nОн включает в себя особенности почвы, климата, рельефа местности и даже традиции виноградарей, которые все вместе придают вину его неповторимый вкус и аромат.",
+      "latency_ms": 9618,
+      "retrieval_ms": 7680,
+      "generation_ms": 1938,
+      "usage": {
+       "prompt_tokens": 12130,
+       "output_tokens": 73,
+       "total_tokens": 12371
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly defines the term 'терруар' as requested by the question.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFZi2cotvV1HFpEBOiTSLf_UDNpe7CnYTGWC8Md8QuG2ciCy8VkRvjyvJVvSbtbEkd4FF1AgqqVs1tvJqzqWMCuCMXFPAktyipQ5Wx10tfOpt11aOoBPsS0Zt03XMv9JozF_zVB_320Y0b2ENap6KThIUsMxzG3Enc=",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHBbLZ773azdahblVwSUWpzAUv3kRkKmtJIxyweBErw4d0KAqIgrKrltVTwTKdV53tdbhkYAZC9Gx3tARCEd8ELYBdPs430BZEYpfT8_WaFSpteA1UVatWub1XTZEipXcSSrBrn6NAYzHzeYuUcyEEKvZQP4A==",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGhADRcGTaEB0tW1ETlk2ncHc3Lzz_X7Un1xAX5R-ZnI4_7BxtPEYNWA33f6DGZ_EQyVT03GKhGl7aAVka5nqQcknsukFYbCCgPWW-QjvCvJMM0M2m9bH_opaHEnMqO-6hXqIAvjinx7Q4nMIkKxSzR1dzlByiIYtirBHn6KXjXFac4",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "tatte.kz",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEzHKodyx_YHUKtSMGiy1VWpW1sPYXV02qCUEhixMpjrwd79Pet_sXiSGxd5l8_SlY0F4Pzi0QxGd4SDQ9SZntH1ZmEwiMMasjj8wzB__eoVFNEHjztp67NsFMcMZnYVOf90CQYyMWYsf2XZwmotN3TY_EqRlZW3jYfpWkrwvzWYFT-T3p7FuUzOD4otJLnSdQv66i4cgGqpSo=",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "teahouse.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHB1o_ebrZL22qLLP-Hr8y9Vs9SgDwfaLcZBobvQxakPmMsjFqObA3xl-fNOS3lIkeuMd2MOPJX6z00efHIYQoIx2g1p3DAZbVZCoalkc6d_RV65rbZ-PAD692ULDaaav9c79iYI3noIz7D68_73uKQNN8EO7tlFrjUKV7sa7OvAUj_bg==",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "mozart-wineacademy.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1trwiJooQz6EAdMESENi3bTryz22DGoWw0Qr9l53GlsR4AAS-TLk2NLhFI807LQJuvPTbwm_5617aIGs3wTWpUpomSKEm5i12_NkT6i9CIXj6GR9NpllWDc-BbLYrRrW-90rQhVz_057vFMwo6qgmSrIMBTkkFp2i5Ay6bF_XFIfdvr7uJhv2E65n_Il0Dcw5aQ==",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "vino.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGlC7NfbLBp1I_hgOhcDyfdUE5OeLtGG_7EH01l2RxwdYLg7sO7BquwezfI_icitCcEc1Mw7HS7p9fDlkuDeUQIT-u_DinIK5HevyWnspunM92f",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHGbdK5DyCHeBmjCv8QgmLQT2sOIzRNVrqm81_mgrUM17d3B_LsiFsY2ZWIqsxw-1Xg5Vy0FQLKyJj1R8Q6gFKmf1BQH2ks4Z9kRy9PjSffhQEZoZ4BlwABbeQ6oa6K_ERNvWB5",
+         "confidence": "low",
+         "text": "Термин «терруар» (от фр. terroir, буквально означающее «земля» или «местность») — это комплекс природных и иногда человеческих факторов, которые влияют на характер сельскохозяйственной продукции, наиболее часто ассоциируемый с виноделием, но также применяемый к кофе, чаю, оливковому маслу и сыру.\n\nК"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": ""
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": ""
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "The direct answer is already comprehensive and accurate.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Both answers are very similar and accurate. The RAG answer adds a detail about human factors, which is also present in the direct answer's 'local traditions of winemaking'. The RAG answer also mentions other agricultural products, which is a minor detail for a wine AI.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q007",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что даёт вину выдержка в дубовой бочке?",
+     "direct": {
+      "answer": "Выдержка в дубовой бочке придаёт вину целый комплекс характеристик.\n\nВо-первых, это **ароматы и вкусы**: ваниль, специи вроде гвоздики или корицы, поджаренный хлеб, кофе, шоколад, иногда даже дымные или табачные нотки.\n\nВо-вторых, дуб влияет на **текстуру** вина. Он делает его более мягким, округлым, придаёт телу и структуре.\n\nИ в-третьих, через микрооксидацию — очень медленное проникновение кислорода через поры дуба — вино становится более стабильным, его **цвет** может меняться, и оно лучше развивается для **длительной выдержки** в бутылке.",
+      "latency_ms": 2188,
+      "usage": {
+       "prompt_tokens": 3885,
+       "output_tokens": 164,
+       "total_tokens": 4196
+      }
+     },
+     "rag": {
+      "answer": "Выдержка вина в дубовых бочках — это очень важный процесс, который сильно влияет на его вкус, аромат, текстуру и даже цвет. Дуб даёт вину новые оттенки, делая его более сложным и интересным.",
+      "latency_ms": 9244,
+      "retrieval_ms": 7938,
+      "generation_ms": 1306,
+      "usage": {
+       "prompt_tokens": 12866,
+       "output_tokens": 51,
+       "total_tokens": 12970
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that oak barrel aging significantly influences the taste, aroma, texture, and color of wine, and imparts new aromas and flavors.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vintage-m.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF0dYy1vla0dVM4KHldSeVpA1mEdQVn8sx9B3cXYXKtfv2xzq34AUWbdxsvrOcmLTfByo0kThd0kA1qRq3cVwNRWwILaQN3ALS4dpG7RLmoRXuUIsl9bLCqm3ZLAqElGMDioxjjSp1dzPZ7l57y7FHC2_xMj42e70ZyiA==",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "dobro.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEBiqnlg_47h-0y9zPrB3hmOcfLAypRd5qnTcZYL1l0BOLNVQF9a58DNFFVup5Bi70abDguHSQ23Z9uyQyYHmEnDUCIkYqHoKgO5FpKH-Rsck8yDNqF8Z7lsMJmLo0J5mOm_j2WX6IqWePWseFF98nKsrIhhYFffd0wnp2sfFYTgYpyqporahorlgRRkMS6lTM8Pika5BZS_GZM85ny",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "amwine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGeZzblUl_g4UJXdTaO2IHy0tSBMYCbhQkQmLudZEiA_ZuQ9KyEF_fVGFq8U9ASx0vx6FgdoiRIoQZ5Fi0BmSLmZ7Ep3MfS5ttV1pGkiCC-37V8R6pUgcsOh4LMH4B9XlxJk2KXmVwUUSZvg3QWbopzCohE2-T9hw==",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHMvnaomlA0x_PdwO_rT-4OYut1E5OOrBAcWqWA1xwB8GTzH7B1y2ncTT3_6H0LPlMuvUGH-nfPnBCszGeNmPB2dD6y-GCJaC7gBQZzHLylFO1BBofjCZpX7aeLdJAXIUIyZTTclLTw6X105GdLUQhF_kL7gImFSs5Qk7h-UBe20uIyqWXNQWUCw-36nkhFOnw=",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "luding.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHqw4XoYNmp4W50dT0sThQtIqrvbea21bfU2Pht4X8foAywCzJwDKg0OoLX2ie2lYy35lMjdmAM9NjPaMBLg7DaiHale1k-ra7YDNIOzVCTB0c5mcakoUftSwTwJdZmdPyalb97xsiPHSqX48UUOZeSO06JeyJu8Qg3LSTz36xjNOrAxdONicS6cYcj",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "direct.farm",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHiQ-rBjGmCKRUYjN6cdbZGvPwq9KadI32WXNs1A8VIsdLQ1tt2k8YhSjxFMRWpDmdxuoOxKVDvkIX4uwf8NKmp8Cg0UxkjLqvR35q9F1GMhPfbN88u2NYOHzD5V_G3C5tTMZAF5J_m9mdDSfYn5_0FlDGZBCpzEeM4dRlTQcF8vxtqP7l4rSLaBse0kA==",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "sdelai-doma.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGtBCbQ5tqkLTXhQoPRW0qoqB5YjteLQ-ZFkEPXryE1PSJAVBSepXi3wl1tVKRCn9hnVN_MMYszYMvXVkKULFPvov8tYU_rvlSBlqfzFFqJkDDIgir2WPowVdVSGvmo4XhhbSq9ed3_9mFdZVNWgpjhlF3w-aWxNq3iArPbguOVM1ObsfEeo69qojyBcMnOFm2E-IDMs9h4n-Z6luAF6q-M0zBvlzbq",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH6jbATm4vyuj0hvXEY6htV5EvK92WB1TBWLbHRdTVPGaYX9LneHeZ3OmymRk05yKjqKyeamujTFrGSxPDy9yTx62qqJXKsXvLwDuBDlu1u7Ck5T55FbYis8oZJju3pKT9ky6CJs16IrYtO8Fj3KVPMeXkw_P1SyKkbTg==",
+         "confidence": "low",
+         "text": "Выдержка вина в дубовых бочках — это сложный и многогранный процесс, который значительно влияет на вкус, аромат, текстуру и цвет напитка. Дуб традиционно играет огромную роль в производстве вина.\n\nОсновные эффекты выдержки вина в дубовой бочке:\n*   **Придание новых ароматов и вкусов.** Древесина дуб"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо объясняет процесс и его эффекты."
+      },
+      "rag": {
+       "quality": 3,
+       "factuality": 5,
+       "relevance": 4,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ очень общий и не даёт конкретики, которую можно было бы ожидать. Он повторяет общие фразы из фрагментов, но не развивает их."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG дала исчерпывающий и точный ответ.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "heavier_without_benefit",
+      "retrieval_effect_explanation": "Извлечённые фрагменты были слишком общими и повторяющимися, что привело к менее информативному ответу RAG по сравнению с прямым ответом модели. Фрагменты не добавили никакой конкретики, а скорее ограничили модель в её способности дать развёрнутый ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q008",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Чем отличается сухое вино от полусухого и полусладкого?",
+     "direct": {
+      "answer": "Здравствуйте! Рад помочь.\n\nГлавное отличие между сухим, полусухим и полусладким вином — это содержание остаточного сахара.\n\n*   **Сухое вино** содержит очень мало сахара, обычно до 4 граммов на литр. Оно ощущается во вкусе как несладкое.\n*   **Полусухое вино** имеет от 4 до 12 граммов сахара на литр. У него уже появляется лёгкая сладость, но она не доминирует.\n*   **Полусладкое вино** содержит от 12 до 45 граммов сахара на литр. Здесь сладость уже более выражена, но оно ещё не такое сладкое, как десертное.\n\nЭто основной параметр, который влияет на вкус и ощущения при дегустации.",
+      "latency_ms": 2002,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 182,
+       "total_tokens": 4136
+      }
+     },
+     "rag": {
+      "answer": "Основное различие между сухим, полусухим и полусладким вином — это содержание остаточного сахара.\n\nВо время брожения дрожжи превращают сахар из винограда в спирт. Если весь сахар переработан, вино получается сухим. Если часть сахара остаётся, то вино будет полусухим или полусладким, в зависимости от его количества.\n\n*   **Сухое вино** содержит очень мало сахара, обычно до 4 граммов на литр.\n*   **Полусухое вино** имеет немного больше сахара, примерно от 4 до 18 граммов на литр.\n*   **Полусладкое вино** уже ощутимо сладкое, с содержанием сахара от 18 до 45 граммов на литр.\n\nЭто главный критерий, который определяет вкус и категорию вина.",
+      "latency_ms": 10566,
+      "retrieval_ms": 8376,
+      "generation_ms": 2190,
+      "usage": {
+       "prompt_tokens": 12149,
+       "output_tokens": 190,
+       "total_tokens": 12386
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly explains the difference between dry, semi-dry, and semi-sweet wines based on residual sugar content.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "zbtour.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFchxEpdwZhKG7P90glcO_Hg00goxPE7h-KnaaQujqU5Bezo9vltR3_kXi4YcOFEGp99vsoOr0dB1tPqqxB5M0dpOJvZFozcEcl19DyXzviJl43pqIF8IlWD7oQeFFuZZdORMxV4skWJQ==",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "cosmogon.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_eTNuYBqhtW1tiF5kodxSdr_YcMRXjZQfx-ARkcqlcBE1rAh7wRPTTYvrbIJVVJqsZA_It221RKJXhJBSTrdvYiK8tXmmljnRflV1lfU-0hWKqgW7fcjnXs0xVdSj",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "gourmetshop.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFFxfi-ntMZZVfN6eYWIPzLtXrzZM7WCEM5D3SxY6GgJCwGMZmLcN3NPZAqXRTG8Avm-BOgdjrQ2WU2xjVcgak2xsllm4syO-MBJZ1plKwN3pa0LJ3VBAcxz-EXfppFYh9ac15Ezo3lCX_UcptFoc4JMuv2XooGSP6yj5JJfjYpKMLbXD_Nag==",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "vinoitaliano.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEzoSLduDlGCD7lacxAkS10HKCDWqC_jP21PEf-wpYJdRgtCKjMVb-JO-KrVmr_1lqsR_TfQvX93MLQ9kGuIvbLVCxss8zeeQPXA4QD-viiXGP0wySbSvT3b7s3rVbm2uPykdkXSGfnFg==",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "luding.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGZFlfM7TyJ2HP5Del4tONJf92nbITL_pkKC8MS0FiUj3v2BRbjMx-Tlj5_TFFJyjH2D339xWlI3eBVsyWjTDlN4tHH37ryKbpUGBaQ_PiFSfWRUqWgUZyG36afDxiJl0FHUmEjrMgBM6A_Ky9sOl94r8G0Qw==",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "amwine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHfjRsL11yVMu72a-Rp4fMEgOi0dx_gO86OvucnJtfMydSe01jjMFNeIq2x9VPbek_MRK_Am9_y1YgIL8TCRbMmE4tIWnTwfn4YiiVbdlaPjKu7egwm3rdR2DhutmUlTSOyzNTYb-EiuvQ10UiZrMtAdIwsdS_QIrS_kgaM4CZkKjapPYo=",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHEC8ITYF3cbQc9a0WoEs-JcIgdPcuijZ03KPDZpDOe57EPd2f-vCJaBhn7t_pdBV_Tc5wnfgsskL2j7bQlSB2MNHvCsrc-pTun2FMYGV5pW7BofrsCpudUPgjwdpC1SuIJ-ukAqtoDMU1ClzCO6oTT4Wkdr_EaFQqluWynnZGGlrKJbI8aVSpHomfJTg==",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        },
+        {
+         "level": "web",
+         "title": "vino.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEHrpzPUbJ2rUq2Gb4EWDfHMGQat-tjzEEkFIBIDQJ-0JO4vkLYoKgyf_bOwpcUaw6HkQGYpv2ib-2cduXQC_lphML6Ubc6iAh2J4pEIvCI-ldhJGOqaaDTvNLru8WfQssNjHiDX8kP02NsaqDE_ejuSQyyoqkRuxR6XZuam-vmNM73PpwBe11Mf4Z3xYzgK2qEuzYvInIQAXEBG8BTFOMI8QM=",
+         "confidence": "low",
+         "text": "Основное различие между сухим, полусухим и полусладким вином заключается в содержании остаточного сахара после ферментации виноградного сока. Во время брожения дрожжи перерабатывают сахар в спирт, и то количество сахара, которое не было преобразовано, определяет категорию вина по сладости.\n\nВот осно"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ. Приветствие и заключение делают его более естественным."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 4,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ в целом хороший, но диапазоны сахара для полусухого и полусладкого вина отличаются от общепринятых (и от ответа A). Также, ответ A более полный и естественный."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG дала отличный и полный ответ на этот вопрос, который не требует специфических данных о молдавском вине.",
+      "retrieval_effect": "harmed",
+      "retrieval_effect_kind": "contradiction_introduced",
+      "retrieval_effect_explanation": "Извлеченные фрагменты не содержали конкретных диапазонов сахара, но, вероятно, повлияли на модель, которая в ответе B указала другие (менее точные) диапазоны для полусухого и полусладкого вина по сравнению с ответом A. Фрагменты были слишком общими и не добавили ценности.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q009",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое малолактическая ферментация и зачем она нужна?",
+     "direct": {
+      "answer": "Малолактическая ферментация, или ЯМФ, — это процесс, при котором жёсткая яблочная кислота, которая есть в винограде, превращается в более мягкую молочную кислоту. Этот процесс запускают специальные бактерии.\n\nЗачем она нужна? В основном, чтобы снизить общую кислотность вина и сделать его вкус более округлым, гладким. Ещё она может придать вину дополнительные ароматы, например, сливочные или ореховые нотки.\n\nХотите, я расскажу, в каких винах её чаще используют?",
+      "latency_ms": 1993,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 123,
+       "total_tokens": 4153
+      }
+     },
+     "rag": {
+      "answer": "Малолактическая ферментация, или МЛФ, — это вторичный процесс в виноделии. При нём резкая яблочная кислота, которая содержится в винограде, превращается в более мягкую молочную кислоту под действием специальных бактерий.\n\nЭто нужно, чтобы сделать вино менее кислотным, придать ему более округлый вкус и иногда добавить сливочные, маслянистые нотки. Хотите, я расскажу подробнее, в каких винах это чаще всего применяется?",
+      "latency_ms": 9245,
+      "retrieval_ms": 7608,
+      "generation_ms": 1637,
+      "usage": {
+       "prompt_tokens": 12505,
+       "output_tokens": 108,
+       "total_tokens": 12700
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence clearly defines malolactic fermentation and explains its purpose.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vintage-m.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGBTt0ha8UL-XN8efSg6u2d6dpnOMMTJFsXsI596A6_CnzDf_V9a-vbldKkj8hqfAmeI0Bh3yBfzKILpCBy4E4HSSLUdymhMYmT43I-ly2-W4h0jXq7C6wYxPe5b4H40IAprWoZtY0a-44YG45Sr-acLA==",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "ligasommelier.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDDRC0P-_MTMcqOOkYHxifZjFcaVknPHSG6lgYc4J-y7JzoveaE67ICCJPTQ54sxDqX2NDDyBxEZnJrd1jiLQktsAsE2MzlCxyKzxll-SQ3pVS-uw3AA0C6jbAllRqm5OyBFm3fgs1gUAaiH11fcFTX_2prbBoOiyG",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "wine.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGRO7PMAblI0Y0eXDIQB4WzDYso3S_ThgNi_OaVhk-O8fuJ2mIZclvvy0GqR54LdJZ7zLZAMVjqkQkkKQmsYVB7Nzgygol2mCOkeBl4L34wdym-UhFV_m8lPklrTk-lfKGoZXoyCBE0WNOKOxYFM7Torb4=",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "transfer-santiago.cl",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEHO5ayfqqKStokNL84UpJMxJ2oQEot3FqwDqFaFLGZQdThaATVefySltX4j9C9r2XlGgUq88rgXAysdPWVqPQZ_Px0QpQ6UVFwfRY6dHByEOe9WSG-Y-5s5dFBdJN3LeG0ZCimsxAjmlJJqt7XzqgaqTmfJKnZ-nIshhULT8s0SeAmAkk6",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "vinum.red",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFCqtb38cXx6ZRU0v-hML4bR1TAut3GYWQ_JOlA_uTBqX6KTnDTB_A6ZzisWcJGFUNl5Rn-awGDO4i8jzFmyYNW57HjPdLMXdzq4P_e-k-GS2WTzpHlwqsNz_PYBOpj1gyg0MTAayG6LKWKEKNh3a11h84MR1ABmlNH38Gi7m7TeCuozeQyqDOdnITL-a4=",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGMTuoE6U03VLsAgmya2bsq6yc2_fDZ05VFpQfgqsyEEcfDXn-Q_13KDaOeumO_yR5yZErEbjgTUF2p8N0IugQnBpZ4dmKkJsy6K9VVuj0bvQRZEnZLLTVGZ4xypP6ax_jaf_a6cEAxd1YkPiKRQpxMZiXFgx0Y0KvrWfMkUh6ADWU1qbEZyFND-q8P5miAh3p_-r0YtHj7nehcLSLSxxg=",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFuE4y3q2T9oBQ5HRQm9z61dGYwQhaO52UFPF0fOWXcbg6NBa_Q2_35IdOPBROZs8F5LPTnthZNDueeWyRhMrY9vhEYKP4OSGOegpb_lIXGucmf1g9ukwZgfBHsF3PZQ36eEhNAC4nbMvSrEN4MmhUV7uNg",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        },
+        {
+         "level": "web",
+         "title": "vino-svoe.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGw6Z4Vwb_dkaqZ-GHaoWmvTbTZPS9EVZrO6XiylnTjm4zZCDpo0HkSUECgYqbf2EwqGrbAOAA0JBsis1MsJwsF6OckPync5l-J45WQ4HM5xb0-OrcPGfZjoEyuaOsGTaytWx6hHDwSIQrJEWiIKmiEybQMGLzMq1ZpoD_-DPOY5IN-GzVAKiQsOsWtWBZECd0pREbwjDvX4d0F",
+         "confidence": "low",
+         "text": "Малолактическая ферментация (МЛФ) — это вторичный процесс в виноделии, при котором резкая яблочная кислота, содержащаяся в винограде, преобразуется в более мягкую молочную кислоту под действием молочнокислых бактерий, таких как Oenococcus oeni, Lactobacillus и Pediococcus. Этот процесс происходит по"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": ""
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": ""
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Оба ответа очень похожи и одинаково хорошо отвечают на вопрос. Извлеченные фрагменты не добавили существенной новой информации, которая бы значительно улучшила ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q010",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Почему у некоторых вин на стенках бокала появляются «ножки»?",
+     "direct": {
+      "answer": "А, вы про \"ножки\" или \"слезы\" вина! Это очень интересное явление, и оно связано с физическими свойствами вина, а именно с его плотностью и испарением спирта.\n\nЕсли коротко, то \"ножки\" появляются из-за разницы в поверхностном натяжении между спиртом и водой в вине. Когда спирт испаряется со стенок бокала, вода остается, и из-за поверхностного натяжения она собирается в капли, которые потом стекают вниз.\n\nХотите, я расскажу подробнее, как это работает?",
+      "latency_ms": 1759,
+      "usage": {
+       "prompt_tokens": 3886,
+       "output_tokens": 132,
+       "total_tokens": 4093
+      }
+     },
+     "rag": {
+      "answer": "Это физическое явление, которое называется эффект Марангони. Оно возникает из-за разницы в поверхностном натяжении между спиртом и водой в вине.\n\nСпирт испаряется быстрее, чем вода, и у него ниже поверхностное натяжение. Это создаёт движение жидкости вверх по стенкам бокала, а затем она собирается в капли и стекает вниз, образуя те самые «ножки».",
+      "latency_ms": 10814,
+      "retrieval_ms": 9064,
+      "generation_ms": 1750,
+      "usage": {
+       "prompt_tokens": 13055,
+       "output_tokens": 94,
+       "total_tokens": 13236
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly explains why 'legs' appear on wine glasses, attributing it to the Marangoni effect and the difference in surface tension between alcohol and water.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "zbtour.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGCe17yHUW1-8WUvl0f9iQRlPgdqO0-CZ744gG24ZAW5biK5ABz_Vx7UxN8vSam23XW3Sz4ijV5_tIBLB8K91huYIdXq0D8T7XHbhpO1lzoD2C5bNTY05Sambv8Vt4Y2MdbMG1nK_KSpuXg-_U4kzd6myY=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEU5Y6qLDBQhinezk_FkHSZLlhanzCicqjXPKzZbeb-uIAq9gmgdVC8_Idruv-OgyIkGGL8o6GcYPzPefIndlakOY8UOVDX68rhWDSgohzroAI9Ig4mwu_UID5Efm3yu2tRV5Bt7MHhK5UJPq2GhkV56B370G1i6M0fGBH9gF9xOKzrHAEm5J0UD7Pfw6Y4afFuALuvt-syKFf8Fx2Bka2KTXCTcdTGp3t8Vj5njrp8YTDE4rE=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "winekeys.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGI5a25QQkQD7nL_07LRABH_fyXvbALrHtblfr6_y9jRJ9SI9O0T7kLTOGvaut923iubrCX6KYIxMsSFNWM_0ZIh8azMdaCt3n48IN-WgmEePKAP4v4Mb1dVRBsmz2xJyfgM9dXZmcWXsu4WbTD_cKlTzr-Bo6d3EJGM5ky0aZXc7RHJZfa71tx_7ewi47T750h2pzHrGE=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "alkogol.news",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFtAzNwCLyuUsesUBxW6cDFsAoOkEunkMg1GGcZAx5BmEHEYK1im9tF3pDJSUgxKbS6HVHkG1Lu1FvtQP2oZya1EKAJwuHOZicEOfZmiFSAh4Agc76lkRKUbmgG7G4ma84eO_qmjSpAgkqN75XT1KM_sVj1-a8lnuHBpFANPNFhOBDofTZYjWYd_w3I5irn4X4=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGL6t3RYVgTmHcEGqXKMM0pnuiZvLLB5E25uzGo1P6DNktA3ULPP3BOP8Qrf6QVqQ2foGZNHR1LAO-Cpk_sqcxRllU9HMr2upovpEvbg5xM9zhHJS64ZTqgSuOj1rHzPDHNfigvTwMK0EoiD4h8v9eehYnj0EXtjiJmoFqiGlQzmXhKE2_ohlHs976fOM2ES9o=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "comsol.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEvUybRVq33HyWWQPk-Gr47yw6l28EXMNSb8WJqu4VoZL6J0aUpkkGAY2tfdW-30MubrbvksdnMtr-ZmoYuMusDTogG8giGy_LGwftP7nIU9IqWPIOemU4SJQl50u920C7pVVhB8K7L59NvdP3NH5oqQu8RQT606rWWTLMrrhc=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "vino-svoe.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEdip-gWXsv2kFySyBAdR17HNyD3jIAab79Qluxc7ZbaHEIRK79XcaGaVvaSsfq7FmTTE5IEIDRtK3sIW6bXwqOdnAbnwVSaeaDOJwaGL1MXDG6u-D5kx5Ds9v0LS67loQQtrLleq5UXwqNMKDZSp-4Noae_YkwyfcHW2Pb_E78Qn7tRWe75bcchKR7m50=",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGYHhn7h7OqDYYHk3vHMbbm0xYwoO9OFB462kqJb75YN8bWOvbR__B_ro3yrws4G-l49akSsbpbXcxZ7zHDJco8N7PFb1ldqiCffCIZUcQ2M0A0B74xIPscejKZhWlSAZzX3SBgjbOVjDdN_kaL7A8dWMRft3BypdTo9qpWpR8IhRfjqQ==",
+         "confidence": "low",
+         "text": "«Ножки» или «слезы» на стенках бокала с вином — это физическое явление, известное как эффект Марангони, которое возникает из-за разницы в поверхностном натяжении между спиртом и водой.\n\nВот как это происходит:\n*   **Состав вина.** Вино состоит преимущественно из воды и этанола (спирта), а также соде"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректно объясняет явление, используя понятный язык. Предложение рассказать подробнее - хороший ход для голосового ассистента."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректен, но немного более сухой, чем прямой ответ. Упоминание эффекта Марангони добавляет точности, но не является критически важным для понимания сути явления."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Прямой ответ уже достаточно хорошо объясняет явление, без необходимости в дополнительных данных.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтверждают информацию, уже известную модели, и добавляют термин 'эффект Марангони', что не меняет сути ответа для пользователя.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q012",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что такое биодинамическое виноделие?",
+     "direct": {
+      "answer": "Биодинамическое виноделие — это подход к выращиванию винограда и производству вина, который рассматривает виноградник как единую живую систему. Он основан на принципах биодинамического земледелия, разработанных Рудольфом Штайнером.\n\nСуть в том, что все процессы на винограднике — от посадки до сбора урожая — синхронизируются с лунными и планетарными циклами. Также используются специальные натуральные препараты для улучшения почвы и здоровья лозы, а химические удобрения и пестициды полностью исключаются.\n\nХотите, расскажу подробнее о каких-то конкретных аспектах?",
+      "latency_ms": 1996,
+      "usage": {
+       "prompt_tokens": 3880,
+       "output_tokens": 142,
+       "total_tokens": 4124
+      }
+     },
+     "rag": {
+      "answer": "Биодинамическое виноделие — это особый подход к выращиванию винограда и производству вина. Оно основано на строгих сельскохозяйственных стандартах, которые рассматривают виноградник как единую, живую экосистему.\n\nЭто не просто отказ от химикатов, а целая философия, где учитываются даже фазы луны и планет.",
+      "latency_ms": 8643,
+      "retrieval_ms": 7209,
+      "generation_ms": 1434,
+      "usage": {
+       "prompt_tokens": 13058,
+       "output_tokens": 79,
+       "total_tokens": 13182
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides a direct definition of biodynamic winemaking.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wikipedia.org",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHkdAcSqA23X5MhDIT9kK3B8AW2XDFvucLHljbJF-uzvo6zNNZrPha68oTuCAyyGNWiA-vkWnt_qrvg1fYcjGRbUhlw7M0Ra_3irRn0xpphbHS1ggTtCdvUWWc9Zi4NPaGwwykY3hIgbHDgCP5OEBSOD2dcoFju-PFtxNAh5sMFkCiZyf-4y6Rw2FzHc_fd3AaLn3wW-foOquJwN-O4Lc-LlELmUFr-wyfJw1dbifQItZ1cotJr7DlXu4NX4Gmq3oMgHbVC-Mbk5zGRj-HQPdSCOCuV1hCekY70byeh_gubfky2IA54LlXD_xBl",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "tourist.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQExkJNqiSIHv7kIwdUY74i28xd8MzFNi0Oopn-8MxoH_OQQlL1q3ALlmHUHah2BVP2nT1uWkPdD2GjJoNJ8nSyZbISvl1hfEqBaxX4I9zHC1b3EkoXqGH7MuA6c8Rwi5lmGaCuf_9XR8IS5x5Q=",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "mozart-wineacademy.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE8zSedmX2d-sA7siNMaT9EOodTf6lOhPFk25IDRsIYweKjxJ7qsoZkdB39237dCRuRf7ghzgX-x08duwTL8GF4AHpz7dNMO5KTtJjyDNKb9_HYH2R0KMWglDQom6IX-rugeAFowVFMbcmf5LQ3R_uepVbl-bhB2xybCCMgy1YHuoMn8EuN4dGu2M-IOwm4W59zIg==",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "alcomag.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH-n9P2N7kZEnRNIxuAYSWqYFYYLNx-JnW2mvC9J1s3g6UEJrTe9_5vhbkGRUPqnC8M2ZZ518HTr3xJ6BBYqtE-dUVYRnfecx7NSrVQXPqlYBiqGcO8c0bVz0KZpE1mNaraIkP6QLG_kc4kEGJH6LEghgQzmIBOl5e6s_Er1kyoMt_rgGuszCCt",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "winekeys.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGdKdQ4Zy94IL7yDYqT-olABWxFQiF0ggUDFLSqZ58utX3WI1WAAfs-5pF7238qoE1EiL-Ht3Y7pr4gytidAHZki-b6DCBzZDfkeozanzC1TfjcHZJ2qiDBkj19oFw3yTq9IJI3ofnqeOrROu3Hr6DmRxnWmgxE0wJY4TtbjxAz2ZY-DUo5ySUY-fC0xaeVCJSeCHU636JGZ_6qhMdh",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "simplewine.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFxPG7g3LuWyJ1h4KLlBJCo_70p5TnP-QbcpdwftdtWjZQoCqvdz0fzkF9pT5NF1lz_Tc2lzrwLG8Qy5Mz1XIIjJ6NJafOPqk_eE7bWNk04b6m1x--pX7KUMEiFMDg4m_QZapI8YKbfcdUbxqHcb5LTdrfqvWO-IWd307aLLJPhIdRS0s--mObHlSFQoAlOlYk=",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "winestyle.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGVd2hX5IHkcavyTsO1li8VbNweKx_-d0W0sdC6P7WT-NX4XpXSHzGoSq6wmlwm_mz1TC_GvScBpsmYc5GGUxgl2O9-kGvjqbIBr7-WZqY41AMXaNylqizp9gOf3uPQUlmruQslu5bo51W6gCTOAONZa_mFc3trAg==",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        },
+        {
+         "level": "web",
+         "title": "vinoterra.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGPe5X6BuTJlQ382x_190HO8p4MCC5gQ2LwaQIlO8BWSVf25B7K4JG40QzWzKsukFhtFoNa2nJ6mrbE_awQrm0VqI38LSiLIX89NzWyDVIGJxsM0-ikNZYDLj7GmOhK50i_jihW_qIVJILar2c0sh4UoQIY_TJyq0CXuOIuUH3VOAif6oNhE2CcyhnPir_XC5RawAIt2tDP5QciJA==",
+         "confidence": "low",
+         "text": "Биодинамическое виноделие — это метод производства вина, основанный на особых сельскохозяйственных подходах к выращиванию винограда и его последующей переработке, которые регулируются строгими стандартами. Это не просто отказ от химикатов, а целая философия, рассматривающая виноградник как единый, с"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Отличный, полный и точный ответ, который хорошо объясняет суть биодинамического виноделия."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 4,
+       "unverified_specific_claims": [],
+       "notes": "Ответ корректный, но менее полный, чем прямой ответ. Фрагменты были слишком общими и повторяющимися, что не позволило RAG-модели добавить существенной информации."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Прямой ответ уже был достаточно полным и точным, чтобы ответить на вопрос о том, что такое биодинамическое виноделие. Дополнительная информация из фрагментов не добавила существенной ценности.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты были очень похожи и содержали лишь базовое определение, которое модель уже знала. Они не добавили новой или более глубокой информации, которая могла бы улучшить ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q011",
+   "class": "general_wine_knowledge",
+   "prior": "DIRECT_OK",
+   "lang": "en",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "What is the difference between Pinot Noir from Burgundy and from Oregon?",
+     "direct": {
+      "answer": "Интересный вопрос! Pinot Noir из Бургундии и из Орегона — это как два разных характера одного и того же сорта, хотя оба прекрасны.\n\nБургундский Пино Нуар — это классика. Он обычно более элегантный, с тонкими ароматами красных ягод, грибов, влажной земли и иногда лёгкими животными нотками. У него часто высокая кислотность и умеренные танины, что делает его очень гастрономичным.\n\nПино Нуар из Орегона, особенно из долины Уилламетт, часто бывает более фруктовым и ярким. В нём можно найти ноты спелой вишни, малины, иногда даже ежевики, с оттенками специй и ванили, если вино выдерживалось в дубе. Он обычно чуть плотнее и насыщеннее по стилю, чем его бургундский собрат.\n\nГлавное отличие — это, конечно, терруар и климат. Бургундия — это старый свет с прохладным континентальным климатом и уникальными известняковыми почвами, что даёт вину тонкость и минеральность. Орегон же имеет более мягкий, морской климат и вулканические почвы, что способствует более яркой фруктовости.\n\nХотите, я расскажу подробнее о каком-то из этих регионов?",
+      "latency_ms": 3141,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 297,
+       "total_tokens": 4362
+      }
+     },
+     "rag": {
+      "answer": "Разница между Пино Нуар из Бургундии и Орегона довольно заметна, хотя это и один сорт винограда. В основном, эти отличия связаны с терруаром — климатом, почвами и традициями виноделия.\n\nБургундский Пино Нуар, как правило, более элегантный и утонченный. В его аромате и вкусе часто можно уловить ноты красных ягод, таких как вишня и клюква, а также землистые оттенки, грибы, влажный лес и иногда легкие пряности. Он отличается высокой кислотностью и более тонкими танинами, что делает его очень гастрономичным.\n\nПино Нуар из Орегона, особенно из долины Уилламетт, обычно более фруктовый и насыщенный. В нем часто преобладают яркие ноты спелой красной вишни, малины, клубники, иногда с оттенками черных фруктов и сладких специй, таких как ваниль или корица, если вино выдерживалось в дубе. Он может быть чуть более полнотелым и с более мягкими танинами, чем его бургундский собрат.\n\nОба стиля прекрасны, но предлагают разный опыт. Хотите, я расскажу подробнее о каком-то из них?",
+      "latency_ms": 17377,
+      "retrieval_ms": 12238,
+      "generation_ms": 5139,
+      "usage": {
+       "prompt_tokens": 12306,
+       "output_tokens": 286,
+       "total_tokens": 13116
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence states that there are distinct characteristics but does not elaborate on what those differences are.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "general_knowledge",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "wsjwine.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHHWEr3Z_A4KL-QJHkV-dfXAuXrXyQY_IFofm7ZK2I-5L2atil16PynLtbYHhJIM5brZMMz7zXLKbiEJCcoSBtvQZmvjpILXIEsoDEPbLoNFVCpzoI00M-SriHRZazaa4UJ8R0wdxMLqJh_vWF7YxzPcCEhKVJFBtGbI-llJg==",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "bottlestork.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFboV5U8sAqz1S2a0WKiBEdyjKOI4t74P-AtkN7iSmL57MvKfL2ZBeX8-MaEh4BPo8WI6wj1jozdfLbAYHWDDGwkb1Q8278R3D4fwWSJn4ugV_xgEqFOkyvu5onf64vVvIvgm-vTrOdpZiU-Gd1uO7S8yGiOEiu",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "somm.us",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGDeBOjHhQEzEoA7V3NCENojtfz3Boj3J4n-j6xahHS0-XcahvPKWWsQFLG2p0iXs0stooFh2rXwT17aVLKS6oPwtxVh6r1HD8FuU3dtTYANKxOrKHFFUJ_5bbV1G29sTlzBdvBTjgP_9XLgQM=",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "cellaraiders.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGcHcXsz9JpodP2CBQRrSbje1h0DOHkxOf50nskF4UIuuh8-DuuGcuNre_5TfuUiCwh6axRhG30QvYRs3hyaOuwpcPjRtN2CalVWbg8yUD9TWhkbdyb__IRYZUGl4aihR64hTxSUZzjb5ihzSSiwCnnocK5LuQvOrV3jxCGbHWFW1DHoOazC16HuI_H5WfQzF0M",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "aroundtheworldin80harvests.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGvjhV3MgHXgYBZlk_QkolzkMjSVXDRJpq57awQrxPJ2LAcAppz-qDbrL--a0EHb3Yn1HfzXYNil1t-0x56lZb76kFWhsTbnJ60x6ovEjs7JyqtFXjs30zdeDJUw8S4yfbwaS3KP6MpCzTzK3zUNNayE1xGV37Nb8bBIxbW5SWk0XcDTmK-bxnr1B5uk4uKPevi2As=",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "lonesomerock.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEGJppai6db_Q0Jcrv9w2rydUTzoBpc0aE8g0n49d0aos3ikndQwd8TB-sZ6FflKnjIk-3eUyVxhssBK9d1a7-PhyedST5PFinEGYp-vG0GC95lMb9cz7QYNMwTSbYlPZK-OOwkoDMED3gGJfeUDNjE49A7s6uUKiLroxFLX7-X_QKrMimZyujDcMvsA7tSMr8YiOs=",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "bourgogne-wines.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFglro0HDxAPTOLdfyOfA2SjZnzmmR5eI6sCMm1ASNbJXB45PxUrOih3Z_3eQZwa6Ovm2kR5LPdLVnJUYwLWj8-4UWHRQAs9ivoCxZenkH18cr08gFLJWu_bsiibRPHaLWzLahgQT0ANw8BaX7136SxguVarcSUJltr3tCmssLk5yySTyAChhKi9yldKVax5oQ6zpdvGk-gsP5mWwv9eVs2idjWwA==",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        },
+        {
+         "level": "web",
+         "title": "burgundywine.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHZoZsQVZc_08RYmTn6kkzIaBmYOMedspq2W4G0Qg3KXo9LdscVddppyOx501nQ_yDtAjVRGCAVaGbcmn8LkpP-D1IDTMn0iN_qr5G6R__TEnNVPqSDDjfU4EpAhwpeGw5jjHM_5Yt5hw==",
+         "confidence": "low",
+         "text": "Pinot Noir from Burgundy, France, and Oregon, United States, share the same grape variety but express distinct characteristics influenced by their unique terroirs, encompassing climate, soil, winemaking traditions, and resulting flavor profiles.\n\n**Burgundy Pinot Noir**\nBurgundy is the ancestral hom"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "The direct answer provides a comprehensive and accurate comparison of Pinot Noir from Burgundy and Oregon, covering flavor profiles, acidity, tannins, and the influence of terroir and climate. The language is natural and engaging, suitable for a voice assistant."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "The RAG answer also provides an excellent comparison, very similar to the direct answer. It accurately describes the characteristics of both wines and attributes the differences to terroir. The language is natural and appropriate."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "The model's internal knowledge was sufficient to provide a high-quality, factual, and relevant answer without needing external data. The retrieved fragments were too generic to add specific value.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "The retrieved fragments were very generic and did not provide any specific details that were not already present in the direct answer. They merely stated that Pinot Noir from Burgundy and Oregon have distinct characteristics due to terroir, which the model already knew and elaborated upon. Therefore, retrieval had no significant effect on the quality of the answer.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q014",
+   "class": "food_pairing",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Что налить к жирной рыбе вроде лосося?",
+     "direct": {
+      "answer": "К жирной рыбе, такой как лосось, хорошо подойдут белые вина с хорошей кислотностью или лёгкие красные.\n\nИз белых вин я бы посоветовал Шардоне, особенно если оно не сильно выдержано в дубе, или Пино Гриджо. Их свежесть хорошо сбалансирует жирность рыбы.\n\nЕсли вы предпочитаете красные, то лёгкие варианты Пино Нуар будут отличным выбором.",
+      "latency_ms": 2440,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 102,
+       "total_tokens": 4172
+      }
+     },
+     "rag": {
+      "answer": "К жирной рыбе, такой как лосось, отлично подойдут насыщенные белые вина, некоторые розовые или даже лёгкие красные.\n\nНапример, выдержанное в дубе Шардоне — это классический вариант. Его маслянистость хорошо сочетается с текстурой рыбы. Также можно рассмотреть Пино Нуар, если вы предпочитаете красное, но важно, чтобы оно было лёгким и не слишком танинным.\n\nВыбор вина, конечно, будет зависеть и от способа приготовления лосося, а также от соусов и специй. Хотите, я расскажу подробнее о конкретных молдавских винах, которые могли бы подойти?",
+      "latency_ms": 8208,
+      "retrieval_ms": 6278,
+      "generation_ms": 1930,
+      "usage": {
+       "prompt_tokens": 12659,
+       "output_tokens": 148,
+       "total_tokens": 12902
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly answers the question by suggesting several types of wine for fatty fish like salmon.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "off_topic_factual",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vino-vino.pl",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGCPNPDDwBl3626AjqclggJDwQhYoF9n-OtgGv-rZL_dWXDybxAU0658T5H2zJSr38RzxoxiPcr1e5ZVeXDaZ1awariG2obH9gsPf0q_P4dKfA00sVuAC1G0qKs7K0hHD8xvFcNDKQxD4biew==",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "moncafetver.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGYMaANnNZrGhl3J54HMf0_D8eEXkZ8B15lcKWsPLqIDDS38LRmvYh5gfg9cQdMoVPP6Cv8tOJg1OOyaDSBjGUBMO2CSBWvO1LIoPEAQzRJgz-RNX8idTOYIbNsilOsP7MPLDWVA2aoQ5RP18pUMsiYOU3ZBdl36tPL3g==",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "metro-cc.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGfW4-0pyq6L2H_WnqvXs0tl3tX9Dip7X2ZGYpbhHnBJXyl_aAeqktXbcIiwLZ3uZ2wZQhYaJXaUoXjEndHRMToOpZI3hgSJHFP2FhVENFzT6_K_0w_BVKjTnLA3EzZ-_hNhsrj1KubJ6Ov0-qSKcA9",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "moretorg55.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFLF3ICLjeQx4pmoMeBYrZ3yL4rRuLF3iJD3ErLs5mmUMKNpBwfi2BveLHk5Jry-lNENqZxQhmnrs00cfEKJPxYGIii28qU9-nz7PUAn1-ns1BM7bhR1ssi_fwJfIh69u6nUQWWAPhlid2lFyfzoGJ8REaHzgzVtlYFH1ibkAlpSXYqibYD7KHbAfsUlkCG_gOM-8Ic",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "vino.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEcz-Gn97z6Oyucu7fLGPZA2CuUxCGOWFy3_iUV9uoXlmw2JcW1Pv_oz5ofAn7BP3HPAporqmMmVCJbuZ5Opti8Dz5_mMw32X_yHj8-GEWKHBg6HKSAezWvpFsxtM6QOG121l3yP8GM6EK_QbOP8M4lrJyZ_CNo8MZt6MC7bLxlUBkqSWIO6SZ-kaNgd9NxtLqIklpNAntWHgnwE6-i-XX1swdaeTENUHQVwJrQEq-_vxQ=",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "winepark.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFvKEwpFeSQolGm94BX2sQq-vJENOkzaBPLdj11XL0QPbcOFIdu6Wj4NJifLucWNcl_zibNJZiCnwqzJf8SYOICFecXgZkCYmMePiVM5zwUDaNtNfxp-UnqYWR0almlNusI2Q7VnHY=",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "nataliiawines.com.ua",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG3D4VReCKIZdTrpR2tV0tMZ1k-_YMuRvCGhvCB11OoBBYAzvCZDK4xmATpfoMK4XvUbGPVgL2qgEziTAdWSew_syZ52DKkC1VaABuHE7-Kp-2GmKjRb-Jm_KoUCwWqOqvR9PuTD8mzJDfJs05Mxtc8K0EO_cfmvPpPyctvLzxA8-pHzoIQQ4gqTBg=",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        },
+        {
+         "level": "web",
+         "title": "bestwine24.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEUHPLawZ7pn_QeEPR0nRzazB0NI9ge8JBp5AA8afcTYirMUviPQU1if0IOJ4sdBcCa4PmsbYKl8tc3x87c6AD56kBZb_3cT6BICg4n6HMxnr3Np7nTt0SXQPB4My1i1dVuAz4Y4mb8PTvXDUhP103XPTY0ZS08k2--ZI_Tk_T4",
+         "confidence": "low",
+         "text": "К жирной рыбе, такой как лосось, подойдут насыщенные белые, некоторые розовые и даже легкие красные вина. Выбор напитка зависит от способа приготовления рыбы, соусов и специй.\n\n**Белые вина:**\n*   **Шардоне (выдержанное в дубе)**: Классический вариант к лососю, особенно если оно маслянистое и изящно"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, но не предлагает молдавских вин, что является основной задачей сомелье."
+      },
+      "rag": {
+       "quality": 5,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ более полный, учитывает нюансы приготовления и предлагает дальнейшее взаимодействие с пользователем, что соответствует роли сомелье."
+      },
+      "grounding_necessary": true,
+      "grounding_necessary_reason": "Хотя прямой ответ был хорош, RAG-ответ смог добавить важные детали (например, про выдержанное в дубе Шардоне) и, что более важно, предложил дальнейшее взаимодействие, связанное с молдавскими винами, что является ключевой функцией WINE AI.",
+      "retrieval_effect": "helped",
+      "retrieval_effect_kind": "added_verified_specifics",
+      "retrieval_effect_explanation": "Извлеченные фрагменты подтвердили и расширили рекомендации по винам, особенно в отношении Шардоне, и позволили добавить важный контекст о зависимости выбора от способа приготовления и соусов. Также, RAG-ответ смог предложить дальнейшее взаимодействие, связанное с молдавскими винами, что является ключевой функцией WINE AI.",
+      "verdict": "GROUNDING_REQUIRED"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q013",
+   "class": "food_pairing",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какое вино подойдёт к стейку рибай?",
+     "direct": {
+      "answer": "К стейку рибай, который довольно жирный и насыщенный, отлично подойдут плотные, полнотелые красные вина с хорошей структурой и танинами.\n\nВ Молдове я бы порекомендовал обратить внимание на вина из сортов Fetească Neagră или Rară Neagră. Они обычно обладают достаточной мощью и фруктовостью, чтобы выдержать вкус мяса, а их танины хорошо справятся с жирностью стейка.\n\nХотите, расскажу подробнее о каком-то из этих сортов?",
+      "latency_ms": 1931,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 120,
+       "total_tokens": 4102
+      }
+     },
+     "rag": {
+      "answer": "К стейку рибай отлично подойдут насыщенные красные вина с выраженными танинами и хорошей кислотностью. Классический выбор здесь — это, конечно, Каберне Совиньон.\n\nЕго плотность и танины прекрасно балансируют жирность мяса, а высокая кислотность помогает раскрыть вкус стейка. Если вы хотите попробовать что-то из молдавских вин, я бы посоветовал обратить внимание на Fetească Neagră или Rară Neagră. Эти сорта тоже дают достаточно мощные и структурные вина, которые хорошо справятся с таким блюдом.",
+      "latency_ms": 12353,
+      "retrieval_ms": 9267,
+      "generation_ms": 3086,
+      "usage": {
+       "prompt_tokens": 12198,
+       "output_tokens": 133,
+       "total_tokens": 12620
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence directly states that Cabernet Sauvignon is a classic choice for ribeye steak.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "found",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vk.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHqJZu5fxAbNpqPre1FExWNC1RCZ8KPgPyh3qOnB_d8OhlqhKKZ20CCUkg5IBuORC-PHQVCET4s7h9lJ07szZsuGsLZOSScHrcIL7g5EXbNda7GoH-fsh2XarIkJA==",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "luding.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHtlSLE5ahM-95fRtVGgmSMW8DX0Vi_PRMXzwFAaPie_6p_v7MwFAiuMiw6W-3mmr9LZXjp5QBZEiEiOCBDLmSX-VqFuOfem4A7mVjLnHZbLgol3WGosU3pmkKP39yPTS5-D4eV-bLVKW9mdiCMBgTcANtgRwAwt5ufEJtGhobh9lSWXAkXQ7GQh-Ni5JJSCQQYuej0YiJ6tEA=",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "reddit.com",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGnQEIWcFwWwmifELfoMmogCP6toNrTIP5cOSPLHbyBJEXNDOkh7aQjfFSrGDs0QPlRs4JepJCcgpk07lUIWM0UU57p1GdoIRIkDYgx7CWb-2sHveA12M8_4LLK3B9zWQuhw9RLEo7rKuDWz3K3RuewnOdrbbtLQsJZVMRM_oURdTv9nwzXifooz3zwEDNN",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "chefrestoran.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEQwmoPIjtjxdXjD_bUoI7J6TGwb8XJaMIoFTMl7i2lOiGuTpKUuZLjCfYe_cDOCthQ7Q6cRhwRKtBwoBbc1nT71_4mRXDpEYA6D234j3sQFlHwJfVTxWAFIipc8V8FhmFv02OAKkcY2tdOcwTvLgvd2cs=",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "amelia.shop",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEzplasIQAYUv-qiEpR3p894wrIS386yWZpLL1vMfQU-i5kXspi06Egg6MDj8BCmvALWiQviP24dFbOEvY_2d3gFESt3V31Qb3znJGyWvhtWM0BUHc4q1OsxQrcoH6t4p0XuYQWTsz0gr4djjSg39gUBeSbP45IqQ==",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF6TsNug1U4Zoe1RqlbEIkJ2blZpq912dkvedvpjfuFR2Pt2I6FRZKy8LFg2pLTrZm0T-fBu-wZaPL2QamgBh-1gREc89Xllx_ELOHB_aUaYcZaq0yrdRCZsS21EYQe-mULjFjYUj8HkixhqtqHI3HffdsUxYpYAhBiwXP4T-GELpfvCaJxXTu3iD39KlaI",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "luding.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG7Y_Er-kMt61iX5cUBvdzWc8mMRtG0O0p-bIKpfOGsBNuqJmZb3-Q2PS2gRPUaqnwH6kMbdq9ljfiAy2Zeh4GfeFtJyc7eDA6RJc-RhPt7RwbEdh7n81vdWdcwdQFILPTrQV7o7MQ9FOfEIDjaM9b2K12W3A==",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        },
+        {
+         "level": "web",
+         "title": "dzen.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHiK0_3ubpku092u_c30M7ZVpZ7JR6rYu_g955KQ8fD0KA8JsIHc0O7thBxwz0Z7Lu2ta0V7c99Ot-PkYuH85uD1MrvftttNQ1HcFcKtVqdnVuWIAqf0WvDCk5ngdI=",
+         "confidence": "low",
+         "text": "К стейку рибай идеально подходят насыщенные красные вина с выраженными танинами и хорошей кислотностью, которые помогают сбалансировать жирность мяса и раскрыть его вкус. Вот несколько рекомендуемых вариантов:\n\n*   **Каберне Совиньон** — это классический выбор, который часто рекомендуют к рибаю. Его"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, предлагает молдавские вина, что соответствует специализации бота."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ также хорош, но добавление Каберне Совиньон в начале, хотя и является классическим выбором, не добавляет уникальности или специфики молдавского вина, что является основной задачей бота."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель уже знает общие рекомендации по сочетанию вина и мяса, а также о молдавских сортах, подходящих для таких блюд.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты в основном повторяют общие рекомендации, которые модель уже знает, и не добавляют специфической информации о молдавских винах, которая могла бы улучшить ответ.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  },
+  {
+   "id": "q015",
+   "class": "food_pairing",
+   "prior": "DIRECT_OK",
+   "lang": "ru",
+   "steps": [
+    {
+     "turn": 1,
+     "question": "Какое вино к острой азиатской кухне?",
+     "direct": {
+      "answer": "К острой азиатской кухне отлично подойдут вина, которые могут смягчить остроту и освежить вкус.\n\nЯ бы рекомендовал обратить внимание на полусухие или полусладкие белые вина. Например, из сорта Виорика (Viorica) — его ароматность и лёгкая сладость хорошо справятся со специями. Ещё можно рассмотреть вина из Фетяска Албэ (Fetească Albă) или Фетяска Регалэ (Fetească Regală) в полусухом стиле.\n\nЕсли вы предпочитаете красное, то выбирайте лёгкие, фруктовые вина с невысоким содержанием танинов, чтобы они не конфликтовали с остротой.",
+      "latency_ms": 2821,
+      "usage": {
+       "prompt_tokens": 3883,
+       "output_tokens": 156,
+       "total_tokens": 4268
+      }
+     },
+     "rag": {
+      "answer": "К острой азиатской кухне отлично подойдут вина, которые могут смягчить остроту и при этом не потеряться на фоне ярких вкусов.\n\nЯ бы рекомендовал обратить внимание на ароматные белые вина с небольшой остаточной сладостью. Они хорошо балансируют остроту, кислотность и умами в блюдах. Например, это могут быть Gewürztraminer, Riesling (особенно полусухой или полусладкий), или, если говорить о молдавских винах, Viorica. Её цветочные и фруктовые ноты прекрасно сочетаются с такими блюдами.\n\nК менее острым, но насыщенным азиатским блюдам можно рассмотреть лёгкие красные вина с низким содержанием танинов, слегка охлаждённые.\n\nХотите, я расскажу подробнее о конкретных сортах?",
+      "latency_ms": 20052,
+      "retrieval_ms": 17042,
+      "generation_ms": 3010,
+      "usage": {
+       "prompt_tokens": 12217,
+       "output_tokens": 179,
+       "total_tokens": 12624
+      },
+      "retrieval": {
+       "found": true,
+       "answerable": true,
+       "answerability_reason": "The evidence provides general principles for pairing wine with spicy Asian cuisine but does not name specific wines.",
+       "claim_class": "general_knowledge",
+       "entity_match": "not_applicable",
+       "status": "general_knowledge",
+       "web_used": true,
+       "web_reason": "general_wine_topic",
+       "used_levels": [
+        "web"
+       ],
+       "evidence": [
+        {
+         "level": "web",
+         "title": "vino-svoe.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHYGGm0RmFVBBIytEm4usc3HTzyepu1uZcjNrVl5HKEoxAJh8QJRNhB5D6AvlOWVOR3wRkY1mDbq65tFjqvjPu5tT0iMoMDd8xaISgMmoBZFTq_tVevG2PfCILNbGP8FnX8MlQn67VlD3jmmfYcTcqXQo6pyCcB7ageNxxBHwOSzfhq8Sp7k56v8rVsn0j4V2ywo_jzHg==",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "swn.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG5sYXw_4Si4dczR-EQoXG7qXKVA4fQAEO_Q25LbjGdLhkfEEKdqeJ1gHXGozlTZqFltin5ocycatBCdL7T0xJxF1UQwoI_lP4QSTqtSuGP2Kum6RylU2dfXIubOuqi6pvYjG7Idq8oWPlGrjhWxUWkHEZOvx3M",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "winestreet.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHRx_Mpdt2gtamKLab19TxBfb5M1HmHQdFwYasygkBYXyhZtKqeyzcHoevZYUoP4pRmZtEgjLeVck3qYNJFgstbuecy2cKjCzpwk6IMijNFG6WTrjVzXhmrV48eglpcnQJ7u2xJpGWuXYeicyKm9g==",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "vinoterra.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGUhP9b2AoTfXLiENH5hVxqRedzuT8_L6A9eDvNuFc7WHz8SetJ1eO1AT6Jk1IVKkm8rfydIeT5QCPdzBHNVW4xDnQYcdffqWQyuxIxB5hB3ZsZr9JI5IDvIDaZ-DYkQdNVGi1nEcgrr-Sr4Zat_xaOXDofPy9Gs7I94_JnNG--x4gcjvEoIWAR",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "amelia.shop",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGZ2VXVE7x6gI2JBrVdZfPvj0grAa3kqAhKuMRWn78YT82lCCUKYk9X3c4SRt6XLBMB9cx7A2kStzrIfZI085eARVXFrvxjuflkymqkjjFiiOHwLe-FTyxedNMb5J9ElO7udaaD7GGsGX6cGIPvxY6oZ8R_Eg==",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "700ml.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFTz0c-ZLhAeKiVH4tpTY-PdBz5aUdjYQdqWuPRJvCz2aoa7z00FkY_HPBbd7cslZXokzPS0otc7Tnx2H7J_VuFwum1jttMGTgXmk-gzbV5c-AIj_P1deBRT8bXNLpgGTaVJh6ut9gWqhw=",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "dobro.wine",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGeediP8bsLSDcsHu5owCEG9qhoQoxLxmTDKSI8BDAZ1nMJvx2QRJKcn9udExk1Au1vblkMXMhRw5wB0-HDhk2aFIOvkGPO88ZIW29egNr5Ab-l4jnvEXMD3-A_zxpr3RUehVXV0xi2RI-AyG_e5n6IDlkRx2OY6BO1yEBQGKaA",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        },
+        {
+         "level": "web",
+         "title": "decanter.ru",
+         "source": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFgKwgmfTdhPRLblZDxlkV3VNnudcUau4bIa6Uytw0bTKOdzgF7zSfIpXpbL53T9GQXXbfN_KayThFT_CaDpMVj7GO28-bEbcSC-Qdy8jqRiQIOshe6SGiGW0GfjDrb7t4tNSdLYf8F",
+         "confidence": "low",
+         "text": "Для острой азиатской кухни идеально подходят вина, которые могут сбалансировать остроту, кислотность, сладость и умами, не перебивая при этом сложные ароматы блюд. Основные рекомендации по выбору вина включают:\n\n**Общие принципы:**\n*   **Сладость:** Вина с легкой остаточной сладостью хорошо нейтрали"
+        }
+       ]
+      }
+     },
+     "judge": {
+      "direct": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ хороший, предлагает конкретные молдавские сорта, что соответствует специализации сомелье."
+      },
+      "rag": {
+       "quality": 4,
+       "factuality": 5,
+       "relevance": 5,
+       "naturalness": 5,
+       "unverified_specific_claims": [],
+       "notes": "Ответ также хороший, но извлеченные фрагменты не добавили никакой новой информации, кроме общих принципов, которые модель уже знала. Предложенные сорта (Gewürztraminer, Riesling) не являются молдавскими, хотя Viorica упомянута."
+      },
+      "grounding_necessary": false,
+      "grounding_necessary_reason": "Модель без RAG уже дала достаточно хороший и релевантный ответ, предложив молдавские сорта.",
+      "retrieval_effect": "neutral",
+      "retrieval_effect_kind": "none",
+      "retrieval_effect_explanation": "Извлеченные фрагменты содержат только общие принципы подбора вина к азиатской кухне, которые модель уже знала и использовала в своем ответе. Они не добавили конкретики или уникальной информации, связанной с молдавскими винами, что является специализацией WINE AI.",
+      "verdict": "DIRECT_SUFFICIENT"
+     }
+    }
+   ]
+  }
+ ]
+}
