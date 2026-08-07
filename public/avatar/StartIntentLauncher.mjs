@@ -83,6 +83,17 @@ export function getStartIntentCopy(intentId, language) {
   return { id: intentId, label: row[0], starter: row[1], title: COPY[lang].title, language: lang };
 }
 
+export function detectVoiceMode(document) {
+  return document?.getElementById('voiceModeTapBtn')?.classList?.contains('active')
+    ? 'tap_to_start'
+    : 'hold_to_talk';
+}
+
+export function isFreeConversationActive(document) {
+  const timer = document?.getElementById('voiceSessionTimer');
+  return Boolean(timer && timer.hidden === false);
+}
+
 function injectStyles(document) {
   if (document.getElementById('wineAiStartIntentStyles')) return;
   const style = document.createElement('style');
@@ -103,18 +114,35 @@ function currentUiLanguage(document) {
   return document.getElementById('uiLangSelect')?.value || document.documentElement.lang || 'en';
 }
 
-function waitForTextReady(document, tokenRef, token, timeoutMs = 120000) {
+function waitUntil(document, tokenRef, token, predicate, timeoutMs = 120000) {
   const startedAt = Date.now();
   return new Promise((resolve, reject) => {
     const check = () => {
       if (tokenRef.current !== token) return reject(new Error('start_intent_superseded'));
-      const input = document.getElementById('textInput');
-      const send = document.getElementById('textSendBtn');
-      if (input && send && !input.disabled && !send.disabled) return resolve({ input, send });
+      const value = predicate();
+      if (value) return resolve(value);
       if (Date.now() - startedAt >= timeoutMs) return reject(new Error('start_intent_timeout'));
       setTimeout(check, 100);
     };
     check();
+  });
+}
+
+function waitForTextReady(document, tokenRef, token) {
+  return waitUntil(document, tokenRef, token, () => {
+    const input = document.getElementById('textInput');
+    const send = document.getElementById('textSendBtn');
+    return input && send && !input.disabled && !send.disabled ? { input, send } : null;
+  });
+}
+
+function waitForVoiceReady(document, tokenRef, token, mode) {
+  if (mode === 'tap_to_start') {
+    return waitUntil(document, tokenRef, token, () => isFreeConversationActive(document));
+  }
+  return waitUntil(document, tokenRef, token, () => {
+    const ptt = document.getElementById('pttBtn');
+    return ptt && !ptt.disabled;
   });
 }
 
@@ -165,11 +193,26 @@ export function mountStartIntentLauncher(options = {}) {
     root.classList.add('busy');
     render();
 
+    const mode = detectVoiceMode(document);
+    const ptt = document.getElementById('pttBtn');
     const state = connect.dataset.state || 'disconnected';
-    if (state === 'disconnected') connect.click();
+
+    if (mode === 'tap_to_start') {
+      // Free Conversation already owns auto-connect/provider-readiness. Reuse
+      // the same user-facing Start Conversation button so the mic remains
+      // open after Wine AI's first reply. If it is already active, keep it.
+      if (!isFreeConversationActive(document) && ptt) ptt.click();
+    } else if (state === 'disconnected') {
+      // Hold to Talk needs a connected provider, but should not start a mic
+      // capture until the user holds the round button after Wine AI replies.
+      connect.click();
+    }
 
     try {
-      const { input, send } = await waitForTextReady(document, tokenRef, token);
+      const [{ input, send }] = await Promise.all([
+        waitForTextReady(document, tokenRef, token),
+        waitForVoiceReady(document, tokenRef, token, mode),
+      ]);
       if (tokenRef.current !== token) return;
       input.value = copy.starter;
       input.dispatchEvent(new Event('input', { bubbles: true }));

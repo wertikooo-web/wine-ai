@@ -6,7 +6,13 @@ const { pathToFileURL } = require('url');
 
 (async () => {
   const moduleUrl = pathToFileURL(path.join(__dirname, '..', 'public', 'avatar', 'StartIntentLauncher.mjs')).href;
-  const { START_INTENTS, getStartIntentCopy, normalizeStartIntentLanguage } = await import(moduleUrl);
+  const {
+    START_INTENTS,
+    getStartIntentCopy,
+    normalizeStartIntentLanguage,
+    detectVoiceMode,
+    isFreeConversationActive,
+  } = await import(moduleUrl);
 
   assert.deepStrictEqual(
     START_INTENTS.map((intent) => intent.id),
@@ -31,6 +37,21 @@ const { pathToFileURL } = require('url');
   assert(pairingRu.starter.includes('спроси'), 'food pairing should begin with a clarifying question');
   const chooseEn = getStartIntentCopy('choose_wine', 'en');
   assert(chooseEn.starter.toLowerCase().includes('ask one short question'), 'wine choice should ask one short follow-up first');
+
+  const makeDocument = ({ tapActive = false, timerHidden = true } = {}) => ({
+    getElementById(id) {
+      if (id === 'voiceModeTapBtn') {
+        return { classList: { contains: (name) => name === 'active' && tapActive } };
+      }
+      if (id === 'voiceSessionTimer') return { hidden: timerHidden };
+      return null;
+    },
+  });
+
+  assert.strictEqual(detectVoiceMode(makeDocument({ tapActive: true })), 'tap_to_start');
+  assert.strictEqual(detectVoiceMode(makeDocument({ tapActive: false })), 'hold_to_talk');
+  assert.strictEqual(isFreeConversationActive(makeDocument({ timerHidden: false })), true);
+  assert.strictEqual(isFreeConversationActive(makeDocument({ timerHidden: true })), false);
 
   console.log('startIntentLauncher.test.js: ok');
 })().catch((error) => {
