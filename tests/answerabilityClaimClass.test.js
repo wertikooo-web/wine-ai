@@ -311,6 +311,66 @@ async function run() {
         }
     }
 
+    console.log('Testing: registry-backed entity signal (resolveEntity, not a hardcoded name array)...');
+    {
+        // A. KNOWN ENTITY -- names that exist ONLY in the expanded Ghid registry,
+        // never in the old 14-name KNOWN_WINERY_NAMES array. These prove the
+        // resolver is really wired in; they would all fall through before.
+        for (const query of [
+            'Расскажи про винодельню Timbrus',
+            'Что производит Chateau Vartely Individo',
+            'Vinaria din Vale ce vinuri face?',
+            'Расскажи о Château Cristi',
+        ]) {
+            assert.strictEqual(
+                classifyClaimDependency(query), CLAIM_CLASSES.GROUNDING_REQUIRED,
+                `registry entity must be grounding_required: ${query}`
+            );
+        }
+
+        // C. UNKNOWN PROPER ENTITY -- the safety-critical case this sprint exists
+        // for. resolveEntity() returning found:false must NOT be read as "general
+        // knowledge is safe"; a proper-noun-shaped query about a producer the
+        // registry does not know is exactly where unhedged answering fabricates.
+        const unknownEntity = require('../src/knowledge/entityResolver').resolveEntity('Lion Gri');
+        assert.strictEqual(unknownEntity.found, false,
+            'precondition: "Lion Gri" must be absent from the registry for this test to mean anything');
+        for (const query of [
+            'Расскажи про Lion Gri',                    // unknown, two-token
+            'Что такое вино Lioness и почему оно такое?', // unknown, single token + explanation shape
+            'Почему вино от Timbrusa такое танинное?',   // near-miss unknown spelling
+        ]) {
+            assert.strictEqual(
+                classifyClaimDependency(query), CLAIM_CLASSES.GROUNDING_REQUIRED,
+                `unknown proper entity must NOT be treated as safe general knowledge: ${query}`
+            );
+        }
+
+        // Preserved from the entity-registry benchmark: these must not regress.
+        assert.strictEqual(
+            require('../src/knowledge/entityResolver').resolveEntity('dacă vinul e sec').found, false,
+            '"dacă" must not match the DAC entity (word-boundary fix)'
+        );
+        // Grape varieties are education, never producer claims.
+        for (const query of [
+            'Чем отличается Каберне Совиньон от Мерло на вкус вина?',
+            'Что такое Fetească Neagră как сорт винограда?',
+        ]) {
+            assert.strictEqual(
+                classifyClaimDependency(query), CLAIM_CLASSES.GENERAL_KNOWLEDGE,
+                `grape-variety question must stay general_knowledge: ${query}`
+            );
+        }
+
+        // A resolver fault must fail conservative, not fail open.
+        const boom = () => { throw new Error('registry unreadable'); };
+        assert.strictEqual(
+            classifyClaimDependency('Расскажи про Lion Gri', { resolveEntityFn: boom }),
+            CLAIM_CLASSES.GROUNDING_REQUIRED,
+            'resolver failure must not unlock general answering'
+        );
+    }
+
     console.log('Testing: grader unavailable must not upgrade an entity-specific question to general...');
     {
         // No grader configured -> answerable:null, claimClass:null -> the

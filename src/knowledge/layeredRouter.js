@@ -4,6 +4,7 @@ const db = require('./db');
 const { search } = require('./search');
 const { searchWeb } = require('./webSearch');
 const catalogStore = require('../catalog/wineMdCatalogStore');
+const { resolveEntity } = require('./entityResolver');
 const liveWineMdTool = require('../tools/checkWineMdAvailability');
 
 const LEVELS = Object.freeze({
@@ -442,25 +443,69 @@ const GENERAL_EXPLANATION_RE = /(что такое|чем отлич|в ч[её]
 // Совиньон от Мерло?" is not misread as an entity-specific question. This is
 // a false-positive guard only -- an unlisted grape simply falls through to
 // the conservative grounding_required default, never the other way around.
-const GRAPE_VARIETY_RE = /(каберне|совиньон|мерло|шардоне|пино|рислинг|саперави|фет[яе]ск|feteasca|fetească|рара\s*нягр|негру|раркацители|алиготе|мускат|траминер|вионье|сира|шираз|мальбек|темпранильо|санджовезе|неббиоло|гренаш|карменер|виорика|cabernet|sauvignon|merlot|chardonnay|pinot|riesling|saperavi|aligote|muscat|traminer|viognier|syrah|shiraz|malbec|tempranillo|sangiovese|nebbiolo|grenache|carmenere|viorica|blanc|noir|gris|grigio)/giu;
+const GRAPE_VARIETY_RE = /(каберне|совиньон|мерло|шардоне|пино|рислинг|саперави|фет[яе]ск|feteasca|fetească|рара\s*нягр|негру|раркацители|алиготе|мускат|траминер|вионье|сира|шираз|мальбек|темпранильо|санджовезе|неббиоло|гренаш|карменер|виорика|cabernet|sauvignon|merlot|chardonnay|pinot|riesling|saperavi|aligote|muscat|traminer|viognier|syrah|shiraz|malbec|tempranillo|sangiovese|nebbiolo|grenache|carmenere|viorica|blanc|noir|gris|grigio|neagr[ăa]|nyagra|alb[ăa]?\b|regal[ăa]|rar[ăa]|plăvai|plavai|riton|crîmpoșie|crimposie|бэбяск|băbeasc|babeasc|кодрянк|codrinschi|гарнач|garnacha|мавруд|mavrud|нярг)/giu;
+
+// Proper nouns that are NOT producer/product names: places, regions, countries,
+// languages, appellation/classification terms and calendar words. A question
+// mentioning one of these is still education, not a claim about a producer, so
+// they are removed (alongside grape varieties) before the unknown-proper-entity
+// test below. False-positive guard only -- an unlisted place name simply falls
+// through to the conservative GROUNDING_REQUIRED default, never the reverse.
+const NON_ENTITY_PROPER_NOUN_RE = /(молдов|молдав|румын|росси|франц|итали|испан|георг|грузи|португал|герман|австри|венгр|украин|болгар|чили|аргентин|калифорни|бордо|бургунд|шампан|тоскан|риоха|пьемонт|прованс|эльзас|кодр|штефан|вода|валул|траян|пуркар[ьи]\s*регион|европ|балкан|днестр|прут|кишин[её]в|бельц|комрат|гагауз|moldov|romania|român|france|french|italy|italian|spain|spanish|georgia|portugal|german|austria|hungary|ukraine|bulgaria|chile|argentina|california|bordeaux|burgundy|champagne|tuscany|rioja|piedmont|provence|alsace|codru|valul\s*lui\s*traian|stefan\s*voda|ștefan\s*vodă|divin|europe|balkan|chisinau|chișinău|new\s*world|old\s*world|dop|igp|aoc|doc|docg|январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр|january|february|march|april|june|july|august|september|october|november|december)/giu;
+
+// Wraps resolveEntity() so a resolver fault can never make the gate LESS
+// conservative: if resolution throws, we report "not resolved" and let the
+// unknown-proper-entity branch below apply the conservative default.
+function _resolvesToKnownEntity(query, resolveEntityFn = resolveEntity) {
+    try {
+        return Boolean(resolveEntityFn(String(query || ''))?.found);
+    } catch (error) {
+        console.warn('[layeredRouter] entity resolution failed, defaulting to unresolved: %s', error?.message);
+        return false;
+    }
+}
+
+// True when the query still contains a proper-noun-shaped token after grape
+// varieties and non-entity proper nouns (places, appellations, months) are
+// removed. Covers both the multi-word case ("Lion Gri", "Chateau Fabulous") and
+// the single-token case ("вино Lioness"), plus explicit quoting ("«Негру де
+// Пуркарь»"), which is how product names are written. The first word of the
+// query is ignored because sentence-initial capitalization carries no signal.
+function _looksLikeUnknownProperEntity(query) {
+    const stripped = String(query || '')
+        .replace(GRAPE_VARIETY_RE, ' ')
+        .replace(NON_ENTITY_PROPER_NOUN_RE, ' ');
+    if (/["«„]/u.test(stripped)) return true;
+    const tokens = stripped.split(/[\s,.;:!?()]+/u).filter(Boolean);
+    // Skip index 0: sentence-initial capitals are grammatical, not referential.
+    return tokens.slice(1).some((token) => /^[A-ZА-ЯЁĂÂÎȘȚ][\p{L}-]+$/u.test(token));
+}
 
 // Deterministic, evidence-independent fallback for when the LLM grader is
 // unreachable/unparseable. Deliberately conservative: anything naming a known
 // winery, or asking for a specific checkable attribute, is GROUNDING_REQUIRED.
 // Only a wine-related question that reads as an explanation AND names no known
 // entity AND asks for no specific attribute may be treated as general.
-function classifyClaimDependency(query, { knownEntityNames = KNOWN_WINERY_NAMES } = {}) {
+function classifyClaimDependency(query, { resolveEntityFn = resolveEntity } = {}) {
     const norm = normalize(query);
-    if (_mentionsKnownEntity(query, knownEntityNames)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
+    // A. KNOWN ENTITY -- resolved against the real 109-entity registry
+    // (knowledge/entity-aliases.json) via the shared resolver, NOT a flat
+    // substring match against a hardcoded name array. The resolver owns
+    // word-boundary correctness ("dacă" must not match "DAC"), the "Aroma"
+    // common-word collision guard, and grape-variety exclusion; copying names
+    // into a JS array here would reintroduce exactly those false positives.
+    // resolveEntity() is synchronous and ~0.7ms, so it is safe inline.
+    if (_resolvesToKnownEntity(query, resolveEntityFn)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
     if (isCatalogQuery(query) || isFreshnessQuery(query)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
     if (SPECIFIC_ATTRIBUTE_RE.test(norm)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
-    // A capitalized multi-word proper noun that isn't one of ours is still a
-    // named entity (an unknown/fictional winery or a similarly-named one) --
-    // exactly the case where a "general knowledge" pass would invent facts.
-    const withoutGrapes = String(query || '').replace(GRAPE_VARIETY_RE, ' ');
-    if (/(?:^|\s)(?:["«„]|[A-ZА-ЯЁĂÂÎȘȚ][\p{L}-]+\s+[A-ZА-ЯЁĂÂÎȘȚ][\p{L}-]+)/u.test(withoutGrapes)) {
-        return CLAIM_CLASSES.GROUNDING_REQUIRED;
-    }
+    // C. UNKNOWN PROPER ENTITY. resolveEntity() returning not-found is NOT
+    // evidence that the question is safe general knowledge -- the registry is
+    // 109 entities, and Moldova has hundreds of producers. A proper-noun-shaped
+    // question about something the registry does not know is precisely where an
+    // unhedged "general knowledge" answer invents a producer's facts, so it
+    // must fall through to GROUNDING_REQUIRED (grounded answer or honest
+    // uncertainty), never to DIRECT.
+    if (_looksLikeUnknownProperEntity(query)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
     // _isWineRelated() is tuned for web-search routing and misses some
     // inflected/oenology vocabulary (Romanian "vinul", "decantează", tannin/
     // acidity talk). Widening it there would change routing behavior, which is
@@ -633,7 +678,10 @@ async function checkAnswerability(question, evidence, {
 // decided inside routeKnowledge) is left untouched and never double-checked.
 async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     const base = await routeKnowledge(query, options);
-    const deterministicClass = classifyClaimDependency(query, options.knownEntityNames ? { knownEntityNames: options.knownEntityNames } : {});
+    // Entity recognition now comes from the shared registry resolver, not a
+    // caller-supplied name list; options.knownEntityNames still steers
+    // classifyQueryIntent()'s web routing and is deliberately not forwarded here.
+    const deterministicClass = classifyClaimDependency(query, options.resolveEntityFn ? { resolveEntityFn: options.resolveEntityFn } : {});
     if (!base.found) {
         // No evidence at all is still not automatically a refusal: for a
         // general-knowledge question the model's own training is a legitimate,
