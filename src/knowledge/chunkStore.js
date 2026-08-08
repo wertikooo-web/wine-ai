@@ -196,6 +196,31 @@ async function loadChunksFromPostgres(pool) {
     return { chunks: rows.map(rowToChunk) };
 }
 
+/**
+ * Read the enabled chunks of ONE versioned build from build_registry_chunks
+ * in the exact shape search() consumes — the v2 read path seam
+ * (docs/architecture/BUILD_REGISTRY_DESIGN.md §5.2). Structurally identical to
+ * loadChunksFromPostgres() except for the extra `WHERE build_id = $1` filter,
+ * so every downstream algorithm (keyword, entity, hybrid RRF) runs unchanged
+ * on a v2 build vs the legacy corpus.
+ *
+ * @param {import('pg').Pool} pool
+ * @param {string} buildId the active versioned build to serve
+ * @returns {Promise<{buildId:string,chunks:Array<{id,text,metadata:object}>}>}
+ */
+async function loadBuildRegistryChunks(pool, buildId) {
+    if (!pool) throw new TypeError('loadBuildRegistryChunks: pool is required');
+    if (!buildId || typeof buildId !== 'string') throw new TypeError('loadBuildRegistryChunks: buildId is required');
+    const { rows } = await pool.query(
+        `SELECT chunk_id, source_file, title, doc_type, language, source, confidence, entity_id, winery, region, grape, date, enabled, chunk_index, text
+         FROM build_registry_chunks
+         WHERE build_id = $1 AND enabled IS NOT FALSE
+         ORDER BY source_file, chunk_index`,
+        [buildId]
+    );
+    return { buildId, chunks: rows.map(rowToChunk) };
+}
+
 module.exports = {
     computeChunkHash,
     chunkToRow,
@@ -203,5 +228,6 @@ module.exports = {
     verifyChunkIdStability,
     importChunksToPostgres,
     loadChunksFromPostgres,
+    loadBuildRegistryChunks,
     upsertChunkRow,
 };
