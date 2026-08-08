@@ -818,4 +818,22 @@ module.exports = {
     naturalAnswerPolicy,
     detectConflicts,
     queryTokens,
+    // --- ADDITIVE EXPORTS ONLY (for src/knowledge/selectiveRagRouter.js) ---
+    // Nothing above this line changed, and no behaviour in this module depends
+    // on these being exported. selectiveRagRouter.js needs the SAME
+    // discriminators the answerability gate already uses; copying these
+    // regexes into a second file would guarantee they drift apart -- and for
+    // SPECIFIC_ATTRIBUTE_RE and the unknown-proper-entity heuristic, drifting
+    // apart means drifting apart on exactly the safety-critical cases.
+    SPECIFIC_ATTRIBUTE_RE,
+    GENERAL_EXPLANATION_RE,
+    // NOTE: GRAPE_VARIETY_RE and NON_ENTITY_PROPER_NOUN_RE carry the /g flag
+    // and are therefore STATEFUL under .test(). Consumers must use them with
+    // .replace() only (as this module does), never .test().
+    GRAPE_VARIETY_RE,
+    NON_ENTITY_PROPER_NOUN_RE,
+    _looksLikeUnknownProperEntity,
+    _isWineRelated,
+    _resolvesToKnownEntity,
+    normalize,
 };
