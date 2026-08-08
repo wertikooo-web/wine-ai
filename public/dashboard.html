@@ -2970,7 +2970,7 @@
       case 'input_audio.start':
         currentTurnId = payload.turn_id;
         inputEndedAt = 0;
-        if (voiceMode === 'tap_to_start') {
+        if (voiceMode === 'tap_to_start' && payload.mode === 'tap_to_start') {
           freeConversationUserTurnOpen = true;
           if (sessionLimitExpired && sessionLimitFinalTurnPending && !sessionLimitFinalTurnId) {
             sessionLimitFinalTurnId = currentTurnId;
@@ -3006,7 +3006,7 @@
         break;
       case 'input_audio.end':
         inputEndedAt = performance.now();
-        if (voiceMode === 'tap_to_start') {
+        if (voiceMode === 'tap_to_start' && payload.mode === 'tap_to_start') {
           freeConversationUserTurnOpen = false;
           if (sessionLimitFinalTurnPending
             && (!sessionLimitFinalTurnId || sessionLimitFinalTurnId === payload.turn_id)) {
@@ -3102,6 +3102,12 @@
         setText('speakerState', '—');
         break;
       case 'response.failed':
+        if (sessionLimitFinalTurnPending
+          && (!sessionLimitFinalTurnId || payload.turn_id === sessionLimitFinalTurnId)) {
+          sessionLimitFinalTurnPending = false;
+          sessionLimitInputClosed = true;
+          triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT);
+        }
         stopPlaybackImmediately({ reason: 'response_failed', generationId: payload.generation_id });
         DeviceVisual.setState('error');
         break;
@@ -4168,7 +4174,9 @@
       if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
       // Do not inject the spoken warning into an active user turn or answer.
       // The visible countdown already communicates the remaining time.
-      if (freeConversationUserTurnOpen || activeSources.size > 0 || DeviceVisual.getState() === 'thinking') {
+      const localSpeechActive = Boolean(sessionLimitLocalSpeechLastLoudAt
+        && Date.now() - sessionLimitLocalSpeechLastLoudAt <= FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS);
+      if (freeConversationUserTurnOpen || localSpeechActive || activeSources.size > 0 || DeviceVisual.getState() === 'thinking') {
         sendTelemetry('session_limit_warning_deferred', {});
         return;
       }
@@ -4188,9 +4196,10 @@
       );
       // A turn that started before 0:00 is grandfathered. Let the user finish,
       // let Gemini answer fully, drain playback, then speak the closing line.
-      if (freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline) {
+      const responseStillThinking = DeviceVisual.getState() === 'thinking';
+      if (freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline || responseStillThinking) {
         sessionLimitFinalTurnPending = true;
-        sessionLimitFinalTurnId = freeConversationUserTurnOpen ? currentTurnId : null;
+        sessionLimitFinalTurnId = (freeConversationUserTurnOpen || responseStillThinking) ? currentTurnId : null;
         sendTelemetry('session_limit_final_turn_granted', {});
         return;
       }

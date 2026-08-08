@@ -1685,6 +1685,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             turn_id: currentTurnId,
             generation_id: currentGeneration.generationId,
             response_id: null,
+            mode: currentMode,
         });
         const generationForStream = currentGeneration;
         const responseIdForStream = currentGeneration.responseId;
@@ -1797,6 +1798,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             turn_input_bytes: inputBytes,
             session_input_bytes: sessionInputBytes,
             end_reason: payload.end_reason || null,
+            mode: currentMode,
         });
         visualOrchestrator.markThinking(currentGeneration.generationId);
         log('input_audio_end', {

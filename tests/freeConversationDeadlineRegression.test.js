@@ -35,3 +35,19 @@ test('persona does not force RAG and web for unrelated questions', () => {
   assert.match(persona, /Не запускай RAG для приветствий/);
   assert.match(persona, /Не запускай search_web автоматически/);
 });
+
+
+test('synthetic text warning is not mistaken for a user audio turn', () => {
+  assert.ok(server.includes('mode: currentMode'));
+  assert.ok(dashboard.includes("voiceMode === 'tap_to_start' && payload.mode === 'tap_to_start'"));
+});
+
+test('deadline waits for a pre-deadline turn that is still thinking', () => {
+  assert.ok(dashboard.includes("const responseStillThinking = DeviceVisual.getState() === 'thinking'"));
+  assert.ok(dashboard.includes('freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline || responseStillThinking'));
+});
+
+test('grandfathered final turn failure closes cleanly', () => {
+  assert.ok(dashboard.includes("case 'response.failed':"));
+  assert.ok(dashboard.includes("triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT)"));
+});
