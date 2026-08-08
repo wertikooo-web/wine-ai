@@ -2,6 +2,13 @@
 
 const { requireNonEmptyString, optionalString, setSearchBlock } = require('./toolHelpers');
 const { routeKnowledgeWithAnswerabilityGate, CLAIM_CLASSES } = require('../knowledge/layeredRouter');
+const { resolveAnswerMode, modePolicy } = require('../knowledge/answerModes');
+const {
+    buildClaimsFromEvidence,
+    annotateConflicts,
+    summarizeFreshness,
+    rankClaims,
+} = require('../knowledge/claimProvenance');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -58,6 +65,11 @@ const declaration = {
                 type: 'BOOLEAN',
                 description: 'Set true only when the user explicitly asks to search online. Freshness-sensitive questions are detected automatically.',
             },
+            answer_mode: {
+                type: 'STRING',
+                enum: ['knowledge_only', 'knowledge_catalog', 'knowledge_web', 'expert'],
+                description: 'Optional. Default knowledge_web: canonical facts + Wine.md catalog + documents + controlled web fallback. knowledge_only: canonical facts + documents only (no prices/stock/web). knowledge_catalog: canonical + documents + Wine.md catalog, no web. expert: all levels plus explicit AI inference is permitted.',
+            },
         },
         required: ['query'],
     },
@@ -67,22 +79,38 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     return async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
         const language = optionalString(args.language, 8) || null;
+        const answerMode = resolveAnswerMode(args.answer_mode);
         const { query: retrievalQuery, enriched: queryEnriched } = enrichQueryWithRecentTurns(query, toolContext);
-        // allowWeb stays true here (unchanged from before this gate existed)
-        // -- the live assistant has always been permitted to reach the web;
-        // routeKnowledgeWithAnswerabilityGate is what now decides WHEN that
-        // permission is actually used (freshness, or evidence that doesn't
-        // answer the question), same as it does for the eval tool.
+        // The live assistant defaults to the full knowledge_web mode: canonical
+        // facts, Wine.md catalog, documents, and the web fallback gated exactly
+        // as routeKnowledgeWithAnswerabilityGate decides. An explicit
+        // answer_mode narrows the allowed levels (knowledge_only, for example,
+        // forbids catalog/web even for price questions -- the router then
+        // simply never consults them, and claims reflect only what was
+        // allowed).
+        const policy = modePolicy(answerMode);
         const result = await routeImpl(retrievalQuery, {
             language,
             forceWeb: args.force_web === true,
-            allowWeb: true,
+            allowWeb: policy.allowWeb,
+            allowCatalog: policy.allowCatalog,
             limit: 8,
         });
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');
 
-        const webSources = result.evidence
+        // Claim-level provenance (phase 1): each retrieved item is classified
+        // into a claim kind with its source/confidence/checked-at timestamps,
+        // conflicts are surfaced per-claim, and the answer_mode is echoed so
+        // the consumer knows exactly which levels these claims may come from.
+        const evidence = (result.evidence || []).slice(0, 12);
+        const allowedLevels = new Set(policy.levels);
+        const allowedEvidence = evidence.filter((item) => allowedLevels.has(item.level));
+        const claims = annotateConflicts(buildClaimsFromEvidence(allowedEvidence), result.conflicts || [])
+            .map((claim) => { const { _conflict_key, ...rest } = claim; return rest; });
+        const freshness = summarizeFreshness(claims, result.freshness_sensitive === true);
+
+        const webSources = evidence
             .filter((item) => item.level === 'web')
             .map((item) => ({ title: item.title, url: item.source }));
 
@@ -101,6 +129,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             query,
             retrievalQuery: queryEnriched ? retrievalQuery : undefined,
             queryEnriched,
+            answerMode,
             claimClass,
             entityMatch,
             language,
@@ -130,9 +159,12 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 answerabilityReason: result.answerabilityReason || 'no_evidence',
                 webUsed: result.web_used === true,
                 status: isGeneralKnowledge ? 'general_knowledge' : 'not_found',
+                answer_mode: answerMode,
                 evidence: [],
                 results: [],
                 conflicts: [],
+                claims: [],
+                freshness: { freshness_sensitive: result.freshness_sensitive === true, dynamic_fields_present: false, synced_through: null },
                 answer_policy: {
                     ...result.answer_policy,
                     final_instruction: isGeneralKnowledge
@@ -141,8 +173,6 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 },
             };
         }
-
-        const evidence = result.evidence.slice(0, 12);
 
         // Treat "no" (false) and "unknown" (null -- grader unavailable or
         // unparseable) identically here -- neither may let the assistant
@@ -178,6 +208,9 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 status: isGeneralKnowledge ? 'general_knowledge' : 'insufficient',
                 evidence,
                 results: evidence,
+                answer_mode: answerMode,
+                claims,
+                freshness,
                 used_levels: result.used_levels,
                 freshness_sensitive: result.freshness_sensitive,
                 conflicts: result.conflicts,
@@ -204,6 +237,9 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             // Keep `results` as a compatibility alias for callers/tests built around
             // the previous search_wine_knowledge response contract.
             results: evidence,
+            answer_mode: answerMode,
+            claims,
+            freshness,
             used_levels: result.used_levels,
             freshness_sensitive: result.freshness_sensitive,
             conflicts: result.conflicts,
