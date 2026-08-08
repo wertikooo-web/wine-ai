@@ -1598,9 +1598,11 @@
   // If a future provider is added without a working native-VAD path,
   // simply leave it out of this set rather than reintroducing a global
   // disable flag.
-  const TAP_TO_START_SUPPORTED_PROVIDERS = new Set(['gemini', 'grok']);
   function isTapToStartSupportedForCurrentProvider() {
-    return TAP_TO_START_SUPPORTED_PROVIDERS.has(selectedRealtimeProvider);
+    const provider = realtimeProviderConfigs.find((item) => item.id === selectedRealtimeProvider);
+    return provider
+      ? Array.isArray(provider.supported_voice_modes) && provider.supported_voice_modes.includes('tap_to_start')
+      : selectedRealtimeProvider === 'gemini' || selectedRealtimeProvider === 'grok';
   }
   // Deployment context (?context=kiosk or ?context=mobile_qr in the URL) --
   // lets the session-duration cap differ per deployment type; read once at
@@ -1735,7 +1737,6 @@
     visualStoryController = new VisualStoryController(el('visualStoryRoot'), {
       log,
       language: uiLang,
-      onAvatarState: (state) => DeviceVisual.setState(state),
     });
     if (avatarOutputAnalyser) visualStoryController.attachAnalyser(avatarOutputAnalyser);
     while (pendingVisualEvents.length) visualStoryController.handle(pendingVisualEvents.shift());
@@ -2447,37 +2448,6 @@
   })(typeof window !== 'undefined' ? window : globalThis);
   
 
-  const voiceEngineUiController = window.WineAiVoiceEngineUi.mount({
-    getConnected() {
-      return Boolean(ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING));
-    },
-    onChange(state) {
-      const nextProvider = state.runtimeProvider;
-      const nextMode = state.conversationMode === 'open_conversation' ? 'tap_to_start' : 'hold_to_talk';
-      const providerChanged = selectedRealtimeProvider !== nextProvider;
-      const modeChanged = voiceMode !== nextMode;
-      selectedRealtimeProvider = nextProvider;
-      voiceMode = nextMode;
-      try {
-        localStorage.setItem('selectedRealtimeProvider', selectedRealtimeProvider);
-        localStorage.setItem('voiceMode', voiceMode);
-      } catch {}
-      if (typeof renderVoiceMode === 'function') renderVoiceMode();
-      if ((providerChanged || modeChanged) && ws && ws.readyState === WebSocket.OPEN) {
-        disconnect();
-      }
-    },
-  });
-
-  // Keep the engine-family controller synchronized when the detailed
-  // Realtime provider is changed later in Settings.
-  document.addEventListener('click', (event) => {
-    const option = event.target.closest('.provider-option');
-    const providerId = option?.dataset?.provider || option?.dataset?.providerId || option?.dataset?.value;
-    if (voiceEngineUiController && (providerId === 'gemini' || providerId === 'grok')) {
-      voiceEngineUiController.setRealtimeProvider(providerId);
-    }
-  });
   /* WINE_AI_CLASSIC_ENGINE_UI_END */
 
   // ---- WebSocket / protocol ----
@@ -2672,10 +2642,12 @@
     setConnectionButton('connecting');
     providerReadyForInput = false;
     websocketConnectionId = 'wc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-    ws = new WebSocket(socketUrl());
-    ws.binaryType = 'arraybuffer';
+    const socket = new WebSocket(socketUrl());
+    ws = socket;
+    socket.binaryType = 'arraybuffer';
 
-    ws.addEventListener('open', async () => {
+    socket.addEventListener('open', async () => {
+      if (ws !== socket) return;
       setDot('wsDot', 'ok');
       setText('wsLabel', 'connected');
       setText('dWs', 'open');
@@ -2705,6 +2677,11 @@
       } catch (err) {
         sendTelemetry('mic_prewarm_error', { message: err.message });
       }
+      // getUserMedia may resolve after this socket was closed/replaced by a
+      // mode switch. The audio-capture epoch releases that stale track; this
+      // transport ownership check also prevents the old open callback from
+      // sending session.start into the replacement socket.
+      if (ws !== socket || socket.readyState !== WebSocket.OPEN) return;
       sendSessionStart();
       log('ws_open', { sampleRate: inputSampleRate });
       // pendingContextTurnStart/pendingTapStart/pendingPttStart are now
@@ -2713,7 +2690,9 @@
       // provider connection is ready to receive audio yet.
     });
 
-    ws.addEventListener('close', () => {
+    socket.addEventListener('close', () => {
+      if (ws !== socket) return;
+      ws = null;
       setDot('wsDot', '');
       setText('wsLabel', 'disconnected');
       setText('dWs', 'closed');
@@ -2737,13 +2716,15 @@
       log('ws_close', {});
     });
 
-    ws.addEventListener('error', () => {
+    socket.addEventListener('error', () => {
+      if (ws !== socket) return;
       DeviceVisual.setState('error');
       log('ws_error', {});
       reportSessionEndAnalytics('technical_error');
     });
 
-    ws.addEventListener('message', (event) => {
+    socket.addEventListener('message', (event) => {
+      if (ws !== socket) return;
       if (typeof event.data !== 'string') return;
       let payload;
       try { payload = JSON.parse(event.data); } catch { return; }
@@ -2766,6 +2747,13 @@
   // to react while the socket is still open; closing local playback does
   // NOT depend on that message succeeding either way.
   function disconnect() {
+    const socket = ws;
+    let resolveClosed;
+    const canObserveClose = socket && typeof socket.addEventListener === 'function';
+    const closed = !socket || socket.readyState === WebSocket.CLOSED || !canObserveClose
+      ? Promise.resolve()
+      : new Promise((resolve) => { resolveClosed = resolve; });
+    if (resolveClosed) socket.addEventListener('close', resolveClosed, { once: true });
     sendTelemetry('disconnect_started', {
       wsReadyState: ws ? ws.readyState : null,
       micTrackId: micStream ? (micStream.getAudioTracks()[0] || {}).id || null : null,
@@ -2816,16 +2804,17 @@
     localVadState.consecutiveLoud = 0;
     localVadState.armed = true;
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      try { ws.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      try { socket.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
     }
     sendTelemetry('socket_close_started', {});
-    if (ws) ws.close();
+    if (socket && socket.readyState !== WebSocket.CLOSED) socket.close();
 
     log('disconnect_completed', {
       micStreamLive: Boolean(micStream),
       processorLive: Boolean(processor),
     });
+    return closed;
   }
 
   // Single connection button — toggles label/behavior instead of showing
@@ -2866,13 +2855,13 @@
   function toggleConnection() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
       sendTelemetry('disconnect_clicked', {});
-      disconnect();
+      return disconnect();
     } else {
       // The plain Talk-tab Connect button always starts a general session —
       // only startContextualConversation() sets activeScreenContext.
       activeScreenContext = null;
       renderContextChips();
-      connect();
+      return connect();
     }
   }
 
@@ -3130,6 +3119,10 @@
   // audio into the same ws (see the "exactly one live track/processor"
   // requirement).
   let micStreamPromise = null;
+  // Correlation token owned by the audio-capture layer. stopMic() advances
+  // it so a late getUserMedia() result from an older session is released
+  // instead of being installed into the current capture graph.
+  let micCaptureEpoch = 0;
 
   // Client-side counterpart of the mic-not-heard investigation: browsers can
   // silently leave an AudioContext 'suspended' (autoplay policy) if it wasn't
@@ -3161,13 +3154,20 @@
 
   async function ensureMic() {
     if (micStream) { itrace('ensureMic_already_warm', {}); return; }
-    if (micStreamPromise) { itrace('ensureMic_awaiting_inflight', {}); return micStreamPromise; }
+    const requestedEpoch = micCaptureEpoch;
+    if (micStreamPromise) {
+      itrace('ensureMic_awaiting_inflight', {});
+      await micStreamPromise;
+      if (!micStream && requestedEpoch === micCaptureEpoch) return ensureMic();
+      return;
+    }
     itrace('ensureMic_acquiring', {});
-    micStreamPromise = acquireMic().finally(() => { micStreamPromise = null; });
-    return micStreamPromise;
+    micStreamPromise = acquireMic(requestedEpoch).finally(() => { micStreamPromise = null; });
+    await micStreamPromise;
+    if (!micStream && requestedEpoch === micCaptureEpoch) return ensureMic();
   }
 
-  async function acquireMic() {
+  async function acquireMic(captureEpoch) {
     // echoCancellation/noiseSuppression/autoGainControl are WebRTC's voice
     // processing pipeline, tuned for calls, not STT — AGC in particular can
     // misfire as a noise gate and zero out normal-volume speech entirely on
@@ -3191,6 +3191,11 @@
     const constraints = { channelCount: 1, sampleRate: 16000, echoCancellation: forVoice, noiseSuppression: forVoice, autoGainControl: false };
     sendTelemetry('mic_get_user_media_requested', { forVoice, ...constraints });
     const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+    if (captureEpoch !== micCaptureEpoch) {
+      stream.getTracks().forEach((track) => track.stop());
+      sendTelemetry('mic_get_user_media_stale', { captureEpoch, currentEpoch: micCaptureEpoch });
+      return;
+    }
     micStream = stream;
     const track = stream.getAudioTracks()[0];
     sendTelemetry('mic_get_user_media_resolved', { trackId: track ? track.id : null, trackCount: stream.getAudioTracks().length });
@@ -3234,11 +3239,11 @@
     // in this file as "genuine speech, not silence" — see
     // first_non_silent_frame above and the server's NO_SPEECH_AMPLITUDE_THRESHOLD
     // (realtimeServer.js), not a newly-invented number. Hysteresis (low <
-    // high) plus a multi-frame confirmation window is defense-in-depth on
-    // top of the WebRTC echoCancellation already enabled for tap_to_start in
-    // acquireMic() — AEC is what actually cancels the assistant's own voice
-    // out of the mic signal; this only prevents a single loud transient
-    // (a click, a cough) from firing a barge-in before AEC has settled.
+    // high) plus WebRTC echoCancellation (enabled for tap_to_start in
+    // acquireMic()) suppresses the assistant's own voice. While assistant
+    // audio is actually playing, one clearly audible frame is enough: short
+    // user interruptions such as "Stop" must not be discarded by a long
+    // confirmation window.
     processor.onaudioprocess = (e) => {
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
@@ -3260,7 +3265,7 @@
       // Local barge-in: only while Free Conversation is open AND the
       // assistant is actually the one making sound right now. Hold to Talk's
       // interrupt path is pointerdown-driven (startTurn()), not this.
-      if (voiceMode === 'tap_to_start' && tapToStartActive && DeviceVisual.getState() === 'speaking') {
+      if (voiceMode === 'tap_to_start' && tapToStartActive && activeSources.size > 0) {
         const confirmed = evaluateLocalVadFrame(localVadState, peak, {
           highThreshold: LOCAL_VAD_HIGH_PEAK,
           lowThreshold: LOCAL_VAD_LOW_PEAK,
@@ -3287,6 +3292,7 @@
   }
 
   function stopMic() {
+    micCaptureEpoch += 1;
     // Must fully tear down the processor/source graph, not just the tracks —
     // leaving the old ScriptProcessorNode connected meant its onaudioprocess
     // callback (gated only on the shared isHolding/ws module state, not on
@@ -3468,6 +3474,11 @@
     if (mode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) return; // per-provider gate — see declaration above
     if (mode === voiceMode) return;
 
+    const previousMode = voiceMode;
+    const reconnectAfterSwitch = Boolean(ws && (
+      ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING
+    ));
+
     // Clear pending flags from the old mode: stale pendingPttStart (set
     // when PTT pressed before providerReady) would cause the wrong mode's
     // turn to start when provider.ready fires later; pendingTapStart /
@@ -3484,7 +3495,7 @@
     // with the new mode starting up) actually completes before the new mode
     // takes over the mic/ws.
     sendTelemetry('mode_switch_started', {
-      from: voiceMode,
+      from: previousMode,
       to: mode,
       tapToStartActive,
       pendingTapStart,
@@ -3494,29 +3505,35 @@
       processorLive: Boolean(processor),
     });
 
-    if (voiceMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
+    if (previousMode === 'tap_to_start' && (tapToStartActive || pendingTapStart)) {
       await stopFreeConversation();
-    } else if (voiceMode === 'hold_to_talk' && isHolding) {
+    } else if (previousMode === 'hold_to_talk' && isHolding) {
       endTurn();
     }
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-      disconnect();
+      await disconnect();
     }
-
-    voiceMode = mode;
-    applyVoiceModeUI();
 
     if (persist) {
       try {
-        await fetch('/api/persona', {
+        const response = await fetch('/api/persona', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ voiceMode: mode }),
         });
+        if (!response.ok) throw new Error(`voice_mode_http_${response.status}`);
       } catch (err) {
         log('voice_mode_save_error', { message: err.message });
+        voiceMode = previousMode;
+        applyVoiceModeUI();
+        if (reconnectAfterSwitch) await connect();
+        return;
       }
     }
+
+    voiceMode = mode;
+    applyVoiceModeUI();
+    if (reconnectAfterSwitch) await connect();
 
     sendTelemetry('mode_switch_completed', {
       to: voiceMode,
@@ -3867,9 +3884,7 @@
     // doesn't support it, don't leave voiceMode stuck on a mode the mic
     // button can no longer act on.
     if (voiceMode === 'tap_to_start' && !isTapToStartSupportedForCurrentProvider()) {
-      if (tapToStartActive || pendingTapStart) await stopFreeConversation();
-      if (ws) disconnect();
-      voiceMode = 'hold_to_talk';
+      await setVoiceMode('hold_to_talk');
     }
     applyVoiceModeUI();
     renderProviderOptions(realtimeProviderConfigs);
@@ -3916,12 +3931,11 @@
   // amplitude value already established elsewhere in this file as "genuine
   // speech, not silence" — see first_non_silent_frame and the server's
   // NO_SPEECH_AMPLITUDE_THRESHOLD (realtimeServer.js), not a newly-invented
-  // number. Hysteresis (low < high) plus a multi-frame confirmation window
-  // is defense-in-depth on top of the WebRTC echoCancellation already
-  // enabled for tap_to_start in acquireMic() — AEC is what actually cancels
-  // the assistant's own voice out of the mic signal; this only prevents a
-  // single loud transient (a click, a cough) from firing a barge-in before
-  // AEC has settled.
+  // number. Hysteresis (low < high) plus WebRTC echoCancellation suppresses
+  // the assistant's own voice. Barge-in is evaluated only while assistant
+  // audio is actually playing, so one clearly audible frame must be enough
+  // for a short interruption such as "Stop". Hysteresis still guarantees
+  // one interrupt per sound episode.
   function createLocalVadState() {
     return { consecutiveLoud: 0, armed: true };
   }
@@ -3949,7 +3963,7 @@
 
   const LOCAL_VAD_HIGH_PEAK = 500;
   const LOCAL_VAD_LOW_PEAK = 250;
-  const LOCAL_VAD_CONFIRM_FRAMES = 3; // ~3 x 2048-sample callbacks (~384ms @16kHz)
+  const LOCAL_VAD_CONFIRM_FRAMES = 1; // one 2048-sample callback (~128ms @16kHz)
   const localVadState = createLocalVadState();
   let localBargeInEpisodeId = 0;
 
