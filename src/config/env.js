@@ -25,6 +25,14 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 24 * 60 * 60 * 1000);
 const COOKIE_SECRET = process.env.COOKIE_SECRET || '';
 
+// Selective RAG rollout gate. off: routeSelective() is never called from the
+// production tool path. shadow: routeSelective() runs and its decision is
+// logged, but the existing retrieval pipeline is untouched -- the router has
+// no ability to skip retrieval or change the answer. on: reserved for a later,
+// separately-approved phase; not implemented by any caller yet. A getter (not
+// a module-load-time constant) so tests can flip process.env and re-read.
+const VALID_SELECTIVE_RAG_MODES = new Set(['off', 'shadow', 'on']);
+
 module.exports = {
     PORT,
     REALTIME_PROVIDER,
@@ -40,6 +48,10 @@ module.exports = {
         return process.env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE !== undefined
             ? /^(1|true|yes|on)$/i.test(String(process.env.REALTIME_ALLOW_LEGACY_VOICE_OVERRIDE))
             : true;
+    },
+    get SELECTIVE_RAG_MODE() {
+        const raw = String(process.env.SELECTIVE_RAG_MODE || 'off').trim().toLowerCase();
+        return VALID_SELECTIVE_RAG_MODES.has(raw) ? raw : 'off';
     },
     ADMIN_PASSWORD,
     ADMIN_TOKEN,

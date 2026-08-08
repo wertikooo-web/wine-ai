@@ -3,6 +3,8 @@
 const { requireNonEmptyString, optionalString, setSearchBlock } = require('./toolHelpers');
 const { routeKnowledgeWithAnswerabilityGate, CLAIM_CLASSES } = require('../knowledge/layeredRouter');
 const { resolveAnswerMode, modePolicy } = require('../knowledge/answerModes');
+const { SELECTIVE_RAG_MODE } = require('../config/env');
+const { routeSelective } = require('../knowledge/selectiveRagRouter');
 const {
     buildClaimsFromEvidence,
     annotateConflicts,
@@ -75,6 +77,42 @@ const declaration = {
     },
 };
 
+// Selective RAG shadow observer -- STEP 5/6/7 of the shadow-mode rollout.
+// Runs the deterministic router (routeSelective) purely for observation: it
+// logs a DIRECT/GROUNDED decision alongside the retrieval the OLD production
+// pipeline actually performed. It never gates, skips, or short-circuits
+// retrieval, never calls Gemini/any LLM, and a thrown/failing router can
+// never affect the user-facing request -- the caller's production path runs
+// unconditionally either way. Near-zero overhead when SELECTIVE_RAG_MODE is
+// 'off' (the default): a single string compare, no router call at all.
+function runShadowRouterObserver(query, toolContext) {
+    if (SELECTIVE_RAG_MODE !== 'shadow') return null;
+    const startedAt = process.hrtime.bigint();
+    try {
+        const recentTurns = Array.isArray(toolContext?.recentTurns) ? toolContext.recentTurns : [];
+        const result = routeSelective(query, { recentTurns });
+        const latencyMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+        return {
+            route: result.path,
+            reason: result.reason,
+            entity: result.entity || null,
+            conversationContextUsed: recentTurns.length > 0,
+            latencyMs,
+            error: null,
+        };
+    } catch (err) {
+        const latencyMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+        return {
+            route: null,
+            reason: null,
+            entity: null,
+            conversationContextUsed: false,
+            latencyMs,
+            error: String(err && err.message || err),
+        };
+    }
+}
+
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     return async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
@@ -89,6 +127,11 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         // simply never consults them, and claims reflect only what was
         // allowed).
         const policy = modePolicy(answerMode);
+        const requestStartedAt = process.hrtime.bigint();
+        // Shadow observer runs BEFORE the production call and never affects
+        // it: same retrievalQuery is used below either way, unconditionally.
+        const shadow = runShadowRouterObserver(retrievalQuery, toolContext);
+        const retrievalStartedAt = process.hrtime.bigint();
         const result = await routeImpl(retrievalQuery, {
             language,
             forceWeb: args.force_web === true,
@@ -96,6 +139,22 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             allowCatalog: policy.allowCatalog,
             limit: 8,
         });
+        if (shadow) {
+            const retrievalLatencyMs = Number(process.hrtime.bigint() - retrievalStartedAt) / 1e6;
+            const totalLatencyMs = Number(process.hrtime.bigint() - requestStartedAt) / 1e6;
+            console.log('[selective_rag_shadow]', JSON.stringify({
+                route: shadow.route,
+                reason: shadow.reason,
+                entity: shadow.entity,
+                conversationContextUsed: shadow.conversationContextUsed,
+                routerLatencyMs: Number(shadow.latencyMs.toFixed(3)),
+                actualLevelsUsed: result.used_levels || [],
+                actualWebUsed: result.web_used === true,
+                retrievalLatencyMs: Number(retrievalLatencyMs.toFixed(3)),
+                totalLatencyMs: Number(totalLatencyMs.toFixed(3)),
+                error: shadow.error,
+            }));
+        }
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');
 
