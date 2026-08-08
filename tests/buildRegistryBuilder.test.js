@@ -524,6 +524,106 @@ async function run() {
         eq(code, builder.ERROR.SOURCE_FETCH_FAILED, 'drifted DB text must abort (input pin at fetch time)');
     }
 
+    // --- REGRESSION: live drift AFTER materialization must not invalidate an
+    // --- immutable build, and must not mutate it. Re-verifying an existing
+    // --- build certifies its committed rows against the stored snapshot (no
+    // --- live refetch); a later materialization sees the new content as a new
+    // --- fingerprint/build_id, never an overwrite of the old build.
+    {
+        const pool = seededTwoDocPool();
+        const manifest = textFixtureManifest();
+        const original = await builder.runBuild({ pool, manifest, dryRun: false, createdBy: 'regression', embed: fakeEmbedder() });
+        eq(original.status, 'ready', 'baseline build ready');
+        eq(original.reused, false, 'baseline is a fresh build');
+        const originalChunks = pool.getChunks(original.build_id).map((c) => ({ ...c }));
+        const originalBuildRow = { ...pool.getBuild(original.build_id) };
+
+        // 1) the live source drifts AFTER materialization. A plain resume
+        //    (which re-fetches) correctly refuses — that path still guards NEW
+        //    materializations.
+        pool.sources[0].text = 'Materialization drifted after build; committed rows still pin the old hash.';
+        let refused = null;
+        try {
+            await builder.runBuild({ pool, manifest, dryRun: false, resume: true, embed: fakeEmbedder() });
+        } catch (err) {
+            refused = err.code;
+        }
+        eq(refused, builder.ERROR.SOURCE_FETCH_FAILED, 'resume that would re-fetch refuses on live drift');
+
+        // 2) but the immutable build is re-verifiable from its committed state.
+        const restored = await builder.verifyCommittedBuild(pool, original.build_id);
+        eq(restored.status, 'ready', 'existing build re-verifies ready without refetching (immutable snapshot)');
+        eq(restored.fingerprint_match, true, 'recomputed fingerprint matches stored snapshot');
+        eq(restored.build_id, original.build_id, 'same immutable build id');
+        eq(restored.chunk_count, original.chunk_count, 'committed chunk count preserved');
+
+        // 3) re-verification does NOT mutate the committed rows.
+        const afterVerify = pool.getChunks(original.build_id).map((c) => ({ ...c }));
+        eq(afterVerify.length, originalChunks.length, 'no chunk rows added/removed by re-verify');
+        for (let i = 0; i < afterVerify.length; i += 1) {
+            eq(afterVerify[i].text, originalChunks[i].text, 'chunk text unchanged by re-verify');
+            eq(afterVerify[i].content_hash, originalChunks[i].content_hash, 'chunk content_hash unchanged by re-verify');
+            eq(afterVerify[i].embedding, originalChunks[i].embedding, 'chunk embedding unchanged by re-verify');
+        }
+
+        // 4) a NEW materialization with the NEW canonical content is a NEW
+        //    build: it must not overwrite the old build's rows or build row.
+        const newManifest = textFixtureManifest();
+        newManifest.entries[0].hashes = { normalized_text_sha256: builder.sha256Text(pool.sources[0].text) };
+        const nouveau = await builder.runBuild({ pool, manifest: newManifest, dryRun: false, createdBy: 'regression', embed: fakeEmbedder() });
+        eq(nouveau.status, 'ready', 'new-materialization build lands ready');
+        eq(nouveau.reused, false, 'new build is fresh');
+        eq(nouveau.build_id !== original.build_id, true, 'new canonical content -> new build_id');
+        eq(nouveau.input_fingerprint !== original.input_fingerprint, true, 'new canonical content -> new fingerprint');
+        eq(nouveau.chunk_count, original.chunk_count, 'same document count of the new build');
+
+        const remaining = pool.getBuild(original.build_id);
+        eq(remaining.status, 'ready', 'old build row not overwritten by new build');
+        eq(remaining.input_fingerprint, originalBuildRow.input_fingerprint, 'old build fingerprint untouched');
+        eq(pool.getChunks(original.build_id).length, originalChunks.length, 'old build chunk rows untouched by new build');
+        const oldTextStillThere = pool.getChunks(original.build_id).some((c) => c.text === originalChunks[0].text);
+        eq(oldTextStillThere, true, 'old build still serves the originally pinned content (not the drifted text)');
+    }
+
+    // --- verifyCommittedBuild contract: tampered committed row blocks restore,
+    //     unknown build id is explicit; a rolled_back status is a legal restore.
+    {
+        const pool = seededTwoDocPool();
+        const report = await builder.runBuild({ pool, manifest: textFixtureManifest(), dryRun: false, createdBy: 'committed', embed: fakeEmbedder() });
+
+        // tampered committed row must fail restore
+        const pool2 = seededTwoDocPool();
+        const r2 = await builder.runBuild({ pool: pool2, manifest: textFixtureManifest(), dryRun: false, embed: fakeEmbedder() });
+        await builder.setBuildStatus(pool2, r2.build_id, 'rolled_back');
+        pool2.chunks[0].content_hash = 'deadbeef';
+        let failed = null;
+        let failures = null;
+        try {
+            await builder.verifyCommittedBuild(pool2, r2.build_id);
+        } catch (err) {
+            failed = err.code;
+            failures = err.failures;
+        }
+        eq(failed, 'VERIFICATION_FAILED', 'tampered committed row blocks restore');
+        a(String(failures).includes('content_hash'), 'reports the tampered gate');
+        eq(pool2.getBuild(r2.build_id).status, 'verification_failed', 'tampered build marked verification_failed');
+
+        // rolled_back -> ready flip via the committed verify (no refetch)
+        await builder.setBuildStatus(pool, report.build_id, 'rolled_back');
+        const restored = await builder.verifyCommittedBuild(pool, report.build_id);
+        eq(restored.status, 'ready', 'verifyCommittedBuild restores ready without refetching');
+        eq(pool.getBuild(report.build_id).status, 'ready', 'build row status flipped to ready');
+
+        // unknown build id -> explicit error
+        let missing = null;
+        try {
+            await builder.verifyCommittedBuild(pool, 'nope');
+        } catch (err) {
+            missing = err.code;
+        }
+        eq(missing, 'BUILD_NOT_FOUND', 'unknown build id reports BUILD_NOT_FOUND');
+    }
+
     // --- trailing/leading whitespace in the DB is NOT a content change ---
     // (manifest pins the canonical trimmed hash; the builder must hash the same
     // bytes, otherwise identical documents get "drift" on every whitespace.)
