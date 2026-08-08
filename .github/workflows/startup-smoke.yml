@@ -27,11 +27,15 @@ jobs:
       - name: Check for untracked local imports
         run: node scripts/check-missing-local-imports.js
 
-      - name: Layered knowledge tests
+      - name: Layered knowledge and start-intent tests
         run: |
           node tests/layeredKnowledgeRouter.test.js
           node tests/layeredKnowledgeToolContract.test.js
           node tests/wineMdCatalogStore.test.js
+          node tests/startIntentLauncher.test.js
+          node tests/startIntentPersonaStore.test.js
+          node tests/startIntentPersistence.test.js
+          node tests/startIntentSettingsMount.test.js
 
       - name: Server startup (no env vars required)
         run: |

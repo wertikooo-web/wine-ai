@@ -5,6 +5,8 @@ const searchMode = require('./searchMode');
 const db = require('./db');
 const embeddings = require('./embeddings');
 const { resolveEntity, resolveEntities, getAliasesForEntity, buildAliasContext } = require('./entityResolver');
+const { loadBuildRegistryChunks } = require('./chunkStore');
+const buildRegistry = require('../buildRegistry/registry');
 
 let lastSemanticError = null;
 
@@ -182,6 +184,33 @@ function reciprocalRankFusion(rankedLists, k = 60) {
     return [...scoreByKey.entries()].sort((a, b) => b[1] - a[1]).map(([key]) => key);
 }
 
+// Semantic candidate scan scoped to ONE versioned build
+// (docs/architecture/BUILD_REGISTRY_DESIGN.md §5.2) — the v2 mirror of
+// semanticCandidateIds() above. Same vector-distance clause and thresholds, but
+// reads build_registry_chunks (embedding stored in the same row) filtered by
+// build_id, so RRF/hybrid runs identically against a v2 corpus.
+async function semanticCandidateIdsForBuild(query, { limit, buildId }) {
+    if (!buildId || typeof buildId !== 'string') return null;
+    if (!db.isEnabled() || !embeddings.isEnabled()) return null;
+    const pool = db.getPool();
+    if (!pool) return null;
+
+    const queryVector = await embeddings.embedText(query, { taskType: 'RETRIEVAL_QUERY' });
+    const vectorLiteral = `[${queryVector.join(',')}]`;
+    const { rows } = await pool.query(
+        `SELECT c.chunk_id, c.embedding <=> $1 AS distance
+         FROM build_registry_chunks c
+         WHERE c.build_id = $4
+           AND c.embedding IS NOT NULL
+           AND c.enabled IS NOT FALSE
+           AND c.embedding <=> $1 < $3
+         ORDER BY c.embedding <=> $1
+         LIMIT $2;`,
+        [vectorLiteral, limit, SEMANTIC_MAX_DISTANCE, buildId]
+    );
+    return rows.map((r) => r.chunk_id);
+}
+
 function aliasTextSearch(query, { index, resolved, limit }) {
     const aliases = getAliasesForEntity(resolved.entityId);
     if (aliases.length === 0) return { hits: [] };
@@ -293,7 +322,19 @@ function _buildDiagnostics() {
         rerankCandidateCount: null,
         chunkSource: null,
         chunkFallback: null,
+        buildId: null,
     };
+}
+
+// Small helper for errors surfaced from the versioned read path. Mirrors the
+// buildRegistry registry.js error shape (err.code) so callers can distinguish
+// a missing/dangling active-build pointer from a plain retrieval miss.
+function buildActiveError(code, buildId, detail) {
+    const err = new Error(detail === undefined ? `${code}${buildId ? `: ${buildId}` : ''}` : `${code}: ${buildId ? `${buildId} ` : ''}(${detail})`);
+    err.code = code;
+    if (buildId) err.build_id = buildId;
+    if (detail !== undefined) err.detail = detail;
+    return err;
 }
 
 // Build per-hit diagnostic detail (only when diagnostics mode is enabled)
@@ -417,8 +458,40 @@ function _indexFromChunks(chunks) {
 // Resolve the chunk source for this search. When chunkSource is explicitly
 // requested (option or KNOWLEDGE_CHUNK_SOURCE env flag) the chunk set is
 // loaded through loadChunks() (postgres|file|auto); otherwise search() keeps
-// its historical file-only behavior byte-for-byte.
-async function _resolveIndex({ chunkSource, indexFile }) {
+// its historical file-only behavior byte-for-byte. When chunkSource is 'build'
+// a versioned build_id is required: chunks are loaded straight from that
+// build's registry rows (the v2 read path, no index.json, no rebuild).
+//
+// When followActiveBuild is set the active pointer is resolved through
+// buildRegistry.resolveActiveBuild(): a versioned active build is served from
+// its registry rows (chunkSource 'build'), while the legacy pointer falls back
+// to the historical file path untouched. This is the cutover/rollback seam —
+// activating or rolling back a build changes what search() serves without
+// code changes. Per §7.4 a transient DB error degrades to legacy with a logged
+// error (never a hard fail for the retrieval hot path).
+async function _resolveIndex({ chunkSource, indexFile, buildId, followActiveBuild }) {
+    if (followActiveBuild) {
+        const pool = db.isEnabled() ? db.getPool() : null;
+        if (!pool) return { index: loadIndex(indexFile), loaded: null };
+        const resolved = await resolveActiveForGuard(pool, chunkSource);
+        if (!resolved) return { index: loadIndex(indexFile), loaded: null };
+        if (resolved.error) {
+            console.error(`[knowledge search] active build unresolved (${resolved.error}${resolved.build_id ? ':' + resolved.build_id : ''}), serving legacy`);
+            return { index: loadIndex(indexFile), loaded: { source: 'legacy', fallback: null, buildId: null, resolveError: resolved.error } };
+        }
+        if (resolved.build_id && resolved.build_id !== buildRegistry.LEGACY_BUILD) {
+            const loaded = await loadBuildRegistryChunks(pool, resolved.build_id);
+            return { index: _indexFromChunks(loaded.chunks), loaded: { source: 'build', buildId: resolved.build_id, fallback: null } };
+        }
+        return { index: loadIndex(indexFile), loaded: { source: 'legacy', fallback: null, buildId: buildRegistry.LEGACY_BUILD } };
+    }
+    if (chunkSource === 'build') {
+        if (!buildId) throw buildActiveError('BUILD_ID_REQUIRED', null, 'chunkSource=build requires a build_id');
+        const pool = db.isEnabled() ? db.getPool() : null;
+        if (!pool) throw { code: 'BUILD_DATABASE_UNAVAILABLE', message: 'chunkSource=build requires Postgres' };
+        const loaded = await loadBuildRegistryChunks(pool, buildId);
+        return { index: _indexFromChunks(loaded.chunks), loaded: { source: 'build', buildId, fallback: null } };
+    }
     if (!chunkSource || !CHUNK_SOURCES.has(chunkSource)) {
         return { index: loadIndex(indexFile), loaded: null };
     }
@@ -426,7 +499,24 @@ async function _resolveIndex({ chunkSource, indexFile }) {
     return { index: _indexFromChunks(loaded.chunks), loaded };
 }
 
-async function search(query, { limit = 4, language = null, indexFile, chunkSource, diagnostics: enableDiagnostics = false } = {}) {
+// Guard wrapper for resolveActiveBuild: a transient DB error (registry not yet
+// installed, DB down) must NOT throw through the retrieval hot path — it
+// degrades to legacy with a logged error (§7.4). A structurally corrupt pointer
+// (checked error from resolveActiveBuild) is logged and served as legacy, never
+// silently reused; the diag carries resolveError so it is observable.
+async function resolveActiveForGuard(pool, chunkSource) {
+    if (chunkSource && chunkSource !== 'build') {
+        return null;
+    }
+    try {
+        return await buildRegistry.resolveActiveBuild(pool);
+    } catch (err) {
+        console.error(`[knowledge] active build resolution failed (${err && err.message}), falling back to legacy`);
+        return null;
+    }
+}
+
+async function search(query, { limit = 4, language = null, indexFile, chunkSource, buildId, followActiveBuild = false, diagnostics: enableDiagnostics = false } = {}) {
     const startedAt = Date.now();
     const diag = _buildDiagnostics();
 
@@ -436,11 +526,14 @@ async function search(query, { limit = 4, language = null, indexFile, chunkSourc
     }
 
     const effectiveChunkSource = chunkSource || (typeof process !== 'undefined' ? process.env[CHUNK_SOURCE_ENV] : null);
-    const chunkResolution = await _resolveIndex({ chunkSource: effectiveChunkSource, indexFile });
+    const chunkResolution = await _resolveIndex({ chunkSource: effectiveChunkSource, indexFile, buildId, followActiveBuild });
     const index = chunkResolution.index;
     if (chunkResolution.loaded) {
         diag.chunkSource = chunkResolution.loaded.source;
         diag.chunkFallback = chunkResolution.loaded.fallback;
+        if (chunkResolution.loaded.buildId) {
+            diag.buildId = chunkResolution.loaded.buildId;
+        }
     }
 
     if (!index.chunks || index.chunks.length === 0) {
@@ -508,7 +601,10 @@ async function search(query, { limit = 4, language = null, indexFile, chunkSourc
     const semStart = Date.now();
     let semanticIds = null;
     try {
-        semanticIds = await semanticCandidateIds(query, { limit: limit * 3 });
+        const resolvedBuildId = (chunkResolution.loaded && chunkResolution.loaded.source === 'build') ? chunkResolution.loaded.buildId : null;
+        semanticIds = resolvedBuildId
+            ? await semanticCandidateIdsForBuild(query, { limit: limit * 3, buildId: resolvedBuildId })
+            : await semanticCandidateIds(query, { limit: limit * 3 });
         diag.semanticTookMs = Date.now() - semStart;
     } catch (err) {
         diag.semanticTookMs = Date.now() - semStart;
@@ -603,4 +699,18 @@ module.exports = {
     tokenize,
     search,
     getLastSemanticError,
+    // Resolve the corpus index for the currently-active build when one exists
+    // (legacy otherwise), reusing the same read-path resolution search()
+    // applies. Used by entity-first tools (e.g. searchWinery) that filter
+    // index.chunks directly instead of calling search().
+    resolveActiveIndex,
+    buildActiveError,
 };
+
+// Public wrapper around _resolveIndex for callers that need the active build's
+// in-memory chunk index (keyword shape) rather than a full search() run.
+// Returns the resolution { index, loaded } exactly as search() consumes it;
+// db-unavailable and registry-unavailable both fall back to the legacy index.
+async function resolveActiveIndex({ indexFile } = {}) {
+    return _resolveIndex({ chunkSource: null, indexFile, buildId: null, followActiveBuild: true });
+}

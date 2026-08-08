@@ -119,16 +119,21 @@ function normalizeEntityName(input) {
 // Unicode-aware word-boundary check: ensures alias match is at a word boundary
 // in the input. Uses lookaround for Unicode letters/digits (\p{L}\p{N}).
 function _isWordBoundaryMatch(inputLower, aliasLower) {
-  const idx = inputLower.indexOf(aliasLower);
-  if (idx === -1) return false;
-  const before = idx > 0 ? inputLower[idx - 1] : ' ';
-  const afterIdx = idx + aliasLower.length;
-  const after = afterIdx < inputLower.length ? inputLower[afterIdx] : ' ';
   const wordChar = /[\p{L}\p{N}]/u;
-  const beforeIsWord = wordChar.test(before);
-  const afterIsWord = wordChar.test(after);
-  // Match if alias is at a word boundary (not surrounded by word characters)
-  return !beforeIsWord || !afterIsWord;
+  // Check every occurrence, not just the first: the first hit may be embedded in
+  // a longer word while a later one is a genuine standalone mention.
+  for (let idx = inputLower.indexOf(aliasLower); idx !== -1;
+    idx = inputLower.indexOf(aliasLower, idx + 1)) {
+    const before = idx > 0 ? inputLower[idx - 1] : ' ';
+    const afterIdx = idx + aliasLower.length;
+    const after = afterIdx < inputLower.length ? inputLower[afterIdx] : ' ';
+    // BOTH sides must be boundaries. This previously accepted a match when
+    // EITHER side was, so a short alias matched the prefix of a longer word —
+    // harmless with 15 entities, but with the full producer registry it made
+    // Romanian "dacă" resolve to the producer "DAC" and "Novakovici" to "Novak".
+    if (!wordChar.test(before) && !wordChar.test(after)) return true;
+  }
+  return false;
 }
 
 // Find all entity mentions in input using word-boundary-aware matching.
@@ -138,6 +143,11 @@ function _extractEntityMentions(input, entities) {
   const matches = [];
 
   for (const entity of entities) {
+    // Producers whose name is also ordinary wine vocabulary (e.g. "Aroma") are
+    // flagged in the registry. They are still resolvable by an exact/normalized
+    // lookup, but must never be *extracted* out of free prose — "aroma acestui
+    // vin" is a description, not a mention of the distillery.
+    if (entity.ambiguousCommonWord) continue;
     for (const { alias } of entity.aliases) {
       const aliasLower = alias.toLowerCase();
       if (aliasLower.length < 2) continue;

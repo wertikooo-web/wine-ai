@@ -17,6 +17,7 @@ const path = require('path');
 const loader = require('../knowledge/loader');
 const { computeChunkHash, verifyChunkIdStability, rowToChunk } = require('../knowledge/chunkStore');
 const embeddings = require('../knowledge/embeddings');
+const contract = require('./sourceContract');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const MANIFEST_PATH = path.join(REPO_ROOT, 'docs', 'audits', 'corpus-manifest', 'manifest.json');
@@ -26,14 +27,16 @@ const CHUNK_ID_SLICE = 16;
 const HOOKS_VERSION = 'v1';
 const EMBEDDING_MODEL = embeddings.EMBEDDING_MODEL;
 const EMBEDDING_DIMENSIONS = embeddings.EMBEDDING_DIMENSIONS;
+// Gemini's embedContent accepts at most 100 requests per call. Keep the batch
+// well under that (matches the legacy embed-missing/knowledge-embed-backfill
+// convention of 20) so a full corpus build never trips INVALID_ARGUMENT.
+const EMBEDDING_BATCH_SIZE = 20;
 
-// Only these storage backends are canonical (the manifest pins every input to
-// one of them). The postgres pair is allow-listed so the builder never
-// interpolates a manifest-controlled identifier into SQL.
-const POSTGRES_STORAGE = new Map([
-    ['kos_source_documents.normalized_text', { table: 'kos_source_documents', column: 'normalized_text' }],
-    ['knowledge_documents.text', { table: 'knowledge_documents', column: 'text' }],
-]);
+// canon — the canonical text/hash/storage contract is defined ONCE in
+// sourceContract.js and shared with corpus-manifest-audit.js so the manifest
+// pin and the build-time fetch can never hash different bytes again.
+const sha256Text = contract.sha256Text;
+const { canonicalText, canonicalTextHash, pinnedVersionKey, parseStorage } = contract;
 
 const ERROR = {
     UNRESOLVED_DUPLICATE_GROUP: 'UNRESOLVED_DUPLICATE_GROUP',
@@ -49,10 +52,6 @@ function buildError(code, detail) {
     const err = new Error(detail === undefined ? code : `${code}: ${detail}`);
     err.code = code;
     return err;
-}
-
-function sha256Text(input) {
-    return crypto.createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
 function sha256Parts(parts) {
@@ -80,12 +79,10 @@ function computeChunkId(sourceRef, chunkIndex) {
         .slice(0, CHUNK_ID_SLICE);
 }
 
-// Content version pinned by the canonical manifest. Precedence mirrors the
-// audit's own hash fields per source kind (kos text / knowledge text / curated
-// body / generic content / raw file).
+// Content version pinned by the canonical manifest — resolved by the shared
+// source contract so the audit and the builder pick the identical hash field.
 function contentVersionKey(entry) {
-    const h = entry.hashes || {};
-    return h.normalized_text_sha256 || h.text_sha256 || h.body_sha256 || h.content_hash_db || h.raw_sha256 || null;
+    return pinnedVersionKey(entry);
 }
 
 // The fingerprint is a PURE function of the canonical manifest (ordered
@@ -102,26 +99,6 @@ function computeInputFingerprint(orderedIncluded) {
 
 function deriveBuildId(fingerprint) {
     return sha256Text(fingerprint).slice(0, BUILD_ID_SLICE);
-}
-
-function parseStorage(storage) {
-    const value = String(storage || '');
-    if (value.startsWith('postgres:')) {
-        const key = value.slice('postgres:'.length);
-        const target = POSTGRES_STORAGE.get(key);
-        if (!target) {
-            throw buildError(ERROR.UNKNOWN_SOURCE_STORAGE, value);
-        }
-        return { kind: 'postgres', ...target };
-    }
-    if (value.startsWith('filesystem:')) {
-        const file = value.slice('filesystem:'.length);
-        if (!file) {
-            throw buildError(ERROR.UNKNOWN_SOURCE_STORAGE, value);
-        }
-        return { kind: 'filesystem', file };
-    }
-    throw buildError(ERROR.UNKNOWN_SOURCE_STORAGE, value);
 }
 
 function sourceDocType(sourceType) {
@@ -149,14 +126,19 @@ async function fetchSourceText(entry, pool, repoRoot = REPO_ROOT) {
             throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: missing in ${storage.table}`);
         }
         const text = rows[0].content;
-        if (!text || String(text).trim().length === 0) {
+        if (!text || canonicalText(text).length === 0) {
             throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: empty ${storage.column}`);
         }
         // Input pin at fetch time: the live DB must still match the canonical
         // manifest snapshot. A drifted body means the manifest is stale — the
         // build refuses rather than silently embedding different content under
         // the same build_id. (Filesystem sources are pinned by git itself.)
-        const fetchedHash = sha256Text(String(text));
+        //
+        // The hash is the SHARED canonical body hash (see sourceContract.js):
+        // the manifest pins the same value, so trailing/leading whitespace in
+        // the DB can never masquerade as a content change and abort a build.
+        const canonical = canonicalText(text);
+        const fetchedHash = canonicalTextHash(canonical);
         if (fetchedHash !== entry.version_key) {
             throw buildError(
                 ERROR.SOURCE_FETCH_FAILED,
@@ -164,7 +146,7 @@ async function fetchSourceText(entry, pool, repoRoot = REPO_ROOT) {
             );
         }
         return {
-            text: String(text),
+            text: canonical,
             metadata: {
                 title: entry.title || entry.source_ref,
                 language: entry.language || 'ru',
@@ -183,11 +165,12 @@ async function fetchSourceText(entry, pool, repoRoot = REPO_ROOT) {
         throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: ${err.message}`);
     }
     const { metadata, body } = loader.parseFrontmatter(raw);
-    if (!body || body.trim().length === 0) {
+    const canonical = canonicalText(body);
+    if (canonical.length === 0) {
         throw buildError(ERROR.SOURCE_FETCH_FAILED, `${entry.source_ref}: empty body`);
     }
     return {
-        text: body,
+        text: canonical,
         metadata: {
             title: entry.title || metadata.title || entry.source_ref,
             language: entry.language || metadata.language || 'ru',
@@ -471,9 +454,16 @@ async function embedMissing(pool, buildId, embed = defaultEmbedder) {
     if (rows.length === 0) return { embedded: 0, skipped: 0 };
 
     const chunks = rows.map((r) => rowToChunk({ ...r, chunk_id: r.chunk_id }));
-    const vectors = await embed(chunks);
-    if (!Array.isArray(vectors) || vectors.length !== rows.length) {
-        throw buildError(ERROR.UNEXPECTED_EMBEDDING_RESPONSE, `expected ${rows.length} vectors, got ${vectors && vectors.length}`);
+    // Batch well under the provider's per-call limit (≤100) so one corpus
+    // build can embed thousands of chunks without a 400 from the API.
+    const vectors = [];
+    for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
+        const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
+        const part = await embed(batch);
+        if (!Array.isArray(part) || part.length !== batch.length) {
+            throw buildError(ERROR.UNEXPECTED_EMBEDDING_RESPONSE, `expected ${batch.length} vectors, got ${part && part.length}`);
+        }
+        vectors.push(...part);
     }
     for (let i = 0; i < rows.length; i += 1) {
         await pool.query(
@@ -487,6 +477,11 @@ async function embedMissing(pool, buildId, embed = defaultEmbedder) {
 // Read the vector dimension from the actual schema (design §4 note): prefer the
 // legacy embedding column, else the registry column; refuse to run if it
 // disagrees with the configured model output.
+//
+// pgvector reports the dimension differently across versions: older builds put
+// `4 + 4*dim` in atttypmod, newer ones (e.g. 0.8.x) use the plain `dim`. To be
+// robust, parse the resolved type text `vector(<n>)` and fall back to atttypmod
+// arithmetic only when the type text has no explicit dimension.
 async function embeddingDimension(pool) {
     const candidates = [
         ['knowledge_chunk_embeddings', 'embedding'],
@@ -495,14 +490,21 @@ async function embeddingDimension(pool) {
     for (const [table, column] of candidates) {
         try {
             const { rows } = await pool.query(
-                `SELECT a.atttypmod
+                `SELECT a.atttypmod, format_type(a.atttypid, a.atttypmod) AS resolved_type
                  FROM pg_attribute a
                  JOIN pg_class c ON c.oid = a.attrelid
                  WHERE c.relname = $1 AND a.attname = $2 AND a.attnum > 0`,
                 [table, column]
             );
             if (rows.length > 0) {
-                return { dimension: (rows[0].atttypmod - 4) / 4, source: `${table}.${column}` };
+                const match = /vector\((\d+)\)/.exec(rows[0].resolved_type || '');
+                if (match) {
+                    return { dimension: Number(match[1]), source: `${table}.${column}` };
+                }
+                const dim = rows[0].atttypmod > 0 ? (rows[0].atttypmod - 4) / 4 : 0;
+                if (Number.isFinite(dim) && dim > 0) {
+                    return { dimension: dim, source: `${table}.${column}` };
+                }
             }
         } catch (_err) {
             // Table or extension may not exist yet; try the next candidate.
@@ -743,6 +745,89 @@ async function runBuild({
     };
 }
 
+// Re-verify a build that was previously materialized and verified, without
+// touching the DB beyond checks. This is the official path to restore a build
+// from a non-ready lifecycle state (e.g. 'rolled_back' or 'verification_failed')
+// back to 'ready' after an operator WOULD have rolled back or intervened — the
+// LIVE sources are NOT re-fetched, so a source that drifted since materialization
+// cannot block restoring an already-committed build whose committed rows still
+// satisfy every DB-checkable gate. Chunks/embeddings/status are the ONLY writes.
+async function verifyCommittedBuild(pool, buildId) {
+    if (!pool) {
+        throw new TypeError('verifyCommittedBuild: pool is required');
+    }
+    const { rows } = await pool.query(
+        'SELECT source_count, chunk_count, embedding_count, input_fingerprint, input_snapshot, model, hooks_version FROM build_registry_builds WHERE build_id = $1',
+        [buildId]
+    );
+    if (rows.length === 0) {
+        const err = new Error(`BUILD_NOT_FOUND: ${buildId}`);
+        err.code = 'BUILD_NOT_FOUND';
+        throw err;
+    }
+    const build = rows[0];
+    const snap = build.input_snapshot;
+    if (!snap || !Array.isArray(snap.included)) {
+        const err = new Error(`UNVERIFIABLE_SNAPSHOT: ${buildId}: input_snapshot has no included list`);
+        err.code = 'UNVERIFIABLE_SNAPSHOT';
+        throw err;
+    }
+
+    const included = snap.included.map((e) => ({
+        source_ref: e.source_ref,
+        source_type: e.source_type,
+        title: e.title,
+        language: e.language,
+        storage: e.storage,
+        stable_id: e.stable_id,
+        version_key: e.version_key,
+    }));
+
+    // Determinism: the DB-checkable fingerprint is a pure function of the
+    // stored snapshot, so recomputing it must give back the stored fingerprint.
+    const ordered = included.slice().sort((a, b) => a.source_ref.localeCompare(b.source_ref));
+    const recomputedFingerprint = computeInputFingerprint(ordered);
+    const { rows: chunkCountRows } = await pool.query(
+        `SELECT (SELECT COUNT(*)::int FROM build_registry_chunks WHERE build_id = $1) AS chunk_count,
+                (SELECT COUNT(*)::int FROM build_registry_chunks WHERE build_id = $1 AND embedding IS NOT NULL) AS embedding_count`,
+        [buildId]
+    );
+    const planChunkCount = chunkCountRows[0].chunk_count;
+
+    const verification = await verifyBuild(pool, {
+        buildId,
+        fingerprint: snap.fingerprint || recomputedFingerprint,
+        snapshot: snap,
+        canonicalRefs: snap.included.map((e) => e.source_ref),
+        excluded: snap.excluded || [],
+        dedup: snap.dedup || [],
+        planChunkCount,
+    });
+
+    if (verification.passed) {
+        await setBuildStatus(pool, buildId, 'ready');
+    } else {
+        await setBuildStatus(pool, buildId, 'verification_failed');
+        const err = new Error(`VERIFICATION_FAILED: ${buildId}`);
+        err.code = 'VERIFICATION_FAILED';
+        err.failures = verification.failures;
+        throw err;
+    }
+
+    return {
+        build_id: buildId,
+        status: 'ready',
+        reused: false,
+        fingerprint: recomputedFingerprint,
+        fingerprint_stored: snap.fingerprint,
+        fingerprint_match: recomputedFingerprint === snap.fingerprint,
+        source_count: build.source_count,
+        chunk_count: chunkCountRows[0].chunk_count,
+        embedding_count: chunkCountRows[0].embedding_count,
+        verification,
+    };
+}
+
 module.exports = {
     REPO_ROOT,
     MANIFEST_PATH,
@@ -751,6 +836,7 @@ module.exports = {
     HOOKS_VERSION,
     EMBEDDING_MODEL,
     EMBEDDING_DIMENSIONS,
+    EMBEDDING_BATCH_SIZE,
     ERROR,
     sha256Text,
     sha256Parts,
@@ -777,5 +863,6 @@ module.exports = {
     finalizeBuild,
     setBuildStatus,
     verifyBuild,
+    verifyCommittedBuild,
     runBuild,
 };

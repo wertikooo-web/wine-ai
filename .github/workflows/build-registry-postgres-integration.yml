@@ -49,7 +49,10 @@ jobs:
       - name: Builder unit tests (fake pool)
         run: node tests/buildRegistryBuilder.test.js
 
-      - name: Registry integration tests (real PostgreSQL + pgvector)
+      - name: Source contract unit tests (manifest <> builder hash agreement)
+        run: node tests/sourceContract.test.js
+
+      - name: Registration integration tests (real PostgreSQL + pgvector)
         run: node tests/buildRegistry.postgres.integration.test.js
 
       - name: Versioned builder integration tests (real PostgreSQL + pgvector)

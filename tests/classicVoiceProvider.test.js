@@ -132,6 +132,8 @@ async function run() {
     const resolved = registry.resolve('classic');
     t.equal(resolved.id, 'classic');
     t.equal(resolved.metadata.provider, 'classic');
+    t.deepEqual(registry.get('classic').supported_voice_modes, ['hold_to_talk']);
+    t.deepEqual(registry.get('gemini').supported_voice_modes, ['hold_to_talk', 'tap_to_start']);
 
     const toolRounds = [];
     const toolProvider = new ClassicVoiceProvider({ geminiApiKey: 'gemini-test' }, {

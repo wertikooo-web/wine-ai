@@ -1,7 +1,6 @@
 'use strict';
 
-const { loadIndex } = require('../knowledge/index');
-const { search } = require('../knowledge/search');
+const { resolveActiveIndex } = require('../knowledge/search');
 const { resolveEntity, buildAliasContext } = require('../knowledge/entityResolver');
 const { requireNonEmptyString, optionalString } = require('./toolHelpers');
 
@@ -44,7 +43,7 @@ async function impl(args) {
     const name = requireNonEmptyString(args.name, 'name');
     const region = optionalString(args.region, 60);
 
-    const index = loadIndex();
+    const { index } = await resolveActiveIndex();
     const nameLower = name.toLowerCase();
 
     // Resolve with suggestions enabled for safe fuzzy matching
