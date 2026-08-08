@@ -33,6 +33,8 @@ const personaStore = require('./persona/personaStore');
 const { getScreenContext, buildContextualPersona } = require('./persona/screenContexts');
 const { getPurchaseOptions } = require('./data/purchaseOptions');
 const { createTextKnowledgeEvaluator, MAX_QUESTION_CHARS } = require('./evaluation/textKnowledgeEvaluation');
+const { orchestrateKnowledge } = require('./knowledge/knowledgeOrchestrator');
+const { listAnswerModes, ANSWER_MODES } = require('./knowledge/answerModes');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
@@ -227,7 +229,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -1330,6 +1332,41 @@ async function handleRequest(req, res) {
                 max_question_chars: MAX_QUESTION_CHARS,
             });
         }
+    }
+
+    // Answer-mode orchestrator (phase 1): routes a question through the
+    // four-level knowledge stack under an explicit answer mode and returns
+    // claim-level provenance -- every fact with its source type/title/url,
+    // confidence, and checked/verified time. Exposes internal routing only
+    // to the operator dashboard, never to the voice/chat user.
+    if (req.method === 'POST' && pathname === '/api/knowledge/orchestrate') {
+        let body;
+        try {
+            body = await readJsonBody(req, 2 * 1024);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        try {
+            const result = await orchestrateKnowledge(body.question, {
+                language: body.language,
+                answerMode: body.answer_mode,
+                forceWeb: body.force_web === true,
+            });
+            return sendJson(res, 200, result);
+        } catch (error) {
+            const invalid = ['question_required', 'question_too_long'].includes(error.code);
+            return sendJson(res, invalid ? 400 : 502, {
+                ok: false,
+                error: error.code || 'orchestrate_failed',
+                max_question_chars: MAX_QUESTION_CHARS,
+            });
+        }
+    }
+
+    // Answer-mode catalog (Phase 1): the four modes with their allowed levels,
+    // so the dashboard can render mode semantics without duplicating them.
+    if (req.method === 'GET' && pathname === '/api/knowledge/answer-modes') {
+        return sendJson(res, 200, { ok: true, modes: listAnswerModes(), default_mode: ANSWER_MODES.knowledge_web });
     }
 
     if (req.method === 'GET' && pathname === '/api/knowledge/sources') {
