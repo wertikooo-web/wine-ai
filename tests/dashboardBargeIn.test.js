@@ -253,26 +253,25 @@ async function run() {
 
     // ================= Pure local-VAD algorithm =================
 
-    console.log('Testing local VAD requires multiple consecutive loud frames (not a single spike)...');
+    console.log('Testing local VAD accepts one clearly audible frame so a short interruption is not lost...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 3 };
-        // A single loud frame must NOT confirm.
+        const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
+        assert.strictEqual(confirmFrames, 1, 'short barge-in must not wait for multiple audio callbacks');
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
         const r1 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r1, false, 'one loud frame alone must not confirm a barge-in');
+        assert.strictEqual(r1, true, 'one clearly audible frame must immediately confirm a barge-in');
         const r2 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r2, false, 'two consecutive loud frames must not confirm yet (confirmFrames=3)');
-        const r3 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r3, true, 'the 3rd consecutive loud frame must confirm the barge-in');
+        assert.strictEqual(r2, false, 'continued sound must not emit a duplicate barge-in');
     }
 
     console.log('Testing local VAD hysteresis: re-arms only after dropping below the LOW threshold...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 3 };
-        for (let i = 0; i < 3; i++) sandbox.evaluateLocalVadFrame(state, 900, opts);
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 1 };
+        sandbox.evaluateLocalVadFrame(state, 900, opts);
         assert.strictEqual(state.armed, false, 'state must be disarmed immediately after confirming once');
         // Staying loud (even fluctuating between high and the dead zone,
         // never below low) must NOT re-confirm -- one client_barge_in per
@@ -285,9 +284,9 @@ async function run() {
         // Drop below LOW -- now re-armed.
         sandbox.evaluateLocalVadFrame(state, 100, opts);
         assert.strictEqual(state.armed, true, 'must re-arm once the level drops below the LOW threshold');
-        // New episode: needs confirmFrames again, not just one frame.
+        // A new episode can be another short word and confirms immediately.
         const newEpisodeFirstFrame = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(newEpisodeFirstFrame, false, 'a new episode must also require multiple consecutive frames');
+        assert.strictEqual(newEpisodeFirstFrame, true, 'a new short sound episode must confirm immediately after re-arm');
     }
 
     // ================= Hold to Talk: pointerdown fade-out =================

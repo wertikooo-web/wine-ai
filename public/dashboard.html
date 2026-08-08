@@ -3239,11 +3239,11 @@
     // in this file as "genuine speech, not silence" — see
     // first_non_silent_frame above and the server's NO_SPEECH_AMPLITUDE_THRESHOLD
     // (realtimeServer.js), not a newly-invented number. Hysteresis (low <
-    // high) plus a multi-frame confirmation window is defense-in-depth on
-    // top of the WebRTC echoCancellation already enabled for tap_to_start in
-    // acquireMic() — AEC is what actually cancels the assistant's own voice
-    // out of the mic signal; this only prevents a single loud transient
-    // (a click, a cough) from firing a barge-in before AEC has settled.
+    // high) plus WebRTC echoCancellation (enabled for tap_to_start in
+    // acquireMic()) suppresses the assistant's own voice. While assistant
+    // audio is actually playing, one clearly audible frame is enough: short
+    // user interruptions such as "Stop" must not be discarded by a long
+    // confirmation window.
     processor.onaudioprocess = (e) => {
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
@@ -3931,12 +3931,11 @@
   // amplitude value already established elsewhere in this file as "genuine
   // speech, not silence" — see first_non_silent_frame and the server's
   // NO_SPEECH_AMPLITUDE_THRESHOLD (realtimeServer.js), not a newly-invented
-  // number. Hysteresis (low < high) plus a multi-frame confirmation window
-  // is defense-in-depth on top of the WebRTC echoCancellation already
-  // enabled for tap_to_start in acquireMic() — AEC is what actually cancels
-  // the assistant's own voice out of the mic signal; this only prevents a
-  // single loud transient (a click, a cough) from firing a barge-in before
-  // AEC has settled.
+  // number. Hysteresis (low < high) plus WebRTC echoCancellation suppresses
+  // the assistant's own voice. Barge-in is evaluated only while assistant
+  // audio is actually playing, so one clearly audible frame must be enough
+  // for a short interruption such as "Stop". Hysteresis still guarantees
+  // one interrupt per sound episode.
   function createLocalVadState() {
     return { consecutiveLoud: 0, armed: true };
   }
@@ -3964,7 +3963,7 @@
 
   const LOCAL_VAD_HIGH_PEAK = 500;
   const LOCAL_VAD_LOW_PEAK = 250;
-  const LOCAL_VAD_CONFIRM_FRAMES = 3; // ~3 x 2048-sample callbacks (~384ms @16kHz)
+  const LOCAL_VAD_CONFIRM_FRAMES = 1; // one 2048-sample callback (~128ms @16kHz)
   const localVadState = createLocalVadState();
   let localBargeInEpisodeId = 0;
 
