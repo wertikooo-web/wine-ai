@@ -451,6 +451,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     let turnTotalSampleCount = 0;
     let sessionInputBytes = 0;
     let currentMode = personaStore.getVoiceMode() === 'tap_to_start' ? 'tap_to_start' : 'push_to_talk';
+    // Session-wide microphone mode. A scripted warning is a TEXT turn, but
+    // it must never switch Free Conversation out of continuous listening.
+    let sessionVoiceMode = currentMode;
     let turnCounter = 0;
     // Set from the client's OWN tap_to_start input_audio.start message (which
     // reports its real track.getSettings(), not requested constraints) —
@@ -681,7 +684,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     }
 
     function handleNativeSpeechStarted() {
-        if (currentMode !== 'tap_to_start') return;
+        if (sessionVoiceMode !== 'tap_to_start') return;
         // The client's own initial input_audio.start (the tap) already
         // opened this turn — a native "speech started" for that SAME
         // utterance is just confirmation, not a new-turn signal, and
@@ -730,7 +733,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // would call endInput() and wrongly stamp inputEndedAt on the CURRENT
     // open turn instead of the stale one it actually belongs to.
     function handleNativeSpeechStopped(generationId) {
-        if (currentMode !== 'tap_to_start') return;
+        if (sessionVoiceMode !== 'tap_to_start') return;
         if (generationId && (!currentGeneration || currentGeneration.generationId !== generationId)) {
             log('native_speech_stopped_ignored_stale_generation', {
                 provider: providerSession?.name || 'provider',
@@ -1452,7 +1455,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // clobbers a timestamp that's already meaningful (e.g. hold_to_talk,
         // which always sets this itself via the client's own
         // input_audio.end and doesn't need this fallback at all).
-        if (currentMode === 'tap_to_start' && !inputEndedAt) {
+        if (sessionVoiceMode === 'tap_to_start' && !inputEndedAt) {
             inputEndedAt = Date.now();
         }
         clearGenerationTimeout(currentGeneration);
@@ -1612,6 +1615,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         turnLoudSampleCount = 0;
         turnTotalSampleCount = 0;
         currentMode = payload.mode || 'push_to_talk';
+        if (currentMode === 'tap_to_start' || currentMode === 'push_to_talk') {
+            sessionVoiceMode = currentMode;
+        }
         currentGeneration = createGeneration({
             turnId: currentTurnId,
             mode: currentMode,
@@ -1679,6 +1685,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             turn_id: currentTurnId,
             generation_id: currentGeneration.generationId,
             response_id: null,
+            mode: currentMode,
         });
         const generationForStream = currentGeneration;
         const responseIdForStream = currentGeneration.responseId;
@@ -1791,6 +1798,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             turn_input_bytes: inputBytes,
             session_input_bytes: sessionInputBytes,
             end_reason: payload.end_reason || null,
+            mode: currentMode,
         });
         visualOrchestrator.markThinking(currentGeneration.generationId);
         log('input_audio_end', {
@@ -2139,6 +2147,11 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             startInput(payload);
         } else if (payload.type === 'input_audio.end') {
             endInput(payload);
+        } else if (payload.type === 'input_audio.speech_start') {
+            if (sessionVoiceMode === 'tap_to_start') {
+                log('client_local_speech_started', { provider: providerSession?.name || 'provider' });
+                handleNativeSpeechStarted();
+            }
         } else if (payload.type === 'input_text.submit') {
             submitTextInput(payload);
         } else if (payload.type === 'session.interrupt') {
@@ -2255,7 +2268,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             // (turnCounter > 0), continue forwarding regardless of
             // per-turn state. Hold to Talk is untouched: it still requires
             // an explicitly active turn, exactly as before.
-            const continuousTapListening = currentMode === 'tap_to_start' && turnCounter > 0;
+            const continuousTapListening = sessionVoiceMode === 'tap_to_start' && turnCounter > 0;
             if (!isActiveTurn && !continuousTapListening) {
                 log('audio_frame_dropped', {
                     reason: 'no_active_input',

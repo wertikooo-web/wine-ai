@@ -6,6 +6,10 @@
 //   node scripts/build-versioned-corpus.js [--resume]           # real run (DATABASE_URL required)
 //   node scripts/build-versioned-corpus.js --manifest <path>    # alternate canonical manifest
 //   node scripts/build-versioned-corpus.js --created-by <label> # operator label
+//   node scripts/build-versioned-corpus.js --verify-committed <build_id>  # re-verify an existing build's
+//                                                                          # committed rows (no refetch,
+//                                                                          # no embeddings) and mark ready
+//                                                                          # if all DB gates pass
 //
 // Deterministic: the same canonical manifest always yields the same build_id.
 // Idempotent: re-running the same input re-verifies the same build; unchanged
@@ -24,6 +28,7 @@ function parseArgs(argv) {
         else if (arg === '--resume') args.resume = true;
         else if (arg === '--manifest') args.manifestPath = argv[++i];
         else if (arg === '--created-by') args.createdBy = argv[++i];
+        else if (arg === '--verify-committed') args.verifyCommitted = argv[++i];
         else if (arg === '--help' || arg === '-h') args.help = true;
         else throw new Error(`unknown argument: ${arg}`);
     }
@@ -33,11 +38,17 @@ function parseArgs(argv) {
 async function main() {
     const args = parseArgs(process.argv.slice(2));
     if (args.help) {
-        console.log('Usage: node scripts/build-versioned-corpus.js [--dry-run] [--resume] [--manifest <path>] [--created-by <label>]');
+        console.log('Usage: node scripts/build-versioned-corpus.js [--dry-run] [--resume] [--manifest <path>] [--created-by <label>] [--verify-committed <build_id>]');
         return;
     }
 
     const pool = args.dryRun ? null : registry.getPool();
+    if (!args.dryRun && args.verifyCommitted) {
+        const report = await builder.verifyCommittedBuild(pool, args.verifyCommitted);
+        console.log(JSON.stringify(report, null, 2));
+        await pool.end();
+        return;
+    }
     if (!args.dryRun && !pool) {
         console.error('error: DATABASE_URL is required for a real build (use --dry-run for a read-only simulation)');
         process.exit(1);

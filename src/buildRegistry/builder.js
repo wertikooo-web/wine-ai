@@ -745,6 +745,89 @@ async function runBuild({
     };
 }
 
+// Re-verify a build that was previously materialized and verified, without
+// touching the DB beyond checks. This is the official path to restore a build
+// from a non-ready lifecycle state (e.g. 'rolled_back' or 'verification_failed')
+// back to 'ready' after an operator WOULD have rolled back or intervened — the
+// LIVE sources are NOT re-fetched, so a source that drifted since materialization
+// cannot block restoring an already-committed build whose committed rows still
+// satisfy every DB-checkable gate. Chunks/embeddings/status are the ONLY writes.
+async function verifyCommittedBuild(pool, buildId) {
+    if (!pool) {
+        throw new TypeError('verifyCommittedBuild: pool is required');
+    }
+    const { rows } = await pool.query(
+        'SELECT source_count, chunk_count, embedding_count, input_fingerprint, input_snapshot, model, hooks_version FROM build_registry_builds WHERE build_id = $1',
+        [buildId]
+    );
+    if (rows.length === 0) {
+        const err = new Error(`BUILD_NOT_FOUND: ${buildId}`);
+        err.code = 'BUILD_NOT_FOUND';
+        throw err;
+    }
+    const build = rows[0];
+    const snap = build.input_snapshot;
+    if (!snap || !Array.isArray(snap.included)) {
+        const err = new Error(`UNVERIFIABLE_SNAPSHOT: ${buildId}: input_snapshot has no included list`);
+        err.code = 'UNVERIFIABLE_SNAPSHOT';
+        throw err;
+    }
+
+    const included = snap.included.map((e) => ({
+        source_ref: e.source_ref,
+        source_type: e.source_type,
+        title: e.title,
+        language: e.language,
+        storage: e.storage,
+        stable_id: e.stable_id,
+        version_key: e.version_key,
+    }));
+
+    // Determinism: the DB-checkable fingerprint is a pure function of the
+    // stored snapshot, so recomputing it must give back the stored fingerprint.
+    const ordered = included.slice().sort((a, b) => a.source_ref.localeCompare(b.source_ref));
+    const recomputedFingerprint = computeInputFingerprint(ordered);
+    const { rows: chunkCountRows } = await pool.query(
+        `SELECT (SELECT COUNT(*)::int FROM build_registry_chunks WHERE build_id = $1) AS chunk_count,
+                (SELECT COUNT(*)::int FROM build_registry_chunks WHERE build_id = $1 AND embedding IS NOT NULL) AS embedding_count`,
+        [buildId]
+    );
+    const planChunkCount = chunkCountRows[0].chunk_count;
+
+    const verification = await verifyBuild(pool, {
+        buildId,
+        fingerprint: snap.fingerprint || recomputedFingerprint,
+        snapshot: snap,
+        canonicalRefs: snap.included.map((e) => e.source_ref),
+        excluded: snap.excluded || [],
+        dedup: snap.dedup || [],
+        planChunkCount,
+    });
+
+    if (verification.passed) {
+        await setBuildStatus(pool, buildId, 'ready');
+    } else {
+        await setBuildStatus(pool, buildId, 'verification_failed');
+        const err = new Error(`VERIFICATION_FAILED: ${buildId}`);
+        err.code = 'VERIFICATION_FAILED';
+        err.failures = verification.failures;
+        throw err;
+    }
+
+    return {
+        build_id: buildId,
+        status: 'ready',
+        reused: false,
+        fingerprint: recomputedFingerprint,
+        fingerprint_stored: snap.fingerprint,
+        fingerprint_match: recomputedFingerprint === snap.fingerprint,
+        source_count: build.source_count,
+        chunk_count: chunkCountRows[0].chunk_count,
+        embedding_count: chunkCountRows[0].embedding_count,
+        verification,
+    };
+}
+
 module.exports = {
     REPO_ROOT,
     MANIFEST_PATH,
@@ -780,5 +863,6 @@ module.exports = {
     finalizeBuild,
     setBuildStatus,
     verifyBuild,
+    verifyCommittedBuild,
     runBuild,
 };

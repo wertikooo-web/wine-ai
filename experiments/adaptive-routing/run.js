@@ -124,6 +124,14 @@ async function runRag(question, history, lang) {
         retrieval_ms,
         generation_ms,
         usage: usageOf(res),
+        // EVIDENCE PARITY (issue #49): the judge must see exactly the evidence
+        // the generator saw. `retrieval.evidence` below is a DISPLAY/STORAGE
+        // projection (8 items x 700 chars) that keeps results.json small; it
+        // must never be what the judge grades against, or grounded claims that
+        // live in item 9+ or past char 700 get scored as "unsupported".
+        // This field is the generator's own array, unmodified, and is deleted
+        // before the step is persisted.
+        judgeEvidence: Array.isArray(tool.evidence) ? tool.evidence : [],
         retrieval: {
             found: tool.found === true,
             answerable: tool.answerable ?? null,
@@ -179,8 +187,18 @@ const JUDGE_SCHEMA = {
     required: ['direct', 'rag', 'grounding_necessary', 'grounding_necessary_reason', 'retrieval_effect', 'retrieval_effect_kind', 'retrieval_effect_explanation', 'verdict'],
 };
 
+// Serializes the generator's own evidence array. Same item count, same order,
+// same full chunk text -- no slicing on either axis.
+function formatEvidenceForJudge(evidence) {
+    if (!Array.isArray(evidence) || !evidence.length) return '(no evidence retrieved)';
+    return evidence
+        .map((e, i) => `[${i + 1}] (${e.level || '?'}/${e.confidence ?? '?'}) ${e.title || ''}\n${String(e.text || '')}`)
+        .join('\n\n');
+}
+
 function judgePrompt(item, question, direct, rag) {
-    const ev = (rag.retrieval?.evidence || []).map((e, i) => `[${i + 1}] (${e.level}/${e.confidence}) ${e.title || ''}\n${e.text}`).join('\n\n') || '(no evidence retrieved)';
+    // Parity: grade against what the generator was actually given.
+    const ev = formatEvidenceForJudge(rag.judgeEvidence);
     return `Ты строгий эксперт-оценщик для голосового ИИ-сомелье "WINE AI" (проект о молдавском вине, работает на собственной базе знаний + каталог + веб).
 
 Оцени ДВА ответа на один и тот же вопрос пользователя.
@@ -243,6 +261,16 @@ async function runItem(item) {
             runRag(q, history, item.lang).catch((e) => ({ answer: '', error: String(e.message), latency_ms: null, usage: null, retrieval: null })),
         ]);
         const graded = (direct.answer && rag.answer) ? await judge(item, q, direct, rag).catch((e) => ({ error: String(e.message) })) : { skipped: 'missing_answer' };
+        // Full evidence is for grading only -- persisting it would multiply
+        // results.json size by ~30x. The truncated `rag.retrieval.evidence`
+        // projection remains for human inspection.
+        const judgeEvidenceCount = Array.isArray(rag.judgeEvidence) ? rag.judgeEvidence.length : 0;
+        const judgeEvidenceChars = (rag.judgeEvidence || []).reduce((n, e) => n + String(e.text || '').length, 0);
+        delete rag.judgeEvidence;
+        if (rag.retrieval) {
+            rag.retrieval.judge_evidence_count = judgeEvidenceCount;
+            rag.retrieval.judge_evidence_chars = judgeEvidenceChars;
+        }
         out.steps.push({ turn: i + 1, question: q, direct, rag, judge: graded });
         // Multi-turn context uses the RAG answer as the canonical conversation
         // history for BOTH conditions, so turn 2 differs only in retrieval.

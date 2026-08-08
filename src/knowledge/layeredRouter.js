@@ -313,6 +313,7 @@ function detectConflicts(evidence) {
 async function routeKnowledge(query, options = {}) {
     const language = options.language || null;
     const allowWeb = options.allowWeb !== false;
+    const allowCatalog = options.allowCatalog !== false;
     const forceWeb = options.forceWeb === true;
     const freshness = isFreshnessQuery(query);
     const catalogIntent = isCatalogQuery(query);
@@ -341,7 +342,7 @@ async function routeKnowledge(query, options = {}) {
     const internalPromise = (async () => {
         const canonical = await runLevel(LEVELS.CANONICAL, () =>
             (adapters.searchCanonical || searchCanonical)(query, options));
-        const catalog = (catalogIntent || freshness)
+        const catalog = (catalogIntent || freshness) && allowCatalog
             ? await runLevel(LEVELS.CATALOG, () => (adapters.searchCatalog || searchCatalog)(query, options))
             : [];
         const documents = await runLevel(LEVELS.DOCUMENTS, () =>

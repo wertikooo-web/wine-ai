@@ -276,7 +276,7 @@ Recorded 1:1 in `build_registry_builds.status` (CHECK clause above) and mirrored
 | `building` | chunk+embedding stages in progress | build script upsert (PR2) | `ready` (on success) / `cancelled` / `verification_failed` |
 | `ready` | artifacts complete, passed verification gates (§6.4), awaiting explicit activation | verification pass | `active` (activation) |
 | `active` | the served corpus; pointer `active_build = <this build_id>` | explicit activation transaction (§7.1) | `ready` (superseded by a newer activation) or `rolled_back` (rollback) |
-| `rolled_back` | was active, superseded via rollback (§7.2) | rollback transaction | — |
+| `rolled_back` | was active, superseded via rollback (§7.2) | rollback transaction | `ready` via committed re-verify (§6.3a); it never auto-returns to `active` — activation is always an explicit transaction |
 | `verification_failed` / `cancelled` | terminal, never activatable | gate failure / operator | — |
 
 Key invariant: **exactly one build has `status='active'` at any time, and it is always the build referenced by `active_build`.** This is enforced twice: (1) by the activation transaction, which demotes the currently-served build to `ready` in the same transaction before promoting the new build; and (2) by the partial unique index `uq_build_registry_builds_single_active` (§4.6), which makes a second `active` row a DB-level `23505`. Both the pointer flip and every status change are atomic in the activation transaction.
@@ -289,6 +289,12 @@ Key invariant: **exactly one build has `status='active'` at any time, and it is 
 - `build_id` is deterministic from the input fingerprint, so re-running the **same input** lands on the **same build row**.
 - Every stage upserts (`ON CONFLICT`) rather than blind-inserts; re-running only changes rows whose `content_hash` differs (same pattern as `importChunksToPostgres` in `chunkStore.js:152`).
 - A build that stopped mid-flight resumes from its recorded `status`: unchanged chunks/embeddings are skipped, only missing/changed ones are (re)processed. Embedding calls are skipped for rows where `embedding IS NOT NULL` (idempotent).
+
+### 6.3a Committed re-verify (`verifyCommittedBuild`) — resume semantics for an already-materialized build
+- `runBuild --resume` re-fetches every source and re-checks the live DB against the canonical pin. That is correct for **new materialization**, but must NOT be the way we re-verify an *already committed* build: once a build's chunks/embeddings are materialized and verified, its only source of truth is the **stored `input_snapshot` + committed `build_registry_chunks` rows**, not the live DB.
+- `builder.verifyCommittedBuild(pool, buildId)` (CLI: `--verify-committed <id>`) re-certifies a **committed** build from its own committed state: it reads the stored snapshot, recomputes the deterministic fingerprint (must match the stored one), and re-runs the DB-checkable gates (counts, chunk determinism, embedding coverage, input pin, no contamination) **without re-fetching live sources and without re-embedding**. On pass it sets status `ready`; on a tampered/gate failure it throws `VERIFICATION_FAILED`.
+- **Live drift does not mutate an immutable build.** A source that changed on disk/postgres after materialization only changes the identity of a **future** build (new `version_key` → new fingerprint → new `build_id`). The committed snapshot keeps its own pinned content, provenance and `build_id` untouched.
+- This makes the re-activation path `rolled_back → ready → active` possible at all: a previously-verified build can be restored to `ready` without depending on whether the live DB still matches a historic pin.
 
 ### 6.4 Verification gates (applied before a build may be marked `ready`; `verification_failed` blocks further promotion)
 
