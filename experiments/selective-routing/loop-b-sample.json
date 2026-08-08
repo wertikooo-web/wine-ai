@@ -1,0 +1,264 @@
+[
+ {
+  "id": "r001",
+  "category": "general_knowledge",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Что такое танины в вине и откуда они берутся?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r011",
+  "category": "general_grape",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Что такое Фетяска Нягрэ и какой у неё характер?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r017",
+  "category": "food_pairing",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Что подать к стейку из говядины?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r077",
+  "category": "multiturn",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "turns": [
+   "Расскажи о винодельне Purcari.",
+   "А что такое танины вообще?"
+  ],
+  "router": "DIRECT"
+ },
+ {
+  "id": "r078",
+  "category": "smalltalk",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Привет! Как дела?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q001",
+  "category": "general_wine_knowledge",
+  "expected": "DIRECT_OK",
+  "lang": "ru",
+  "text": "Чем Каберне Совиньон отличается от Мерло по вкусу и структуре?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q031",
+  "category": "wine_education",
+  "expected": "DIRECT_OK",
+  "lang": "ru",
+  "text": "Как правильно дегустировать вино: с чего начать?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q040",
+  "category": "moldova_general",
+  "expected": "AMBIGUOUS",
+  "lang": "ru",
+  "text": "Что такое Fetească Neagră и чем этот сорт интересен?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q086",
+  "category": "ambiguous_conversational",
+  "expected": "DIRECT_OK",
+  "lang": "ru",
+  "text": "Привет! Как дела?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r002",
+  "category": "general_knowledge",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Чем отличается ферментация в дубе от ферментации в стали?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r012",
+  "category": "general_grape",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Чем Каберне Совиньон отличается от Мерло по структуре?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r018",
+  "category": "food_pairing",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Какое вино сочетается с козьим сыром?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r079",
+  "category": "smalltalk",
+  "expected": "DIRECT",
+  "lang": "en",
+  "text": "Hi, who are you?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q002",
+  "category": "general_wine_knowledge",
+  "expected": "DIRECT_OK",
+  "lang": "ru",
+  "text": "Что такое танины в вине и откуда они берутся?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q032",
+  "category": "wine_education",
+  "expected": "DIRECT_OK",
+  "lang": "ru",
+  "text": "Как хранить открытую бутылку вина?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q041",
+  "category": "moldova_general",
+  "expected": "AMBIGUOUS",
+  "lang": "ru",
+  "text": "Чем Rară Neagră отличается от Fetească Neagră?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q087",
+  "category": "ambiguous_conversational",
+  "expected": "DIRECT_OK",
+  "lang": "ru",
+  "text": "Спасибо, было очень интересно.",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r003",
+  "category": "general_knowledge",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Почему некоторые вина нужно декантировать, а некоторые нет?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r013",
+  "category": "general_grape",
+  "expected": "DIRECT",
+  "lang": "ru",
+  "text": "Расскажи о сорте Виорика — что это за виноград?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r020",
+  "category": "food_pairing",
+  "expected": "DIRECT",
+  "lang": "en",
+  "text": "What wine pairs with spicy Thai food?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q044",
+  "category": "moldova_general",
+  "expected": "AMBIGUOUS",
+  "lang": "ru",
+  "text": "Почему молдавское виноделие считают недооценённым?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "q047",
+  "category": "moldova_general",
+  "expected": "AMBIGUOUS",
+  "lang": "ru",
+  "text": "Что такое Fetească Albă и Fetească Regală?",
+  "router": "DIRECT"
+ },
+ {
+  "id": "r023",
+  "category": "known_entity",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Расскажи о винодельне Purcari.",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r039",
+  "category": "unknown_entity",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Расскажи о винодельне Valea Regelui.",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r041",
+  "category": "unknown_entity",
+  "expected": "GROUNDED",
+  "lang": "en",
+  "text": "Tell me about Domeniile Rosu winery.",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r047",
+  "category": "product_attribute",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Какой сортовой состав у Negru de Purcari?",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r055",
+  "category": "price_stock",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Сколько стоит бутылка Negru de Purcari?",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r062",
+  "category": "our_inventory",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Что из вашего ассортимента подойдёт к стейку?",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r065",
+  "category": "commercial_framing",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Что взять из недорогого у Purcari?",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r068",
+  "category": "mixed_ambiguous",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "text": "Я люблю Pinot Noir. Что похожее есть у Purcari?",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r069",
+  "category": "mixed_ambiguous",
+  "expected": "AMBIGUOUS",
+  "lang": "ru",
+  "text": "Какие вина обычно легче — Purcari или обычные молдавские?",
+  "router": "GROUNDED"
+ },
+ {
+  "id": "r073",
+  "category": "multiturn",
+  "expected": "GROUNDED",
+  "lang": "ru",
+  "turns": [
+   "Расскажи о винодельне Purcari.",
+   "А какое из их вин самое известное?"
+  ],
+  "router": "GROUNDED"
+ }
+]

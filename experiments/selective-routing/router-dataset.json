@@ -1,0 +1,689 @@
+{
+  "meta": {
+    "purpose": "Router-specific offline evaluation set for src/knowledge/selectiveRagRouter.js. SEPARATE from experiments/adaptive-routing/dataset.json (110 items / 118 turns), which is left untouched.",
+    "labels": "expected = DIRECT | GROUNDED | AMBIGUOUS. AMBIGUOUS exists for EVALUATION ONLY: the router itself must never emit it, and per the brief must resolve ambiguity toward GROUNDED. An AMBIGUOUS item is therefore scored correct if the router says GROUNDED, and a false-DIRECT if it says DIRECT.",
+    "entities": "All named producers/products are real entries from knowledge/entity-aliases.json (109 entities). Invented names are used ONLY in the unknown_entity category and are marked as such.",
+    "severity": "severity_class drives the weighted error score: 'high' = false DIRECT here is a severity-10 error (entity/product/price/availability/unknown-winery); 'low' = false GROUNDED here is a severity-2 error (general knowledge).",
+    "n_items": 80,
+    "relabelling": "4 indigenous-grape items (r011,r013,r014,r015) relabelled DIRECT->GROUNDED after LOOP B; each carries original_expected and relabel_note."
+  },
+  "questions": [
+    {
+      "id": "r001",
+      "category": "general_knowledge",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Что такое танины в вине и откуда они берутся?"
+    },
+    {
+      "id": "r002",
+      "category": "general_knowledge",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Чем отличается ферментация в дубе от ферментации в стали?"
+    },
+    {
+      "id": "r003",
+      "category": "general_knowledge",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Почему некоторые вина нужно декантировать, а некоторые нет?"
+    },
+    {
+      "id": "r004",
+      "category": "general_knowledge",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Что такое малолактическая ферментация и зачем она нужна?"
+    },
+    {
+      "id": "r005",
+      "category": "general_knowledge",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "В чём разница между вином Старого и Нового Света?"
+    },
+    {
+      "id": "r006",
+      "category": "general_knowledge",
+      "lang": "en",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "What is the difference between a blanc de blancs and a blanc de noirs?"
+    },
+    {
+      "id": "r007",
+      "category": "general_knowledge",
+      "lang": "en",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Why do some red wines taste drying in the mouth?"
+    },
+    {
+      "id": "r008",
+      "category": "general_knowledge",
+      "lang": "ro",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Ce este terroir-ul și de ce contează pentru gustul vinului?"
+    },
+    {
+      "id": "r009",
+      "category": "general_knowledge",
+      "lang": "ro",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Cum se face vinul spumant prin metoda tradițională?"
+    },
+    {
+      "id": "r010",
+      "category": "general_knowledge",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Объясни, как правильно хранить открытую бутылку вина."
+    },
+    {
+      "id": "r011",
+      "category": "general_grape",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "low",
+      "text": "Что такое Фетяска Нягрэ и какой у неё характер?",
+      "original_expected": "DIRECT",
+      "relabel_note": "RELABELLED after LOOP B. Original label DIRECT. Real Gemini + parity-fixed judge measured DIRECT answers about indigenous Moldovan varieties failing (r013 Viorica: factuality 3, two invented parentage claims), while international varieties scored 4.9-5.0. The prior sprint independently labelled the same class GROUNDING_REQUIRED (q040/q041/q047). Evidence-driven, not fitted to the router."
+    },
+    {
+      "id": "r012",
+      "category": "general_grape",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Чем Каберне Совиньон отличается от Мерло по структуре?"
+    },
+    {
+      "id": "r013",
+      "category": "general_grape",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "low",
+      "text": "Расскажи о сорте Виорика — что это за виноград?",
+      "original_expected": "DIRECT",
+      "relabel_note": "RELABELLED after LOOP B. Original label DIRECT. Real Gemini + parity-fixed judge measured DIRECT answers about indigenous Moldovan varieties failing (r013 Viorica: factuality 3, two invented parentage claims), while international varieties scored 4.9-5.0. The prior sprint independently labelled the same class GROUNDING_REQUIRED (q040/q041/q047). Evidence-driven, not fitted to the router."
+    },
+    {
+      "id": "r014",
+      "category": "general_grape",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "low",
+      "text": "What is Rara Neagra and how does it differ from Saperavi?",
+      "original_expected": "DIRECT",
+      "relabel_note": "RELABELLED after LOOP B. Original label DIRECT. Real Gemini + parity-fixed judge measured DIRECT answers about indigenous Moldovan varieties failing (r013 Viorica: factuality 3, two invented parentage claims), while international varieties scored 4.9-5.0. The prior sprint independently labelled the same class GROUNDING_REQUIRED (q040/q041/q047). Evidence-driven, not fitted to the router."
+    },
+    {
+      "id": "r015",
+      "category": "general_grape",
+      "lang": "ro",
+      "expected": "GROUNDED",
+      "severity_class": "low",
+      "text": "Ce este soiul Plăvai și cum se comportă în pahar?",
+      "original_expected": "DIRECT",
+      "relabel_note": "RELABELLED after LOOP B. Original label DIRECT. Real Gemini + parity-fixed judge measured DIRECT answers about indigenous Moldovan varieties failing (r013 Viorica: factuality 3, two invented parentage claims), while international varieties scored 4.9-5.0. The prior sprint independently labelled the same class GROUNDING_REQUIRED (q040/q041/q047). Evidence-driven, not fitted to the router."
+    },
+    {
+      "id": "r016",
+      "category": "general_grape",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Почему Пино Нуар считается таким капризным сортом?"
+    },
+    {
+      "id": "r017",
+      "category": "food_pairing",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Что подать к стейку из говядины?"
+    },
+    {
+      "id": "r018",
+      "category": "food_pairing",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Какое вино сочетается с козьим сыром?"
+    },
+    {
+      "id": "r019",
+      "category": "food_pairing",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "С чем лучше сочетать сухое розовое вино?"
+    },
+    {
+      "id": "r020",
+      "category": "food_pairing",
+      "lang": "en",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "What wine pairs with spicy Thai food?"
+    },
+    {
+      "id": "r021",
+      "category": "food_pairing",
+      "lang": "ro",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Ce vin se potrivește cu peștele la grătar?"
+    },
+    {
+      "id": "r022",
+      "category": "food_pairing",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Подойдёт ли игристое к десерту или лучше что-то другое?"
+    },
+    {
+      "id": "r023",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Расскажи о винодельне Purcari."
+    },
+    {
+      "id": "r024",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Чем известна Cricova?"
+    },
+    {
+      "id": "r025",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что интересного есть у Château Vartely?"
+    },
+    {
+      "id": "r026",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Расскажи про Vinăria din Vale."
+    },
+    {
+      "id": "r027",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что за винодельня Castel Mimi?"
+    },
+    {
+      "id": "r028",
+      "category": "known_entity",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Tell me about Mileștii Mici."
+    },
+    {
+      "id": "r029",
+      "category": "known_entity",
+      "lang": "ro",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Povestește-mi despre crama Fautor."
+    },
+    {
+      "id": "r030",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что можно сказать про Timbrus Purcari Estate?"
+    },
+    {
+      "id": "r031",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Kvint — это ведь коньячный дом?"
+    },
+    {
+      "id": "r032",
+      "category": "known_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Расскажи о Domeniile Cuza."
+    },
+    {
+      "id": "r033",
+      "category": "typo_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Расскажи о винодельне Пуркари."
+    },
+    {
+      "id": "r034",
+      "category": "typo_entity",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "What can you tell me about Purkari winery?"
+    },
+    {
+      "id": "r035",
+      "category": "typo_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Чем знаменита Крикова?"
+    },
+    {
+      "id": "r036",
+      "category": "typo_entity",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Is Krikova the biggest cellar in Moldova?"
+    },
+    {
+      "id": "r037",
+      "category": "typo_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что за хозяйство Милештий Мичь?"
+    },
+    {
+      "id": "r038",
+      "category": "typo_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Расскажи про Шато Вартели."
+    },
+    {
+      "id": "r039",
+      "category": "unknown_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Расскажи о винодельне Valea Regelui."
+    },
+    {
+      "id": "r040",
+      "category": "unknown_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Что известно про хозяйство Crama Solaris?"
+    },
+    {
+      "id": "r041",
+      "category": "unknown_entity",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Tell me about Domeniile Rosu winery."
+    },
+    {
+      "id": "r042",
+      "category": "unknown_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Чем известна Vinăria Nistrului?"
+    },
+    {
+      "id": "r043",
+      "category": "unknown_entity",
+      "lang": "ro",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Ce știi despre crama Podgoria Lăpușna?"
+    },
+    {
+      "id": "r044",
+      "category": "unknown_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Расскажи о вине «Steaua Basarabiei»."
+    },
+    {
+      "id": "r045",
+      "category": "unknown_entity",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Что за производитель Chateau Belvedere в Молдове?"
+    },
+    {
+      "id": "r046",
+      "category": "unknown_entity",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "invented": true,
+      "text": "Have you heard of Terra Aurelia wines?"
+    },
+    {
+      "id": "r047",
+      "category": "product_attribute",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Какой сортовой состав у Negru de Purcari?"
+    },
+    {
+      "id": "r048",
+      "category": "product_attribute",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Какая крепость у Cricova Lacrima Dulce?"
+    },
+    {
+      "id": "r049",
+      "category": "product_attribute",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Какой год урожая сейчас в продаже у Fautor Negre?"
+    },
+    {
+      "id": "r050",
+      "category": "product_attribute",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "What awards has Château Vartely won recently?"
+    },
+    {
+      "id": "r051",
+      "category": "product_attribute",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Кто главный винодел в Castel Mimi?"
+    },
+    {
+      "id": "r052",
+      "category": "product_attribute",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "В каком году основана винодельня Gitana?"
+    },
+    {
+      "id": "r053",
+      "category": "product_attribute",
+      "lang": "ro",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Care este rating-ul vinului Alb de Purcari?"
+    },
+    {
+      "id": "r054",
+      "category": "product_attribute",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Сколько лет выдержки у Mileștii Mici Golden Collection?"
+    },
+    {
+      "id": "r055",
+      "category": "price_stock",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Сколько стоит бутылка Negru de Purcari?"
+    },
+    {
+      "id": "r056",
+      "category": "price_stock",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Есть ли сейчас в наличии Fautor Chardonnay?"
+    },
+    {
+      "id": "r057",
+      "category": "price_stock",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Где можно купить вина Gitana в Кишинёве?"
+    },
+    {
+      "id": "r058",
+      "category": "price_stock",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "What are the opening hours for Castel Mimi tastings?"
+    },
+    {
+      "id": "r059",
+      "category": "price_stock",
+      "lang": "ro",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Care este prețul unei degustări la Cricova?"
+    },
+    {
+      "id": "r060",
+      "category": "price_stock",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что у вас есть из красного до 200 леев?"
+    },
+    {
+      "id": "r061",
+      "category": "price_stock",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Какие экскурсии сейчас доступны на выходных?"
+    },
+    {
+      "id": "r062",
+      "category": "our_inventory",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что из вашего ассортимента подойдёт к стейку?"
+    },
+    {
+      "id": "r063",
+      "category": "our_inventory",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Что вы посоветуете из ваших белых вин к рыбе?"
+    },
+    {
+      "id": "r064",
+      "category": "our_inventory",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Do you have anything similar to a Burgundy Pinot Noir?"
+    },
+    {
+      "id": "r065",
+      "category": "commercial_framing",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "note": "Reads like a casual recommendation ask, but is a price+entity question.",
+      "text": "Что взять из недорогого у Purcari?"
+    },
+    {
+      "id": "r066",
+      "category": "commercial_framing",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "Посоветуй что-нибудь бюджетное на подарок из молдавских вин."
+    },
+    {
+      "id": "r067",
+      "category": "commercial_framing",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "text": "What's a good value bottle from Cricova right now?"
+    },
+    {
+      "id": "r068",
+      "category": "mixed_ambiguous",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "note": "The brief's own example: general preference + named producer in one query.",
+      "text": "Я люблю Pinot Noir. Что похожее есть у Purcari?"
+    },
+    {
+      "id": "r069",
+      "category": "mixed_ambiguous",
+      "lang": "ru",
+      "expected": "AMBIGUOUS",
+      "severity_class": "high",
+      "note": "Comparative and general-sounding, but names a registry entity; any answer makes an attributed claim about that producer.",
+      "text": "Какие вина обычно легче — Purcari или обычные молдавские?"
+    },
+    {
+      "id": "r070",
+      "category": "mixed_ambiguous",
+      "lang": "ru",
+      "expected": "AMBIGUOUS",
+      "severity_class": "high",
+      "text": "Расскажи в целом про молдавское виноделие и чем выделяется Cricova."
+    },
+    {
+      "id": "r071",
+      "category": "mixed_ambiguous",
+      "lang": "en",
+      "expected": "AMBIGUOUS",
+      "severity_class": "high",
+      "text": "I like oaky whites — is Château Vartely Chardonnay that style?"
+    },
+    {
+      "id": "r072",
+      "category": "mixed_ambiguous",
+      "lang": "ru",
+      "expected": "AMBIGUOUS",
+      "severity_class": "low",
+      "note": "Region-level, no producer named. Region facts are general geography/education.",
+      "text": "Чем регион Штефан Водэ отличается от Кодру?"
+    },
+    {
+      "id": "r073",
+      "category": "multiturn",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "note": "Turn 2 inherits Purcari as referent.",
+      "turns": [
+        "Расскажи о винодельне Purcari.",
+        "А какое из их вин самое известное?"
+      ]
+    },
+    {
+      "id": "r074",
+      "category": "multiturn",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "turns": [
+        "Чем знаменита Cricova?",
+        "А сколько это стоит?"
+      ]
+    },
+    {
+      "id": "r075",
+      "category": "multiturn",
+      "lang": "ru",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "turns": [
+        "Что интересного у Castel Mimi?",
+        "А там можно остановиться на ночь?"
+      ]
+    },
+    {
+      "id": "r076",
+      "category": "multiturn",
+      "lang": "en",
+      "expected": "GROUNDED",
+      "severity_class": "high",
+      "turns": [
+        "Tell me about Fautor.",
+        "And which of those is the most premium?"
+      ]
+    },
+    {
+      "id": "r077",
+      "category": "multiturn",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "note": "Turn 2 is a clean topic switch to general education despite a prior entity turn -- must NOT be dragged to GROUNDED by conversation context.",
+      "turns": [
+        "Расскажи о винодельне Purcari.",
+        "А что такое танины вообще?"
+      ]
+    },
+    {
+      "id": "r078",
+      "category": "smalltalk",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Привет! Как дела?"
+    },
+    {
+      "id": "r079",
+      "category": "smalltalk",
+      "lang": "en",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Hi, who are you?"
+    },
+    {
+      "id": "r080",
+      "category": "smalltalk",
+      "lang": "ru",
+      "expected": "DIRECT",
+      "severity_class": "low",
+      "text": "Спасибо, очень интересно!"
+    }
+  ]
+}
