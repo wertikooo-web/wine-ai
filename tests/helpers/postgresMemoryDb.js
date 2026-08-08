@@ -893,6 +893,49 @@ class MemoryPgEngine {
             return { rows };
         }
 
+        // INSERT INTO build_registry_chunks (versioned build chunks) —
+        // mirrors src/buildRegistry/builder.js's import + the v2 read path.
+        if (/^INSERT INTO build_registry_chunks/i.test(sql)) {
+            const table = this.tables.get('build_registry_chunks') || { name: 'build_registry_chunks', rows: [] };
+            this.tables.set('build_registry_chunks', table);
+
+            const colsMatch = sql.match(/INSERT INTO build_registry_chunks\s*\(([^)]+)\)/i);
+            const cols = colsMatch ? colsMatch[1].split(',').map((c) => c.trim()).filter(Boolean) : [];
+            const valueCols = cols.filter((c) => !/NOW\(\)/.test(c));
+            const row = {};
+            valueCols.forEach((col, i) => { row[col] = params[i]; });
+            row.created_at = row.created_at || new Date();
+            row.updated_at = new Date();
+            row.enabled = (row.enabled === undefined || row.enabled === null) ? true : row.enabled;
+
+            let existing = table.rows.find((r) => r.build_id === row.build_id && r.chunk_id === row.chunk_id);
+            if (existing) {
+                for (const col of valueCols) existing[col] = row[col];
+                existing.updated_at = new Date();
+                return { rows: [existing] };
+            }
+            table.rows.push(row);
+            return { rows: [row] };
+        }
+
+        // SELECT FROM build_registry_chunks — idempotent shape consumed by
+        // chunkStore.loadBuildRegistryChunks (build_id + source_file/chunk_index).
+        if (/^SELECT\s+(?!COUNT\s*\()[\s\S]*\sFROM build_registry_chunks/i.test(sql)) {
+            const table = this.tables.get('build_registry_chunks');
+            let rows = table ? table.rows : [];
+            const buildId = params[0];
+            if (buildId) {
+                rows = rows.filter((r) => r.build_id === buildId && r.enabled !== false);
+            }
+            if (/ORDER BY source_file, chunk_index/i.test(sql)) {
+                rows = [...rows].sort((a, b) => {
+                    if (String(a.source_file) !== String(b.source_file)) return String(a.source_file).localeCompare(String(b.source_file));
+                    return Number(a.chunk_index) - Number(b.chunk_index);
+                });
+            }
+            return { rows };
+        }
+
         // JOIN COUNT handler
         if (/FROM kos_source_document_versions v JOIN kos_source_documents d/i.test(sql)) {
             const docTable = this.tables.get('kos_source_documents');

@@ -91,7 +91,7 @@ async function runBoundedRetrieval(query, { language }) {
     for (const normalizedQuery of buildQueryVariants(query)) {
         let result;
         try {
-            result = await search(normalizedQuery, { language, limit: 6 });
+            result = await search(normalizedQuery, { language, limit: 6, followActiveBuild: true });
             sawSuccessfulAttempt = true;
         } catch {
             attempts.push({ normalizedQuery, hitCount: 0, mode: 'error' });
