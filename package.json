@@ -13,6 +13,8 @@
     "knowledge:check": "node scripts/knowledge-check.js",
     "knowledge:update": "node scripts/knowledge-update.js",
     "knowledge:embed-backfill": "node scripts/knowledge-embed-backfill.js",
+    "build:corpus": "node scripts/build-versioned-corpus.js",
+    "build:corpus:dry-run": "node scripts/build-versioned-corpus.js --dry-run",
     "test": "node scripts/run-tests.js",
     "test:smoke": "node scripts/run-smoke.js",
     "test:security": "node scripts/security-foundation-check.js",

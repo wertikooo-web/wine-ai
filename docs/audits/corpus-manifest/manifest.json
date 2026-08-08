@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-02T21:33:55.625Z",
+  "generated_at": "2026-08-07T10:20:01.220Z",
   "mode": "read-only-canonical-source-audit",
-  "production_snapshot": "2026-08-02T00:19:55.457Z",
+  "production_snapshot": "2026-08-07T09:41:22.009Z",
   "totals": {
     "candidates": 489,
     "included": 453,
@@ -9640,8 +9640,8 @@
       "text_available": true,
       "storage": "postgres:knowledge_documents.text",
       "hashes": {
-        "content_hash_db": "f218cf159d554034daa1786f939b7a163bbbc117855009c606cbf754bbb3ea8d",
-        "text_sha256": "f218cf159d554034daa1786f939b7a163bbbc117855009c606cbf754bbb3ea8d"
+        "content_hash_db": "c525bc368a8c75c9d574933bfa96d87a76a90d45320505d849a2f8f164b0a334",
+        "text_sha256": "c525bc368a8c75c9d574933bfa96d87a76a90d45320505d849a2f8f164b0a334"
       },
       "text_size_chars": 9594,
       "estimated_chunks": 9,

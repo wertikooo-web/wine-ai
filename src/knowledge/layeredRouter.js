@@ -4,6 +4,7 @@ const db = require('./db');
 const { search } = require('./search');
 const { searchWeb } = require('./webSearch');
 const catalogStore = require('../catalog/wineMdCatalogStore');
+const { resolveEntity } = require('./entityResolver');
 const liveWineMdTool = require('../tools/checkWineMdAvailability');
 
 const LEVELS = Object.freeze({
@@ -93,7 +94,16 @@ function _isFactualQuestion(query) {
 // - 'off_topic_smalltalk': ordinary conversation with no factual content --
 //   web is never used; there is nothing to look up.
 function classifyQueryIntent(query, { knownEntityNames = KNOWN_WINERY_NAMES } = {}) {
-    if (isCatalogQuery(query) || _mentionsKnownEntity(query, knownEntityNames)) return 'own_entity';
+    // knownEntityNames stays authoritative (callers pass their own list, and
+    // safeFetch's ALLOWED_DOMAINS is kept in sync with it by name). The registry
+    // resolver is an ADDITIONAL signal, not a replacement: without it only 14 of
+    // the 109 known producers were visible here, so a bare "Расскажи про Vinăria
+    // din Vale" -- no wine vocabulary in the sentence -- fell through to
+    // off_topic_smalltalk and got no retrieval at all, producing a false refusal
+    // about a winery we actually know. Naming a registry entity IS wine-related.
+    if (isCatalogQuery(query)
+        || _mentionsKnownEntity(query, knownEntityNames)
+        || _resolvesToKnownEntity(query)) return 'own_entity';
     if (_isWineRelated(query)) return 'general_wine';
     return _isFactualQuestion(query) ? 'off_topic_factual' : 'off_topic_smalltalk';
 }
@@ -417,16 +427,142 @@ function extractCheckText(response) {
     return String(text || '').trim();
 }
 
-function buildAnswerabilityPrompt(question, evidence) {
+// Claim classes -- see routeKnowledgeWithAnswerabilityGate(). The gate used
+// to conflate "retrieval found nothing" with "the assistant may not answer".
+// Those are different questions: a general oenology explanation (malolactic
+// fermentation, why tannins feel drying, decanting, food-pairing principles)
+// is safe to answer from the foundation model's own training with zero risk
+// of inventing an unverifiable specific fact, so weak retrieval must not
+// force a refusal there. A specific claim about a named entity/product (ABV,
+// vintage, award, winemaker, price, stock, aging) is the opposite: without
+// evidence attributed to the ASKED entity there is nothing honest to say.
+const CLAIM_CLASSES = Object.freeze({
+    GENERAL_KNOWLEDGE: 'general_knowledge',
+    GROUNDING_REQUIRED: 'grounding_required',
+});
+
+// Asks for a specific, checkable attribute value rather than an explanation.
+const SPECIFIC_ATTRIBUTE_RE = /(крепост|градус|алкогол|abv|винтаж|урожа|год[ау]?\b|выдерж|бочк[аеи]\s*\d|награ|медал|конкурс|винодел[ац]|энолог|владел|основан|цена|стоим|стоит|налич|склад|тираж|объ[её]м|адрес|телефон|часы работы|сайт|координат|рейтинг|балл|vintage|alcohol|award|medal|winemaker|founded|owner|price|stock|address|phone|opening|rating|score|preț|stoc|premiu|an\b)/iu;
+// Asks for an explanation/definition/principle -- education, not a record.
+const GENERAL_EXPLANATION_RE = /(что такое|чем отлич|в ч[её]м разниц|как[ ,]|почему|зачем|как[ой|ая|ие]*\s+(?:вообще|в принципе)|расскажи о сорт|объясн|принцип|как правильно|что значит|what is|what's|how do|how does|why|difference between|explain|ce este|de ce|cum se)/iu;
+
+// Grape/variety names are capitalized multi-word proper nouns too, but a
+// question about one is education, not a claim about a producer. They are
+// removed before the proper-noun test below so "Чем отличается Каберне
+// Совиньон от Мерло?" is not misread as an entity-specific question. This is
+// a false-positive guard only -- an unlisted grape simply falls through to
+// the conservative grounding_required default, never the other way around.
+const GRAPE_VARIETY_RE = /(каберне|совиньон|мерло|шардоне|пино|рислинг|саперави|фет[яе]ск|feteasca|fetească|рара\s*нягр|негру|раркацители|алиготе|мускат|траминер|вионье|сира|шираз|мальбек|темпранильо|санджовезе|неббиоло|гренаш|карменер|виорика|cabernet|sauvignon|merlot|chardonnay|pinot|riesling|saperavi|aligote|muscat|traminer|viognier|syrah|shiraz|malbec|tempranillo|sangiovese|nebbiolo|grenache|carmenere|viorica|blanc|noir|gris|grigio|neagr[ăa]|nyagra|alb[ăa]?\b|regal[ăa]|rar[ăa]|plăvai|plavai|riton|crîmpoșie|crimposie|бэбяск|băbeasc|babeasc|кодрянк|codrinschi|гарнач|garnacha|мавруд|mavrud|нярг)/giu;
+
+// Proper nouns that are NOT producer/product names: places, regions, countries,
+// languages, appellation/classification terms and calendar words. A question
+// mentioning one of these is still education, not a claim about a producer, so
+// they are removed (alongside grape varieties) before the unknown-proper-entity
+// test below. False-positive guard only -- an unlisted place name simply falls
+// through to the conservative GROUNDING_REQUIRED default, never the reverse.
+const NON_ENTITY_PROPER_NOUN_RE = /(молдов|молдав|румын|росси|франц|итали|испан|георг|грузи|португал|герман|австри|венгр|украин|болгар|чили|аргентин|калифорни|бордо|бургунд|шампан|тоскан|риоха|пьемонт|прованс|эльзас|кодр|штефан|вода|валул|траян|пуркар[ьи]\s*регион|европ|балкан|днестр|прут|кишин[её]в|бельц|комрат|гагауз|moldov|romania|român|france|french|italy|italian|spain|spanish|georgia|portugal|german|austria|hungary|ukraine|bulgaria|chile|argentina|california|bordeaux|burgundy|champagne|tuscany|rioja|piedmont|provence|alsace|codru|valul\s*lui\s*traian|stefan\s*voda|ștefan\s*vodă|divin|europe|balkan|chisinau|chișinău|new\s*world|old\s*world|dop|igp|aoc|doc|docg|январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр|january|february|march|april|june|july|august|september|october|november|december)/giu;
+
+// Wraps resolveEntity() so a resolver fault can never make the gate LESS
+// conservative: if resolution throws, we report "not resolved" and let the
+// unknown-proper-entity branch below apply the conservative default.
+function _resolvesToKnownEntity(query, resolveEntityFn = resolveEntity) {
+    try {
+        return Boolean(resolveEntityFn(String(query || ''))?.found);
+    } catch (error) {
+        console.warn('[layeredRouter] entity resolution failed, defaulting to unresolved: %s', error?.message);
+        return false;
+    }
+}
+
+// True when the query still contains a proper-noun-shaped token after grape
+// varieties and non-entity proper nouns (places, appellations, months) are
+// removed. Covers both the multi-word case ("Lion Gri", "Chateau Fabulous") and
+// the single-token case ("вино Lioness"), plus explicit quoting ("«Негру де
+// Пуркарь»"), which is how product names are written. The first word of the
+// query is ignored because sentence-initial capitalization carries no signal.
+function _looksLikeUnknownProperEntity(query) {
+    const stripped = String(query || '')
+        .replace(GRAPE_VARIETY_RE, ' ')
+        .replace(NON_ENTITY_PROPER_NOUN_RE, ' ');
+    if (/["«„]/u.test(stripped)) return true;
+    const tokens = stripped.split(/[\s,.;:!?()]+/u).filter(Boolean);
+    // Skip index 0: sentence-initial capitals are grammatical, not referential.
+    return tokens.slice(1).some((token) => /^[A-ZА-ЯЁĂÂÎȘȚ][\p{L}-]+$/u.test(token));
+}
+
+// Deterministic, evidence-independent fallback for when the LLM grader is
+// unreachable/unparseable. Deliberately conservative: anything naming a known
+// winery, or asking for a specific checkable attribute, is GROUNDING_REQUIRED.
+// Only a wine-related question that reads as an explanation AND names no known
+// entity AND asks for no specific attribute may be treated as general.
+function classifyClaimDependency(query, { resolveEntityFn = resolveEntity } = {}) {
+    const norm = normalize(query);
+    // A. KNOWN ENTITY -- resolved against the real 109-entity registry
+    // (knowledge/entity-aliases.json) via the shared resolver, NOT a flat
+    // substring match against a hardcoded name array. The resolver owns
+    // word-boundary correctness ("dacă" must not match "DAC"), the "Aroma"
+    // common-word collision guard, and grape-variety exclusion; copying names
+    // into a JS array here would reintroduce exactly those false positives.
+    // resolveEntity() is synchronous and ~0.7ms, so it is safe inline.
+    if (_resolvesToKnownEntity(query, resolveEntityFn)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
+    if (isCatalogQuery(query) || isFreshnessQuery(query)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
+    if (SPECIFIC_ATTRIBUTE_RE.test(norm)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
+    // C. UNKNOWN PROPER ENTITY. resolveEntity() returning not-found is NOT
+    // evidence that the question is safe general knowledge -- the registry is
+    // 109 entities, and Moldova has hundreds of producers. A proper-noun-shaped
+    // question about something the registry does not know is precisely where an
+    // unhedged "general knowledge" answer invents a producer's facts, so it
+    // must fall through to GROUNDING_REQUIRED (grounded answer or honest
+    // uncertainty), never to DIRECT.
+    if (_looksLikeUnknownProperEntity(query)) return CLAIM_CLASSES.GROUNDING_REQUIRED;
+    // _isWineRelated() is tuned for web-search routing and misses some
+    // inflected/oenology vocabulary (Romanian "vinul", "decantează", tannin/
+    // acidity talk). Widening it there would change routing behavior, which is
+    // out of scope, so the extra stems are applied locally to this classifier
+    // only.
+    const wineTopic = _isWineRelated(query)
+        || /(vin(?:ul|uri|urile|uri)?\b|decant|танин|tanin|tannin|кислотност|aciditate|acidity|купаж|blend|терпк|послевкус|аромат|бро[жд]ени|фермент|ferment|выдержк в дуб|дуб[ае]\b|oak)/iu.test(norm);
+    if (wineTopic && GENERAL_EXPLANATION_RE.test(norm)) return CLAIM_CLASSES.GENERAL_KNOWLEDGE;
+    return CLAIM_CLASSES.GROUNDING_REQUIRED;
+}
+
+// The registry knows things the grader cannot infer from the question alone --
+// "Aurelius" is a Purcari wine, not the German investment group the open web
+// returns first. Naming the resolved entity lets the grader recognise
+// off-domain fragments as a mismatch instead of scoring them "match".
+function resolvedEntityHint(question, resolveEntityFn = resolveEntity) {
+    try {
+        const r = resolveEntityFn(String(question || ''));
+        if (!r?.found || !r.canonicalName) return '';
+        return `\n\nRESOLVED ENTITY: the question refers to "${r.canonicalName}", a Moldovan wine producer/product in WINE AI's own entity registry. Judge "evidence_entity_match" against THAT entity. Fragments about an unrelated organisation, person or brand that merely shares the name are a "mismatch", not a "match".`;
+    } catch (error) {
+        return '';
+    }
+}
+
+function buildAnswerabilityPrompt(question, evidence, { resolveEntityFn = resolveEntity } = {}) {
+    const entityHint = resolvedEntityHint(question, resolveEntityFn);
     const fragments = evidence.slice(0, ANSWERABILITY_EVIDENCE_LIMIT).map((item, index) => {
         const text = String(item.text || '').slice(0, ANSWERABILITY_FRAGMENT_CHARS);
         return `[${index + 1}] ${item.title || 'Fragment'}\n${text}`;
     }).join('\n\n');
-    return `You are a strict grader, not an assistant. You are given a QUESTION and EVIDENCE fragments retrieved for it. Decide only whether the EVIDENCE, taken by itself, contains enough information to give a direct, confident, factual answer to the QUESTION -- similarity or topical relatedness is not enough; the specific fact asked for must actually be present.
+    return `You are a strict grader, not an assistant. You are given a QUESTION and EVIDENCE fragments retrieved for it. Produce three independent judgements.
 
-Respond with ONLY strict JSON, no markdown, no prose outside the JSON: {"answerable": true or false, "reason": "one short sentence"}
+1. "answerable": does the EVIDENCE, taken by itself, contain enough information to give a direct, confident, factual answer to the QUESTION? Similarity or topical relatedness is NOT enough; the specific fact asked for must actually be present. This judgement is about the evidence only -- ignore what a well-trained model might know on its own.
 
-QUESTION: ${question}
+2. "claim_class": what KIND of question is this, regardless of the evidence?
+   - "general_knowledge": answering it well requires only general wine/oenology/gastronomy education that any competent sommelier knows -- grape variety characteristics and differences, winemaking and fermentation processes, tannins/acidity/oak/decanting/serving temperature, general food-pairing principles, wine styles and categories, general region or grape background. No claim about one specific named producer, product, bottle, vintage or price is needed.
+   - "grounding_required": answering it correctly requires a specific verifiable fact about a NAMED entity or product -- alcohol percentage, vintage year, award, winemaker or owner name, founding date, address, opening hours, aging duration, price, stock, tasting notes of one specific bottling, or any producer-stated spec. Also use this when the question names a producer/brand/wine you cannot verify (including unknown, fictional or similarly-named ones).
+
+3. "evidence_entity_match": if the QUESTION is about a specific named entity/wine/winery, do the EVIDENCE fragments actually concern THAT SAME entity?
+   - "match": at least one fragment is genuinely about the entity asked about.
+   - "mismatch": fragments are about a DIFFERENT producer/wine than the one asked about (or about the region in general, with nothing on the asked entity).
+   - "not_applicable": the question names no specific entity.
+
+Respond with ONLY strict JSON, no markdown, no prose outside the JSON:
+{"answerable": true or false, "claim_class": "general_knowledge" or "grounding_required", "evidence_entity_match": "match" or "mismatch" or "not_applicable", "reason": "one short sentence"}
+
+QUESTION: ${question}${entityHint}
 
 EVIDENCE:
 ${fragments}`;
@@ -440,7 +576,7 @@ async function checkAnswerability(question, evidence, {
     apiKey = process.env.GEMINI_API_KEY || '',
     model = ANSWERABILITY_MODEL,
 } = {}) {
-    if (!evidence.length) return { answerable: false, reason: 'no_evidence' };
+    if (!evidence.length) return { answerable: false, reason: 'no_evidence', claimClass: null, entityMatch: null };
     const prompt = buildAnswerabilityPrompt(question, evidence);
     let response;
     try {
@@ -479,13 +615,20 @@ async function checkAnswerability(question, evidence, {
                     // hoping the model followed a "respond with only JSON"
                     // instruction in the prompt text.
                     responseMimeType: 'application/json',
+                    // Extended in the answerability-gate sprint: the SAME
+                    // single call now also returns the claim class and the
+                    // evidence/entity attribution verdict, so splitting
+                    // "retrieval failed" from "may not answer" costs ZERO
+                    // extra round-trips.
                     responseSchema: {
                         type: 'object',
                         properties: {
                             answerable: { type: 'boolean' },
+                            claim_class: { type: 'string', enum: ['general_knowledge', 'grounding_required'] },
+                            evidence_entity_match: { type: 'string', enum: ['match', 'mismatch', 'not_applicable'] },
                             reason: { type: 'string' },
                         },
-                        required: ['answerable', 'reason'],
+                        required: ['answerable', 'claim_class', 'evidence_entity_match', 'reason'],
                     },
                 },
             });
@@ -535,7 +678,18 @@ async function checkAnswerability(question, evidence, {
     const reason = typeof parsed?.reason === 'string' && parsed.reason.trim()
         ? parsed.reason.trim().slice(0, 200)
         : (answerable === true ? 'answerable' : answerable === false ? 'evidence_does_not_answer_question' : 'answerability_check_unparseable');
-    return { answerable, reason };
+    // Both extra fields are optional at this layer: an older/degraded grader
+    // response that only carries `answerable` still parses, and the gate
+    // falls back to the deterministic classifier rather than assuming
+    // "general knowledge" (which would be the hallucination-friendly guess).
+    const claimClass = parsed?.claim_class === CLAIM_CLASSES.GENERAL_KNOWLEDGE
+        || parsed?.claim_class === CLAIM_CLASSES.GROUNDING_REQUIRED
+        ? parsed.claim_class
+        : null;
+    const entityMatch = ['match', 'mismatch', 'not_applicable'].includes(parsed?.evidence_entity_match)
+        ? parsed.evidence_entity_match
+        : null;
+    return { answerable, reason, claimClass, entityMatch };
 }
 
 // Wraps routeKnowledge() with an explicit answerability gate: retrieval
@@ -548,8 +702,22 @@ async function checkAnswerability(question, evidence, {
 // decided inside routeKnowledge) is left untouched and never double-checked.
 async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     const base = await routeKnowledge(query, options);
+    // Entity recognition now comes from the shared registry resolver, not a
+    // caller-supplied name list; options.knownEntityNames still steers
+    // classifyQueryIntent()'s web routing and is deliberately not forwarded here.
+    const deterministicClass = classifyClaimDependency(query, options.resolveEntityFn ? { resolveEntityFn: options.resolveEntityFn } : {});
     if (!base.found) {
-        return { ...base, answerable: false, answerabilityReason: 'no_evidence' };
+        // No evidence at all is still not automatically a refusal: for a
+        // general-knowledge question the model's own training is a legitimate,
+        // low-risk source. The refusal only stands for grounding-required
+        // claims, where there is nothing honest to say without evidence.
+        return {
+            ...base,
+            answerable: false,
+            answerabilityReason: 'no_evidence',
+            claim_class: deterministicClass,
+            evidence_entity_match: null,
+        };
     }
     // Freshness-triggered web (routeKnowledge's own logic, e.g. price/hours
     // questions) is trusted as-is -- time-sensitive facts don't benefit from
@@ -560,10 +728,31 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     // firing doesn't by itself guarantee the assembled evidence actually
     // answers the question.
     if (base.freshness_sensitive && base.web_used) {
-        return { ...base, answerable: true, answerabilityReason: null };
+        return {
+            ...base,
+            answerable: true,
+            answerabilityReason: null,
+            claim_class: CLAIM_CLASSES.GROUNDING_REQUIRED,
+            evidence_entity_match: null,
+        };
     }
 
-    const { answerable, reason } = await checkAnswerability(query, base.evidence, options.answerabilityModel);
+    const { answerable: rawAnswerable, reason: rawReason, claimClass, entityMatch } =
+        await checkAnswerability(query, base.evidence, options.answerabilityModel);
+    // Grader silence (null claimClass) must never widen permission: fall back
+    // to the conservative deterministic classifier, which defaults to
+    // grounding_required for anything naming an entity or asking for a
+    // specific attribute.
+    const resolvedClass = claimClass || deterministicClass;
+
+    // Wrong-entity evidence: fragments about Winery B must not be allowed to
+    // stand in as an answer about Winery A just because they were in the same
+    // retrieved batch. This is the ~22% unsupported entity-specific claim
+    // failure mode. Only applies to grounding-required claims -- for general
+    // education, "the fragments are about someone else" is irrelevant.
+    const entityMismatch = entityMatch === 'mismatch' && resolvedClass === CLAIM_CLASSES.GROUNDING_REQUIRED;
+    const answerable = entityMismatch ? false : rawAnswerable;
+    const reason = entityMismatch ? 'evidence_entity_mismatch' : rawReason;
 
     // Web fallback fires whenever the check did NOT confirm the evidence
     // answers the question -- that's answerable === false (checked and
@@ -574,7 +763,13 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     // ran (base.web_used) there is nothing further to fetch -- the combined
     // evidence the check just graded already included it.
     if (answerable === true || options.allowWeb === false || base.web_used) {
-        return { ...base, answerable, answerabilityReason: reason };
+        return {
+            ...base,
+            answerable,
+            answerabilityReason: reason,
+            claim_class: resolvedClass,
+            evidence_entity_match: entityMatch,
+        };
     }
 
     const web = await (options.adapters?.searchInternet || searchInternet)(query, { ...options, language: options.language || null });
@@ -593,11 +788,21 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
         // "insufficient", never as a confirmed answer.
         answerable: webConfirmed ? true : answerable,
         answerabilityReason: webConfirmed ? 'confirmed_via_web_fallback' : reason,
+        claim_class: resolvedClass,
+        // The web pass brought in evidence the grader never saw, so the
+        // original mismatch verdict no longer describes the current evidence
+        // set. It is still worth propagating: the assistant is told to check
+        // that a fact belongs to the asked entity before stating it, which
+        // costs nothing and is the exact failure this sprint targets. We do
+        // NOT spend a second grading round-trip to re-confirm.
+        evidence_entity_match: webConfirmed && entityMismatch ? 'unverified_after_web' : entityMatch,
     };
 }
 
 module.exports = {
     LEVELS,
+    CLAIM_CLASSES,
+    classifyClaimDependency,
     routeKnowledge,
     routeKnowledgeWithAnswerabilityGate,
     checkAnswerability,
