@@ -97,6 +97,20 @@ const FOOD_PAIRING_EXTRA_RE = /(^|\s)(какое вино (к|с|под|для)|
 // wrong sends a user to a closed gate, so it is never DIRECT.
 const VISIT_LOGISTICS_RE = /(бронир|заказать визит|записаться|визит на виноде|экскурс|посетить виноде|дегустацион|дегустаци[юияей]|можно ли приехать|как добраться|book(ing)?\b|reservation|\btours?\b|visit(ing)? (the )?winer|tasting room|rezerv|vizit|excursi|degustare)/iu;
 
+// Indigenous / rare Moldovan grape varieties.
+//
+// Added as a result of LOOP B, not from intuition. Measured on real Gemini
+// calls with the parity-fixed judge: DIRECT answers about INTERNATIONAL
+// varieties (Cabernet, Merlot, Pinot Noir, Riesling) scored factuality 4.9-5.0
+// with zero unverified claims -- the model's priors are strong. The single
+// factual failure in the whole DIRECT sample was r013, "Расскажи о сорте
+// Виорика": factuality 3, with two invented parentage claims ("Сейв Виллар
+// 20-366", "Мускат де Гамбург"). Indigenous Moldovan crossings are exactly
+// where the foundation model's priors run out, and they are also the varieties
+// our own corpus covers best. The prior sprint independently labelled these
+// GROUNDING_REQUIRED (q040/q041/q047).
+const LOCAL_GRAPE_VARIETY_RE = /(фет[яе]ск|feteasc|fetească|рар[аэ]\s*нягр|rar[ăa]\s*neagr|виорик|viorica|пл[еэа]вай|plăvai|plavai|кр[иы]мпош|crîmpoși|crimpos|б[эеа]б[яеи]ск|băbeasc|babeasc|згихар|zghihar|копчак|copceac|онițкан|oni[țt]cani|ритон|riton|негру де к[эа]уш|negru de căuș|кодринск|codrinschi|альб де он|alb de oni|мускат отонел|muscat ottonel|гагаузск|мерцишор|mărțișor|луминица|luminița|легенда\s*молдав)/iu;
+
 // Moldovan dishes. A pairing question about local cuisine is, in this product,
 // effectively "recommend from our Moldovan range" -- the useful answer names
 // bottles we actually carry. Grounded, not general.
@@ -242,6 +256,16 @@ function nodeVisitLogistics(ctx) {
     return null;
 }
 
+// N2c LOCAL_GRAPE_VARIETY -- questions about indigenous Moldovan varieties.
+// Not a producer claim, so this is not a severity-10 node; it exists because
+// LOOP B measured the model's priors failing specifically here.
+function nodeLocalGrapeVariety(ctx) {
+    if (LOCAL_GRAPE_VARIETY_RE.test(ctx.norm)) {
+        return decision(PATHS.GROUNDED, 'LOCAL_GRAPE_VARIETY:thin_model_priors', null, 0.86);
+    }
+    return null;
+}
+
 // N3 ENTITY_REFERENCE -- the query names a producer/product in the 109-entity
 // registry. Unconditionally GROUNDED, including for comparative or
 // general-sounding phrasings ("Какие вина легче -- Purcari или обычные
@@ -381,6 +405,7 @@ const NODE_ORDER = Object.freeze([
     ['CURRENT_DATA', nodeCurrentData],
     ['OUR_INVENTORY', nodeOurInventory],
     ['VISIT_LOGISTICS', nodeVisitLogistics],
+    ['LOCAL_GRAPE_VARIETY', nodeLocalGrapeVariety],
     ['ENTITY_REFERENCE', nodeEntityReference],
     ['UNKNOWN_PROPER_ENTITY', nodeUnknownProperEntity],
     ['SPECIFIC_ATTRIBUTE', nodeSpecificAttribute],
@@ -443,6 +468,7 @@ module.exports = {
     nodeCurrentData,
     nodeOurInventory,
     nodeVisitLogistics,
+    nodeLocalGrapeVariety,
     nodeEntityReference,
     nodeUnknownProperEntity,
     nodeSpecificAttribute,

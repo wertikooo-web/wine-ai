@@ -39,8 +39,13 @@ const CASES = [
     { id: 'P22', want: 'GROUNDED', q: 'Какие вина обычно легче — Purcari или обычные молдавские?', why: "comparative BUT any answer makes an attributed claim about Purcari's style" },
     { id: 'P23', want: 'GROUNDED', q: 'Cricova известна игристым — а почему метод шампенуаз так ценится?', why: 'genuinely mixed; entity named, resolve toward GROUNDED' },
     // --- general question about a specific grape variety -------------------
-    { id: 'P24', want: 'DIRECT', q: 'Что такое Фетяска Нягрэ и какой у неё характер?', why: 'grape education, no producer' },
-    { id: 'P25', want: 'DIRECT', q: 'Чем Рара Нягрэ отличается от Саперави?', why: 'grape comparison, no producer' },
+    // Expectation revised after LOOP B: an indigenous Moldovan variety is
+    // where the model's priors actually fail (r013 "Виорика" scored factuality
+    // 3 with two invented parentage claims), so these are GROUNDED.
+    { id: 'P24', want: 'GROUNDED', q: 'Что такое Фетяска Нягрэ и какой у неё характер?', why: 'indigenous Moldovan grape; thin model priors measured in LOOP B' },
+    { id: 'P25', want: 'GROUNDED', q: 'Чем Рара Нягрэ отличается от Саперави?', why: 'indigenous Moldovan grape; same finding' },
+    { id: 'P31', want: 'DIRECT', q: 'Чем Каберне Совиньон отличается от Мерло?', why: 'INTERNATIONAL varieties -- LOOP B measured factuality 4.9-5.0 on these; must stay DIRECT' },
+    { id: 'P32', want: 'GROUNDED', q: 'Расскажи о сорте Виорика — что это за виноград?', why: 'the exact LOOP B failure case' },
     // --- the brief's explicit mixed query ---------------------------------
     { id: 'P26', want: 'GROUNDED', q: 'Я люблю Pinot Noir. Что похожее есть у Purcari?', why: "the brief's own mixed example" },
     // --- freshness disguised as general -----------------------------------

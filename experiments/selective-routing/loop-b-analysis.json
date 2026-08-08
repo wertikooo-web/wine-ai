@@ -1,0 +1,247 @@
+{
+ "n_items": 32,
+ "n_turns": 34,
+ "evidence_parity": {
+  "mean_judge_evidence_items": 10.47,
+  "mean_judge_evidence_chars": 63367,
+  "note": "Judge saw the generator's full evidence array (Phase 0 fix). The old harness would have capped this at 8 items / 5,607 chars."
+ },
+ "ROUTER_CHOSE_DIRECT": {
+  "n_turns": 22,
+  "direct_answer": {
+   "n": 21,
+   "quality": 4.52,
+   "factuality": 4.86,
+   "relevance": 5,
+   "naturalness": 5,
+   "mean_unverified_claims": 0.19,
+   "pct_with_unverified_claims": 9.52,
+   "pct_attributes_to_named_producer": 0
+  },
+  "grounded_answer_counterfactual": {
+   "n": 21,
+   "quality": 4.24,
+   "factuality": 4.9,
+   "relevance": 4.9,
+   "naturalness": 4.81,
+   "mean_unverified_claims": 0.24,
+   "pct_with_unverified_claims": 9.52,
+   "pct_attributes_to_named_producer": 0
+  },
+  "better_answer": {
+   "grounded": 8,
+   "tie": 3,
+   "direct": 10,
+   "n/a": 1
+  },
+  "retrieval_effect": {
+   "helped": 5,
+   "neutral": 10,
+   "harmed": 6,
+   "n/a": 1
+  },
+  "judge_says_grounding_necessary": 4,
+  "judge_verdict": {
+   "GROUNDING_REQUIRED": 4,
+   "DIRECT_SUFFICIENT": 17,
+   "n/a": 1
+  },
+  "latency": {
+   "direct_ms": 2338,
+   "grounded_ms": 9595,
+   "grounded_retrieval_ms": 6979,
+   "grounded_generation_ms": 2616
+  },
+  "tokens": {
+   "direct_prompt_tokens": 3899,
+   "direct_output_tokens": 117,
+   "direct_cost_usd": 0.001462,
+   "grounded_prompt_tokens": 33381,
+   "grounded_output_tokens": 137,
+   "grounded_cost_usd": 0.010356
+  }
+ },
+ "ROUTER_CHOSE_GROUNDED": {
+  "n_turns": 12,
+  "direct_answer_counterfactual": {
+   "n": 11,
+   "quality": 3.82,
+   "factuality": 4.09,
+   "relevance": 5,
+   "naturalness": 5,
+   "mean_unverified_claims": 1.91,
+   "pct_with_unverified_claims": 54.55,
+   "pct_attributes_to_named_producer": 90.91
+  },
+  "grounded_answer": {
+   "n": 11,
+   "quality": 4.45,
+   "factuality": 5,
+   "relevance": 5,
+   "naturalness": 4.91,
+   "mean_unverified_claims": 1.64,
+   "pct_with_unverified_claims": 45.45,
+   "pct_attributes_to_named_producer": 72.73
+  },
+  "better_answer": {
+   "grounded": 8,
+   "n/a": 1,
+   "tie": 1,
+   "direct": 2
+  },
+  "judge_says_grounding_necessary": 8,
+  "latency": {
+   "direct_ms": 1792,
+   "grounded_ms": 9698,
+   "grounded_retrieval_ms": 6220,
+   "grounded_generation_ms": 3478
+  },
+  "tokens": {
+   "direct_prompt_tokens": 3901,
+   "direct_output_tokens": 101,
+   "direct_cost_usd": 0.001424,
+   "grounded_prompt_tokens": 66492,
+   "grounded_output_tokens": 157,
+   "grounded_cost_usd": 0.020341
+  }
+ },
+ "ALL_TURNS": {
+  "latency": {
+   "direct_ms": 2145,
+   "grounded_ms": 9632,
+   "grounded_retrieval_ms": 6711,
+   "grounded_generation_ms": 2920
+  },
+  "tokens": {
+   "direct_prompt_tokens": 3900,
+   "direct_output_tokens": 112,
+   "direct_cost_usd": 0.001449,
+   "grounded_prompt_tokens": 45067,
+   "grounded_output_tokens": 144,
+   "grounded_cost_usd": 0.01388
+  }
+ },
+ "direct_disputed_by_judge": [
+  {
+   "id": "r011",
+   "category": "general_grape",
+   "question": "Что такое Фетяска Нягрэ и какой у неё характер?",
+   "reason": "GENERAL_WINE_KNOWLEDGE:explanation",
+   "verdict": "GROUNDING_REQUIRED",
+   "better": "grounded",
+   "direct_factuality": 4,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "Ответ B значительно лучше, так как он предоставляет более точную и полную информацию о характере вина, а также указывает конкретные регионы выращивания в Молдове, что очень полезно для пользователя. Ответ A был хорош, но не хватало этой конкретики, которую предоставили фрагменты."
+  },
+  {
+   "id": "r078",
+   "category": "smalltalk",
+   "question": "Привет! Как дела?",
+   "reason": "SMALLTALK:no_factual_content",
+   "verdict": "DIRECT_SUFFICIENT",
+   "better": "grounded",
+   "direct_factuality": 5,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "Оба ответа хороши и релевантны. Ответ B немного лучше, так как предлагает конкретные направления для дальнейшего диалога, что полезно для голосового ассистента. Однако, для такого общего вопроса, как приветствие, поиск не был необходим, и модель могла бы сгенерировать аналогичный ответ без него."
+  },
+  {
+   "id": "q040",
+   "category": "moldova_general",
+   "question": "Что такое Fetească Neagră и чем этот сорт интересен?",
+   "reason": "GENERAL_WINE_KNOWLEDGE:explanation",
+   "verdict": "DIRECT_SUFFICIENT",
+   "better": "grounded",
+   "direct_factuality": 5,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "Оба ответа хороши и дают достаточно информации. Grounded ответ немного лучше, так как он включает перевод названия сорта и более точно описывает характеристики вина, используя информацию из фрагментов. Однако, direct ответ также был бы достаточен для пользователя."
+  },
+  {
+   "id": "q086",
+   "category": "ambiguous_conversational",
+   "question": "Привет! Как дела?",
+   "reason": "SMALLTALK:no_factual_content",
+   "verdict": "DIRECT_SUFFICIENT",
+   "better": "grounded",
+   "direct_factuality": 5,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "Оба ответа хороши и релевантны. Grounded ответ немного лучше, так как предлагает конкретные варианты для дальнейшего диалога, что полезно для голосового ассистента. Однако, для такого простого вопроса, собственные данные WINE AI не были необходимы, и их использование не принесло существенной пользы, поэтому retrieval_effect нейтральный, а verdict - DIRECT_SUFFICIENT."
+  },
+  {
+   "id": "q032",
+   "category": "wine_education",
+   "question": "Как хранить открытую бутылку вина?",
+   "reason": "GENERAL_WINE_KNOWLEDGE:explanation",
+   "verdict": "GROUNDING_REQUIRED",
+   "better": "grounded",
+   "direct_factuality": 5,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "Grounded ответ значительно лучше, так как он предоставляет более полную и точную информацию, особенно касательно различных типов пробок (винтовая крышка) и хранения игристых вин, что не было в direct ответе. Фрагменты помогли расширить и уточнить информацию, сделав ответ более полезным для пользователя."
+  },
+  {
+   "id": "q087",
+   "category": "ambiguous_conversational",
+   "question": "Спасибо, было очень интересно.",
+   "reason": "SMALLTALK:no_factual_content",
+   "verdict": "DIRECT_SUFFICIENT",
+   "better": "grounded",
+   "direct_factuality": 5,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "Оба ответа являются адекватными для завершения диалога. Grounded ответ немного лучше, так как предлагает конкретные варианты для продолжения разговора, что может быть полезно для пользователя. Однако, для такого общего вопроса, собственные данные WINE AI не были критически необходимы, так как direct ответ также справляется с задачей."
+  },
+  {
+   "id": "r013",
+   "category": "general_grape",
+   "question": "Расскажи о сорте Виорика — что это за виноград?",
+   "reason": "GENERAL_WINE_KNOWLEDGE:explanation",
+   "verdict": "GROUNDING_REQUIRED",
+   "better": "grounded",
+   "direct_factuality": 3,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [
+    "Сейв Виллар 20-366",
+    "Мускат де Гамбург"
+   ],
+   "explanation": "Ответ A содержит неверную информацию о родительских сортах винограда Виорика. Ответ B, основанный на фрагментах, предоставляет корректные данные о происхождении сорта, что делает его значительно более полезным и точным для пользователя. Таким образом, собственные данные WINE AI были необходимы для исправления фактической ошибки."
+  },
+  {
+   "id": "r020",
+   "category": "food_pairing",
+   "question": "What wine pairs with spicy Thai food?",
+   "reason": "GENERAL_WINE_KNOWLEDGE:food_pairing",
+   "verdict": "GROUNDING_REQUIRED",
+   "better": "grounded",
+   "direct_factuality": 5,
+   "grounded_factuality": 5,
+   "direct_attributes": false,
+   "direct_unverified": [],
+   "explanation": "While the direct answer is good, the grounded answer is better because it incorporates a Moldovan wine recommendation (Viorica), which is crucial for the 'WINE AI' project's focus. The retrieval of general wine pairing principles from the web fragments helped to reinforce the initial advice, and the model successfully integrated a relevant Moldovan option, making the answer more tailored and useful for the specific AI sommelier."
+  }
+ ],
+ "LOOP_D_COST": {
+  "assumptions": {
+   "model": "gemini-2.5-flash",
+   "usd_per_1m_input": 0.3,
+   "usd_per_1m_output": 2.5,
+   "turns_per_conversation": 6,
+   "direct_rate": 0.284
+  },
+  "cost_per_turn_direct_usd": 0.00145,
+  "cost_per_turn_grounded_usd": 0.01388,
+  "current_all_grounded_per_100_conv_usd": 8.33,
+  "selective_per_100_conv_usd": 6.21,
+  "savings_pct": 25.5
+ }
+}
