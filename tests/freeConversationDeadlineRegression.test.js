@@ -25,7 +25,8 @@ test('deadline grants a final turn that began before zero', () => {
 });
 
 test('spoken warning cannot interrupt a busy conversation', () => {
-  assert.match(dashboard, /freeConversationUserTurnOpen \|\| activeSources\.size > 0 \|\| DeviceVisual\.getState\(\) === 'thinking'/);
+  assert.match(dashboard, /session_limit_warning_deferred/);
+  assert.match(dashboard, /freeConversationUserTurnOpen \|\| localSpeechActive \|\| activeSources\.size > 0 \|\| DeviceVisual\.getState\(\) === 'thinking'/);
 });
 
 test('persona does not force RAG and web for unrelated questions', () => {
