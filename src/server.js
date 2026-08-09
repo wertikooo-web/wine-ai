@@ -1366,7 +1366,7 @@ async function handleRequest(req, res) {
     // Answer-mode catalog (Phase 1): the four modes with their allowed levels,
     // so the dashboard can render mode semantics without duplicating them.
     if (req.method === 'GET' && pathname === '/api/knowledge/answer-modes') {
-        return sendJson(res, 200, { ok: true, modes: listAnswerModes(), default_mode: ANSWER_MODES.knowledge_web });
+        return sendJson(res, 200, { ok: true, modes: listAnswerModes(), default_mode: ANSWER_MODES.KNOWLEDGE_WEB });
     }
 
     if (req.method === 'GET' && pathname === '/api/knowledge/sources') {
