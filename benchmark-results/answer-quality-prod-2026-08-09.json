@@ -1,0 +1,3615 @@
+{
+  "dataset_version": 1,
+  "dataset_file": "tests\\benchmark\\answer-quality-dataset.json",
+  "summary": {
+    "generated_at": "2026-08-09T12:23:12.897Z",
+    "total_rows": 73,
+    "passed_rows": 3,
+    "pass_rate": 0.04,
+    "answerability": {
+      "answerable_rows": 0,
+      "answerable_rate": 0
+    },
+    "claims": {
+      "total_claims": 626,
+      "avg_claims_per_row": 8.58
+    },
+    "provenance": {
+      "rows_with_coverage": 73,
+      "avg_provenance_coverage": 1
+    },
+    "hallucination": {
+      "high_risk_rows": 0,
+      "medium_risk_rows": 0,
+      "low_or_none_rows": 73,
+      "high_risk_rate": 0
+    },
+    "conflicts": {
+      "rows_with_conflicts": 0,
+      "total_unresolved_claims": 0
+    },
+    "constraints": {
+      "rows_with_constraints": 73,
+      "constraints_compliant_rows": 73,
+      "constraint_compliance_rate": 1
+    },
+    "latency": {
+      "avg_ms": 524.47,
+      "p50_ms": 375.3,
+      "p95_ms": 2001,
+      "max_ms": 2455
+    },
+    "by_category": {
+      "winery_facts": {
+        "total": 15,
+        "passed": 0
+      },
+      "wine_facts": {
+        "total": 8,
+        "passed": 0
+      },
+      "grape_varieties": {
+        "total": 8,
+        "passed": 0
+      },
+      "regions": {
+        "total": 5,
+        "passed": 0
+      },
+      "food_pairing": {
+        "total": 5,
+        "passed": 0
+      },
+      "tourism_routes": {
+        "total": 5,
+        "passed": 0
+      },
+      "wine_md_catalog": {
+        "total": 5,
+        "passed": 0
+      },
+      "freshness_sensitive": {
+        "total": 5,
+        "passed": 0
+      },
+      "unknown_questions": {
+        "total": 3,
+        "passed": 3
+      },
+      "conflicts": {
+        "total": 4,
+        "passed": 0
+      },
+      "user_constraints": {
+        "total": 5,
+        "passed": 0
+      },
+      "ai_recommendations": {
+        "total": 5,
+        "passed": 0
+      }
+    },
+    "by_language": {
+      "ru": 35,
+      "ro": 15,
+      "en": 23
+    },
+    "elapsed_ms": 74359
+  },
+  "rows": [
+    {
+      "id": "winery-cricova-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "question": "Расскажи про винодельню Cricova",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 384.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "winery-cricova-en",
+      "category": "winery_facts",
+      "language": "en",
+      "question": "Tell me about the Cricova winery",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 250.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "winery-purcari-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "question": "Где находится винодельня Purcari?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 255,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "winery-asconi-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "question": "Povestește-mi despre cramal Asconi",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 221.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "СЕРЕБРЯНЫЕ МЕДАЛИ\n\n\n\nGrand Reserve Negru De Bulboaca, 2018 (Castel Mimi) – 92 п.\n\nThe Governor’s Blend, 2020 (Castel Mimi) – 91 п.\n\nFeteasca Neagra & Saperavi, 2021 (Corten-Vin) – 92 п.\n\nGoliard Feteasca Neagrā Rosé, 2025 (Doina Vin) – 90 п.\n\nSaperavi, 2022 (Poiana Winery) – 92 п.\n\nViorica. 2025 (Aurelius Winery) – 90 п.\n\nNegru, 2024 (Kazayak-vin) – 90 п.\n\nRiesling, 2023 (Divus Winery) – 92 п.\n\nFetească Albă. 2025 (Crama Mircesti) – 93 п.\n\nInstinct Saperavi, 2024 (Gogu Winery) – 90 п.\n\nCasa Feli"
+    },
+    {
+      "id": "winery-castel-mimi-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "question": "Что из себя представляет Castel Mimi?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 215.2,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "winery-vartely-en",
+      "category": "winery_facts",
+      "language": "en",
+      "question": "Where is the Vartely winery located?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 589.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Valuable collection of wines\n\n\n\nTaraboste\n\nIndivido\n\nTotem\n\nWines with IGP\n\nInspiro\n\nIce Wine\n\nSparkling wine\n\nLiqueur wine\n\nDistillates\n\nIndivido\n\nWines with IGP\n\nIce Wine\n\nDistillates\n\nSparkling wine\n\nLiqueur wine\n\nTaraboste\n\nInspiro\n\nTotem\n\nCameo\n\nINSPIRO SPUMANTE\n\nThe company’s first wine shop & bar in Chisinau is opened\n\nSpecial place for wine lovers\n\nPromotion campaign with valuable prizes\n\n1 July - 31 August 2020\n\nChâteau Life\n\nChâteau Life\n\nWinery Hotel\n\nWinery Hotel\n\nWeddings and partie"
+    },
+    {
+      "id": "winery-salcuta-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "question": "Unde se află vinăria Salcuta?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 236.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Wine Garden Feteasca Neagră, 2021 (Vinuri de Comrat) – 90 п.\n\n\n\nFeteascā Alba Brut (Radacini Wines) – 90 п.\n\nENO Fetească Regală-Sauvignon Blanc, 2025 (Sălcuța) – 91 п.\n\n1827 Chardonnay, 2025 (Vinaria Purcari) — 91 п.\n\n1827 Rosé, 2025 (Vinaria Purcari) – 91 п.\n\n1827 Rarā Neagrā-Saperavi, 2024 (Vinaria Purcari) – 92 п.\n\nCuvée Fetească Alba Brut, 2023 (Vinaria Purcari) – 90 п.\n\n1827 Limited Edition Saperavi, 2024 (Vinaria Purcari) – 90 п.\n\nNegru De Purcari, 2022 (Vinaria Purcari) – 94 п.\n\nCuvée Ro"
+    },
+    {
+      "id": "winery-basavin-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "question": "Где находится винодельня Basavin?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 216.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "«Salut!» Vinum Estate, 2022 (Vinum)\n\n\n\nFiori Feteasca Neagra, 2019 (Radacini Wines)\n\nMaestro Domeniile Isacova Secret Blend 2025 (Apriori Wine)\n\nCricova 1952 White Blend. 2025 (Cricova)\n\nCricova Elogiu Sapte Soiuri, 2022 (Cricova)\n\nAngel of Peace, 2023 (Basavin Winery)\n\n1827 Sauvignon Blanc, 2025 (Vinaria Purcari)\n\n1827 Viorica & Muscat Ottonel, 2025 (Vinaria Purcari)\n\nSapiens Sauvignon Blanc Fume, 2025 (Vinaria Purcari)\n\n1827 Saperavi Limited Edition, 2024 (Vinaria Purcari)\n\nParcela Malbec, 202"
+    },
+    {
+      "id": "winery-kvint-en",
+      "category": "winery_facts",
+      "language": "en",
+      "question": "Tell me about the KVINT winery in Tiraspol",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 212.2,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Yes / Да No / Нет products Technologies News About Us Awards Tastings 3D Tour DISTRIBUITORS Buy in Moldova About Us About Guide Испытательная лаборатория Mission Send E-Mail Tastingsof divins and wines read more About Acronym KVINT is composed of the first letters of the Russian phrase meaning: Divins, wines and beverages of Tiraspol The history of KVINT dates back to 1897, when the first rectification warehouse was built and launched into operation on Vokzalnaya Street in Tiraspol. At that time"
+    },
+    {
+      "id": "winery-et-cetera-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "question": "Ce vinuri produce cramal Et Cetera?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 225.2,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 61 of 204 --\n\n\n\n-- 62 of 204 --\n\n63\r\n„Et Cetera” este o mică cramă de familie care și-a construit un renume mare. Procesul de creare a vinului este controlat\r\naici foarte minuțios la fiecare etapă,",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 161 of 204 --\n\n\n\n-- 162 of 204 --\n\n163\r\nEt Cetera is a small family winery that has created a big name for itself. The process of winemaking is carefully\r\ncontrolled at every stage, starting with t",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Et Cetera Marselan, 2021 – из редкого для Молдовы сорта Марселан. Оно тоже было выдержано в барриках 18 мес. Насыщенное, сочное фруктовое вино.\n\nМы обсуждали эти вина, эксперты отзывались о них очень хорошо. Хотя не все любят такой стиль Fume Blanc (выдержанный в барриках СБ), но даже те признали, что объективно вино очень интересное.\n\nСчитаю, что винодельня Et Cetera – одна из обязательных к посещению в Молдове для любителей характерных вин. Кроме вин, это ещё очень уютное, красивое место с гос"
+    },
+    {
+      "id": "winery-gitana-en",
+      "category": "winery_facts",
+      "language": "en",
+      "question": "Where is the Gitana winery located?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 211.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "86–89 баллов — Бронзовая медаль\n\n\n\nВина, удостоенные золотых медалей, переклассифицируются по сорту винограда или стилю и повторно дегустируются комиссией, состоящей из региональных председателей и сопредседателей. Вина оцениваются в соответствии с их происхождением, и судьи учитывают страны, регионы, субрегионы, сорта винограда, год урожая и ценовые категории.\n\nКоличество обладателей золотых наград, которые могут быть повышены до платиновых, не ограничено. А из «платины» выбирают Best in Show.\n"
+    },
+    {
+      "id": "winery-fautor-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "question": "Povestește-mi despre vinăria Fautor",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 205.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "In 2017, 2018, 2019, 2020, 2021, 2002 and 2023 Fautor Winery was the most awarded Moldovan winery.\n\nOne of the company's strengths is owning a unique portfolio of rare varieties, but especially world exclusive blends.\n\nBoth winery and the vineyards are situated in Tigheci microzone, as part of viticulture and winemaking area \"Valul lui Traian\", South of Moldova.\n\nTigheci microzone is absolutely unique, being one of the best area for producing high quality wines both white and red.\n\nWithin the ye"
+    },
+    {
+      "id": "winery-bulgari-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "question": "Расскажи про винодельню Bulgari winery",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 202.8,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 1,
+        "defects": [
+          {
+            "claim": "-- 145 of 204 --\n\n\n\n-- 146 of 204 --\n\n147\r\n Address: Corten village\r\n Founded in 2003\r\n Vineyard area: 700 hectares\r\n Winemaker: Valentin Colesnic\r\n Capacity: 40,000 bottles\r\n +373 69452525\r\n c",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Zmeură (малина) цвета чая с малиной, с блеском. В аромате – сушёная малина. Во вкусе и послевкусии – малиновое варенье и его аромат. Содержание сахара – 180 г/ дм3.\n\n\n\nMure (ежевика) рубинового цвета с оттенком янтаря. В аромате – джем из ежевики. Во вкусе и послевкусии – тоже джем и его аромат. Содержание сахара – 120 г/ дм3.\n\nAfine (черника) тёмно-рубинового цвета. В аромате – черничный джем. Во вкусе и послевкусии – джем и его аромат. Содержание сахара – 120 г/ дм3.\n\nCoacăză neagră (чёрная см"
+    },
+    {
+      "id": "winery-calarasi-divin-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "question": "Ce este Călărași Divin?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 469.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Первые в Молдове 5-летние дивины со статусом IGP Divin – от Călărași Divin\n\nВедущий производитель дивинов – компания Călărași Divin впервые в Молдове выпустила на рынок 5-летние дивины со статусом IGP Divin. Его получили дивины Călărași Legenda VSOP, Orfeu VSOP, Aurum VSOP и Special Collection VSOP. Ранее, в октябре 2022 г., Călărași Divin стал первым предприятием, которое начало изготавливать продукцию, маркированную IGP Divin (трехлетние дивины – Călărași Legenda VS и Orfeu VS), открыв в истор"
+    },
+    {
+      "id": "winery-carlevana-en",
+      "category": "winery_facts",
+      "language": "en",
+      "question": "What kind of wines does Carlevana produce?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 263.1,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "The Governor Saperavi Forte, 2022 (Castel Mimi)\n\n\n\nNocturne Rara Neagra, 2023 (Vinaria Purcari)\n\nЗолотые медали\n\nFreedom Blend, 2021 (Vinaria Purcari)\n\nNegru de Purcari, 2020 (Vinaria Purcari)\n\nAcademia Purcari, 2020(Vinaria Purcari)\n\nMerlot de Tomai, 2022 (Tomai-Vinex)\n\nVino Grafia Saperavi, 2023 (Aurelius Winery)\n\nNegru de Kazayak, 2024 (Kazayak-Vin)\n\n7 Coline Sauvignon & Pinot Grigio (Vinaria din Vale)\n\nDomeniile Davidescu Feteasca Neagra & Malbec, 2021 (Domeniile Davidescu)\n\nDomeniile Davide"
+    },
+    {
+      "id": "wine-negru-purcari-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "question": "Что за вино Negru de Purcari?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 220.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "wine-dealul-de-aur-ro",
+      "category": "wine_facts",
+      "language": "ro",
+      "question": "Ce este vinul Dealul de Aur?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 394.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Membrii\n\nWine Of Moldova\n\nCabinetul Personal\n\nVinul Moldovei\n\nVinurile moldovenești au un rol principal în istoria țării. Datând din 5000 î.Hr., vinificația se află în centrul culturii moldovenești. În această secțiune veți putea citi despre istoria vinului moldovenesc și soiurile de struguri cultivate.\n\nIstoria Vinului Moldovei\n\nSoiuri de struguri autohtone\n\nSoiuri de struguri internaționale\n\nSoiuri de struguri caucaziene\n\nGustă vinurile Moldovei\n\n/ Urmărește-ne\n\n/ Abonează-te la noutăți\n\n/ Vin"
+    },
+    {
+      "id": "wine-viorica-en",
+      "category": "wine_facts",
+      "language": "en",
+      "question": "What does the Viorica wine taste like?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 406.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CHARDONNAY SEMI-SWEET\n Light, well-balanced, elegant, it features a unique floral tone with hints of...\n read more\n\n\n\nCABERNET SAUVIGNON SEMI-SWEET\n Pleasant astringency of this wine combines with gorgeous tones of black currant...\n read more\n\nALIGOTE SEMI-SWEET\n It stands out for its golden straw color, gentle velvety taste with pleasant...\n read more\n\nPASTORAL\n It gladdens the eyes with dark garnet red color. It features mild astringency,...\n read more\n\nVIORICA\n Delightful, harmonious, gentle "
+    },
+    {
+      "id": "wine-feteasca-neagra-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "question": "Расскажи о вине из Фетяски Нягрэ",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 397.2,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Фетяска Нягрэ («чёрная девушка», рум. Fetească Neagră) — автохтонный (местный, исторически произрастающий) чёрный сорт винограда Молдовы и Румынии, один из старейших задокументированных сортов региона.\n\nВина из Фетяски Нягрэ обычно среднетелые, с умеренной танинностью, выраженной кислотностью и ароматами тёмных ягод (вишня, ежевика), сухих трав и лёгкой пряностью. В отличие от многих международных сортов, Фетяска Нягрэ реже показывает густую, плотную структуру — стиль скорее элегантный и питкий,"
+    },
+    {
+      "id": "wine-aligote-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "question": "Что за вино из Алиготе в Молдове?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 429.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Первое в Молдове классическое игристое вино Viorica – от KVINT\n\nСорт винограда молдавской селекции Виорика продолжает набирать популярность. Вслед за получившими широкое распространение тихими винами недавно появились первые игристые Viorica, изготовленные методом Charmat (вторичное брожение – в больших резервуарах). И пришёл черёд игристого вина Viorica, произведённого méthode champenoise, или классическим способом с применением вторичного брожения в бутылках. Первыми на этот эксперимент решили"
+    },
+    {
+      "id": "wine-codru-rose-en",
+      "category": "wine_facts",
+      "language": "en",
+      "question": "Describe the Codru rosé wine",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 473.8,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Membrii\n\nWine Of Moldova\n\nCabinetul Personal\n\nNews & Media\n\nOn this page you can find news about the ONVV, the Moldovan wine industry, wine producers and awards for Moldovan wine.\n\nAll News\n\nBlog\n\nPublications\n\nNewsletters\n\nMedia Centre\n\n/ Follow us\n\n/ Subscribe to news\n\n/ Wineries / Tourism / Wine History / About ONVV / News\n\n/ Codru PGI / Ștefan Vodă PGI / Valul lui Traian PGI / Divin PGI\n\nMD-2004, Republica Moldova, mun. Chișinău, str. Sfatul Țării, 59\n\noffice@wineofmoldova.com, tel. 022 105 "
+    },
+    {
+      "id": "wine-stefan-viorica-ro",
+      "category": "wine_facts",
+      "language": "ro",
+      "question": "Ce este vinul Ștefan Viorica?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 406.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Membrii\n\nWine Of Moldova\n\nCabinetul Personal\n\nVinul Moldovei\n\nVinurile moldovenești au un rol principal în istoria țării. Datând din 5000 î.Hr., vinificația se află în centrul culturii moldovenești. În această secțiune veți putea citi despre istoria vinului moldovenesc și soiurile de struguri cultivate.\n\nIstoria Vinului Moldovei\n\nSoiuri de struguri autohtone\n\nSoiuri de struguri internaționale\n\nSoiuri de struguri caucaziene\n\nGustă vinurile Moldovei\n\n/ Urmărește-ne\n\n/ Abonează-te la noutăți\n\n/ Vin"
+    },
+    {
+      "id": "wine-red-blend-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "question": "Какое купажное красное вино производят в Молдове?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 416.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Теперь, когда вас спрашивают: «Какое вино вы будете пить? Белое, розовое или красное?», вы можете уверенно ответить: «Голубое!». В Молдове его можно купить в магазине Wine room (Кишинёв, ул. Щусева, 88), который принадлежит дистрибьютору ООО Cioco studio, и на его сайте wineroom.md. Тихий напиток «Blue Moscato» стоит 74,8 лея, газированный «Blue Moscato» – 75 леев. Также «Blue Moscato» продается в торговых сетях «Rogob», «Vega-l», «Green Hills», «Fourchette», «Slavena Lux».\n\nПо словам директора "
+    },
+    {
+      "id": "grape-feteasca",
+      "category": "grape_varieties",
+      "language": "ru",
+      "question": "Что такое Фетяска Нягрэ?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 393,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Фетяска Нягрэ («чёрная девушка», рум. Fetească Neagră) — автохтонный (местный, исторически произрастающий) чёрный сорт винограда Молдовы и Румынии, один из старейших задокументированных сортов региона.\n\nВина из Фетяски Нягрэ обычно среднетелые, с умеренной танинностью, выраженной кислотностью и ароматами тёмных ягод (вишня, ежевика), сухих трав и лёгкой пряностью. В отличие от многих международных сортов, Фетяска Нягрэ реже показывает густую, плотную структуру — стиль скорее элегантный и питкий,"
+    },
+    {
+      "id": "grape-rara-en",
+      "category": "grape_varieties",
+      "language": "en",
+      "question": "What is Rara Neagră grape?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 355,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "**Fetească Neagră** is an old indigenous red variety originating from the Prut river valley — vigorous, frost- and drought-resistant, ripening from around 10 September and accumulating 200-260 g/l sugar. Wines range from bright ruby to intense red with complex berry and sweet-cherry aromas and a long fruity finish; quality improves with 2-3 years of oak aging and up to 10-12 years of bottle aging. Alcohol content is typically 12-12.5%, in dry, semi-dry or sweet styles. Producers include Cricova,"
+    },
+    {
+      "id": "grape-viorica-ro",
+      "category": "grape_varieties",
+      "language": "ro",
+      "question": "Ce este soiul Viorica?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 342.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Лучшие вина Fetească Neagră, Feteasca Regală, Rara Neagră и Viorica\n\nНациональный конкурс Wine of Moldova Contest`2025 называет только победителей с вручением медалей. В этом году их было 120 из 346 образцов, участвовавших в этом состязании. Однако, учитывая его направленность на местные сорта винограда (вина из автохтонов и новой молдавской селекции), то было бы, на мой взгляд, интересно определить и лучшие сортовые тихие вина в тех группах, где есть достаточная представленность. Это легко сдел"
+    },
+    {
+      "id": "grape-saperavi-ru",
+      "category": "grape_varieties",
+      "language": "ru",
+      "question": "Какой сорт винограда Саперави?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 338.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Сорт винограда Флоричика (Floricica) vs Цветочный\n\nСорт молдавской селекции винограда Флоричика (Floricica) стал очень востребованным среди отечественных виноделов, т.к. его наконец-то оценили, и в нем увидели перспективы для создания еще одного уникального винного предложения Молдовы на международном рынке. Наши учёные оздоровили этот сорт (он свободен от бактериального рака, вирусных и фитоплазменных заболеваний) и размножают в маточнике, чтобы обеспечивать виноградные питомники привойными лоз"
+    },
+    {
+      "id": "grape-aligote-ru",
+      "category": "grape_varieties",
+      "language": "ru",
+      "question": "Что за белый сорт Алиготе?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 369.9,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Как он попал в нашу страну, не известно. Говорят, что скорее всего в 1990-е годы, когда привозилось всё, что угодно. По словам одного руководителя питомниководческого хозяйства, он знает коллег, которые начали размножать сорт Цветочный раньше, чем стал востребован сорт Флоричика. Цветочный использовали для ароматизации нейтральных сортов, а получаемые виноматериалы использовали для производства полусладких вин как Muscat Ottonel. В этих целях перерабатывали и весь виноград столового сорта Мускат"
+    },
+    {
+      "id": "grape-regala-ro",
+      "category": "grape_varieties",
+      "language": "ro",
+      "question": "Ce este soiul Fetească Regală?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 349.8,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CRAMA CEPTURA\n\n\n\nAzi Crama Ceptura dispune de o secție de vinificare care asigură prelucrarea a 10,000 tone de struguri pe sezon, o capacitate de păstrare de aproximativ 10 milioane de litri de vin și echipamente tehnologice sofisticate de ultimă generație.\n\nVinurile din colecțiile Crama Ceptura au la bază cupaje din struguri de Fetească Regală, Sauvignon Blanc, Chardonnay, Cabernet Sauvignon, Fetească Neagră, Merlot, Syrah, Muscat Ottonel, Pinot Noir.\n\nANGEL’S ESTATE\n\nVinăria Angel’s Estate est"
+    },
+    {
+      "id": "grape-cabernet-en",
+      "category": "grape_varieties",
+      "language": "en",
+      "question": "What is Cabernet Sauvignon?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 328.8,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "see\n\n\n\nsee\n\n10 years of experience.\n\nEcology.\n\nRegeneration.\n\nEXPLORE THE AREA\n\nRANGE OF WINES\n\nWine, a direct reflection of the natural\nwealth of the Moldovan lands.\n\nAeroplane Merlot\n\nCabernet Sauvignon\n\nCarmenere\n\nRANGE OF WINES\n\nAeroplane Merlot\n\nCabernet Sauvignon\n\nCarmenere BASAVIN Specials , Vine\nARGILOS Rosu (Cabernet Franc- Rara Neagra)Cabernet Franc 70%\nRara Neagra 30%.170.00 MDL\n\nBASAVIN Specials , Vine\n\nARGILOS Rosu (Cabernet Franc- Rara Neagra)\n\nCabernet Franc 70%\nRara Neagra 30%.\n\n"
+    },
+    {
+      "id": "grape-muscat-en",
+      "category": "grape_varieties",
+      "language": "en",
+      "question": "What does the Muscat grape taste like?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 308.2,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Moldova's roughly 133,000 hectares of vine plantations for wine grapes are split by origin into three groups: about 85% European/international varieties, 10% Black Sea Basin varieties, and 5% local/indigenous varieties (source: ONVV and National Bureau of Statistics). By colour, white varieties account for around 70% of technical (wine) vine area and red for about 30%, with aromatic varieties covering roughly a third of all plantings. White varieties dominate in the central Codru region; red var"
+    },
+    {
+      "id": "region-codru-ru",
+      "category": "regions",
+      "language": "ru",
+      "question": "Какие вина производит регион Кодру?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 375.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Члены\n\nWine Of Moldova\n\nПерсональный кабинет\n\nВинные регионы\n\nВ Республике Молдова 4 винодельческих региона. Эти винные регионы - Кодру, Штефан-Водэ, Валул луй Траян и Дивин. Каждым молдавским винодельческим регионом управляет ассоциация местных молдавских производителей вина с защищенным географическим указанием (PGI). Все PGI защищены как в Республике Молдова, так и в ЕС.\n\nКодру винный регион\n\nРасположенный в самом сердце Республики Молдова, со временем он отличался особыми экологическими хара"
+    },
+    {
+      "id": "region-valul-lui-traian-en",
+      "category": "regions",
+      "language": "en",
+      "question": "What wines come from the Valul lui Traian region?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 320.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Moldova has four wine-growing regions: Central, Southern, South-Eastern and Northern (also described elsewhere as Bălţi/north, Codru/central, Ştefan Vodă/south-east and Cahul/south, with Cahul considered especially important for red sweet and semi-sweet wines). Since 2013 Moldova has applied an EU-style system of Protected Geographical Indications (PGI) covering three wine-growing areas — Valul lui Traian, Ştefan Vodă and Codru — plus a separate geographical name, Divin, for the country's aged w"
+    },
+    {
+      "id": "region-stefan-voda-ro",
+      "category": "regions",
+      "language": "ro",
+      "question": "Ce regiuni viticole există în Moldova?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 338.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Membrii\n\nWine Of Moldova\n\nCabinetul Personal\n\nRegiuni Vinicole\n\nExistă 4 regiuni viticole în Republica Moldova. Aceste regiuni viticole sunt Codru, Ștefan Vodă, Valul lui Traian și Divin. Fiecare regiune vinicolă moldovenească este condusă de o asociație de producători locali de vin moldovenesc cu indicație geografică protejată (IGP). Toate IGP-urile sunt protejate atât în Republica Moldova, cât și în UE.\n\nRegiunea vinicolă Codru\n\nSituat în inima Republicii Moldova, de-a lungul timpului s-a dist"
+    },
+    {
+      "id": "region-divin-en",
+      "category": "regions",
+      "language": "en",
+      "question": "What is the Divin IGP region known for?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 322.1,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Moldova has four wine-growing regions: Central, Southern, South-Eastern and Northern (also described elsewhere as Bălţi/north, Codru/central, Ştefan Vodă/south-east and Cahul/south, with Cahul considered especially important for red sweet and semi-sweet wines). Since 2013 Moldova has applied an EU-style system of Protected Geographical Indications (PGI) covering three wine-growing areas — Valul lui Traian, Ştefan Vodă and Codru — plus a separate geographical name, Divin, for the country's aged w"
+    },
+    {
+      "id": "region-moldova-wines-ru",
+      "category": "regions",
+      "language": "ru",
+      "question": "Где в Молдове выращивают лучшие сорта винограда?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 345.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Vivai cooperativi Rauscedo: как выращивают 100 млн виноградных саженцев\n\nСамый крупный в мире питомниководческий комплекс по выращиванию винограда производит до 100 млн привитых саженцев в год. Он находится в Италии, в регионе Фриули – Венеция – Джулия, деревне Раушедо, ставшей известной благодаря именно виноградным саженцам, которые продаются почти во всех винодельческих странах. Несложно догадаться, что речь идёт о Vivai cooperativi Rauscedo.\n\nДля справки:\n\nВ настоящее время Vivai cooperativi "
+    },
+    {
+      "id": "pairing-red-ru",
+      "category": "food_pairing",
+      "language": "ru",
+      "question": "С чем подавать красное вино?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 401.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "## Шампанское и игристые вина\n\n\n\n## Портвейн, мадера, херес\n\n- Портвейн — сладкое красное крепленое вино с реки Дору; брожение сусла останавливают через 1-2 дня добавлением ~77%-го виноградного спирта, оставляя 40-60 г/л остаточного сахара, крепость 19-22 об.%. Стили: Ruby, Tawny, Vintage, LBV, White Port.\r\n- Мадера — крепленое вино с одноимённого острова; после крепления спиртом проходит тепловую обработку (эстуфажем) — нагрев до 40-50°C на несколько месяцев.\r\n- Херес (Хересе-де-ла-Фронтера) — "
+    },
+    {
+      "id": "pairing-cheese-en",
+      "category": "food_pairing",
+      "language": "en",
+      "question": "What cheese goes best with white wine?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 395.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Asconi Winery\n\nWine, food, and hospitality runs through the veins of every Moldovan, however for us it has a separate place in our hearts. For us this is more than just a business, it’s the fruit of our passion and hard work. Every single bottle, dish and the entire atmosphere within, is created with love. We strive for the highest quality of wine, mouthwatering meals and warmest welcomes. As Vince Lombardi once said “Perfection is not attainable but if we chase perfection we can catch excellenc"
+    },
+    {
+      "id": "pairing-feteasca-ro",
+      "category": "food_pairing",
+      "language": "ro",
+      "question": "Cu ce se potrivește vinul alb sec?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 376.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 45 of 204 --\n\n\n\n-- 46 of 204 --\n\n47\r\n Adresa: s. Corten\r\n Anul înființării: 2003\r\n Suprafața podgoriei: 700 de hectare\r\n Vinificator: Valentin Colesnic\r\n Capacitate: 40.000 de sticle\r\n +373 6",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 93 of 204 --\n\n\n\n-- 94 of 204 --\n\n95\r\n Adresa: s. Vorniceni\r\n Anul înființării: 2016\r\n Suprafața podgoriei: 10 hectare\r\n Vinificator: Vladimir Miron\r\n Capacitate: 10.000 de sticle\r\n www.vornic",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Membrii\n\nWine Of Moldova\n\nCabinetul Personal\n\nVinul Moldovei\n\nVinurile moldovenești au un rol principal în istoria țării. Datând din 5000 î.Hr., vinificația se află în centrul culturii moldovenești. În această secțiune veți putea citi despre istoria vinului moldovenesc și soiurile de struguri cultivate.\n\nIstoria Vinului Moldovei\n\nSoiuri de struguri autohtone\n\nSoiuri de struguri internaționale\n\nSoiuri de struguri caucaziene\n\nGustă vinurile Moldovei\n\n/ Urmărește-ne\n\n/ Abonează-te la noutăți\n\n/ Vin"
+    },
+    {
+      "id": "pairing-rose-ru",
+      "category": "food_pairing",
+      "language": "ru",
+      "question": "С чем подавать розовое вино?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 387.1,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Пицца с куриным мясом составит хорошую пару белым винам с достаточно плотным телом – Шардоне, Пино-гри, Алб де Оницкань (с частичной выдержкой), Рислинг, Совиньон-блан (в классическом стиле), т.е. содержание алкоголя в них 13,5-14,5%.\n\nПицца с мясом (обычно с телятиной) просит сочетания с красным вином. Подойдут вина из сортов Фетяска-нягрэ, Мерло, Саперави, Мальбек.\n\nПицца с колбасками, включая «Пепперони», обладает ярким вкусом, к ней нужно и вино с выразительным вкусом. Например, перечный Шир"
+    },
+    {
+      "id": "pairing-dessert-en",
+      "category": "food_pairing",
+      "language": "en",
+      "question": "What dessert pairs well with a sweet white wine?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 457.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Barbaro\n\n\n\nred dry wine\n\nLake Breeze Riesling\n\nwhite dry wine\n\nNegre\n\nFetasca Neagră, Rara Neagră\n\nred dry wine\n\nTempranillo\n\nred dry wine\n\nFume Blanc\n\nSauvignion Blanc\n\nwhite dry wine\n\nOrange\n\nTraminer\n\nwhite dry wine\n\nRhein Riesling\n\nwhite dry wine\n\nLate Harvest & Ice Wine\n\nLate Harvest\n\nTraminer\n\nwhite semi-sweet wine\n\nLate Harvest\n\nRhein Riesling\n\nwhite semi-sweet wine\n\nLate Harvest\n\nSauvignon Blanc\n\nwhite semi-sweet wine\n\nIce Wine\n\nTraminer, Muscat Ottonel\n\nwhite sweet wine\n\nSummer Edition\n"
+    },
+    {
+      "id": "tourism-cricova-tour-ru",
+      "category": "tourism_routes",
+      "language": "ru",
+      "question": "Есть ли экскурсии с дегустацией в галереях Cricova?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 191.8,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "tourism-asconi-en",
+      "category": "tourism_routes",
+      "language": "en",
+      "question": "Does Asconi winery offer tours?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 177,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "СЕРЕБРЯНЫЕ МЕДАЛИ\n\n\n\nGrand Reserve Negru De Bulboaca, 2018 (Castel Mimi) – 92 п.\n\nThe Governor’s Blend, 2020 (Castel Mimi) – 91 п.\n\nFeteasca Neagra & Saperavi, 2021 (Corten-Vin) – 92 п.\n\nGoliard Feteasca Neagrā Rosé, 2025 (Doina Vin) – 90 п.\n\nSaperavi, 2022 (Poiana Winery) – 92 п.\n\nViorica. 2025 (Aurelius Winery) – 90 п.\n\nNegru, 2024 (Kazayak-vin) – 90 п.\n\nRiesling, 2023 (Divus Winery) – 92 п.\n\nFetească Albă. 2025 (Crama Mircesti) – 93 п.\n\nInstinct Saperavi, 2024 (Gogu Winery) – 90 п.\n\nCasa Feli"
+    },
+    {
+      "id": "tourism-routes-ru",
+      "category": "tourism_routes",
+      "language": "ru",
+      "question": "Как проложить винный маршрут по Молдове?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 399.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Винный маршрут (13)\n\nВинный завод Милештий Мичь\n\nОснованный в 1997 году Комбинат качественных вин „Милештий Мичь (”Mileștii Mici\") - это настоящий подземный винный город, состоящий из затененных [..]\n\nВинный завод Милештий Мичь\n\nВинодельня ATU\n\nВинодельня ATU в Кишинёве — это первая городская винодельня в Республике Молдова, новаторский проект, сочетающий винодельческие традиции с современным и [..]\n\nВинодельня ATU\n\nВинодельня ATU в Кишинёве — это первая городская винодельня в Республике Молдова"
+    },
+    {
+      "id": "tourism-wine-md-excursions-ru",
+      "category": "tourism_routes",
+      "language": "ru",
+      "question": "Какие экскурсии по винодельням продаёт Wine MD?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 295.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "## Дегустационный зал «Sala de Degustare WINE.MD»\n\n\n\n## Агрегатор винных экскурсий («Turism Vinării»)\n\nНа платформе представлено более 120 экскурсионных предложений по 11 винодельням Молдовы, бронирование — онлайн, экскурсии проводятся на трёх языках (русский, румынский, английский). Среди партнёрских виноделен, упомянутых на сайте: Cricova (беч Крикова), Milestii Mici, Asconi, Et Cetera, Purcari, Kara Gani, Chateau Vartely, Poiana, Castel Mimi, Barza Albă, Chateau Cojușna, Crama Mircești, Vinur"
+    },
+    {
+      "id": "tourism-cricova-underground-en",
+      "category": "tourism_routes",
+      "language": "en",
+      "question": "Can visitors walk through the Cricova underground galleries?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 195.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "catalog-price-wine-md-ru",
+      "category": "wine_md_catalog",
+      "language": "ru",
+      "question": "Есть ли у Wine.md цены на виноделы Молдовы?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 189.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "## Дегустационный зал «Sala de Degustare WINE.MD»\n\n\n\n## Агрегатор винных экскурсий («Turism Vinării»)\n\nНа платформе представлено более 120 экскурсионных предложений по 11 винодельням Молдовы, бронирование — онлайн, экскурсии проводятся на трёх языках (русский, румынский, английский). Среди партнёрских виноделен, упомянутых на сайте: Cricova (беч Крикова), Milestii Mici, Asconi, Et Cetera, Purcari, Kara Gani, Chateau Vartely, Poiana, Castel Mimi, Barza Albă, Chateau Cojușna, Crama Mircești, Vinur"
+    },
+    {
+      "id": "catalog-availability-en",
+      "category": "wine_md_catalog",
+      "language": "en",
+      "question": "Is this wine available on Wine.md?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 184.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Wine.md — молдавская платформа, объединяющая три направления: интернет-магазин вин и крепких напитков, офлайн дегустационный зал в Кишинёве, и агрегатор экскурсий по винодельням Молдовы.\n\nВАЖНО ДЛЯ WINE AI: это не отдельная винодельня, а торговая/туристическая платформа-посредник (возможный будущий партнёр проекта, по данным пользователя). Не путать с продукцией конкретной винодельни — если пользователь спрашивает про конкретное вино, ищи это вино в профилях самих виноделен.\n\n## Интернет-магазин"
+    },
+    {
+      "id": "catalog-price-ru",
+      "category": "wine_md_catalog",
+      "language": "ru",
+      "question": "Сколько стоит вино в Wine.md?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 2454.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Wine Park 2026 Ziua 1 – Deschiderea Wine Park Festival Sărbătorește toamna împreună cu Mastercard și Wine.MD Savuram vara alături de Geta Burlacu si Wine.MD Актуально по состоянию на 2026-08-09T12:22:41.979Z."
+    },
+    {
+      "id": "catalog-purcari-ru",
+      "category": "wine_md_catalog",
+      "language": "ru",
+      "question": "Есть ли в каталоге Wine MD вино Negru de Purcari?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 233.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 1,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Wine.md — молдавская платформа, объединяющая три направления: интернет-магазин вин и крепких напитков, офлайн дегустационный зал в Кишинёве, и агрегатор экскурсий по винодельням Молдовы.\n\nВАЖНО ДЛЯ WINE AI: это не отдельная винодельня, а торговая/туристическая платформа-посредник (возможный будущий партнёр проекта, по данным пользователя). Не путать с продукцией конкретной винодельни — если пользователь спрашивает про конкретное вино, ищи это вино в профилях самих виноделен.\n\n## Интернет-магазин"
+    },
+    {
+      "id": "catalog-bottle-format-ro",
+      "category": "wine_md_catalog",
+      "language": "ro",
+      "question": "Ce formate de sticle cu vin oferă Wine MD?",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 187.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Wine.md — молдавская платформа, объединяющая три направления: интернет-магазин вин и крепких напитков, офлайн дегустационный зал в Кишинёве, и агрегатор экскурсий по винодельням Молдовы.\n\nВАЖНО ДЛЯ WINE AI: это не отдельная винодельня, а торговая/туристическая платформа-посредник (возможный будущий партнёр проекта, по данным пользователя). Не путать с продукцией конкретной винодельни — если пользователь спрашивает про конкретное вино, ищи это вино в профилях самих виноделен.\n\n## Интернет-магазин"
+    },
+    {
+      "id": "fresh-hours-en",
+      "category": "freshness_sensitive",
+      "language": "en",
+      "question": "What are the current opening hours for WineMD?",
+      "answer_mode": "knowledge_web",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 12,
+      "latency_ms": 2380.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 12,
+          "total": 12
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 12,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Știați că vinul moldovenesc are o istorie de 7.000 de ani? Vinerea are gust de vară! Vinerea are gust de vară! Актуально по состоянию на 2026-08-09T12:22:45.696Z."
+    },
+    {
+      "id": "fresh-price-ru",
+      "category": "freshness_sensitive",
+      "language": "ru",
+      "question": "Сколько сейчас стоит бутылка Negru de Purcari?",
+      "answer_mode": "knowledge_web",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 1857.2,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Purcari Negru de Purcari Purcari Negru de Purcari Amphorae Edition Purcari Negru de Purcari Актуально по состоянию на 2026-08-09T12:22:47.784Z."
+    },
+    {
+      "id": "fresh-events-ro",
+      "category": "freshness_sensitive",
+      "language": "ro",
+      "question": "Ce evenimente de vin au loc acum în Moldova?",
+      "answer_mode": "knowledge_web",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 2001,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 1,
+        "defects": [
+          {
+            "claim": "-- 29 of 204 --\n\n\n\n-- 30 of 204 --\n\n31\r\nZona vitivinicolă: Codru\r\nAlianţa-Vin\r\n„Alianța-Vin” este o întreprindere de prelucrare a strugurilor și producere a vinului, fondată pe baza unei\r\nfoste fabric",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "De ce festivalurile de vin cresc cultura consumului responsabil în Moldova? De ce festivalurile de vin devin tot mai populare în Europa și Moldova? Excursii Cricova Moldova Актуально по состоянию на 2026-08-09T12:22:49.922Z."
+    },
+    {
+      "id": "fresh-schedule-en",
+      "category": "freshness_sensitive",
+      "language": "en",
+      "question": "When is the next wine festival in Moldova?",
+      "answer_mode": "knowledge_web",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 445.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Grape seeds found on clay pot sherds on the territory of Moldova have been dated to roughly 3750-3500 BC, evidence that winemaking on these lands began 4-5 thousand years ago when the Dacians discovered wine production from grapes. Winemaking intensified when Greek colonists arrived on the Black Sea coast toward the end of the 3rd century BC and shared their winemaking traditions with the local population. Around 50 BC, king Burebista, worried about excessive wine consumption, ordered the Dacian"
+    },
+    {
+      "id": "fresh-price-asconi-ru",
+      "category": "freshness_sensitive",
+      "language": "ru",
+      "question": "Какая актуальная цена экскурсии в Asconi?",
+      "answer_mode": "knowledge_web",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 2006,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Asconi Winery Uneori Moscato Asconi Winery Orange Viorica & Rkatsiteli Cina Asconi Winery de la bucatarul Paolo Baldi Актуально по состоянию на 2026-08-09T12:22:52.872Z."
+    },
+    {
+      "id": "unknown-mars-ru",
+      "category": "unknown_questions",
+      "language": "ru",
+      "question": "Что ты знаешь о винодельне Mars в Молдове?",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 373.9,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Первые в Молдове продукты со статусом IGP Divin\n\nКомпания Călărași Divin выпустила на рынок первые в истории Молдовы продукты со статусом IGP Divin – CĂLĂRAȘI LEGENDA VS и ORFEU VS. Однако этот успех — не только отдельного производителя, но и всей молдавской коньячной отрасли. С появлением первого продукта, маркированного как IGP Divin, она поднялась в своем развитии на новый качественный уровень. Теперь можно говорить о том, что в нашей стране изготавливают дивины с защищенным географическим ук"
+    },
+    {
+      "id": "unknown-lunarian-en",
+      "category": "unknown_questions",
+      "language": "en",
+      "question": "Tell me about the Luna Editor winery in Moldova",
+      "answer_mode": "knowledge_only",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 317.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Membrii\n\nWine Of Moldova\n\nCabinetul Personal\n\nNews & Media\n\nOn this page you can find news about the ONVV, the Moldovan wine industry, wine producers and awards for Moldovan wine.\n\nAll News\n\nBlog\n\nPublications\n\nNewsletters\n\nMedia Centre\n\n/ Follow us\n\n/ Subscribe to news\n\n/ Wineries / Tourism / Wine History / About ONVV / News\n\n/ Codru PGI / Ștefan Vodă PGI / Valul lui Traian PGI / Divin PGI\n\nMD-2004, Republica Moldova, mun. Chișinău, str. Sfatul Țării, 59\n\noffice@wineofmoldova.com, tel. 022 105 "
+    },
+    {
+      "id": "unknown-price-fake-ru",
+      "category": "unknown_questions",
+      "language": "ru",
+      "question": "Сколько стоит вино «Тенфист», которого нет в каталоге Wine MD?",
+      "answer_mode": "knowledge_web",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 1624.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 2,
+        "defects": [
+          {
+            "claim": "-- 149 of 204 --\n\n\n\n-- 150 of 204 --\n\n151\r\nWine region: Codru, Valul lui Traian\r\nChâteau Vartely\r\nChateau Vartely uses the latest technologies in the cultivation and processing of grapes. Its own vine",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          },
+          {
+            "claim": "-- 107 of 204 --\n\n\n\n-- 108 of 204 --\n\n109\r\nWINE GUIDE\r\nMoldova learns about the wine itself: gets new\r\nknowledge, \ttastes \tautochthonous \tvarieties,\r\nunique \tvintages, \tgets \tacquainted \twith \tthe\r\nwi",
+            "reason": "low_confidence",
+            "confidence": "unverified"
+          }
+        ],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Wine Park 2026 Ziua 1 – Deschiderea Wine Park Festival ROSÉ WINE TASTING Cricova Ice Wine Muscat Актуально по состоянию на 2026-08-09T12:22:58.456Z."
+    },
+    {
+      "id": "conflict-opinion-ru",
+      "category": "conflicts",
+      "language": "ru",
+      "question": "Говорят, что Purcari лучше Cricova. Так ли это?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 6,
+      "latency_ms": 290.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 6,
+          "total": 6
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 6,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "conflict-cheese-en",
+      "category": "conflicts",
+      "language": "en",
+      "question": "Can you compare Viorica and Fetească Albă?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 388.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "СЕРЕБРЯНЫЕ МЕДАЛИ\n\n\n\nGrand Reserve Negru De Bulboaca, 2018 (Castel Mimi) – 92 п.\n\nThe Governor’s Blend, 2020 (Castel Mimi) – 91 п.\n\nFeteasca Neagra & Saperavi, 2021 (Corten-Vin) – 92 п.\n\nGoliard Feteasca Neagrā Rosé, 2025 (Doina Vin) – 90 п.\n\nSaperavi, 2022 (Poiana Winery) – 92 п.\n\nViorica. 2025 (Aurelius Winery) – 90 п.\n\nNegru, 2024 (Kazayak-vin) – 90 п.\n\nRiesling, 2023 (Divus Winery) – 92 п.\n\nFetească Albă. 2025 (Crama Mircesti) – 93 п.\n\nInstinct Saperavi, 2024 (Gogu Winery) – 90 п.\n\nCasa Feli"
+    },
+    {
+      "id": "conflict-region-ru",
+      "category": "conflicts",
+      "language": "ru",
+      "question": "Какой регион Молдовы считается лучшим для вин?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 434,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Члены\n\nWine Of Moldova\n\nПерсональный кабинет\n\nВинные регионы\n\nВ Республике Молдова 4 винодельческих региона. Эти винные регионы - Кодру, Штефан-Водэ, Валул луй Траян и Дивин. Каждым молдавским винодельческим регионом управляет ассоциация местных молдавских производителей вина с защищенным географическим указанием (PGI). Все PGI защищены как в Республике Молдова, так и в ЕС.\n\nКодру винный регион\n\nРасположенный в самом сердце Республики Молдова, со временем он отличался особыми экологическими хара"
+    },
+    {
+      "id": "conflict-vs-grape-ru",
+      "category": "conflicts",
+      "language": "ru",
+      "question": "Что лучше: Виорика или Фетяска Албэ?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 496.4,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Фетяска Нягрэ («чёрная девушка», рум. Fetească Neagră) — автохтонный (местный, исторически произрастающий) чёрный сорт винограда Молдовы и Румынии, один из старейших задокументированных сортов региона.\n\nВина из Фетяски Нягрэ обычно среднетелые, с умеренной танинностью, выраженной кислотностью и ароматами тёмных ягод (вишня, ежевика), сухих трав и лёгкой пряностью. В отличие от многих международных сортов, Фетяска Нягрэ реже показывает густую, плотную структуру — стиль скорее элегантный и питкий,"
+    },
+    {
+      "id": "constraint-no-price-ru",
+      "category": "user_constraints",
+      "language": "ru",
+      "question": "Расскажи о Purcari без ответа в ценах",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 1429.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": [
+            {
+              "constraint": "no_prices",
+              "ok": true,
+              "violations": []
+            }
+          ]
+        }
+      },
+      "narrative": "Purcari Malbec de Purcari Purcari Pinot Grigio de Purcari Purcari Alb de Purcari Актуально по состоянию на 2026-08-09T12:23:03.158Z."
+    },
+    {
+      "id": "constraint-no-web-ru",
+      "category": "user_constraints",
+      "language": "ru",
+      "question": "Расскажи про регион Кодру без обращения в интернет",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 379.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": [
+            {
+              "constraint": "no_web",
+              "ok": true,
+              "violations": []
+            }
+          ]
+        }
+      },
+      "narrative": "Члены\n\nWine Of Moldova\n\nПерсональный кабинет\n\nВинные регионы\n\nВ Республике Молдова 4 винодельческих региона. Эти винные регионы - Кодру, Штефан-Водэ, Валул луй Траян и Дивин. Каждым молдавским винодельческим регионом управляет ассоциация местных молдавских производителей вина с защищенным географическим указанием (PGI). Все PGI защищены как в Республике Молдова, так и в ЕС.\n\nКодру винный регион\n\nРасположенный в самом сердце Республики Молдова, со временем он отличался особыми экологическими хара"
+    },
+    {
+      "id": "constraint-no-prices-en",
+      "category": "user_constraints",
+      "language": "en",
+      "question": "Describe Cricova without mentioning prices",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 1333.6,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": [
+            {
+              "constraint": "no_prices",
+              "ok": true,
+              "violations": []
+            }
+          ]
+        }
+      },
+      "narrative": "Cricova Prestige/Rose de Cricova Cricova Prestige Rose de Cricova Excursii Cricova Moldova Актуально по состоянию на 2026-08-09T12:23:05.628Z."
+    },
+    {
+      "id": "constraint-no-catalog-ro",
+      "category": "user_constraints",
+      "language": "ro",
+      "question": "Vorbește despre Purcari fără date din catalog",
+      "answer_mode": "knowledge_catalog",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 214.7,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": [
+            {
+              "constraint": "no_catalog",
+              "ok": true,
+              "violations": []
+            }
+          ]
+        }
+      },
+      "narrative": "CMB` 2026 Red and White Wines Session: у Молдовы 66 медалей и титул International White Wine Revelation\n\nConcours Mondial de Bruxelles` 2026 Red and White Wines Session состоялся 21-23 мая, в Ереване (конкурс выездной, и постоянно меняет место проведения). В нём участвовали почти 6700 вин из 50 стран. Из 126 молдавских вин 66 завоевали награды (или 52,4%): 7 Больших золотых медалей, 32 золотых, 27 серебряных. И всего два вина из общего числа участников были удостоены титула International Revelat"
+    },
+    {
+      "id": "constraint-no-inference-ru",
+      "category": "user_constraints",
+      "language": "ru",
+      "question": "Дай совет по вину, но не выдумывай",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 523.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": [
+            {
+              "constraint": "no_inference",
+              "ok": true,
+              "violations": []
+            }
+          ]
+        }
+      },
+      "narrative": "Гид по Chardonnay – самому популярному белому вину в мире\n\nСорт винограда Шардоне – очень пластичен, его выращивают практически во всех винодельческих регионах земного шара. Из него получается широкая палитра вин – от «хрустящих» Chablis до насыщенных маслянистых вин, выдержанных в дубовых бочках, а также природно сладких Chardonnay, не говоря уже об игристых винах. А Blanc de blancs производят только из Шардоне. Виноделы о нём говорят с благодарностью, т.к. Шардоне не капризен и позволяет работ"
+    },
+    {
+      "id": "ai-recommend-wine-ru",
+      "category": "ai_recommendations",
+      "language": "ru",
+      "question": "Какое вино посоветуешь купить в подарок?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "catalog",
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 13,
+      "latency_ms": 1720.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 13,
+          "total": 13
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 13,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Оригинальные подарки Подарки от GiftStudio - доставим радость в каждый дом! Вино & Шоколад by Delice Sommelier Актуально по состоянию на 2026-08-09T12:23:08.618Z."
+    },
+    {
+      "id": "ai-pairing-duck-en",
+      "category": "ai_recommendations",
+      "language": "en",
+      "question": "Which Moldovan wine would you suggest with duck?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 406.3,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "With the founding of the Principality of Moldova in the 14th century, viticulture grew rapidly, reaching a peak in the 15th century during the reign of Stephen the Great (Ştefan cel Mare), who imported new vine varieties and encouraged quality wine production. A \"cult of wine\" formed among the Boyars, extensive underground galleries were built for storage, and Moldova began exporting wine to Poland and the Principality of Moscow from the 14th century onward, marking the start of its history as a"
+    },
+    {
+      "id": "ai-travel-route-ru",
+      "category": "ai_recommendations",
+      "language": "ru",
+      "question": "Посоветуй маршрут на день по винодельням Кодру",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 460.9,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Маршрут авторских вин\n\nТочка отправления:\n\nКишинев\n\nНочевка:\n\nНет, но включает места, где предлагают услуги по размещению\n\nДлительность:\n\n1 день\n\nКоличество виноделен:\n\n5\n\nОбщее расстояние:\n\nпримерно 215 км, до 4 часов на машине. Расчетное расстояние между винодельнями с учётом достопримечательностей, указанных на маршруте. Винный маршрут (13)\n\nВинный завод Милештий Мичь\n\nОснованный в 1997 году Комбинат качественных вин „Милештий Мичь (”Mileștii Mici\") - это настоящий подземный винный город, сос"
+    },
+    {
+      "id": "ai-gift-ro",
+      "category": "ai_recommendations",
+      "language": "ro",
+      "question": "Ce vin să aleg ca un cadou pentru un prieten?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 453.5,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "ISTORIA\n\n\"Cricova\" reprezintă cel mai mare complex subteran, cunoscut în întreaga lume pentru labirinturile sale imense şi vinurile excelente. Istoria acestui loc uimitor datează din 1952.\n\nPerla vinificației moldave, \"Cricova\", este situată chiar în inima Republicii Moldova. La o adâncime de 60 de metri, sub supravegherea vinificatorilor, sunt păstrate şi maturate cele mai excelente vinuri marca \"Cricova\".\n\nAici s-au păstrat cele mai vechi tradiţii vinicole, astfel, \"Cricova\" este prima compani"
+    },
+    {
+      "id": "ai-budget-ru",
+      "category": "ai_recommendations",
+      "language": "ru",
+      "question": "Какое молдавское вино выбрать на ужин с семьёй?",
+      "answer_mode": "expert",
+      "found": true,
+      "answerable": false,
+      "used_levels": [
+        "documents"
+      ],
+      "web_used": false,
+      "claim_count": 8,
+      "latency_ms": 430.8,
+      "metrics": {
+        "answerable": false,
+        "found": true,
+        "provenance_coverage": {
+          "coverage": 1,
+          "covered": 8,
+          "total": 8
+        },
+        "defect_count": 0,
+        "defects": [],
+        "hallucination": {
+          "risk": "low",
+          "score": 0.1,
+          "reasons": [
+            "answerable=false but evidence retrieved"
+          ],
+          "provenance_coverage": 1
+        },
+        "inference_count": 0,
+        "unresolved_count": 0,
+        "factual_count": 8,
+        "mode_correctness": {
+          "correct": true,
+          "violations": []
+        },
+        "constraints": {
+          "compliant": true,
+          "checks": []
+        }
+      },
+      "narrative": "Какое вино выбрать к плову?\n\nПлов — очень популярное блюдо, причём не только в Средней Азии, Азербайджане и Иране, где оно считается национальным. Его любят, наверное, все, кто хоть раз попробовал. В Узбекистане к плову подают зелёный чай. А какое вино подойдёт к этому блюду?\n\nО происхождении\n\nПлов родился на Ближнем Востоке, около II-III веков до н.э., когда там появился рис. Его начали привозить тюркские кочевники из Китая в обмен на скот. По одной из легенд, Александр Македонский привёз рецеп"
+    }
+  ]
+}
