@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wine AI — Answer Audit</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --wine: #6b1e2b;
+    --wine-dark: #4a1420;
+    --cream: #f7f1e8;
+    --ink: #2a2118;
+    --muted: #8a7a68;
+    --ok: #3f7d4f;
+    --warn: #b3781c;
+    --err: #b3392c;
+    --border: #e2d8c8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--cream); color: var(--ink); }
+  header { background: var(--wine); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: 0.82; }
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 24px 60px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; color: var(--wine-dark); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input[type=text], select, textarea, button {
+    font: inherit; color: var(--ink); border-radius: 8px; border: 1px solid var(--border); padding: 8px 10px; background: #fff;
+  }
+  input[type=text] { flex: 1 1 260px; min-width: 200px; }
+  button { background: var(--wine); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+  button:hover { background: var(--wine-dark); }
+  button:disabled { opacity: 0.55; cursor: default; }
+  button.ghost { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
+  .pill { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+  .pill.ok { background: #e3f2e6; color: var(--ok); }
+  .pill.warn { background: #fdeeda; color: var(--warn); }
+  .pill.err { background: #fbe3e1; color: var(--err); }
+  .pill.mut { background: #ece7df; color: var(--muted); }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
+  .metric { background: var(--cream); border-radius: 8px; padding: 8px 12px; }
+  .metric .k { font-size: 11px; color: var(--muted); }
+  .metric .v { font-size: 16px; font-weight: 700; }
+  .mode-block { border: 1px solid var(--border); border-left: 4px solid var(--wine); border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: #fff; }
+  .mode-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mode-head .name { font-weight: 700; }
+  details { margin-top: 6px; }
+  summary { cursor: pointer; color: var(--wine); font-size: 13px; user-select: none; }
+  .claim { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 6px 0; background: #fdfcf9; }
+  .claim .c-txt { font-size: 13px; }
+  .claim .c-meta { font-size: 11px; color: var(--muted); margin-top: 4px; word-break: break-word; }
+  .defect { color: var(--err); font-size: 12px; margin-top: 4px; }
+  .reason { font-size: 11px; color: var(--muted); }
+  .info-bar { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+  .flex-between { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .cases-list { list-style: none; margin: 0; padding: 0; }
+  .cases-list li { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 6px 0; cursor: pointer; background: #fff; }
+  .cases-list li:hover { border-color: var(--wine); }
+  .status-label { font-size: 11px; color: var(--muted); }
+  #statusline { position: fixed; right: 16px; bottom: 16px; background: var(--ink); color: #fff; border-radius: 999px; padding: 8px 14px; font-size: 12px; opacity: 0; transition: opacity .25s; }
+  #statusline.show { opacity: 1; }
+  .check { font-size: 12px; margin-top: 4px; }
+  .check.ok { color: var(--ok); }
+  .check.fail { color: var(--err); }
+</style>
+</head>
+<body>
+<header>
+  <div class="flex-between" style="flex:1">
+    <div>
+      <h1>Wine AI — Answer Audit</h1>
+      <div class="sub">quality lab · claim provenance · hallucination risk · admin review · benchmark</div>
+    </div>
+    <div class="row">
+      <a href="/dashboard"><button class="ghost" type="button">Dashboard</button></a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Run a single audit -->
+  <section class="card" id="run-card">
+    <h2>Прогнать аудит вопроса</h2>
+    <div class="row">
+      <input type="text" id="q-text" placeholder="Например: Сколько стоит Purcari Alb de Purcari?" list="q-common">
+      <datalist id="q-common"></datalist>
+      <select id="q-lang">
+        <option value="auto">язык: авто</option>
+        <option value="ru">RU</option>
+        <option value="ro">RO</option>
+        <option value="en">EN</option>
+      </select>
+      <select id="q-mode">
+        <option value="">все 4 режима</option>
+        <option value="knowledge_only">knowledge_only</option>
+        <option value="knowledge_catalog">knowledge_catalog</option>
+        <option value="knowledge_web">knowledge_web</option>
+        <option value="expert">expert</option>
+      </select>
+      <label class="pill mut"><input type="checkbox" id="q-save" checked> сохранить кейс</label>
+      <button type="button" id="btn-run">Аудит</button>
+    </div>
+    <div class="info-bar" id="run-info"></div>
+  </section>
+
+  <!-- Single audit result -->
+  <section class="card" id="result-card" hidden>
+    <h2>Результат</h2>
+    <div class="flex-between">
+      <div id="result-meta" class="info-bar"></div>
+      <div class="row">
+        <button class="ghost" type="button" id="btn-open-case" title="Открыть сохранённый кейс по id из метаданных">Открыть кейс</button>
+      </div>
+    </div>
+    <div id="result-body"></div>
+    <div id="review-form" hidden>
+      <h2 style="margin-top:14px">Human review</h2>
+      <div class="row">
+        <select id="rv-status">
+          <option value="new">new</option>
+          <option value="ok">ok</option>
+          <option value="needs_review">needs_review</option>
+          <option value="defect">defect</option>
+        </select>
+        <input type="text" id="rv-comment" placeholder="комментарий ревьюера (до 2000 симв.)">
+        <button type="button" id="btn-save-review">Сохранить review</button>
+        <button type="button" class="ghost" id="btn-clear-review">Сбросить на new</button>
+      </div>
+      <div class="info-bar" id="rv-info"></div>
+    </div>
+  </section>
+
+  <!-- Saved cases / review -->
+  <section class="card" id="cases-card">
+    <h2>Кейсы (review)</h2>
+    <div class="flex-between">
+      <div class="info-bar">status: new / ok / needs_review / defect, comment до 2000 симв.</div>
+      <label class="info-bar">показывать: <select id="status-filter"><option value="">все</option><option value="new">new</option><option value="ok">ok</option><option value="needs_review">needs_review</option><option value="defect">defect</option></select></label>
+    </div>
+    <ul class="cases-list" id="cases-list"></ul>
+    <div class="info-bar" id="cases-info"></div>
+  </section>
+
+  <!-- Benchmark -->
+  <section class="card" id="bench-card">
+    <h2>Benchmark (RU/RO/EN — одна команда)</h2>
+    <div class="info-bar">
+      <code>npm run benchmark:quality</code> — локально, или
+      <code>npm run benchmark:quality -- AUDIT_BASE_URL=https://wine-ai-realtime-production.up.railway.app</code>.
+      Данные ниже читаются из benchmark-results/*.json.
+    </div>
+    <div id="bench-latest"></div>
+  </section>
+</main>
+
+<div id="statusline"></div>
+
+<script>
+'use strict';
+const $ = (sel) => document.querySelector(sel);
+
+let currentCase = null;
+
+function flash(text) {
+  const el = $('#statusline');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+async function jcall(url, opts) {
+  const res = await fetch(url, opts);
+  let body = null;
+  try { body = await res.json(); } catch (_) {}
+  if (!res.ok) throw new Error((body && body.error) || res.status);
+  return body;
+}
+
+function pill(risk) {
+  if (risk === 'high' || risk === 'defect') return '<span class="pill err">' + risk + '</span>';
+  if (risk === 'medium' || risk === 'needs_review') return '<span class="pill warn">' + risk + '</span>';
+  if (risk === 'ok' || risk === 'low' || risk === 'none') return '<span class="pill ok">' + risk + '</span>';
+  if (risk === 'new') return '<span class="pill mut">new</span>';
+  return '<span class="pill mut">' + (risk || '—') + '</span>';
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function renderModeResult(result) {
+  const m = result.metrics || {};
+  const h = m.hallucination || {};
+  const nav = result.narrative ? esc(result.narrative) : '<span class="pill mut">no narrative</span>';
+  let html = '<div class="mode-block">';
+  html += '<div class="mode-head">';
+  html += '<span class="name">' + esc(result.answer_mode) + '</span>';
+  html += '<span class="pill ' + (result.answerable ? 'ok' : 'err') + '">' + (result.answerable ? 'answerable' : 'not answerable') + '</span>';
+  html += '<span class="pill mut">claims ' + (result.claims ? result.claims.length : 0) + '</span>';
+  if (result.found) html += '<span class="pill mut">found</span>';
+  if (result.web_used) html += '<span class="pill warn">web used</span>';
+  html += '<span class="pill mut">' + (result.latency_ms == null ? '' : result.latency_ms + 'ms') + '</span>';
+  if (h.risk) html += pill(h.risk + ' halluc. ' + (h.score || 0));
+  html += '</div>';
+  html += '<details open><summary>нарратив</summary><p class="info-bar" style="line-height:1.5">' + nav + '</p></details>';
+  html += '<div class="metrics">';
+  html += '<div class="metric"><div class="k">provenance coverage</div><div class="v">' +
+    (m.provenance_coverage && m.provenance_coverage.total !== undefined ? m.provenance_coverage.covered + '/' + m.provenance_coverage.total : '—') + '</div></div>';
+  html += '<div class="metric"><div class="k">defects</div><div class="v ' + (m.defect_count ? 'defect" style="color:var(--err' : '') + '">' + m.defect_count + '</div></div>';
+  html += '<div class="metric"><div class="k">inference</div><div class="v">' + m.inference_count + '</div></div>';
+  html += '<div class="metric"><div class="k">unresolved</div><div class="v">' + m.unresolved_count + '</div></div>';
+  html += '<div class="metric"><div class="k">halluc score</div><div class="v">' + (h.score || 0) + '</div></div>';
+  html += '<div class="metric"><div class="k">mode correct</div><div class="v ' + (m.mode_correctness && !m.mode_correctness.correct ? 'def' : '') + '">' +
+    (m.mode_correctness && m.mode_correctness.correct ? 'yes' : 'no') + '</div></div>';
+  html += '<div class="metric"><div class="k">constraints</div><div class="v ' + (m.constraints && !m.constraints.compliant ? 'def' : '') + '">' +
+    (m.constraints ? (m.constraints.compliant ? 'ok' : 'violated') : '—') + '</div></div>';
+  html += '</div>';
+
+  const claims = result.claims || [];
+  if (claims.length) {
+    html += '<details><summary>claims (' + claims.length + ') — источники / kind / freshness</summary>';
+    claims.forEach((claim, i) => {
+      html += '<div class="claim">';
+      html += '<div class="c-txt">' + esc(claim.claim) + '</div>';
+      html += '<div class="c-meta"><span class="pill mut">' + esc(claim.kind) + '</span>' +
+        (claim.confidence ? ' <span class="pill ' + (claim.confidence === 'verified' ? 'ok' : claim.confidence === 'low' ? 'err' : 'mut') + '">' + esc(claim.confidence) + '</span>' : '') +
+        (claim.source && claim.source.url ? ' <a href="' + esc(claim.source.url) + '" target="_blank" rel="noopener">' + esc(claim.source.url) + '</a>' : '') +
+        (claim.source && claim.source.title ? ' — ' + esc(claim.source.title) : '') +
+        (claim.source && claim.source.document_page ? ' 📄 ' + esc(claim.source.document_page) : '') +
+        (claim.entity_id ? ' · entity: ' + esc(claim.entity_id) : '') +
+        (claim.freshness && claim.freshness.status ? ' · ' + esc(claim.freshness.status) : '') +
+        '</div>';
+      html += '</div>';
+    });
+    html += '</details>';
+  }
+  if (result.conflicts && result.conflicts.length) {
+    html += '<details><summary>conflicts (' + result.conflicts.length + ')</summary>';
+    result.conflicts.forEach((c) => { html += '<div class="reason">' + esc(c.key) + ': ' + esc((c.values || []).join(' | ')) + '</div>'; });
+    html += '</details>';
+  }
+  const defects = m.defects || [];
+  if (defects.length) {
+    html += '<details><summary>defects (' + defects.length + ')</summary>';
+    defects.forEach((d) => { html += '<div class="defect">' + esc(d.reason) + (d.confidence ? ' · ' + esc(d.confidence) : '') + ': ' + esc(d.claim) + '</div>'; });
+    html += '</details>';
+  }
+  const checks = (m.constraints && m.constraints.checks) || [];
+  if (checks.length) {
+    html += '<details><summary>constraint checks</summary>';
+    checks.forEach((c) => {
+      html += '<div class="check ' + (c.ok ? 'ok' : 'fail') + '">' + esc(c.constraint) + ': ' + (c.ok ? 'OK' : 'FAIL') + (c.violations && c.violations.length ? ' — ' + esc(c.violations.join('; ')) : '') + '</div>';
+    });
+    html += '</details>';
+  }
+  if (m.hallucination && (m.hallucination.reasons || []).length) {
+    html += '<details><summary>hallucination reasons</summary>';
+    (m.hallucination.reasons || []).forEach((r) => { html += '<div class="reason">· ' + esc(r) + '</div>'; });
+    html += '</details>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderAudit(record) {
+  const res = record.results || [];
+  $('#result-meta').innerHTML = 'question: <b>' + esc(record.question) + '</b> · lang: <b>' + esc(record.language) +
+    '</b> · modes: <b>' + esc((record.modes || []).join(', ')) + '</b> · total ' +
+    (record.latency_ms_total || 0) + 'ms · id: <code>' + esc(record.id) + '</code>' +
+    (record.constraints && record.constraints.length ? ' · constraints: <b>' + esc(record.constraints.join(', ')) + '</b>' : '');
+  $('#result-body').innerHTML = res.map(renderModeResult).join('');
+  $('#result-card').hidden = false;
+  renderReviewForm(record);
+}
+
+function renderReviewForm(record) {
+  currentCase = record;
+  if (!record || !record.id) return;
+  $('#rv-status').value = record.review_status || 'new';
+  $('#rv-comment').value = record.review_comment || '';
+  $('#rv-info').textContent = record.reviewed_at
+    ? ('reviewed at ' + record.reviewed_at + (record.review_status !== 'new' ? ' · status ' + record.review_status : ''))
+    : 'not reviewed yet';
+  $('#review-form').hidden = false;
+}
+
+function saveReview() {
+  if (!currentCase || !currentCase.id) { flashStatus('нет кейса для review'); return; }
+  const id = currentCase.id;
+  $('#btn-save-review').disabled = true;
+  return jcall('/api/knowledge/audit/cases/' + id, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        status: $('#rv-status').value,
+        comment: $('#rv-comment').value,
+      }),
+    }).then((body) => {
+      renderReviewForm(body.case);
+      flashStatus('review saved ' + id);
+      loadCases();
+    }).catch((err) => {
+      flashStatus('save failed: ' + err.message);
+    }).finally(() => { $('#btn-save-review').disabled = false; });
+}
+
+function clearReview() {
+  if (!currentCase || !currentCase.id) { flashStatus('нет кейса'); return; }
+  $('#rv-status').value = 'new';
+  $('#rv-comment').value = '';
+  saveReview();
+}
+
+function flashStatus(text) {
+  flash(text);
+}
+
+function runAudit() {
+  const question = $('#q-text').value.trim();
+  if (!question) { flashStatus('введите вопрос'); return; }
+  const mode = $('#q-mode').value;
+  const language = $('#q-lang').value === 'auto' ? null : $('#q-lang').value;
+  $('#btn-run').disabled = true;
+  $('#run-info').textContent = 'running…';
+  return jcall('/api/knowledge/audit', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question, language, modes: mode ? [mode] : undefined, save: $('#q-save').checked }),
+    }).then((body) => {
+      currentCase = body.case || body.audit;
+      renderAudit(currentCase);
+      $('#run-info').textContent = body.saved ? ('saved case ' + currentCase.id) : 'not saved (ВЕС-тест)';
+      flashStatus('audit done');
+      if (body.saved) loadCases();
+    }).catch((err) => {
+      $('#run-info').textContent = '';
+      flashStatus('audit failed: ' + err.message);
+    }).finally(() => { $('#btn-run').disabled = false; });
+}
+
+async function loadCases() {
+  const status = $('#status-filter').value;
+  const params = new URLSearchParams({ limit: '100' });
+  if (status) params.set('status', status);
+  try {
+    const body = await jcall('/api/knowledge/audit/cases?' + params.toString());
+    const list = body.cases || [];
+    $('#cases-list').innerHTML = list.length
+      ? list.map((c) => {
+          const prog = c.results && c.results.length ? '#prog:' + esc(c.results.length) + ' modes' : '';
+          return '<li data-id="' + esc(c.id) + '">' +
+            '<div class="flex-between"><b>' + esc(c.question) + '</b>' + pill(c.review_status) + '</div>' +
+            '<div class="info-bar">' + esc(c.id) + ' · ' + esc(c.created_at || '') + ' · lang ' + esc(c.language || '—') +
+            ' · ' + esc(c.answer_mode) + ' · ' + esc(c.latency_ms_total || 0) + 'ms' +
+            (c.review_comment ? ' · «' + esc(c.review_comment) + '»' : '') + '</div></li>';
+        }).join('')
+      : '<li class="info-bar">пусто</li>';
+    $('#cases-info').textContent = list.length + ' кейсов';
+  } catch (err) {
+    $('#cases-info').textContent = 'не удалось загрузить кейсы: ' + err.message;
+  }
+}
+
+$('#btn-run').addEventListener('click', runAudit);
+$('#q-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') runAudit(); });
+$('#status-filter').addEventListener('change', loadCases);
+$('#btn-save-review').addEventListener('click', saveReview);
+$('#btn-clear-review').addEventListener('click', clearReview);
+$('#btn-open-case').addEventListener('click', () => {
+  if (!currentCase || !currentCase.id) { flashStatus('нет кейса'); return; }
+  jcall('/api/knowledge/audit/cases/' + currentCase.id).then((body) => {
+    renderAudit(body.case);
+  }).catch((err) => flashStatus('load failed: ' + err.message));
+});
+
+$('#cases-list').addEventListener('click', function (e) {
+  const li = e.target.closest('li[data-id]');
+  if (!li) return;
+  const id = li.dataset.id;
+  jcall('/api/knowledge/audit/cases/' + id).then((body) => {
+    currentCase = body.case;
+    renderAudit(currentCase);
+    $('#result-card').hidden = false;
+  }).catch((err) => flashStatus('load failed: ' + err.message));
+});
+
+function benchmarkModal() {
+  jcall('/api/knowledge/benchmark/latest').then((body) => {
+    const s = body.summary || {};
+    const lat = s.latency || {};
+    const hall = s.hallucination || {};
+    let html = '<div class="info-bar">file: <code>' + esc(body.file) + '</code> · generated ' + esc(body.generated_at || '') + '</div>';
+    html += '<div class="metrics">';
+    html += '<div class="metric"><div class="k">pass rate</div><div class="v">' + (s.pass_rate != null ? (s.pass_rate * 100).toFixed(1) + '%' : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">rows</div><div class="v">' + s.total_rows + '</div></div>';
+    html += '<div class="metric"><div class="k">answerability</div><div class="v">' + (s.answerability && s.answerability.answerable_rate != null ? (s.answerability.answerable_rate * 100).toFixed(1) + '%' : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">halluc high</div><div class="v ' + (hall.high_risk_rows ? 'defect' : '') + '">' + hall.high_risk_rows + '</div></div>';
+    html += '<div class="metric"><div class="k">provenance cov</div><div class="v">' + (s.provenance && s.provenance.avg_provenance_coverage != null ? (s.provenance.avg_provenance_coverage * 100).toFixed(1) + '%' : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">latency avg</div><div class="v">' + (lat.avg_ms != null ? lat.avg_ms + 'ms' : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">constraints</div><div class="v">' + (s.constraints && s.constraints.constraint_compliance_rate != null ? (s.constraints.constraint_compliance_rate * 100).toFixed(1) + '%' : '—') + '</div></div>';
+    html += '</div>';
+    const byCat = s.by_category || {};
+    if (Object.keys(byCat).length) {
+      html += '<details><summary>по категориям</summary>';
+      for (const [cat, stat] of Object.entries(byCat)) {
+        const rate = stat.total ? (stat.passed / stat.total * 100).toFixed(0) + '%' : '—';
+        html += '<div class="reason">' + esc(cat) + ': ' + stat.passed + '/' + stat.total + ' (' + rate + ')</div>';
+      }
+      html += '</details>';
+    }
+    $('#bench-latest').innerHTML = html;
+  }).catch((err) => {
+    $('#bench-latest').textContent = 'benchmark: запустите npm run benchmark:quality — пока отчёта нет (' + err.message + ').';
+  });
+}
+
+function init() {
+  benchmarkModal();
+  loadCases();
+}
+
+init();
+</script>
+</body>
+</html>

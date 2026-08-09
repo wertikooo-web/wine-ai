@@ -1,0 +1,597 @@
+{
+  "version": 1,
+  "description": "Reference benchmark dataset for WINE AI Answer Audit. One real user question per row, in RU/RO/EN, covering the 12 Phase 2 categories. category/answer_mode/language decide how the harness runs each row; expected gives the deterministic baseline contract.",
+  "categories": [
+    "winery_facts", "wine_facts", "grape_varieties", "regions", "food_pairing",
+    "tourism_routes", "wine_md_catalog", "freshness_sensitive", "unknown_questions",
+    "conflicts", "user_constraints", "ai_recommendations"
+  ],
+  "questions": [
+    {
+      "id": "winery-cricova-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Расскажи про винодельню Cricova",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-cricova-en",
+      "category": "winery_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Tell me about the Cricova winery",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-purcari-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Где находится винодельня Purcari?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-asconi-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Povestește-mi despre cramal Asconi",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-castel-mimi-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Что из себя представляет Castel Mimi?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-vartely-en",
+      "category": "winery_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Where is the Vartely winery located?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-salcuta-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Unde se află vinăria Salcuta?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-basavin-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Где находится винодельня Basavin?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-kvint-en",
+      "category": "winery_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Tell me about the KVINT winery in Tiraspol",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-et-cetera-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Ce vinuri produce cramal Et Cetera?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-gitana-en",
+      "category": "winery_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Where is the Gitana winery located?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-fautor-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Povestește-mi despre vinăria Fautor",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-bulgari-ru",
+      "category": "winery_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Расскажи про винодельню Bulgari winery",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-calarasi-divin-ro",
+      "category": "winery_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Ce este Călărași Divin?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "winery-carlevana-en",
+      "category": "winery_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "What kind of wines does Carlevana produce?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "wine-negru-purcari-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Что за вино Negru de Purcari?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-dealul-de-aur-ro",
+      "category": "wine_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Ce este vinul Dealul de Aur?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-viorica-en",
+      "category": "wine_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "What does the Viorica wine taste like?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-feteasca-neagra-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Расскажи о вине из Фетяски Нягрэ",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-aligote-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Что за вино из Алиготе в Молдове?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-codru-rose-en",
+      "category": "wine_facts",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Describe the Codru rosé wine",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-stefan-viorica-ro",
+      "category": "wine_facts",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Ce este vinul Ștefan Viorica?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "wine-red-blend-ru",
+      "category": "wine_facts",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Какое купажное красное вино производят в Молдове?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "grape-feteasca",
+      "category": "grape_varieties",
+      "language": "ru",
+      "question": "Что такое Фетяска Нягрэ?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-rara-en",
+      "category": "grape_varieties",
+      "language": "en",
+      "question": "What is Rara Neagră grape?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-viorica-ro",
+      "category": "grape_varieties",
+      "language": "ro",
+      "question": "Ce este soiul Viorica?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-saperavi-ru",
+      "category": "grape_varieties",
+      "language": "ru",
+      "question": "Какой сорт винограда Саперави?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-aligote-ru",
+      "category": "grape_varieties",
+      "language": "ru",
+      "question": "Что за белый сорт Алиготе?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-regala-ro",
+      "category": "grape_varieties",
+      "language": "ro",
+      "question": "Ce este soiul Fetească Regală?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-cabernet-en",
+      "category": "grape_varieties",
+      "language": "en",
+      "question": "What is Cabernet Sauvignon?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "grape-muscat-en",
+      "category": "grape_varieties",
+      "language": "en",
+      "question": "What does the Muscat grape taste like?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "region-codru-ru",
+      "category": "regions",
+      "language": "ru",
+      "question": "Какие вина производит регион Кодру?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "region-valul-lui-traian-en",
+      "category": "regions",
+      "language": "en",
+      "question": "What wines come from the Valul lui Traian region?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "region-stefan-voda-ro",
+      "category": "regions",
+      "language": "ro",
+      "question": "Ce regiuni viticole există în Moldova?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "region-divin-en",
+      "category": "regions",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "What is the Divin IGP region known for?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "region-moldova-wines-ru",
+      "category": "regions",
+      "language": "ru",
+      "question": "Где в Молдове выращивают лучшие сорта винограда?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "pairing-red-ru",
+      "category": "food_pairing",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "С чем подавать красное вино?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "pairing-cheese-en",
+      "category": "food_pairing",
+      "language": "en",
+      "answer_mode": "expert",
+      "question": "What cheese goes best with white wine?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "pairing-feteasca-ro",
+      "category": "food_pairing",
+      "language": "ro",
+      "answer_mode": "expert",
+      "question": "Cu ce se potrivește vinul alb sec?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "pairing-rose-ru",
+      "category": "food_pairing",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "С чем подавать розовое вино?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "pairing-dessert-en",
+      "category": "food_pairing",
+      "language": "en",
+      "answer_mode": "expert",
+      "question": "What dessert pairs well with a sweet white wine?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "tourism-cricova-tour-ru",
+      "category": "tourism_routes",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Есть ли экскурсии с дегустацией в галереях Cricova?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "tourism-asconi-en",
+      "category": "tourism_routes",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Does Asconi winery offer tours?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "tourism-routes-ru",
+      "category": "tourism_routes",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Как проложить винный маршрут по Молдове?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "tourism-wine-md-excursions-ru",
+      "category": "tourism_routes",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Какие экскурсии по винодельням продаёт Wine MD?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "tourism-cricova-underground-en",
+      "category": "tourism_routes",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Can visitors walk through the Cricova underground galleries?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "catalog-price-wine-md-ru",
+      "category": "wine_md_catalog",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Есть ли у Wine.md цены на виноделы Молдовы?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "catalog-availability-en",
+      "category": "wine_md_catalog",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Is this wine available on Wine.md?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "catalog-price-ru",
+      "category": "wine_md_catalog",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Сколько стоит вино в Wine.md?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "catalog-purcari-ru",
+      "category": "wine_md_catalog",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Есть ли в каталоге Wine MD вино Negru de Purcari?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "catalog-bottle-format-ro",
+      "category": "wine_md_catalog",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Ce formate de sticle cu vin oferă Wine MD?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "fresh-hours-en",
+      "category": "freshness_sensitive",
+      "language": "en",
+      "answer_mode": "knowledge_web",
+      "question": "What are the current opening hours for WineMD?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "fresh-price-ru",
+      "category": "freshness_sensitive",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Сколько сейчас стоит бутылка Negru de Purcari?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "fresh-events-ro",
+      "category": "freshness_sensitive",
+      "language": "ro",
+      "answer_mode": "knowledge_web",
+      "question": "Ce evenimente de vin au loc acum în Moldova?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "fresh-schedule-en",
+      "category": "freshness_sensitive",
+      "language": "en",
+      "answer_mode": "knowledge_web",
+      "question": "When is the next wine festival in Moldova?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "fresh-price-asconi-ru",
+      "category": "freshness_sensitive",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Какая актуальная цена экскурсии в Asconi?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "unknown-mars-ru",
+      "category": "unknown_questions",
+      "language": "ru",
+      "question": "Что ты знаешь о винодельне Mars в Молдове?",
+      "expected": { "answerable": false, "min_claims": 0 }
+    },
+    {
+      "id": "unknown-lunarian-en",
+      "category": "unknown_questions",
+      "language": "en",
+      "question": "Tell me about the Luna Editor winery in Moldova",
+      "expected": { "answerable": false, "min_claims": 0 }
+    },
+    {
+      "id": "unknown-price-fake-ru",
+      "category": "unknown_questions",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Сколько стоит вино «Тенфист», которого нет в каталоге Wine MD?",
+      "expected": { "answerable": false, "min_claims": 0 }
+    },
+
+    {
+      "id": "conflict-opinion-ru",
+      "category": "conflicts",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Говорят, что Purcari лучше Cricova. Так ли это?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "conflict-cheese-en",
+      "category": "conflicts",
+      "language": "en",
+      "answer_mode": "expert",
+      "question": "Can you compare Viorica and Fetească Albă?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "conflict-region-ru",
+      "category": "conflicts",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Какой регион Молдовы считается лучшим для вин?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "conflict-vs-grape-ru",
+      "category": "conflicts",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Что лучше: Виорика или Фетяска Албэ?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+
+    {
+      "id": "constraint-no-price-ru",
+      "category": "user_constraints",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Расскажи о Purcari без ответа в ценах",
+      "constraints": ["no_prices"],
+      "expected": { "answerable": true, "constraint_compliant": true }
+    },
+    {
+      "id": "constraint-no-web-ru",
+      "category": "user_constraints",
+      "language": "ru",
+      "answer_mode": "knowledge_catalog",
+      "question": "Расскажи про регион Кодру без обращения в интернет",
+      "constraints": ["no_web"],
+      "expected": { "answerable": true, "constraint_compliant": true }
+    },
+    {
+      "id": "constraint-no-prices-en",
+      "category": "user_constraints",
+      "language": "en",
+      "answer_mode": "knowledge_catalog",
+      "question": "Describe Cricova without mentioning prices",
+      "constraints": ["no_prices"],
+      "expected": { "answerable": true, "constraint_compliant": true }
+    },
+    {
+      "id": "constraint-no-catalog-ro",
+      "category": "user_constraints",
+      "language": "ro",
+      "answer_mode": "knowledge_catalog",
+      "question": "Vorbește despre Purcari fără date din catalog",
+      "constraints": ["no_catalog"],
+      "expected": { "answerable": true, "constraint_compliant": true }
+    },
+    {
+      "id": "constraint-no-inference-ru",
+      "category": "user_constraints",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Дай совет по вину, но не выдумывай",
+      "constraints": ["no_inference"],
+      "expected": { "answerable": true, "constraint_compliant": true }
+    },
+
+    {
+      "id": "ai-recommend-wine-ru",
+      "category": "ai_recommendations",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Какое вино посоветуешь купить в подарок?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "ai-pairing-duck-en",
+      "category": "ai_recommendations",
+      "language": "en",
+      "answer_mode": "expert",
+      "question": "Which Moldovan wine would you suggest with duck?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "ai-travel-route-ru",
+      "category": "ai_recommendations",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Посоветуй маршрут на день по винодельням Кодру",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "ai-gift-ro",
+      "category": "ai_recommendations",
+      "language": "ro",
+      "answer_mode": "expert",
+      "question": "Ce vin să aleg ca un cadou pentru un prieten?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    },
+    {
+      "id": "ai-budget-ru",
+      "category": "ai_recommendations",
+      "language": "ru",
+      "answer_mode": "expert",
+      "question": "Какое молдавское вино выбрать на ужин с семьёй?",
+      "expected": { "answerable": true, "min_claims": 1 }
+    }
+  ]
+}
