@@ -389,6 +389,25 @@ Exit condition: repeatable quality report exists for every release.
 
 Exit condition: catalog answers use current structured data with timestamps.
 
+**Status (2026-08-10): infrastructure complete.** The structured `catalog_products`
+table, sync process (`scripts/winemd-catalog-sync.js`, `src/catalog/wineMdCatalogStore.js`),
+entity linking, freshness/status observability (`/api/catalog/status`), and the
+where-to-buy read path (`/api/purchase-options`) are deployed; the source-of-truth
+invariant is enforced in production (a missing catalog match returns an empty
+catalog result, never a silent demo-fixture fallback), see PR #58 / commit
+`f244b5de`.
+
+The **live Wine.md feed/API/export does not yet exist as a separate product
+dependency** (`WINEMD_CATALOG_URL` is unset in production, `configured: false`,
+0 products syncable). Per decision: no temporary fake endpoint and no manual
+catalog fill. When Wine.md provides a real feed/API/export, it plugs into the
+already-built sync contract — set `WINEMD_CATALOG_URL` and run
+`node scripts/winemd-catalog-sync.js --remote` (or the scheduled/lazy sync) —
+without reworking the architecture. Sync is observable via `/api/catalog/status`
+(linked / unmatched / stale / in-stock / last_sync / sync_errors).
+
+Next on the roadmap: **Phase 4. Entity relations v1**.
+
 ### Phase 4. Entity relations v1
 
 1. Normalize major wineries, wines, grapes, and regions.
