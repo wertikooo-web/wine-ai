@@ -48,6 +48,27 @@ function isCatalogQuery(query) {
     return /(цена|стоим|стоит|налич|купить|где купить|заказать|фото|бутылк|price|stock|availability|buy|order|image|preț|stoc|cumpăr|comand)/iu.test(normalize(query));
 }
 
+// A document chunk (crawl of a shop/news page) may repeat price, stock, or
+// availability numbers. When the structured Wine.md catalog answered the
+// same volatile question, that document copy must not reach the model as a
+// second, silently competing price/stock source -- the catalog is the owner
+// of dynamic product data (see STATE_OWNERSHIP.md). This drops only document
+// evidence that looks like a volatile fact when fresh catalog evidence is
+// already present; general/educational documents are never affected.
+// The pattern deliberately targets digit+currency or explicit price/stock
+// wording instead of the bare word "price", so a tasting-note document that
+// merely says "great price-quality ratio" is kept.
+const DOCUMENT_VOLATILE_RE = /(\d{1,6}(?:[.,\s]\d{0,3})?\s*(?:lei|mdl|€|\$|руб|рублей|rub))\b|цена\s*\d|стоимость\s*\d|в\s*наличии|нет\s*в\s*наличии|по\s*цене\s*\d|price\s*\d|cost\s*\d|in\s*stock|out\s*of\s*stock|available\s*for\s*\d|preț\s*\d|stoc/iu;
+
+function hasVolatileLooks(evidence) {
+    return evidence.some((item) => item.level === LEVELS.CATALOG);
+}
+
+function filterDocumentVolatileOverrides(internal, { catalogFirst = true } = {}) {
+    if (!catalogFirst || !hasVolatileLooks(internal)) return internal;
+    return internal.filter((item) => item.level !== LEVELS.DOCUMENTS || !DOCUMENT_VOLATILE_RE.test(item.text || ''));
+}
+
 // Our own partner wineries/brands -- kept in sync with safeFetch.js's
 // ALLOWED_DOMAINS entries by name (not domain). Used as the default
 // knownEntityNames for classifyQueryIntent() so a bare mention of "Cricova"
@@ -359,7 +380,8 @@ async function routeKnowledge(query, options = {}) {
         : null;
 
     const { canonical, catalog, documents } = await internalPromise;
-    const internal = [...canonical, ...catalog, ...documents];
+    const internalFiltered = filterDocumentVolatileOverrides([...canonical, ...catalog, ...documents]);
+    const internal = internalFiltered;
     const strongInternal = canonical.length > 0
         || catalog.length > 0
         || documents.some((item) => Number(item.relevance_score || 0) >= Number(options.documentThreshold || 0.45));
@@ -832,6 +854,8 @@ module.exports = {
     // .replace() only (as this module does), never .test().
     GRAPE_VARIETY_RE,
     NON_ENTITY_PROPER_NOUN_RE,
+    filterDocumentVolatileOverrides,
+    DOCUMENT_VOLATILE_RE,
     _looksLikeUnknownProperEntity,
     _isWineRelated,
     _resolvesToKnownEntity,

@@ -153,6 +153,16 @@
     </div>
     <div id="bench-latest"></div>
   </section>
+
+  <!-- Wine.md catalog health (Phase 3): freshness + sync observability -->
+  <section class="card" id="catalog-card">
+    <div class="flex-between">
+      <h2 style="margin:0">Каталог Wine.md (sync / freshness)</h2>
+      <button class="ghost" type="button" id="btn-refresh-catalog">refresh</button>
+    </div>
+    <div class="info-bar">Structured catalog is the single source of price, stock, photo, product URL, and buy links. Report: linked / unmatched / stale / failed.</div>
+    <div id="catalog-status"></div>
+  </section>
 </main>
 
 <div id="statusline"></div>
@@ -417,9 +427,51 @@ function benchmarkModal() {
   });
 }
 
+// Catalog health (Phase 3): linked/unmatched/stale/failed + last sync + errors.
+function loadCatalogStatus() {
+  jcall('/api/catalog/status').then((body) => {
+    const host = $('#catalog-status');
+    const c = body.catalog || {};
+    host.innerHTML = '';
+    if (c.enabled === false) {
+      host.innerHTML = '<div class="info-bar">Catalog disabled — PostgreSQL / DATABASE_URL or WINEMD_CATALOG_URL not configured. Structured catalog queries fall back to live wine.md lookups.</div>';
+      return;
+    }
+    const snap = c.snapshot || {};
+    const lastSync = c.last_sync || null;
+    const stale = snap.stale != null ? snap.stale : '—';
+    let html = '<div class="metrics">';
+    html += '<div class="metric"><div class="k">total</div><div class="v">' + (snap.total != null ? snap.total : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">linked</div><div class="v">' + (snap.linked != null ? snap.linked : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">unmatched</div><div class="v ' + (snap.unmatched ? 'warn' : '') + '">' + (snap.unmatched != null ? snap.unmatched : '—') + '</div></div>';
+    html += '<div class="metric"><div class="k">stale</div><div class="v ' + (stale !== '—' && Number(stale) ? 'warn' : '') + '">' + stale + '</div></div>';
+    html += '<div class="metric"><div class="k">in stock</div><div class="v">' + (snap.in_stock != null ? snap.in_stock : '—') + '</div></div>';
+    html += '</div>';
+    if (lastSync) {
+      const finished = lastSync.finished_at ? new Date(lastSync.finished_at).toLocaleString() : 'running…';
+      html += '<div class="info-bar">last sync: ' + esc(lastSync.mode || '') + ' · ' + esc(lastSync.status || '') + ' · seen ' + (lastSync.products_seen || 0) + ' · changed ' + (lastSync.products_changed || 0) + ' · failed ' + (lastSync.products_failed || 0) + ' · ' + finished + '</div>';
+    } else {
+      html += '<div class="info-bar">last sync: none yet — run scripts/winemd-catalog-sync.js</div>';
+    }
+    const errs = c.sync_errors || [];
+    if (errs.length) {
+      html += '<details><summary>sync errors (' + errs.length + ')</summary>';
+      errs.forEach((e) => {
+        html += '<div class="reason">' + esc(e.external_id || '?') + ': ' + esc(e.error) + ' · ' + esc(e.created_at || '') + '</div>';
+      });
+      html += '</details>';
+    }
+    host.innerHTML = html;
+  }).catch((err) => {
+    $('#catalog-status').textContent = 'catalog status недоступен: ' + err.message;
+  });
+}
+
 function init() {
   benchmarkModal();
   loadCases();
+  loadCatalogStatus();
+  $('#btn-refresh-catalog').addEventListener('click', loadCatalogStatus);
 }
 
 init();

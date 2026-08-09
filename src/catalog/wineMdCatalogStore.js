@@ -2,9 +2,11 @@
 
 const crypto = require('crypto');
 const db = require('../knowledge/db');
+const { findMentionedEntities } = require('../knowledge/entityResolver');
 
 const DEFAULT_CURRENCY = 'MDL';
 const MIN_SYNC_INTERVAL_MS = Math.max(5, Number(process.env.WINEMD_SYNC_INTERVAL_MINUTES || 30)) * 60 * 1000;
+const STALE_AFTER_MS = Math.max(60, Number(process.env.WINEMD_STALE_AFTER_MINUTES || 24 * 60)) * 60 * 1000;
 let schemaPromise = null;
 let syncPromise = null;
 let lastAttemptAt = 0;
@@ -105,21 +107,18 @@ async function ensureSchema(pool = db.getPool()) {
     return schemaPromise;
 }
 
-async function matchEntity(pool, title) {
-    try {
-        const normalizedTitle = normalize(title);
-        const { rows } = await pool.query(`
-            SELECT id FROM entities
-            WHERE entity_type IN ('wine','product')
-              AND (normalized_name = $1 OR normalized_name LIKE $2 OR $1 LIKE '%' || normalized_name || '%')
-            ORDER BY CASE WHEN normalized_name = $1 THEN 0 ELSE 1 END, length(normalized_name) DESC
-            LIMIT 1
-        `, [normalizedTitle, `%${normalizedTitle}%`]);
-        return rows[0]?.id || null;
-    } catch (error) {
-        if (error?.code === '42P01' || error?.code === '42703') return null;
-        throw error;
-    }
+// Links a catalog product title to a canonical entity from the shared
+// knowledge/entity-aliases.json registry (the single source of verified
+// winery/producer/brand/grapes names). Word-boundary mention extraction only:
+// a product titled "Cricova Brut" resolves to the "cricova" entity, while
+// a generic title ("Vin alb sec") yields no link. Winery/divin-producer
+// mentions are preferred over bare grape varieties so the product lands on
+// its producer's canonical entity when both are named.
+function matchEntity(title) {
+    const mentions = findMentionedEntities(title);
+    if (!mentions.length) return null;
+    const preferred = mentions.find((mention) => ['winery', 'divin-producer', 'platform'].includes(mention.entityType));
+    return (preferred || mentions[0]).entityId;
 }
 
 async function syncPayload(payload, { mode = 'manual', pool = db.getPool() } = {}) {
@@ -139,7 +138,7 @@ async function syncPayload(payload, { mode = 'manual', pool = db.getPool() } = {
             continue;
         }
         try {
-            const wineEntityId = await matchEntity(pool, product.title);
+            const wineEntityId = matchEntity(product.title);
             const result = await pool.query(`
                 INSERT INTO catalog_products(
                     id, external_id, wine_entity_id, title, normalized_title, vintage, volume_ml,
@@ -226,6 +225,75 @@ async function searchCatalog(query, { limit = 8, pool = db.getPool(), refresh = 
     return rows;
 }
 
+// "Where to buy" resolution: products that match a wine card id, its
+// canonical entity id, or the product title. Never triggers a sync (that
+// would turn every "where to buy" tap into a live fetch) and never returns
+// stale rows as if they were current -- last_synced_at is always surfaced so
+// the consumer can flag age.
+async function findCatalogProductsById(idValue, { limit = 8, pool = db.getPool() } = {}) {
+    if (!pool || !String(idValue || '').trim()) return [];
+    await ensureSchema(pool);
+    const value = String(idValue).trim();
+    const { rows } = await pool.query(`
+        SELECT id, external_id, wine_entity_id, title, vintage, volume_ml, price, currency,
+               availability, stock_quantity, product_url, image_url, last_synced_at
+        FROM catalog_products
+        WHERE external_id = $1
+           OR wine_entity_id = $1
+           OR normalized_title LIKE '%' || lower($1) || '%'
+        ORDER BY
+          CASE WHEN availability IN ('in_stock','available') THEN 0 ELSE 1 END,
+          last_synced_at DESC
+        LIMIT $2
+    `, [value, limit]);
+    return rows;
+}
+
+// Observability report for the admin surface (Phase 3): total products,
+// how many are linked to a canonical entity vs unmatched, stale rows, the
+// state of the last sync job, and sync failures. Pure read path -- never
+// triggers a sync, never writes.
+async function getCatalogStatus({ pool = db.getPool() } = {}) {
+    if (!pool) return { enabled: false, products: null, last_sync: null, sync_errors: [], stale: null };
+    await ensureSchema(pool);
+    const [products, lastSync, errors] = await Promise.all([
+        pool.query(`
+            SELECT COUNT(*) AS total,
+                   COUNT(wine_entity_id) AS linked,
+                   COUNT(*) FILTER (WHERE wine_entity_id IS NULL) AS unmatched,
+                   COUNT(*) FILTER (WHERE availability IN ('in_stock','available')) AS in_stock,
+                   COUNT(*) FILTER (WHERE last_synced_at < NOW() - ($1 * INTERVAL '1 millisecond')) AS stale
+            FROM catalog_products
+        `, [STALE_AFTER_MS]),
+        pool.query(`
+            SELECT id, mode, status, products_seen, products_changed, products_failed,
+                   started_at, finished_at
+            FROM catalog_sync_jobs
+            ORDER BY started_at DESC
+            LIMIT 1
+        `),
+        pool.query(`
+            SELECT job_id, external_id, error, created_at
+            FROM catalog_sync_errors
+            ORDER BY created_at DESC
+            LIMIT 10
+        `),
+    ]);
+    return {
+        enabled: true,
+        configured: Boolean(process.env.WINEMD_CATALOG_URL),
+        stale_after_minutes: Math.round(STALE_AFTER_MS / 60000),
+        snapshot: products.rows[0] || null,
+        last_sync: lastSync.rows[0] || null,
+        sync_errors: (errors.rows || []).map((row) => ({
+            job_id: row.job_id,
+            external_id: row.external_id,
+            error: row.error,
+            created_at: row.created_at?.toISOString ? row.created_at.toISOString() : row.created_at,
+        })),
+    };
+}
+
 module.exports = {
     ensureSchema,
     ensureFreshCatalog,
@@ -234,4 +302,7 @@ module.exports = {
     syncRemote,
     normalizeProduct,
     productsFromPayload,
+    matchEntity,
+    getCatalogStatus,
+    findCatalogProductsById,
 };
