@@ -35,6 +35,8 @@ const { getPurchaseOptions } = require('./data/purchaseOptions');
 const { createTextKnowledgeEvaluator, MAX_QUESTION_CHARS } = require('./evaluation/textKnowledgeEvaluation');
 const { orchestrateKnowledge } = require('./knowledge/knowledgeOrchestrator');
 const { listAnswerModes, ANSWER_MODES } = require('./knowledge/answerModes');
+const { runAnswerAudit, SUPPORTED_CONSTRAINTS } = require('./knowledge/answerAudit');
+const auditStore = require('./knowledge/auditStore');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
@@ -229,7 +231,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -310,6 +312,20 @@ async function handleRequest(req, res) {
         const filePath = path.join(publicDir, 'dashboard.html');
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 500, { ok: false, error: 'dashboard_not_available' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    // Answer Audit admin screen (Phase 2): renders claims, provenance,
+    // freshness, latency, quality metrics and the human review verdict for a
+    // single audit case. Read-only surface that never exposes secrets.
+    if (req.method === 'GET' && (pathname === '/answer-audit' || pathname === '/audit')) {
+        const filePath = path.join(publicDir, 'answer-audit.html');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 500, { ok: false, error: 'answer_audit_not_available' }))
             .once('open', () => {
                 res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
             })
@@ -1367,6 +1383,87 @@ async function handleRequest(req, res) {
     // so the dashboard can render mode semantics without duplicating them.
     if (req.method === 'GET' && pathname === '/api/knowledge/answer-modes') {
         return sendJson(res, 200, { ok: true, modes: listAnswerModes(), default_mode: ANSWER_MODES.KNOWLEDGE_WEB });
+    }
+
+    // Answer Audit (Phase 2): run the SAME Phase 1 orchestrator for a
+    // question in every answer mode (or a single one) and return claims,
+    // provenance, freshness, latency, and quality metrics. Admin-only tool:
+    // never linked from the kiosk UI and never rendered to ordinary users.
+    if (req.method === 'POST' && pathname === '/api/knowledge/audit') {
+        let body;
+        try {
+            body = await readJsonBody(req, 2 * 1024);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        try {
+            const record = await runAnswerAudit({
+                question: body.question,
+                language: body.language,
+                modes: Array.isArray(body.modes) ? body.modes : null,
+                constraints: body.constraints,
+            });
+            if (body.save !== false) {
+                const stored = await auditStore.save(record).catch(() => record);
+                return sendJson(res, 200, { ok: true, case: { ...stored, saved: true }, audit: stored });
+            }
+            return sendJson(res, 200, { ok: true, audit: record, saved: false });
+        } catch (error) {
+            const invalid = ['question_required', 'question_too_long'].includes(error.code);
+            return sendJson(res, invalid ? 400 : 502, {
+                ok: false,
+                error: error.code || 'audit_failed',
+                supported_constraints: SUPPORTED_CONSTRAINTS,
+            });
+        }
+    }
+
+    if (req.method === 'GET' && pathname === '/api/knowledge/audit/cases') {
+        const url = new URL(req.url, 'http://x');
+        const limit = Number(url.searchParams.get('limit') || 50);
+        const status = url.searchParams.get('status') || null;
+        const cases = await auditStore.listCases({ limit, status }).catch(() => []);
+        return sendJson(res, 200, { ok: true, cases });
+    }
+
+    const auditCaseMatch = /^\/api\/knowledge\/audit\/cases\/(audit_[a-z0-9]+)$/.exec(pathname);
+    if (req.method === 'GET' && auditCaseMatch) {
+        const record = await auditStore.findById(auditCaseMatch[1]).catch(() => null);
+        if (!record) return sendJson(res, 404, { ok: false, error: 'audit_case_not_found' });
+        return sendJson(res, 200, { ok: true, case: record });
+    }
+
+    if (req.method === 'POST' && auditCaseMatch) {
+        let body;
+        try {
+            body = await readJsonBody(req, 2 * 1024);
+        } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        if (!auditStore.REVIEW_STATUSES.has(body.status)) {
+            return sendJson(res, 400, { ok: false, error: 'invalid_review_status', statuses: [...auditStore.REVIEW_STATUSES] });
+        }
+        const updated = await auditStore.setReview(auditCaseMatch[1], {
+            status: body.status,
+            comment: typeof body.comment === 'string' ? body.comment.slice(0, 2000) : null,
+        }).catch(() => null);
+        if (!updated) return sendJson(res, 404, { ok: false, error: 'audit_case_not_found' });
+        return sendJson(res, 200, { ok: true, case: updated });
+    }
+
+    if (req.method === 'GET' && pathname === '/api/knowledge/benchmark/latest') {
+        const resultsDir = path.join(__dirname, '..', 'benchmark-results');
+        const files = fs.existsSync(resultsDir)
+            ? fs.readdirSync(resultsDir).filter((f) => f.startsWith('answer-quality-') && f.endsWith('.json')).sort()
+            : [];
+        const latestFile = files.length ? files[files.length - 1] : null;
+        if (!latestFile) return sendJson(res, 404, { ok: false, error: 'no_benchmark_results' });
+        try {
+            const report = JSON.parse(fs.readFileSync(path.join(resultsDir, latestFile), 'utf8'));
+            return sendJson(res, 200, { ok: true, file: latestFile, generated_at: report.generated_at, summary: report.summary, report });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'benchmark_report_unreadable' });
+        }
     }
 
     if (req.method === 'GET' && pathname === '/api/knowledge/sources') {
