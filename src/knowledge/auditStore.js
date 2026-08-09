@@ -54,7 +54,8 @@ function filterByStatus(record, status) {
 }
 
 async function ensurePgSchema(pool) {
-    await pool.query(`
+    const p = pool || db.getPool();
+    await p.query(`
         CREATE TABLE IF NOT EXISTS answer_audit_cases (
             id TEXT PRIMARY KEY,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -70,8 +71,8 @@ async function ensurePgSchema(pool) {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `);
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_answer_audit_cases_created ON answer_audit_cases(created_at DESC)');
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_answer_audit_cases_status ON answer_audit_cases(review_status)');
+    await p.query('CREATE INDEX IF NOT EXISTS idx_answer_audit_cases_created ON answer_audit_cases(created_at DESC)');
+    await p.query('CREATE INDEX IF NOT EXISTS idx_answer_audit_cases_status ON answer_audit_cases(review_status)');
 }
 
 function rowToRecord(row) {
