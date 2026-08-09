@@ -431,6 +431,25 @@ function getAllEntityIds(options = {}) {
   return entities.map((e) => e.entityId);
 }
 
+// Finds every canonical entity mentioned inside a longer string (a catalog
+// product title, a document heading, an answer fragment) using the same
+// word-boundary-aware mention extractor the text pipeline already uses.
+// Unlike resolveEntity() this never does approximate/fuzzy whole-string
+// matching and never logs -- it is meant for cheap bulk enrichment where we
+// only want HIGH-precision mentions of a producer/brand/grape, e.g. linking a
+// Wine.md catalog product title to its canonical entity.
+// Returns [] when nothing canonical is mentioned.
+function findMentionedEntities(input, options = {}) {
+  const entities = _loadAliases(options.aliasesFile);
+  if (!entities.length || !String(input || '').trim()) return [];
+  return _extractEntityMentions(String(input), entities).map((m) => ({
+    entityId: m.entity.entityId,
+    entityType: m.entity.entityType,
+    canonicalName: m.entity.canonicalName,
+    matchedAlias: m.matchedAlias,
+  }));
+}
+
 module.exports = {
   normalizeEntityName,
   resolveEntity,
@@ -439,4 +458,5 @@ module.exports = {
   buildAliasContext,
   findByEntityId,
   getAllEntityIds,
+  findMentionedEntities,
 };

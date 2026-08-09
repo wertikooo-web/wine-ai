@@ -947,6 +947,122 @@ class MemoryPgEngine {
             return { rows: [{ count: verCount }] };
         }
 
+        // INSERT INTO catalog_sync_jobs
+        if (/^INSERT INTO catalog_sync_jobs/i.test(sql)) {
+            const table = this.tables.get('catalog_sync_jobs') || { name: 'catalog_sync_jobs', rows: [] };
+            this.tables.set('catalog_sync_jobs', table);
+            const [id, mode, status] = params;
+            table.rows.push({ id, mode, status, products_seen: 0, products_changed: 0, products_failed: 0, started_at: new Date(), finished_at: null });
+            return { rows: [] };
+        }
+
+        // INSERT INTO catalog_sync_errors
+        if (/^INSERT INTO catalog_sync_errors/i.test(sql)) {
+            const table = this.tables.get('catalog_sync_errors') || { name: 'catalog_sync_errors', rows: [] };
+            this.tables.set('catalog_sync_errors', table);
+            const row = { job_id: params[0], external_id: params[1], error: params[2], payload: params[3], created_at: new Date() };
+            table.rows.push(row);
+            return { rows: [] };
+        }
+
+        // UPDATE catalog_sync_jobs
+        if (/^UPDATE catalog_sync_jobs/i.test(sql)) {
+            const table = this.tables.get('catalog_sync_jobs');
+            if (!table) return { rows: [] };
+            const jobId = params[0];
+            const row = table.rows.find((r) => r.id === jobId);
+            if (row) {
+                row.status = params[1];
+                row.products_seen = params[2];
+                row.products_changed = params[3];
+                row.products_failed = params[4];
+                row.finished_at = new Date();
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // INSERT INTO catalog_products — mirrors src/catalog/wineMdCatalogStore.js
+        // syncPayload column order (id, external_id, wine_entity_id, title,
+        // normalized_title, vintage, volume_ml, price, currency, availability,
+        // stock_quantity, product_url, image_url, raw_payload).
+        if (/^INSERT INTO catalog_products/i.test(sql)) {
+            const table = this.tables.get('catalog_products') || { name: 'catalog_products', rows: [] };
+            this.tables.set('catalog_products', table);
+            const [id, external_id, wine_entity_id, title, normalized_title, vintage, volume_ml, price, currency, availability, stock_quantity, product_url, image_url] = params;
+            let row = table.rows.find((r) => r.external_id === external_id);
+            if (row) {
+                row.id = id; row.wine_entity_id = wine_entity_id; row.title = title;
+                row.normalized_title = normalized_title; row.vintage = vintage; row.volume_ml = volume_ml;
+                row.price = price; row.currency = currency; row.availability = availability;
+                row.stock_quantity = stock_quantity; row.product_url = product_url; row.image_url = image_url;
+                row.last_synced_at = new Date(); row.updated_at = new Date();
+                return { rows: [row], rowCount: 1 };
+            }
+            row = { id, external_id, wine_entity_id, title, normalized_title, vintage, volume_ml, price, currency, availability, stock_quantity, product_url, image_url, last_synced_at: new Date(), created_at: new Date(), updated_at: new Date() };
+            table.rows.push(row);
+            return { rows: [row], rowCount: 1 };
+        }
+
+        // UPDATE catalog_products (upsert path sets last_synced_at/updated_at = NOW()).
+        if (/^UPDATE catalog_products SET/i.test(sql)) {
+            const table = this.tables.get('catalog_products');
+            if (!table) return { rows: [] };
+            const row = table.rows.find((r) => r.id === params[0]) || table.rows.find((r) => r.external_id === params[1]);
+            if (row) {
+                row.last_synced_at = new Date();
+                row.updated_at = new Date();
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT FROM catalog_products (findCatalogProductsById read path):
+        // WHERE external_id = $1 OR wine_entity_id = $1 OR normalized LIKE
+        // '%'||lower($1)||'%', LIMIT $2, in-stock first then newest sync.
+        if (/^SELECT id, external_id, wine_entity_id, title, vintage, volume_ml, price, currency, availability, stock_quantity, product_url, image_url, last_synced_at FROM catalog_products/i.test(sql)) {
+            const table = this.tables.get('catalog_products');
+            let rows = table ? table.rows.slice() : [];
+            const value = String(params[0] || '').toLowerCase();
+            rows = rows.filter((r) =>
+                String(r.external_id || '').toLowerCase() === value
+                || String(r.wine_entity_id || '').toLowerCase() === value
+                || String(r.normalized_title || '').toLowerCase().includes(value));
+            const limit = Number(params[1] || 8);
+            rows.sort((a, b) =>
+                (['in_stock', 'available'].includes(String(a.availability)) ? 0 : 1)
+                - (['in_stock', 'available'].includes(String(b.availability)) ? 0 : 1));
+            return { rows: rows.slice(0, limit) };
+        }
+
+        // SELECT aggregate FROM catalog_products (getCatalogStatus): total /
+        // linked / unmatched / in_stock / stale.
+        if (/^SELECT COUNT\(\*\) AS total/i.test(sql) && /FROM catalog_products/i.test(sql)) {
+            const table = this.tables.get('catalog_products');
+            const rows = table ? table.rows : [];
+            const staleAfterMs = Number(params[0] || 0);
+            const staleThreshold = new Date(Date.now() - staleAfterMs);
+            const total = rows.length;
+            const linked = rows.filter((r) => r.wine_entity_id).length;
+            const inStock = rows.filter((r) => ['in_stock', 'available'].includes(String(r.availability))).length;
+            const stale = rows.filter((r) => !r.last_synced_at || new Date(r.last_synced_at) < staleThreshold).length;
+            return { rows: [{ total, linked, unmatched: total - linked, in_stock: inStock, stale }] };
+        }
+
+        // SELECT last sync job (getCatalogStatus).
+        if (/^SELECT id, mode, status, products_seen, products_changed, products_failed, started_at, finished_at FROM catalog_sync_jobs/i.test(sql)) {
+            const table = this.tables.get('catalog_sync_jobs');
+            if (!table) return { rows: [] };
+            const rows = table.rows.slice().sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+            return { rows: rows.slice(0, 1) };
+        }
+
+        // SELECT recent sync errors (getCatalogStatus).
+        if (/^SELECT job_id, external_id, error, created_at FROM catalog_sync_errors/i.test(sql)) {
+            const table = this.tables.get('catalog_sync_errors');
+            if (!table) return { rows: [] };
+            const rows = table.rows.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            return { rows: rows.slice(0, 10) };
+        }
+
         // Generic COUNT handler
         if (/^SELECT COUNT\(\*\)/i.test(sql) || /SELECT COUNT\(\*\) as count/i.test(sql)) {
             const tableNameMatch = sql.match(/FROM (\w+)/i);
