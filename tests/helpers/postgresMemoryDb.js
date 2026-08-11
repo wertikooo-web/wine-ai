@@ -1096,10 +1096,35 @@ class MemoryPgEngine {
             return { rows: [record], rowCount: 1 };
         }
 
-        // UPDATE entity_relations SET (publish / reject paths).
+        // UPDATE entity_relations SET (publish / reject / stale / merge paths).
         if (/^UPDATE entity_relations SET/i.test(sql)) {
             const table = this.tables.get('entity_relations');
             if (!table) return { rows: [] };
+
+            // Merge retarget: UPDATE ... SET subject_id = $1 ... WHERE subject_id = $2
+            if (/SET subject_id = \$1/i.test(sql) && /WHERE subject_id = \$2/i.test(sql)) {
+                const keepId = params[0];
+                const mergeId = params[1];
+                const matches = table.rows.filter((r) => r.subject_id === mergeId);
+                for (const r of matches) {
+                    r.subject_id = keepId;
+                    r.updated_at = new Date().toISOString();
+                }
+                return { rows: matches };
+            }
+            // Merge retarget object side: UPDATE ... SET object_id = $1 ...
+            // WHERE object_id = $2 AND subject_id <> $1
+            if (/SET object_id = \$1/i.test(sql) && /WHERE object_id = \$2/i.test(sql)) {
+                const keepId = params[0];
+                const mergeId = params[1];
+                const matches = table.rows.filter((r) => r.object_id === mergeId && r.subject_id !== keepId);
+                for (const r of matches) {
+                    r.object_id = keepId;
+                    r.updated_at = new Date().toISOString();
+                }
+                return { rows: matches };
+            }
+
             const row = table.rows.find((r) => r.id === params[params.length - 1]);
             if (row) {
                 if (/validation_status = \$1/i.test(sql)) {
@@ -1109,6 +1134,13 @@ class MemoryPgEngine {
                 } else if (/validation_status = 'rejected'/i.test(sql)) {
                     row.validation_status = 'rejected';
                     row.active = false;
+                } else if (/validation_status = 'stale'/i.test(sql)) {
+                    row.validation_status = 'stale';
+                    row.active = false;
+                } else if (/validation_status = 'approved'/i.test(sql)) {
+                    row.validation_status = 'approved';
+                    row.active = true;
+                    if (/verified_at = NOW\(\)/i.test(sql)) row.verified_at = new Date().toISOString();
                 } else if (/validation_status = \$2/i.test(sql)) {
                     row.validation_status = params[1];
                     row.active = /active = TRUE/i.test(sql);
@@ -1116,6 +1148,19 @@ class MemoryPgEngine {
                 row.updated_at = new Date().toISOString();
             }
             return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM entity_relations WHERE (subject_id = $1 OR object_id = $1)
+        // (Knowledge Studio listRelations by entity).
+        if (/^SELECT \* FROM entity_relations(?!_history)\b[\s\S]*WHERE\s*\(subject_id = \$1 OR object_id = \$1\)/i.test(sql)) {
+            const table = this.tables.get('entity_relations');
+            let rows = table ? table.rows.filter((r) => r.subject_id === params[0] || r.object_id === params[0]) : [];
+            const limitMatch = sql.match(/LIMIT \$(\d+)/i);
+            if (limitMatch) {
+                const limit = Number(params[Number(limitMatch[1]) - 1] || 0);
+                rows = rows.slice(0, limit);
+            }
+            return { rows };
         }
 
         // SELECT * FROM entity_relations WHERE id = $1 (getRelation).
@@ -1153,12 +1198,227 @@ class MemoryPgEngine {
             return { rows };
         }
 
-        // SELECT history (test assertions only).
+        // SELECT history (test assertions + _supersededRelationFor).
         if (/^SELECT \* FROM entity_relations_history/i.test(sql)) {
             const table = this.tables.get('entity_relations_history');
-            return { rows: table ? table.rows : [] };
+            let rows = table ? table.rows.slice() : [];
+            const relMatch = sql.match(/WHERE relation_id = \$1/i);
+            if (relMatch) {
+                rows = rows.filter((r) => r.relation_id === params[0]);
+            }
+            if (/action = 'edit_requested'/i.test(sql)) {
+                rows = rows.filter((r) => r.action === 'edit_requested');
+            }
+            if (/ORDER BY changed_at DESC/i.test(sql)) {
+                rows = rows.sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
+            }
+            return { rows };
         }
         // ===================== end entity_relations =====================
+
+        // ===================== Knowledge Studio (Phase 5) =====================
+        // entity_facts / entity_facts_history / studio_alias_edits — mirrors
+        // src/knowledge/studio/studioStore.js SQL.
+
+        // INSERT INTO entity_facts (createFactEdit, 21 columns).
+        if (/^INSERT INTO entity_facts(?!_)/i.test(sql)) {
+            const table = this.tables.get('entity_facts') || { name: 'entity_facts', rows: [] };
+            this.tables.set('entity_facts', table);
+            const COLS = ['id', 'entity_id', 'entity_type', 'field_name', 'normalized_value',
+                'raw_value', 'confidence', 'validation_status', 'active', 'source_url', 'source_type',
+                'source_domain', 'evidence', 'extraction_method', 'extractor_version',
+                'conflict_state', 'fetched_at', 'verified_at', 'expires_at', 'created_at', 'updated_at'];
+            const row = {};
+            COLS.forEach((col, i) => { row[col] = params[i]; });
+            row.active = row.active === true || row.active === 'true';
+            let existing = table.rows.find((r) => r.id === row.id);
+            if (existing) {
+                Object.assign(existing, row);
+                return { rows: [existing], rowCount: 1 };
+            }
+            table.rows.push(row);
+            return { rows: [row], rowCount: 1 };
+        }
+
+        // INSERT INTO entity_facts_history (append-only ledger).
+        if (/^INSERT INTO entity_facts_history/i.test(sql)) {
+            const table = this.tables.get('entity_facts_history') || { name: 'entity_facts_history', rows: [] };
+            this.tables.set('entity_facts_history', table);
+            const [id, fact_id, action, prev_status, new_status, changed_by, note] = params;
+            const record = { id, fact_id, action, prev_status, new_status, changed_by, note, changed_at: new Date().toISOString() };
+            table.rows.push(record);
+            return { rows: [record], rowCount: 1 };
+        }
+
+        // UPDATE entity_facts SET (reviewFact / rollbackFact / merge paths).
+        if (/^UPDATE entity_facts SET/i.test(sql)) {
+            const table = this.tables.get('entity_facts');
+            if (!table) return { rows: [] };
+
+            // Merge retarget: UPDATE ... SET entity_id = $1 ... WHERE id = $2
+            if (/SET entity_id = \$1/i.test(sql)) {
+                const keepId = params[0];
+                const row = table.rows.find((r) => r.id === params[params.length - 1]);
+                if (row) {
+                    row.entity_id = keepId;
+                    row.updated_at = new Date().toISOString();
+                }
+                return { rows: row ? [row] : [] };
+            }
+
+            const row = table.rows.find((r) => r.id === params[params.length - 1]);
+            if (row) {
+                if (/validation_status = 'rejected'/i.test(sql)) {
+                    row.validation_status = 'rejected';
+                    row.active = false;
+                } else if (/validation_status = 'stale'/i.test(sql)) {
+                    row.validation_status = 'stale';
+                    row.active = false;
+                } else if (/validation_status = 'approved'/i.test(sql)) {
+                    row.validation_status = 'approved';
+                    row.active = true;
+                    if (/verified_at = NOW\(\)/i.test(sql)) row.verified_at = new Date().toISOString();
+                }
+                row.updated_at = new Date().toISOString();
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM entity_facts WHERE id = $1 (getFact).
+        if (/^SELECT \* FROM entity_facts(?!_) WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('entity_facts');
+            const row = table ? table.rows.find((r) => r.id === params[0]) : null;
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM entity_facts [WHERE ...] ORDER BY ... LIMIT $N
+        // (listFacts / reviewFact supersede query). Handles id/entity_id/
+        // field_name/validation_status/active equality clauses and the
+        // `id <> $N` exclusion plus `active = TRUE` literal.
+        if (/^SELECT \* FROM entity_facts(?!_)/i.test(sql)) {
+            const table = this.tables.get('entity_facts');
+            let rows = table ? table.rows.slice() : [];
+            const whereMatch = sql.match(/WHERE\s+(.+?)ORDER BY/i);
+            if (whereMatch) {
+                const clauses = [...whereMatch[1].matchAll(/([a-z_]+)\s*(=|<>)+\s*\$(\d+)/ig)]
+                    .map((m) => ({ col: m[1], op: m[2], idx: Number(m[3]) - 1 }));
+                for (const { col, op, idx } of clauses) {
+                    const expected = params[idx];
+                    rows = rows.filter((r) => {
+                        const actual = String(r[col]);
+                        const want = String(expected);
+                        return op === '<>' ? actual !== want : actual === want;
+                    });
+                }
+                if (/active = TRUE/i.test(whereMatch[1])) {
+                    rows = rows.filter((r) => r.active === true);
+                }
+                if (/active = FALSE/i.test(whereMatch[1])) {
+                    rows = rows.filter((r) => r.active === false);
+                }
+                const inMatch = whereMatch[1].match(/validation_status IN \(([^)]*)\)/i);
+                if (inMatch) {
+                    const allowed = inMatch[1].split(',').map((s) => s.replace(/['\s]/g, '')).filter(Boolean);
+                    rows = rows.filter((r) => allowed.includes(r.validation_status));
+                }
+            }
+            const limitMatch = sql.match(/LIMIT \$(\d+)/i);
+            if (limitMatch) {
+                const limit = Number(params[Number(limitMatch[1]) - 1] || 0);
+                rows = rows.slice(0, limit);
+            }
+            return { rows };
+        }
+
+        // SELECT * FROM entity_facts_history [WHERE fact_id = $1 ...].
+        if (/^SELECT \* FROM entity_facts_history/i.test(sql)) {
+            const table = this.tables.get('entity_facts_history');
+            let rows = table ? table.rows.slice() : [];
+            const factMatch = sql.match(/WHERE fact_id = \$1/i);
+            if (factMatch) {
+                rows = rows.filter((r) => r.fact_id === params[0]);
+            }
+            if (/action = 'published'/i.test(sql)) {
+                rows = rows.filter((r) => r.action === 'published');
+            }
+            if (/ORDER BY changed_at DESC/i.test(sql)) {
+                rows = rows.sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
+            }
+            return { rows };
+        }
+
+        // INSERT INTO studio_alias_edits (createAliasEdit). The store's SQL has
+        // literal 'pending' for status and NOW() for created_at, so only 8 of
+        // the 10 columns arrive as params: ($1 id, $2 entity_id, $3 alias,
+        // $4 language, $5 action, $6 prev_alias, $7 changed_by, $8 note).
+        if (/^INSERT INTO studio_alias_edits/i.test(sql)) {
+            const table = this.tables.get('studio_alias_edits') || { name: 'studio_alias_edits', rows: [] };
+            this.tables.set('studio_alias_edits', table);
+            const [id, entity_id, alias, language, action, prev_alias, changed_by, note] = params;
+            const record = {
+                id, entity_id, alias, language: language || null, action,
+                prev_alias: prev_alias || null, status: 'pending', changed_by,
+                reviewed_by: null, note: note || null,
+                created_at: new Date().toISOString(), reviewed_at: null,
+            };
+            table.rows.push(record);
+            return { rows: [record], rowCount: 1 };
+        }
+
+        // UPDATE studio_alias_edits SET (reviewAliasEdit / rollbackAliasEdit).
+        if (/^UPDATE studio_alias_edits SET/i.test(sql)) {
+            const table = this.tables.get('studio_alias_edits');
+            if (!table) return { rows: [] };
+            const idMatch = sql.match(/WHERE id = \$(\d+)/i);
+            const rowId = idMatch ? params[Number(idMatch[1]) - 1] : null;
+            const row = rowId != null ? table.rows.find((r) => r.id === rowId) : null;
+            if (row) {
+                const statusMatch = sql.match(/status = '(\w+)'/i);
+                if (statusMatch) row.status = statusMatch[1];
+                const reviewedByIdx = (sql.match(/reviewed_by = \$(\d+)/i) || [])[1];
+                if (reviewedByIdx) row.reviewed_by = params[Number(reviewedByIdx) - 1];
+                row.reviewed_at = new Date().toISOString();
+                const noteIdx = (sql.match(/COALESCE\('[^']*' \|\| \$(\d+)/i) || [])[1];
+                if (noteIdx) {
+                    const note = params[Number(noteIdx) - 1];
+                    if (note) row.note = (row.note ? `${row.note}; ` : '') + note;
+                }
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM studio_alias_edits WHERE id = $1 (getAliasEdit).
+        if (/^SELECT \* FROM studio_alias_edits WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('studio_alias_edits');
+            const row = table ? table.rows.find((r) => r.id === params[0]) : null;
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM studio_alias_edits [WHERE ...] ORDER BY created_at DESC
+        // LIMIT $N (listAliasEdits).
+        if (/^SELECT \* FROM studio_alias_edits/i.test(sql)) {
+            const table = this.tables.get('studio_alias_edits');
+            let rows = table ? table.rows.slice() : [];
+            const whereMatch = sql.match(/WHERE\s+(.+?)ORDER BY/i);
+            if (whereMatch) {
+                const clauses = [...whereMatch[1].matchAll(/([a-z_]+)\s*=\s*\$(\d+)/ig)]
+                    .map((m) => ({ col: m[1], idx: Number(m[2]) - 1 }));
+                for (const { col, idx } of clauses) {
+                    const expected = params[idx];
+                    rows = rows.filter((r) => String(r[col]) === String(expected));
+                }
+            }
+            if (/ORDER BY created_at DESC/i.test(sql)) {
+                rows = rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            }
+            const limitMatch = sql.match(/LIMIT \$(\d+)/i);
+            if (limitMatch) {
+                const limit = Number(params[Number(limitMatch[1]) - 1] || 0);
+                rows = rows.slice(0, limit);
+            }
+            return { rows };
+        }
+        // ===================== end Knowledge Studio =====================
 
         // Generic COUNT handler
         if (/^SELECT COUNT\(\*\)/i.test(sql) || /SELECT COUNT\(\*\) as count/i.test(sql)) {

@@ -768,6 +768,59 @@ const MIGRATIONS = [
             await client.query('CREATE INDEX IF NOT EXISTS idx_entity_relations_history_rel ON entity_relations_history(relation_id, changed_at DESC);');
         },
     },
+    {
+        version: 10,
+        name: 'v10_entity_facts_history_and_studio_alias_edits',
+        up: async (client) => {
+            // Entity Facts history ledger — the append-only record for every
+            // fact lifecycle transition driven by the Knowledge Studio
+            // (Phase 5): edit_requested / published / superseded / rejected /
+            // restored / merged. Mirrors entity_relations_history so the
+            // Studio can render one uniform history timeline per entity.
+            // `note` carries the structural link for rollback: approving a new
+            // fact records `supersedes=<prevFactId>` on the new fact's
+            // published entry and `superseded_by=<newFactId>` on the old
+            // fact's superseded entry; rollback walks that link in reverse.
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS entity_facts_history (
+                    id TEXT PRIMARY KEY,
+                    fact_id TEXT NOT NULL REFERENCES entity_facts(id) ON DELETE CASCADE,
+                    action TEXT NOT NULL CHECK (action IN ('created', 'edit_requested', 'published', 'superseded', 'rejected', 'restored', 'merged')),
+                    prev_status TEXT,
+                    new_status TEXT,
+                    changed_by TEXT,
+                    note TEXT,
+                    changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_facts_history_fact ON entity_facts_history(fact_id, changed_at DESC);');
+
+            // Knowledge Studio alias change requests — the reviewable queue in
+            // front of the canonical alias registry file
+            // (knowledge/entity-aliases.json). An approved row is applied to
+            // the registry by the Studio's alias writer; the row itself stays
+            // as the durable change/approval audit record (the registry file is
+            // a git-tracked artifact, not a database).
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS studio_alias_edits (
+                    id TEXT PRIMARY KEY,
+                    entity_id TEXT NOT NULL,
+                    alias TEXT NOT NULL,
+                    language TEXT,
+                    action TEXT NOT NULL CHECK (action IN ('add', 'remove', 'rename')),
+                    prev_alias TEXT,
+                    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'superseded')),
+                    changed_by TEXT,
+                    reviewed_by TEXT,
+                    note TEXT,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    reviewed_at TIMESTAMPTZ
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_studio_alias_edits_entity ON studio_alias_edits(entity_id, status);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_studio_alias_edits_status ON studio_alias_edits(status, created_at);');
+        },
+    },
 ];
 
 const crypto = require('crypto');
