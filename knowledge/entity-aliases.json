@@ -2174,5 +2174,41 @@
         "lang": "ro"
       }
     ]
+  },
+  {
+    "entityId": "codru",
+    "entityType": "wine_region",
+    "canonicalName": "Кодру",
+    "description": "Кодру (Codru) — центральный винодельческий регион Молдовы, один из трёх защищённых географических указаний (PGI) страны",
+    "aliases": [
+      { "alias": "Кодру", "lang": "ru" },
+      { "alias": "Codru", "lang": "ro" },
+      { "alias": "Codru", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "stefan-voda",
+    "entityType": "wine_region",
+    "canonicalName": "Штефан-Водэ",
+    "description": "Штефан-Водэ (Ștefan Vodă) — юго-восточный винодельческий регион Молдовы, один из трёх PGI страны",
+    "aliases": [
+      { "alias": "Штефан-Водэ", "lang": "ru" },
+      { "alias": "Штефан Водэ", "lang": "ru" },
+      { "alias": "Stefan Voda", "lang": "ro" },
+      { "alias": "Ștefan Vodă", "lang": "ro" },
+      { "alias": "Stefan Voda", "lang": "en" },
+      { "alias": "Stefan-Voda", "lang": "en" }
+    ]
+  },
+  {
+    "entityId": "valul-lui-traian",
+    "entityType": "wine_region",
+    "canonicalName": "Валул луй Траян",
+    "description": "Валул луй Траян (Valul lui Traian) — южный винодельческий регион Молдовы, один из трёх PGI страны",
+    "aliases": [
+      { "alias": "Валул луй Траян", "lang": "ru" },
+      { "alias": "Valul lui Traian", "lang": "ro" },
+      { "alias": "Valul lui Traian", "lang": "en" }
+    ]
   }
 ]

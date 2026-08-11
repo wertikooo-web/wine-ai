@@ -1063,6 +1063,103 @@ class MemoryPgEngine {
             return { rows: rows.slice(0, 10) };
         }
 
+        // ===================== entity_relations (Phase 4 v1) =====================
+        // INSERT INTO entity_relations — idempotent upsert by id (mirrors
+        // src/knowledge/entityRelations.js createRelation, 18 columns).
+        if (/^INSERT INTO entity_relations(?!_history)/i.test(sql)) {
+            const table = this.tables.get('entity_relations') || { name: 'entity_relations', rows: [] };
+            this.tables.set('entity_relations', table);
+            const COLS = ['id', 'subject_id', 'subject_type', 'predicate', 'object_id', 'object_type',
+                'object_value', 'confidence', 'validation_status', 'active', 'source_url', 'source_type',
+                'source_domain', 'evidence', 'verified_at', 'expires_at', 'created_at', 'updated_at'];
+            const row = {};
+            COLS.forEach((col, i) => { row[col] = params[i]; });
+            row.active = row.active === true || row.active === 'true';
+            if (row.verified_at == null) row.verified_at = null;
+            if (row.expires_at == null) row.expires_at = null;
+            let existing = table.rows.find((r) => r.id === row.id);
+            if (existing) {
+                Object.assign(existing, row);
+                return { rows: [existing], rowCount: 1 };
+            }
+            table.rows.push(row);
+            return { rows: [row], rowCount: 1 };
+        }
+
+        // INSERT INTO entity_relations_history (append-only ledger).
+        if (/^INSERT INTO entity_relations_history/i.test(sql)) {
+            const table = this.tables.get('entity_relations_history') || { name: 'entity_relations_history', rows: [] };
+            this.tables.set('entity_relations_history', table);
+            const [id, relation_id, action, prev_status, new_status, changed_by, note] = params;
+            const record = { id, relation_id, action, prev_status, new_status, changed_by, note, changed_at: new Date().toISOString() };
+            table.rows.push(record);
+            return { rows: [record], rowCount: 1 };
+        }
+
+        // UPDATE entity_relations SET (publish / reject paths).
+        if (/^UPDATE entity_relations SET/i.test(sql)) {
+            const table = this.tables.get('entity_relations');
+            if (!table) return { rows: [] };
+            const row = table.rows.find((r) => r.id === params[params.length - 1]);
+            if (row) {
+                if (/validation_status = \$1/i.test(sql)) {
+                    row.validation_status = params[0];
+                    row.active = /active = TRUE/i.test(sql);
+                    if (/active = TRUE/i.test(sql)) row.verified_at = new Date().toISOString();
+                } else if (/validation_status = 'rejected'/i.test(sql)) {
+                    row.validation_status = 'rejected';
+                    row.active = false;
+                } else if (/validation_status = \$2/i.test(sql)) {
+                    row.validation_status = params[1];
+                    row.active = /active = TRUE/i.test(sql);
+                }
+                row.updated_at = new Date().toISOString();
+            }
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM entity_relations WHERE id = $1 (getRelation).
+        if (/^SELECT \* FROM entity_relations(?!_history) WHERE id = \$1/i.test(sql)) {
+            const table = this.tables.get('entity_relations');
+            const row = table ? table.rows.find((r) => r.id === params[0]) : null;
+            return { rows: row ? [row] : [] };
+        }
+
+        // SELECT * FROM entity_relations [WHERE ...] ORDER BY ... LIMIT $N
+        // (queryRelations / getRelationStats). Filters equality clauses by the
+        // parameter each column binds to; boolean `active` compares truthily.
+        if (/^SELECT \* FROM entity_relations(?!_history)/i.test(sql)) {
+            const table = this.tables.get('entity_relations');
+            let rows = table ? table.rows.slice() : [];
+            const whereMatch = sql.match(/WHERE\s+(.+?)ORDER BY/i);
+            if (whereMatch) {
+                const clauses = [...whereMatch[1].matchAll(/([a-z_]+)\s*=\s*\$(\d+)/ig)]
+                    .map((m) => ({ col: m[1], idx: Number(m[2]) - 1 }));
+                for (const { col, idx } of clauses) {
+                    const expected = params[idx];
+                    rows = rows.filter((r) => {
+                        if (col === 'active') {
+                            return r.active === expected || r.active === true && expected === 'true' || r.active === false && expected === 'false';
+                        }
+                        return String(r[col]) === String(expected);
+                    });
+                }
+            }
+            const limitMatch = sql.match(/LIMIT \$(\d+)/i);
+            if (limitMatch) {
+                const limit = Number(params[Number(limitMatch[1]) - 1] || 0);
+                rows = rows.slice(0, limit);
+            }
+            return { rows };
+        }
+
+        // SELECT history (test assertions only).
+        if (/^SELECT \* FROM entity_relations_history/i.test(sql)) {
+            const table = this.tables.get('entity_relations_history');
+            return { rows: table ? table.rows : [] };
+        }
+        // ===================== end entity_relations =====================
+
         // Generic COUNT handler
         if (/^SELECT COUNT\(\*\)/i.test(sql) || /SELECT COUNT\(\*\) as count/i.test(sql)) {
             const tableNameMatch = sql.match(/FROM (\w+)/i);

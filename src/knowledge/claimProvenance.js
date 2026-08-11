@@ -123,6 +123,16 @@ function claimFromItem(item, index, { conflictKey = null } = {}) {
         source: sourceForItem(item),
         freshness: freshnessForItem(item),
         conflict: null,
+        // Structured knowledge-graph evidence (Phase 4): relation edges carry
+        // their structure through the claim so an audit/admin surface can show
+        // that a claim came from a typed entity_relation, not a text chunk.
+        structured: item.structured_kind === 'entity_relation'
+            ? {
+                  kind: 'entity_relation',
+                  ...(item.relation || {}),
+                  relation_id: item.provenance?.relation_id || null,
+              }
+            : null,
     };
 }
 

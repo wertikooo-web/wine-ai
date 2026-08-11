@@ -6,6 +6,7 @@ const { searchWeb } = require('./webSearch');
 const catalogStore = require('../catalog/wineMdCatalogStore');
 const { resolveEntity } = require('./entityResolver');
 const liveWineMdTool = require('../tools/checkWineMdAvailability');
+const relationsStore = require('./entityRelations');
 
 const LEVELS = Object.freeze({
     CANONICAL: 'canonical',
@@ -187,6 +188,10 @@ async function searchCanonical(query, { limit = 8, pool = db.getPool() } = {}) {
     }));
 }
 
+function searchRelations(query, options = {}) {
+    return relationsStore.searchRelations(query, options);
+}
+
 function catalogRowToEvidence(row, sourceType = 'partner_catalog') {
     return {
         level: LEVELS.CATALOG,
@@ -363,12 +368,18 @@ async function routeKnowledge(query, options = {}) {
     const internalPromise = (async () => {
         const canonical = await runLevel(LEVELS.CANONICAL, () =>
             (adapters.searchCanonical || searchCanonical)(query, options));
+        const relations = await runLevel('relations', () =>
+            (adapters.searchRelations || searchRelations)(query, options));
+        // Relation evidence is canonical-level structured truth (Phase 4):
+        // it must outrank fuzzy entity_facts matches for multi-condition
+        // questions, so it is merged ahead of the facts.
+        const mergedCanonical = [...relations, ...canonical];
         const catalog = (catalogIntent || freshness) && allowCatalog
             ? await runLevel(LEVELS.CATALOG, () => (adapters.searchCatalog || searchCatalog)(query, options))
             : [];
         const documents = await runLevel(LEVELS.DOCUMENTS, () =>
             (adapters.searchDocuments || searchDocuments)(query, { ...options, language }));
-        return { canonical, catalog, documents };
+        return { canonical: mergedCanonical, catalog, documents };
     })();
 
     // eagerWeb fires web concurrently with internal retrieval instead of
@@ -833,6 +844,7 @@ module.exports = {
     searchCatalog,
     searchDocuments,
     searchInternet,
+    searchRelations,
     isFreshnessQuery,
     isCatalogQuery,
     classifyQueryIntent,
