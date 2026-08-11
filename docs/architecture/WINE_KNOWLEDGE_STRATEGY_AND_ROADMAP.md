@@ -417,22 +417,27 @@ Next on the roadmap: **Phase 4. Entity relations v1**.
 
 Exit condition: multi-condition queries work without relying only on semantic text similarity.
 
-**Status (2026-08-11): relations infrastructure v1 in progress.** The
-`entity_relations` store (`src/knowledge/entityRelations.js`) with the controlled
-relation vocabulary (located_in / produces / made_from / offers_tour /
-offers_tasting, plus roadmap-only `has_restaurant`), the seed import
-(`scripts/knowledge-relations-seed.js`, `knowledge/relations/seed.v1.json`,
-10 approved relations for cricova/purcari), and realtime routing through
-`src/knowledge/layeredRouter.js` (relations consulted before canonical, web
-fallback preserved). Non-publishable predicates are forced inactive so they
-cannot leak into search. Unit/integration coverage: `tests/entityRelationsStore.test.js`,
-`tests/knowledgeRelationsSeed.test.js`, `tests/layeredRouterRelations.test.js`.
+**Status (2026-08-11): COMPLETE.** The `entity_relations` store
+(`src/knowledge/entityRelations.js`) with the controlled relation vocabulary,
+the schema migration (`kosSchema.js` v9: `entity_relations` +
+`entity_relations_history`), realtime routing through `src/knowledge/layeredRouter.js`
+(relations consulted before canonical, web fallback preserved), claim-level
+`structured` provenance evidence, and memory-PG test handlers are merged (PR #59,
+commit `20cf0e9`) and deployed. Non-publishable predicates are forced inactive so
+they cannot leak into search. Unit/integration coverage:
+`tests/entityRelationsStore.test.js`, `tests/knowledgeRelationsSeed.test.js`,
+`tests/layeredRouterRelations.test.js`.
 
-Remaining before exit condition is met: commit the untracked
-`src/knowledge/entityRelations.js` (so `check-missing-local-imports` passes); apply
-the seed import to a live database
-(`node scripts/knowledge-relations-seed.js` with `DATABASE_URL` set) and verify a
-multi-condition query resolves via relations-only routing on real data.
+Production: on 2026-08-11 the approved seed
+(`scripts/knowledge-relations-seed.js`, `knowledge/relations/seed.v1.json`) was
+applied via Railway to the production Postgres. **10/10 production relations** for
+`cricova`/`purcari` — located_in ×2, produces ×3, offers_tour ×1,
+offers_tasting ×1, made_from ×3 — all `active`, `approved`, with `source_url` +
+`evidence` provenance against git-tracked source docs (cricova.md, purcari.md).
+Idempotent (re-run stays at 10). Exit condition verified in production: a
+multi-condition Cricova and Purcari query resolves via the relations level, and
+the Answer Audit surfaces `structured` entity_relation claims with `relation_id`
+and `source` (`type: relation`, `url: knowledge/source/<winery>.md`).
 
 ### Phase 5. Knowledge Studio
 
