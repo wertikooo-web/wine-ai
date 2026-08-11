@@ -55,3 +55,6 @@ experiments/adaptive-routing/*-results.json
 experiments/adaptive-routing/ab-b*.json
 experiments/adaptive-routing/fx-b*.json
 experiments/adaptive-routing/smoke-batch*.json
+
+# Local-only secret/probe files - never commit (may contain credentials)
+.local-tmp/
