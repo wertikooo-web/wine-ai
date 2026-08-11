@@ -709,6 +709,65 @@ const MIGRATIONS = [
             await client.query('CREATE INDEX IF NOT EXISTS idx_kos_wine_catalog_cards_status ON kos_wine_catalog_cards(status, updated_at DESC);');
         },
     },
+    {
+        version: 9,
+        name: 'v9_entity_relations',
+        up: async (client) => {
+            // Entity Relations — the first production-grade knowledge graph edge
+            // store (Phase 4 v1). Predicate vocabulary is controlled at the app
+            // layer (src/knowledge/entityRelations.js) against the approved
+            // ontology in WINE_KNOWLEDGE_STRATEGY_AND_ROADMAP.md; unknown or
+            // unproven predicates/objects enter as needs_review + inactive and
+            // never surface in production queries.
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS entity_relations (
+                    id TEXT PRIMARY KEY,
+                    subject_id TEXT NOT NULL,
+                    subject_type TEXT NOT NULL DEFAULT 'unknown',
+                    predicate TEXT NOT NULL,
+                    object_id TEXT,
+                    object_type TEXT,
+                    object_value TEXT,
+                    confidence TEXT NOT NULL DEFAULT 'medium' CHECK (confidence IN ('high', 'medium', 'low')),
+                    validation_status TEXT NOT NULL DEFAULT 'needs_review' CHECK (validation_status IN ('needs_review', 'candidate', 'validated', 'approved', 'rejected', 'stale')),
+                    active BOOLEAN NOT NULL DEFAULT FALSE,
+                    source_url TEXT,
+                    source_type TEXT NOT NULL DEFAULT 'general_web',
+                    source_domain TEXT,
+                    evidence TEXT,
+                    verified_at TIMESTAMPTZ,
+                    expires_at TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await client.query(`
+                ALTER TABLE entity_relations
+                    ADD CONSTRAINT chk_entity_relations_object
+                    CHECK (object_id IS NOT NULL OR object_value IS NOT NULL);
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_relations_subject ON entity_relations(subject_id, predicate);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_relations_object ON entity_relations(object_id, predicate);');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_relations_active ON entity_relations(predicate, validation_status) WHERE active = TRUE;');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_relations_status ON entity_relations(validation_status);');
+
+            // History ledger — every create/publish/reject/update transition is
+            // recorded so provenance of each edge is auditable.
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS entity_relations_history (
+                    id TEXT PRIMARY KEY,
+                    relation_id TEXT NOT NULL REFERENCES entity_relations(id) ON DELETE CASCADE,
+                    action TEXT NOT NULL CHECK (action IN ('created', 'published', 'rejected', 'updated', 'archived', 'verified')),
+                    prev_status TEXT,
+                    new_status TEXT,
+                    changed_by TEXT,
+                    note TEXT,
+                    changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            `);
+            await client.query('CREATE INDEX IF NOT EXISTS idx_entity_relations_history_rel ON entity_relations_history(relation_id, changed_at DESC);');
+        },
+    },
 ];
 
 const crypto = require('crypto');
