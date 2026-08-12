@@ -4,4 +4,8 @@ Never expose secret values, full environment files, tokens, credentials, authori
 
 Keep public and administrative routes separated. Validate external URLs and uploaded content at trust boundaries. Real user audio storage remains disabled unless explicit configuration and consent enable it.
 
-Before merge or deploy, run current repository gates and required CI. Never merge code that imports an untracked or nonexistent file. Deployment, access changes, OAuth changes, and production data writes require explicit authorization.
+Select repository gates and exercise mission autonomy according to
+`../AGENT_WORKFLOW.md`. Never merge code that imports an untracked or nonexistent
+file. For access, permissions, secrets, OAuth, or production-data work, apply the
+approved-scope and escalation tests in that workflow; this domain document does
+not create a separate authority policy.

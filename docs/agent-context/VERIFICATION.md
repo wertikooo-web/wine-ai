@@ -27,9 +27,9 @@ Verify adapter contract compatibility, cleanup, interruption, error/timeout beha
 
 Verify empty-index behavior, relevant retrieval, no-answer behavior, tool payload shape, fallback behavior, and factual non-fabrication.
 
-## Before merge or deploy
+## Repository gate selection
 
-Run the repository's current full gates, including:
+Apply the cost and gate-selection rules in `AGENT_WORKFLOW.md`. Run the narrowest relevant checks first. The broad runtime gates are:
 
 ```text
 npm run check:missing-imports
@@ -38,7 +38,7 @@ npm test
 npm run test:smoke
 ```
 
-Confirm required CI is green. If scripts have changed, use the current `package.json` as source of truth and update this document.
+Run the full set only when the change affects the broad runtime contract or required CI invokes it. Documentation-only changes do not require runtime suites unless they alter an executable contract. Confirm the required checks for the changed surface are green. If scripts change, use current `package.json` as source of truth and update this document.
 
 ## Final report
 

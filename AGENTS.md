@@ -1,82 +1,41 @@
 # AGENTS.md — WINE AI
 
-## Назначение
+## Product boundary
 
-WINE AI — независимый realtime-продукт: голосовой цифровой эксперт по винам Молдовы для устройства, сайта и виджета.
-
-Основной голосовой контур — native realtime:
+WINE AI is an independent realtime voice wine expert for Moldova, delivered through devices, websites, and widgets. Its primary voice path is native realtime:
 
 ```text
 microphone → WebSocket session → realtime provider → streaming audio response
                                       ↘ tools / knowledge retrieval when needed
 ```
 
-Не описывай основной режим как обязательную цепочку `STT → LLM → TTS`. Каскадный STT/TTS может существовать только как отдельный дополнительный или экспериментальный режим.
+Do not describe or implement the default path as a mandatory `STT → LLM → TTS` cascade. A classic cascade may exist only as an explicitly separate fallback, benchmark, or experimental mode.
 
-## Перед работой
+## Required mission startup
 
-1. Прочитай `docs/agent-context/PROJECT.md`.
-2. Выбери маршрут задачи в `docs/agent-context/CONTEXT_MAP.md`.
-3. Загрузи только относящиеся к задаче доменные документы, контракты, код и тесты.
-4. Перед изменением lifecycle-кода прочитай `docs/architecture/STATE_OWNERSHIP.md` и назови владельцев затрагиваемого состояния.
-5. Перед завершением примени `docs/agent-context/VERIFICATION.md` и `docs/agent-context/DEFINITION_OF_DONE.md`.
-6. Прочитай `docs/agent-context/WORKFLOW_EFFICIENCY.md` и соблюдай ограничения по scope, чтению файлов, тестам, checkpoints и production safety.
+1. Read `docs/agent-context/AGENT_WORKFLOW.md` — the sole workflow and authority source of truth.
+2. Read `.agents/CHECKPOINT.md` — the sole current-mission checkpoint — and reconcile it with current evidence.
+3. Read `docs/agent-context/PROJECT.md` and choose one route from `docs/agent-context/CONTEXT_MAP.md`.
+4. Load only the relevant domain documents, contracts, code, and tests.
+5. Before lifecycle work, read `docs/architecture/STATE_OWNERSHIP.md` and identify the owners of affected state.
+6. Finish with the surface-specific checks in `docs/agent-context/VERIFICATION.md` and the repository criteria in `docs/agent-context/DEFINITION_OF_DONE.md`.
 
-## Senior decision standard
+Do not create duplicate workflow instructions or additional checkpoint files. Apply the independent verifier, bounded self-check, fan-out, autonomy, escalation, and cost rules exactly as defined in `docs/agent-context/AGENT_WORKFLOW.md`.
 
-Для каждой существенной технической задачи сначала определи конечную продуктовую цель, фактическое состояние системы, варианты решения, риски и критерии готовности. Принимай инженерное решение на уровне senior/principal, а не перекладывай выбор на владельца проекта без объективной необходимости.
+## Non-negotiable product invariants
 
-Задания другим агентам формулируй через:
+- The repository must not depend on sibling projects or import files outside its boundary.
+- One user turn and one generation have one authoritative lifecycle owner.
+- Stale provider, playback, and visual events cannot affect a newer generation.
+- Provider-specific behavior stays inside provider adapters.
+- Knowledge retrieval is an optional tool; it does not replace realtime transport.
+- PTT and Tap-to-Start are distinct supported input modes with separate state and completion rules.
+- Do not add arbitrary timing workarounds or parallel sources of truth instead of explicit state transitions.
+- Never expose secrets or store real user audio unless explicit configuration enables it.
+- Never fabricate wines, producers, vintages, prices, awards, or locations.
 
-- ожидаемый результат;
-- ограничения и инварианты;
-- acceptance criteria;
-- доказательства, необходимые перед merge, deploy, cutover или production write.
+The complete product and runtime invariants are in `docs/agent-context/INVARIANTS.md`.
 
-Не превращай задачу в длинный сценарий команд, если агент может сам выбрать лучший способ достижения результата.
+## Scope and evidence
 
-Перед выдачей решения выполни независимый второй проход в роли principal reviewer:
-
-- проверь соответствие конечной архитектуре;
-- найди скрытые production-риски и technical debt;
-- проверь, не оптимизируется ли временный костыль вместо целевой системы;
-- оцени rollback, наблюдаемость, тестируемость и влияние на следующие этапы;
-- при обнаружении слабости сразу исправь решение и выдай уже улучшенную версию.
-
-В пользовательском ответе не нужно описывать внутренний ролевой процесс, если между senior-решением и principal-review нет существенного разногласия. Показывай разногласие только когда оно влияет на решение.
-
-## Обязательные инварианты
-
-- Репозиторий не зависит от соседних проектов и не импортирует файлы за своими границами.
-- Один пользовательский ход и одна generation имеют одного авторитетного владельца lifecycle.
-- Устаревшие provider, playback и visual events не влияют на новую generation.
-- Provider-specific поведение остаётся внутри адаптеров.
-- Knowledge retrieval вызывается как tool при необходимости и не заменяет realtime-канал.
-- PTT и Tap-to-Start являются отдельными поддерживаемыми режимами ввода; не смешивай их state и правила завершения.
-- Не добавляй таймерные костыли и параллельные источники истины вместо явных переходов состояния.
-- Не печатай и не сохраняй секреты или реальное аудио без явной настройки.
-- Не выдумывай вина, производителей, цены, награды и винтажи.
-
-Полный набор правил: `docs/agent-context/INVARIANTS.md`.
-
-## Работа и проверка
-
-Делай минимальное изменение, устраняющее доказанную причину. Код, тесты и наблюдаемое runtime-поведение имеют приоритет над Markdown-пересказом.
-
-Не выполняй deploy, merge, production DB write, изменение доступов или публикацию пакета без отдельного явного запроса.
-
-## Экономная работа агента
-
-Правила экономии контекста, поэтапной работы и безопасных production-операций находятся в:
-
-`docs/agent-context/WORKFLOW_EFFICIENCY.md`
-
-Ключевые требования:
-
-- одна узкая задача за этап;
-- короткий план до изменения кода;
-- только релевантные файлы;
-- узкие тесты во время работы;
-- полный suite перед commit/PR/merge/deploy;
-- остановка после указанного checkpoint;
-- production write, deploy, merge и destructive operations только после отдельного разрешения.
+Make the smallest change that satisfies the approved goal. Runtime code, tests, and observed behavior outrank Markdown summaries. Preserve unrelated work. Never claim verification, merge, deployment, or production state without evidence.
