@@ -2,6 +2,8 @@
 
 Load only the route relevant to the task.
 
+Every route starts with `AGENT_WORKFLOW.md` and `.agents/CHECKPOINT.md`; the lists below add domain context and do not replace the workflow.
+
 ## Realtime, PTT, Tap-to-Start, interruption, generation
 
 Read:
@@ -56,6 +58,6 @@ Read:
 
 ## Documentation-only task
 
-Read `PROJECT.md`, this map, and the exact files being edited. Do not load all runtime domains unless needed to validate a claim.
+Read `AGENT_WORKFLOW.md`, `.agents/CHECKPOINT.md`, `PROJECT.md`, this map, and the exact files being edited. Do not load runtime domains unless needed to validate a claim.
 
 Always finish with `VERIFICATION.md` and `DEFINITION_OF_DONE.md`.

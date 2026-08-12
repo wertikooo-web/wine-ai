@@ -1,17 +1,14 @@
 # CLAUDE.md
 
-Сначала прочитай корневой `AGENTS.md` и следуй его карте контекста.
+Read and follow, in order:
 
-Не загружай весь каталог `docs/agent-context/` заранее. Открывай только документы, относящиеся к текущей задаче.
+1. `AGENTS.md`
+2. `docs/agent-context/AGENT_WORKFLOW.md`
+3. `.agents/CHECKPOINT.md`
+4. the task route selected from `docs/agent-context/CONTEXT_MAP.md`
 
-Прочитай `docs/agent-context/WORKFLOW_EFFICIENCY.md`.
-Для каждой задачи:
-- сначала дай короткий план и ожидаемый список файлов;
-- читай только относящиеся к задаче файлы;
-- запускай узкие тесты во время работы;
-- остановись после запрошенного этапа;
-- не выполняй production write, deploy, merge, prune или destructive migration без отдельного разрешения.
+Do not preload all of `docs/agent-context/` and do not restate the workflow in session-specific instructions.
 
-Для работы с персонажем WineMD, Rive, PSD, анимациями или подключением `.riv` используй `.claude/skills/winemd-rive/SKILL.md`.
+For WineMD character, Rive, PSD, animation, or `.riv` work, also use `.claude/skills/winemd-rive/SKILL.md`.
 
-Перед изменением realtime, session, turn, generation, provider, capture, playback, visual или knowledge lifecycle обязательно прочитай `docs/architecture/STATE_OWNERSHIP.md` и определи владельцев состояния до изменения кода.
+Before changing realtime, session, turn, generation, provider, capture, playback, visual, or knowledge lifecycle code, read `docs/architecture/STATE_OWNERSHIP.md` and identify affected state owners.

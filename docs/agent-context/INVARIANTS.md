@@ -6,7 +6,7 @@ These rules are non-negotiable unless the project owner records an explicit arch
 
 - No import, workspace, submodule, or symlink may make this repository depend on a sibling project.
 - Never expose secrets or store real user audio unless explicit configuration enables it.
-- Do not perform deploy, merge, production writes, access changes, or package publishing without explicit authorization.
+- Follow the mission authority and escalation boundaries in `AGENT_WORKFLOW.md`; irreversible production-data loss, destructive operations without rollback, new paid dependencies, and architecture changes always require escalation.
 - Preserve unrelated tracked and untracked work.
 
 ## Realtime architecture
@@ -44,6 +44,6 @@ These rules are non-negotiable unless the project owner records an explicit arch
 - Visual and playback events are scoped to the active generation and stale events must not affect a newer generation.
 - The visual orchestrator remains the authority for generation-aware visual events.
 
-## Deployment gate
+## Merge and deployment evidence
 
-Before merge or deploy, run the repository's current required gates, including missing-import validation, startup-without-admin-auth validation, smoke tests, and required CI. Never merge an import of an untracked or nonexistent file.
+Select required gates according to `AGENT_WORKFLOW.md` and `VERIFICATION.md`, and require green CI for the changed surface. Never merge an import of an untracked or nonexistent file.

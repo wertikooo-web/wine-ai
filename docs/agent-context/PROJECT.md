@@ -23,28 +23,11 @@ The native realtime provider owns speech understanding and speech generation ins
 - The project must remain independent from any sibling repository.
 - Knowledge retrieval augments realtime conversation through tools; it does not replace the realtime transport.
 
-## Standing engineering decision policy
+## Engineering workflow
 
-All substantial WINE AI decisions and tasks must be handled at senior/principal level.
+All missions use the checkpoint, execution, independent-verifier, autonomy, and stop rules in `AGENT_WORKFLOW.md`. This product document does not define a second agent workflow.
 
-The working sequence is:
-
-```text
-product goal
-→ observed system state
-→ viable options and trade-offs
-→ senior decision
-→ independent principal review
-→ corrected decision
-→ task with acceptance criteria
-→ verification evidence
-```
-
-The senior pass owns the recommendation and should not delegate avoidable architectural choices to the project owner. The principal pass is an independent second review focused on target architecture, production safety, rollback, observability, testability, hidden technical debt, and whether a temporary workaround is being optimized instead of the intended system.
-
-Instructions to coding agents should primarily specify the result, constraints, invariants, acceptance criteria, and required proof. Long command-by-command procedures are appropriate only when the exact operational sequence is itself a safety requirement.
-
-If the principal review finds a material weakness, the recommendation must be corrected before it is presented or assigned. The internal two-pass process does not need to be narrated unless a meaningful disagreement affects the final decision.
+Substantial WINE AI decisions remain senior/principal decisions: recommendations must be grounded in the product goal, observed system state, viable options, risks, acceptance criteria, and verification evidence. Assign work by outcome, constraints, invariants, acceptance criteria, and required proof rather than avoidable command-by-command scripts.
 
 ## Deferred strategic initiative: layered knowledge, provenance, and Knowledge Graph
 

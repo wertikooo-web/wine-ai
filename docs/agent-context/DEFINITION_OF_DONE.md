@@ -12,4 +12,4 @@ A task is complete only when:
 - the final diff is reviewed for duplicate instructions, obsolete paths, missing files, and accidental scope growth;
 - documentation and code agree on public contracts and current behavior;
 - no secrets or production data are exposed;
-- no deploy or merge is performed without explicit authorization.
+- mission authority, verification, merge, deploy, escalation, and stop rules in `AGENT_WORKFLOW.md` are satisfied.
