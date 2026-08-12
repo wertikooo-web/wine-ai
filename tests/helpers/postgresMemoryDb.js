@@ -1330,6 +1330,39 @@ class MemoryPgEngine {
             return { rows };
         }
 
+        // SELECT id, entity_id, ... FROM entity_facts (layeredRouter.searchCanonical
+        // canonical read path). Explicit column list (not SELECT *) plus literal
+        // active/validation_status/expires filters and token LIKE clauses built by
+        // buildTokenWhere, so the production answer-path query evaluates correctly.
+        if (/^SELECT id, entity_id, entity_type, field_name, normalized_value, raw_value,\s*confidence, validation_status, source_url, source_type, source_domain,\s*evidence, verified_at, expires_at FROM entity_facts/i.test(sql)) {
+            const table = this.tables.get('entity_facts');
+            let rows = table ? table.rows.slice() : [];
+            if (/active = TRUE/i.test(sql)) rows = rows.filter((r) => r.active === true);
+            if (/active = FALSE/i.test(sql)) rows = rows.filter((r) => r.active === false);
+            const inMatch = sql.match(/validation_status IN \(([^)]*)\)/i);
+            if (inMatch) {
+                const allowed = inMatch[1].split(',').map((s) => s.replace(/['\s]/g, '')).filter(Boolean);
+                rows = rows.filter((r) => allowed.includes(r.validation_status));
+            }
+            if (/expires_at IS NULL OR expires_at > NOW\(\)/i.test(sql)) {
+                rows = rows.filter((r) => r.expires_at == null || new Date(r.expires_at) > new Date());
+            }
+            // buildTokenWhere param values ('%token%'); every token must appear in
+            // at least one searchable column (matched per-row against any column).
+            const searchable = ['entity_id', 'field_name', 'normalized_value', 'raw_value', 'evidence'];
+            const tokens = params.map((p) => String(p).toLowerCase()).filter((p) => p.startsWith('%') && p.endsWith('%'));
+            if (tokens.length) {
+                rows = rows.filter((r) => tokens.every((tok) =>
+                    searchable.some((col) => String(r[col] == null ? '' : r[col]).toLowerCase().includes(tok.slice(1, -1)))));
+            }
+            const limitMatch = sql.match(/LIMIT \$(\d+)/i);
+            if (limitMatch) {
+                const limit = Number(params[Number(limitMatch[1]) - 1] || 0);
+                rows = rows.slice(0, limit);
+            }
+            return { rows };
+        }
+
         // SELECT * FROM entity_facts_history [WHERE fact_id = $1 ...].
         if (/^SELECT \* FROM entity_facts_history/i.test(sql)) {
             const table = this.tables.get('entity_facts_history');

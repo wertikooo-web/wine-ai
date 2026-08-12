@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wine AI — Knowledge Studio</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --wine: #6b1e2b;
+    --wine-dark: #4a1420;
+    --cream: #f7f1e8;
+    --ink: #2a2118;
+    --muted: #8a7a68;
+    --ok: #3f7d4f;
+    --warn: #b3781c;
+    --err: #b3392c;
+    --border: #e2d8c8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--cream); color: var(--ink); }
+  header { background: var(--wine); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: 0.82; }
+  main { max-width: 1320px; margin: 0 auto; padding: 20px 24px 60px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; color: var(--wine-dark); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  input[type=text], input[type=number], select, textarea, button {
+    font: inherit; color: var(--ink); border-radius: 8px; border: 1px solid var(--border); padding: 8px 10px; background: #fff;
+  }
+  input[type=text], select { min-width: 120px; }
+  textarea { width: 100%; min-height: 52px; resize: vertical; }
+  button { background: var(--wine); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+  button:hover { background: var(--wine-dark); }
+  button:disabled { opacity: 0.55; cursor: default; }
+  button.ghost { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
+  button.ok { background: var(--ok); }
+  button.err { background: var(--err); }
+  .pill { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+  .pill.ok { background: #e3f2e6; color: var(--ok); }
+  .pill.warn { background: #fdeeda; color: var(--warn); }
+  .pill.err { background: #fbe3e1; color: var(--err); }
+  .pill.mut { background: #ece7df; color: var(--muted); }
+  .pill.cand { background: #e8edfb; color: #2f4f9c; }
+  .info-bar { font-size: 12px; color: var(--muted); margin: 4px 0 0; word-break: break-word; }
+  .meta { font-size: 12px; color: var(--ink); margin: 6px 0; }
+  .entity-list { list-style: none; margin: 0; padding: 0; }
+  .entity-list li { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 6px 0; cursor: pointer; background: #fff; }
+  .entity-list li:hover { border-color: var(--wine); }
+  .entity-list li.selected { border-color: var(--wine); background: #fdf6f2; }
+  .kv { display: grid; grid-template-columns: 170px 1fr; gap: 4px 12px; font-size: 13px; margin: 6px 0; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-word; }
+  .block { border: 1px solid var(--border); border-left: 4px solid var(--wine); border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: #fff; }
+  .block h3 { margin: 0 0 8px; font-size: 13px; color: var(--wine-dark); }
+  .rowitem { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 6px 0; background: #fdfcf9; }
+  .rowitem .t { font-size: 13px; }
+  .rowitem .m { font-size: 11px; color: var(--muted); margin-top: 3px; word-break: break-word; }
+  details { margin-top: 6px; }
+  summary { cursor: pointer; color: var(--wine); font-size: 13px; user-select: none; }
+  .statusline { position: fixed; right: 16px; bottom: 16px; background: var(--ink); color: #fff; border-radius: 999px; padding: 8px 14px; font-size: 12px; opacity: 0; transition: opacity .25s; z-index: 5; }
+  .statusline.show { opacity: 1; }
+  .empty { color: var(--muted); font-size: 13px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+  .queue-badge { float: right; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div style="flex:1">
+    <h1>Wine AI — Knowledge Studio</h1>
+    <div class="sub">entity card · aliases RU/RO/EN · facts + provenance · relations + provenance · review queues · approve/reject · duplicate merge · rollback</div>
+  </div>
+  <div class="row">
+    <button class="ghost" type="button" id="btn-refresh-queues">Обновить очереди</button>
+    <a href="/answer-audit"><button class="ghost" type="button">Answer Audit</button></a>
+    <a href="/dashboard"><button class="ghost" type="button">Dashboard</button></a>
+  </div>
+</header>
+
+<main>
+  <div id="db-warning" class="card" style="display:none">
+    <h2 style="color:var(--err)">База недоступна</h2>
+    <div class="info-bar">Knowledge Studio требует PostgreSQL (DATABASE_URL). В локальном файловом режиме студия не может сохранять правки. Просмотр реестра и очередей ограничен.</div>
+  </div>
+
+  <!-- Review queues -->
+  <section class="card" id="queues-card">
+    <h2>Очереди ревью <span id="queues-count" class="pill mut"></span></h2>
+    <div id="queues-body" class="empty">загрузка…</div>
+  </section>
+
+  <!-- Entity search + card -->
+  <div class="grid">
+    <div class="card">
+      <h2>Поиск сущности</h2>
+      <div class="row">
+        <input type="text" id="entity-q" placeholder="например: Cricova, Purcari, Fetească Neagră…">
+        <button type="button" id="btn-search">Найти</button>
+      </div>
+      <ul class="entity-list" id="entity-list"></ul>
+    </div>
+
+    <div class="card" id="entity-card">
+      <h2>Сущность <span id="card-meta" class="pill mut"></span></h2>
+      <div id="card-body" class="empty">выберите сущность слева, или создайте правку в очередях</div>
+    </div>
+  </div>
+
+  <!-- Editors -->
+  <section class="card">
+    <h2>Новая правка</h2>
+    <div class="two-col">
+      <div class="block">
+        <h3>Факт</h3>
+        <div class="row">
+          <input type="text" id="f-entity" placeholder="entity_id">
+          <input type="text" id="f-field" placeholder="field (например: founded_year)">
+          <input type="text" id="f-value" placeholder="значение">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="f-source" placeholder="source_url (опционально)" style="flex:2">
+          <select id="f-conf">
+            <option value="high">high</option>
+            <option value="medium">medium</option>
+            <option value="low">low</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="f-evidence" placeholder="evidence (опционально)" style="flex:2">
+          <button type="button" class="ok" id="btn-fact">Создать факт</button>
+        </div>
+      </div>
+      <div class="block">
+        <h3>Связь (relation)</h3>
+        <div class="row">
+          <input type="text" id="r-subject" placeholder="subject_id">
+          <select id="r-pred"></select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="r-objval" placeholder="object_value или object_id" style="flex:2">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <select id="r-objtype">
+            <option value="winery">winery</option>
+            <option value="wine">wine</option>
+            <option value="grape_variety">grape_variety</option>
+            <option value="wine_region">wine_region</option>
+            <option value="place">place</option>
+            <option value="person">person</option>
+            <option value="text">text</option>
+          </select>
+          <input type="text" id="r-source" placeholder="source_url (опционально)" style="flex:2">
+          <button type="button" class="ok" id="btn-relation">Создать связь</button>
+        </div>
+      </div>
+      <div class="block">
+        <h3>Алиас</h3>
+        <div class="row">
+          <input type="text" id="a-entity" placeholder="entity_id">
+          <select id="a-action">
+            <option value="add">add</option>
+            <option value="remove">remove</option>
+            <option value="rename">rename</option>
+          </select>
+          <select id="a-lang">
+            <option value="ru">ru</option>
+            <option value="ro">ro</option>
+            <option value="en">en</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="a-alias" placeholder="alias">
+          <input type="text" id="a-prev" placeholder="prev_alias (для rename)">
+          <button type="button" class="ok" id="btn-alias">Создать правку алиаса</button>
+        </div>
+      </div>
+      <div class="block">
+        <h3>Объединение дубликатов</h3>
+        <div class="row">
+          <input type="text" id="m-keep" placeholder="keep_id">
+          <input type="text" id="m-merge" placeholder="merge_id (вливается в keep)">
+          <button type="button" class="ok" id="btn-merge">Объединить</button>
+        </div>
+        <div class="info-bar">Факты и связи переносятся в keep_id; алиасы объединяются; merge_id помечается mergedInto.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="statusline" id="statusline"></div>
+
+<script>
+'use strict';
+const $ = (sel) => document.querySelector(sel);
+
+let predicates = [];
+let currentEntityId = null;
+
+function flash(text, ms) {
+  const el = $('#statusline');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms || 6000);
+}
+
+function pill(status) {
+  if (!status) return '<span class="pill mut">—</span>';
+  const cls = ['approved', 'validated', 'ok', 'verified'].includes(status) ? 'ok'
+    : ['rejected', 'stale', 'defect'].includes(status) ? 'err'
+    : ['candidate', 'pending', 'needs_review', 'new', 'discovered'].includes(status) ? 'cand'
+    : status === 'superseded' ? 'warn' : 'mut';
+  return '<span class="pill ' + cls + '">' + String(status).replace(/_/g, ' ') + '</span>';
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+async function jcall(url, opts) {
+  const res = await fetch(url, opts);
+  let body = null;
+  try { body = await res.json(); } catch (_) {}
+  if (!res.ok) throw new Error((body && body.error) || res.status);
+  return body;
+}
+
+function post(url, payload) {
+  return jcall(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+}
+
+// --------------------------------------------------------------- queues ----
+
+function renderQueueSection(title, rows, renderer, emptyText) {
+  if (!rows.length) return '<div class="block"><h3>' + title + '</h3><div class="empty">' + emptyText + '</div></div>';
+  return '<div class="block"><h3>' + title + ' <span class="pill warn">' + rows.length + '</span></h3>' +
+    rows.map(renderer).join('') + '</div>';
+}
+
+function factRow(f) {
+  return '<div class="rowitem" data-review="fact" data-id="' + esc(f.id) + '">' +
+    '<div class="t"><b>' + esc(f.entity_id) + '</b> · ' + esc(f.field_name) + ': ' + esc(f.raw_value || f.normalized_value) + '</div>' +
+    '<div class="m">' + pill(f.validation_status) + ' conf ' + esc(f.confidence) + ' · ' +
+    (f.source_url ? '<a href="' + esc(f.source_url) + '" target="_blank" rel="noopener">' + esc(f.source_url) + '</a>' : 'source: ' + esc(f.source_domain || '—')) +
+    (f.evidence ? ' · ' + esc(f.evidence) : '') + '</div>' +
+    '<div class="row" style="margin-top:6px">' +
+    '<button class="ok" data-act="approve">approve</button> ' +
+    '<button class="err" data-act="reject">reject</button> ' +
+    '<button class="ghost" data-act="rollback">rollback</button></div></div>';
+}
+
+function relationRow(r) {
+  return '<div class="rowitem" data-review="relation" data-id="' + esc(r.id) + '">' +
+    '<div class="t"><b>' + esc(r.subject_id) + '</b> — ' + esc(r.predicate) + ' → ' +
+    esc(r.object_id || r.object_value || '?') + '</div>' +
+    '<div class="m">' + pill(r.validation_status) + ' conf ' + esc(r.confidence) + ' · ' +
+    (r.source_url ? esc(r.source_url) : 'source: ' + esc(r.source_domain || '—')) + '</div>' +
+    '<div class="row" style="margin-top:6px">' +
+    '<button class="ok" data-act="approve">approve</button> ' +
+    '<button class="err" data-act="reject">reject</button> ' +
+    '<button class="ghost" data-act="rollback">rollback</button></div></div>';
+}
+
+function aliasRow(e) {
+  const label = e.action === 'rename'
+    ? esc(e.prev_alias) + ' → ' + esc(e.alias)
+    : e.action + ' ' + esc(e.alias);
+  return '<div class="rowitem" data-review="alias" data-id="' + esc(e.id) + '">' +
+    '<div class="t"><b>' + esc(e.entity_id) + '</b> · ' + label + ' · lang ' + esc(e.language || '—') + '</div>' +
+    '<div class="m">' + pill(e.status) + (e.note ? ' · ' + esc(e.note) : '') + '</div>' +
+    '<div class="row" style="margin-top:6px">' +
+    '<button class="ok" data-act="approve">approve</button> ' +
+    '<button class="err" data-act="reject">reject</button> ' +
+    '<button class="ghost" data-act="rollback">rollback</button></div></div>';
+}
+
+async function loadQueues() {
+  try {
+    const body = await jcall('/api/studio/queues');
+    const q = body.queues || {};
+    const total = Object.values(q).reduce((n, arr) => n + (Array.isArray(arr) ? arr.length : 0), 0);
+    $('#queues-count').textContent = total ? total + ' в очереди' : 'чисто';
+    $('#queues-count').className = 'pill ' + (total ? 'warn' : 'ok');
+    let html = '';
+    html += renderQueueSection('Правки фактов (ожидают решения)', q.pending_fact_edits || [], factRow, 'нет');
+    html += renderQueueSection('Устаревшие факты', q.stale_facts || [], factRow, 'нет');
+    html += renderQueueSection('Конфликтующие факты', q.conflicting_facts || [], factRow, 'нет');
+    html += renderQueueSection('Правки связей', q.pending_relation_edits || [], relationRow, 'нет');
+    html += renderQueueSection('Связи вне словаря', q.unknown_predicate_relations || [], relationRow, 'нет');
+    html += renderQueueSection('Правки алиасов', q.pending_alias_edits || [], aliasRow, 'нет');
+    const dups = q.possible_duplicates || [];
+    html += renderQueueSection('Возможные дубликаты', dups, (d) =>
+      '<div class="rowitem"><div class="t"><b>' + esc(d.entityIdA) + '</b> ≈ <b>' + esc(d.entityIdB) + '</b></div>' +
+      '<div class="m">общие имена: ' + esc(d.overlap.join(', ')) + '</div>' +
+      '<div class="row" style="margin-top:6px"><button class="ok" data-merge-keep="' + esc(d.entityIdA) + '" data-merge-merge="' + esc(d.entityIdB) + '">Объединить →</button></div></div>', 'нет');
+    $('#queues-body').innerHTML = html || '<div class="empty">Все очереди пусты.</div>';
+  } catch (err) {
+    $('#queues-body').innerHTML = '<div class="empty" style="color:var(--err)">queues: ' + esc(err.message) + '</div>';
+  }
+}
+
+// ----------------------------------------------------------- entity card ----
+
+async function searchEntities() {
+  const q = $('#entity-q').value.trim();
+  try {
+    const body = await jcall('/api/studio/entities?q=' + encodeURIComponent(q));
+    const list = body.entities || [];
+    $('#entity-list').innerHTML = list.length
+      ? list.map((e) => '<li data-id="' + esc(e.entityId) + '">' +
+          '<b>' + esc(e.canonicalName) + '</b> <span class="pill mut">' + esc(e.entityType || '—') + '</span>' +
+          '<div class="m info-bar">' + esc(e.entityId) + ' · facts ' + e.factCount + ' (live ' + e.liveFactCount + ')</div></li>').join('')
+      : '<li class="empty">ничего не найдено</li>';
+  } catch (err) {
+    $('#entity-list').innerHTML = '<li class="empty" style="color:var(--err)">' + esc(err.message) + '</li>';
+  }
+}
+
+function cardAliasesHtml(aliasesByLang) {
+  const langs = Object.keys(aliasesByLang || {});
+  if (!langs.length) return '<div class="empty">нет алиасов</div>';
+  return langs.map((lang) =>
+    '<dt>' + esc(lang) + '</dt><dd>' + (aliasesByLang[lang] || []).map((a) => '<span class="pill mut">' + esc(a) + '</span>').join(' ') + '</dd>'
+  ).join('');
+}
+
+function cardFactsHtml(facts) {
+  if (!facts || !facts.length) return '<div class="empty">фактов нет</div>';
+  return facts.map((f) => '<div class="rowitem">' +
+    '<div class="t"><b>' + esc(f.field_name) + '</b>: ' + esc(f.raw_value || f.normalized_value) + '</div>' +
+    '<div class="m">' + pill(f.validation_status) + (f.active ? ' <span class="pill ok">live</span>' : '') + ' · conf ' + esc(f.confidence) +
+    (f.source_url ? ' · <a href="' + esc(f.source_url) + '" target="_blank" rel="noopener">' + esc(f.source_url) + '</a>' : '') +
+    (f.evidence ? ' · ' + esc(f.evidence) : '') +
+    ' · verified ' + esc(f.verified_at || '—') + '</div></div>').join('');
+}
+
+function cardRelationsHtml(relations) {
+  if (!relations || !relations.length) return '<div class="empty">связей нет</div>';
+  return relations.map((r) => '<div class="rowitem">' +
+    '<div class="t"><b>' + esc(r.subject_id) + '</b> — ' + esc(r.predicate) + ' → ' + esc(r.object_id || r.object_value || '?') + '</div>' +
+    '<div class="m">' + pill(r.validation_status) + (r.active ? ' <span class="pill ok">live</span>' : '') +
+    (r.source_url ? ' · <a href="' + esc(r.source_url) + '" target="_blank" rel="noopener">' + esc(r.source_url) + '</a>' : '') +
+    ' · relation_id: <code>' + esc(r.id) + '</code></div></div>').join('');
+}
+
+function cardHistoryHtml(history) {
+  if (!history || !history.length) return '<div class="empty">истории нет</div>';
+  return history.map((h) => '<div class="rowitem">' +
+    '<div class="t"><span class="pill mut">' + esc(h.kind || '—') + '</span> ' + esc(h.action) + ' ' + pill(h.new_status) + '</div>' +
+    '<div class="m">' + esc(h.changed_at || '') + ' · ' + esc(h.changed_by || '—') + (h.note ? ' · ' + esc(h.note) : '') + '</div></div>').join('');
+}
+
+async function openEntity(id) {
+  currentEntityId = id;
+  try {
+    const body = await jcall('/api/studio/entities/' + encodeURIComponent(id));
+    const c = body.card;
+    $('#card-meta').textContent = c.canonicalName + ' · ' + c.entityType;
+    let html = '<dl class="kv">';
+    html += '<dt>entity_id</dt><dd><code>' + esc(c.entityId) + '</code></dd>';
+    html += '<dt>name</dt><dd><b>' + esc(c.canonicalName) + '</b></dd>';
+    html += '<dt>type</dt><dd>' + esc(c.entityType || '—') + '</dd>';
+    html += '<dt>description</dt><dd>' + esc(c.description || '—') + '</dd>';
+    html += '<dt>merged_into</dt><dd>' + (c.mergedInto ? '<span class="pill warn">' + esc(c.mergedInto) + '</span>' : '<span class="pill ok">нет</span>') + '</dd>';
+    html += '</dl>';
+    html += '<div class="block"><h3>Алиасы</h3>' + cardAliasesHtml(c.aliases) + '</div>';
+    html += '<div class="block"><h3>Факты (' + (c.facts || []).length + ')</h3>' + cardFactsHtml(c.facts) + '</div>';
+    html += '<div class="block"><h3>Связи (' + (c.relations || []).length + ')</h3>' + cardRelationsHtml(c.relations) + '</div>';
+    html += '<details><summary>История изменений (' + (c.history || []).length + ')</summary>' + cardHistoryHtml(c.history) + '</details>';
+    $('#card-body').innerHTML = html;
+  } catch (err) {
+    $('#card-body').innerHTML = '<div class="empty" style="color:var(--err)">' + esc(err.message) + '</div>';
+  }
+}
+
+// ------------------------------------------------------------- actions -----
+
+async function doReview(kind, id, action) {
+  try {
+    const url = '/api/studio/' + kind + '/' + encodeURIComponent(id) + '/review';
+    const body = await post(url, { action, changedBy: 'admin-ui', note: action + ' via studio' });
+    flash(kind + ' ' + action + ' → ' + (body.fact ? body.fact.validation_status : body.relation ? body.relation.validation_status : body.edit ? body.edit.status : 'ok'));
+    loadQueues();
+    if (currentEntityId) openEntity(currentEntityId);
+  } catch (err) {
+    flash('review failed: ' + err.message, 8000);
+  }
+}
+
+async function doRollback(kind, id) {
+  try {
+    const url = '/api/studio/' + kind + '/' + encodeURIComponent(id) + '/rollback';
+    const body = await post(url, { changedBy: 'admin-ui', note: 'rollback via studio' });
+    flash('rollback ' + id + ' → ' + (body.fact ? body.fact.validation_status : body.relation ? body.relation.validation_status : body.edit ? body.edit.status : 'ok'));
+    loadQueues();
+    if (currentEntityId) openEntity(currentEntityId);
+  } catch (err) {
+    flash('rollback failed: ' + err.message, 8000);
+  }
+}
+
+async function createFact() {
+  try {
+    const body = await post('/api/studio/facts', {
+      entityId: $('#f-entity').value.trim(),
+      fieldName: $('#f-field').value.trim(),
+      value: $('#f-value').value.trim(),
+      sourceUrl: $('#f-source').value.trim() || null,
+      confidence: $('#f-conf').value,
+      evidence: $('#f-evidence').value.trim() || null,
+      changedBy: 'admin-ui',
+      note: 'created via studio',
+    });
+    flash('fact ' + body.fact.id + ' → ' + body.fact.validation_status);
+    loadQueues();
+  } catch (err) { flash('fact failed: ' + err.message, 8000); }
+}
+
+async function createRelation() {
+  try {
+    const body = await post('/api/studio/relations', {
+      subjectId: $('#r-subject').value.trim(),
+      predicate: $('#r-pred').value,
+      objectValue: $('#r-objval').value.trim() || null,
+      objectType: $('#r-objtype').value,
+      sourceUrl: $('#r-source').value.trim() || null,
+      changedBy: 'admin-ui',
+      note: 'created via studio',
+    });
+    flash('relation ' + body.relation.id + ' → ' + body.relation.validation_status);
+    loadQueues();
+  } catch (err) { flash('relation failed: ' + err.message, 8000); }
+}
+
+async function createAlias() {
+  try {
+    const body = await post('/api/studio/aliases', {
+      entityId: $('#a-entity').value.trim(),
+      alias: $('#a-alias').value.trim(),
+      language: $('#a-lang').value,
+      action: $('#a-action').value,
+      prevAlias: $('#a-prev').value.trim() || null,
+      changedBy: 'admin-ui',
+      note: 'created via studio',
+    });
+    flash('alias edit ' + body.edit.id + ' → ' + body.edit.status);
+    loadQueues();
+  } catch (err) { flash('alias failed: ' + err.message, 8000); }
+}
+
+async function merge(keepId, mergeId) {
+  try {
+    const body = await post('/api/studio/merge', { keepId, mergeId, changedBy: 'admin-ui', note: 'merge via studio' });
+    flash('merged ' + mergeId + ' → ' + keepId + ' (facts moved: ' + body.facts_moved + ')');
+    loadQueues();
+    searchEntities();
+  } catch (err) { flash('merge failed: ' + err.message, 8000); }
+}
+
+async function loadPredicates() {
+  try {
+    const body = await jcall('/api/studio/predicates');
+    predicates = body.predicates || [];
+    $('#r-pred').innerHTML = predicates.map((p) => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+    $('#db-warning').style.display = body.database_enabled ? 'none' : 'block';
+  } catch (err) {
+    flash('predicates: ' + err.message, 8000);
+  }
+}
+
+// ------------------------------------------------------------ events -------
+
+$('#btn-search').addEventListener('click', searchEntities);
+$('#entity-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchEntities(); });
+$('#entity-list').addEventListener('click', (e) => {
+  const li = e.target.closest('li[data-id]');
+  if (!li) return;
+  document.querySelectorAll('#entity-list li').forEach((x) => x.classList.remove('selected'));
+  li.classList.add('selected');
+  openEntity(li.dataset.id);
+});
+$('#btn-fact').addEventListener('click', createFact);
+$('#btn-relation').addEventListener('click', createRelation);
+$('#btn-alias').addEventListener('click', createAlias);
+$('#btn-merge').addEventListener('click', () => {
+  const keep = $('#m-keep').value.trim();
+  const mergeId = $('#m-merge').value.trim();
+  if (keep && mergeId) merge(keep, mergeId);
+});
+$('#btn-refresh-queues').addEventListener('click', loadQueues);
+
+$('#queues-body').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-act]');
+  const mergeBtn = e.target.closest('button[data-merge-keep]');
+  if (btn) {
+    const item = btn.closest('[data-review]');
+    const kind = item.dataset.review;
+    const id = item.dataset.id;
+    if (btn.dataset.act === 'approve' || btn.dataset.act === 'reject') doReview(kind, id, btn.dataset.act);
+    else if (btn.dataset.act === 'rollback') doRollback(kind, id);
+  } else if (mergeBtn) {
+    merge(mergeBtn.dataset.mergeKeep, mergeBtn.dataset.mergeMerge);
+  }
+});
+
+function init() {
+  loadPredicates();
+  loadQueues();
+  searchEntities();
+}
+
+init();
+</script>
+</body>
+</html>

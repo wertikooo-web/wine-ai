@@ -38,6 +38,7 @@ const { orchestrateKnowledge } = require('./knowledge/knowledgeOrchestrator');
 const { listAnswerModes, ANSWER_MODES } = require('./knowledge/answerModes');
 const { runAnswerAudit, SUPPORTED_CONSTRAINTS } = require('./knowledge/answerAudit');
 const auditStore = require('./knowledge/auditStore');
+const { createStudioApi } = require('./knowledge/studio/studioApi');
 const { MockAvatarProvider } = require('./avatar/providers/mockAvatarProvider');
 const { initKosSchema, isKosSchemaReady, getKosSchemaError } = require('./kos/db/kosSchema');
 const sourceIngestionService = require('./kos/sources/sourceIngestionService');
@@ -207,6 +208,8 @@ function sendJson(res, statusCode, payload) {
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 
+const studioApi = createStudioApi({ sendJson, readJsonBody });
+
 function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     return new Promise((resolve, reject) => {
         let received = 0;
@@ -232,7 +235,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -327,6 +330,22 @@ async function handleRequest(req, res) {
         const filePath = path.join(publicDir, 'answer-audit.html');
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 500, { ok: false, error: 'answer_audit_not_available' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    // Knowledge Studio admin screen (Phase 5): the editor surface to repair
+    // production knowledge — entity card, aliases (RU/RO/EN), facts and
+    // relations with provenance, review queues, approve/reject, duplicate
+    // merge, and rollback. Backed by /api/studio/*. Same convention as the
+    // Answer Audit admin screen: served directly, no secrets in the page.
+    if (req.method === 'GET' && pathname === '/knowledge-studio') {
+        const filePath = path.join(publicDir, 'knowledge-studio.html');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 500, { ok: false, error: 'knowledge_studio_not_available' }))
             .once('open', () => {
                 res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
             })
@@ -1960,6 +1979,11 @@ async function handleRequest(req, res) {
         } catch (error) {
             return sendJson(res, 500, { ok: false, error: 'update_failed', message: error.message });
         }
+    }
+
+    // Knowledge Studio admin API (Phase 5) — see src/knowledge/studio/studioApi.js.
+    if (await studioApi.handle(req, res, pathname, requestUrl)) {
+        return undefined;
     }
 
     return sendJson(res, 404, { ok: false, error: 'not_found' });
