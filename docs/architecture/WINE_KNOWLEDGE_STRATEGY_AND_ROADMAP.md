@@ -448,6 +448,31 @@ and `source` (`type: relation`, `url: knowledge/source/<winery>.md`).
 
 Exit condition: an editor can repair knowledge without direct PostgreSQL access.
 
+**Status (2026-08-12): COMPLETE.** The editor-facing workflow store
+(`src/knowledge/studio/studioStore.js`) — entity facts + provenance history
+ledger, entity relations review, alias edit review queue (RU/RO/EN against the
+canonical registry file), duplicate merge, approve/reject, supersede, and
+rollback — plus the thin HTTP surface (`src/knowledge/studio/studioApi.js`,
+`/api/studio/*`) and the admin page (`/knowledge-studio`, `public/knowledge-studio.html`)
+are merged (PR #60, merge commit `d96f2c9`, branch `feat/phase5-knowledge-studio`)
+and deployed (Railway `013a3f9d`). The memory-PG test engine now emulates the
+production canonical `entity_facts` SELECT read path so the exact answer-path
+query evaluates in tests.
+
+Coverage: `tests/studioStore.test.js` (lifecycle), `tests/studioApi.test.js`
+(HTTP contract + Postgres-required mutation guard), `tests/studioCanonicalWorkflow.test.js`
+(end-to-end `edit → review/approve → answer uses the knowledge → rollback` for a
+fact, a relation, and an alias, plus Answer-Audit claim-set visibility of an
+approved fact).
+
+Production workflow proven on 2026-08-12 against the live API: a studio fact
+entered as an inactive `candidate` (invisible to the answer path), was `approved`,
+became the top `verified_fact` in `/api/knowledge/orchestrate` (claim text
+`smoke_test_marker: …`, source `studio.local`, provenance verified_at), surfaced
+in the Answer Audit, and was rolled back to `rejected`/inactive — gone from the
+answer path again. Exit condition met: an editor repairs production knowledge
+through `/knowledge-studio` with no direct PostgreSQL access.
+
 ### Phase 6. Wine Intelligence
 
 After the knowledge base is reliable, add:
