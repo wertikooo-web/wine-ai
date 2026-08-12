@@ -2,6 +2,7 @@ node_modules/
 .env
 *.log
 knowledge/index/*.json
+knowledge/audit/*.json
 !knowledge/index/.gitkeep
 # Local file-based fallback for the discovered-docs store (prod uses Postgres
 # via DATABASE_URL) — this is throwaway local dev/test state, not source data.
@@ -55,3 +56,6 @@ experiments/adaptive-routing/*-results.json
 experiments/adaptive-routing/ab-b*.json
 experiments/adaptive-routing/fx-b*.json
 experiments/adaptive-routing/smoke-batch*.json
+
+# Local-only secret/probe files - never commit (may contain credentials)
+.local-tmp/

@@ -3,7 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const ALIASES_FILE = path.join(__dirname, '..', '..', 'knowledge', 'entity-aliases.json');
+// Resolved lazily so tests and the Knowledge Studio can point the resolver at
+// a different registry file (ENTITY_ALIASES_FILE) without touching the module
+// load order — the Studio's alias approval path writes this same file, so
+// both writer and reader must agree on which path is canonical at runtime.
+function aliasesFilePath() {
+    return process.env.ENTITY_ALIASES_FILE || path.join(__dirname, '..', '..', 'knowledge', 'entity-aliases.json');
+}
 
 const MIN_FUZZY_INPUT_LENGTH = 4;
 const FUZZY_MATCH_THRESHOLD = 0.7;
@@ -32,12 +38,22 @@ function _isGenericWineTerm(input) {
 const _aliasCacheByPath = new Map();
 
 function _loadAliases(aliasesFile) {
-  const filePath = aliasesFile || ALIASES_FILE;
+  const filePath = aliasesFile || aliasesFilePath();
   if (_aliasCacheByPath.has(filePath)) return _aliasCacheByPath.get(filePath);
   const raw = fs.readFileSync(filePath, 'utf8');
   const data = JSON.parse(raw);
   _aliasCacheByPath.set(filePath, data);
   return data;
+}
+
+// Invalidates the resolver's per-path alias cache. The Knowledge Studio calls
+// this after it applies an approved alias edit / entity merge to the registry
+// file, so the running process resolves the new aliases immediately (no
+// restart). Purely additive — no behavior change for existing callers.
+function invalidateAliasCache(aliasesFile) {
+  const filePath = aliasesFile || aliasesFilePath();
+  _aliasCacheByPath.delete(filePath);
+  return true;
 }
 
 function _normalizeForCompare(str) {
@@ -459,4 +475,6 @@ module.exports = {
   findByEntityId,
   getAllEntityIds,
   findMentionedEntities,
+  invalidateAliasCache,
+  aliasesFilePath,
 };
