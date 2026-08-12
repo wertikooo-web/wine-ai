@@ -105,6 +105,14 @@ async function run() {
         wrapped.ok(used.provenance.verified_at, 'answer provenance carries verified_at');
         wrapped.equal(used.source, 'https://purcari.md/about', 'answer provenance carries source_url');
 
+        // The Answer Audit renders claim provenance (buildClaimsFromEvidence →
+        // publicClaim), so the same canonical item must surface in a claim.
+        const { buildClaimsFromEvidence } = require('../src/knowledge/claimProvenance');
+        const auditClaim = buildClaimsFromEvidence(after).find((c) => c.source?.url === 'https://purcari.md/about');
+        wrapped.ok(auditClaim, 'approved fact is visible in the Answer Audit claim set');
+        wrapped.equal(auditClaim.claim, 'founded_year: 1827', 'audit claim text carries the edited value');
+        wrapped.ok(auditClaim.source.verified_at, 'audit claim carries the fact verified_at');
+
         // ---------------- 4. rollback: brand-new fact leaves canonical layer --
         const rolledBack = await studio.rollbackFact(fact.id, { changedBy: 'editor-smoke', note: 'mistake' }, { pool });
         wrapped.equal(rolledBack.validation_status, 'rejected', 'brand-new fact rolls back to rejected');
