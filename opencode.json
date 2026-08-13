@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "docs/agent-context/WORKFLOW_EFFICIENCY.md"
+    "docs/agent-context/AGENT_WORKFLOW.md"
   ]
 }
