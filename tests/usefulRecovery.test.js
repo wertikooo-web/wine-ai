@@ -70,9 +70,9 @@ async function run() {
 
     // ---------------------------------------------------------------- classifyStrategy ----
     assert.strictEqual(
-        classifyStrategy(groundResult(), 'question'),
+        classifyStrategy(groundResult({ evidence_entity_match: 'match' }), 'question'),
         RECOVERY_STRATEGIES.PARTIAL_EVIDENCE,
-        'recovered-but-not-answering evidence -> partial evidence');
+        'retrieved-and-attributed but not answering evidence -> partial evidence');
     assert.strictEqual(
         classifyStrategy(groundResult({ evidence_entity_match: 'mismatch' }), 'question'),
         RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES,
@@ -86,6 +86,35 @@ async function run() {
     assert.strictEqual(
         classifyStrategy({ found: false, evidence: [] }, 'Какой виноград у Castel Mimi?'),
         RECOVERY_STRATEGIES.NEAREST_CONFIRMED_FACT);
+
+    // A discovery-framed request must not be flattened into partial evidence by
+    // retrieved fragments: advice the user asked for outweighs the literal.
+    assert.strictEqual(
+        classifyStrategy(groundResult(), 'Посоветуй молодую малоизвестную молдавскую винодельню'),
+        RECOVERY_STRATEGIES.PREFERENCE_DISCOVERY);
+    assert.strictEqual(
+        classifyStrategy(groundResult(), 'Хочу что-нибудь необычное из Молдовы'),
+        RECOVERY_STRATEGIES.PREFERENCE_DISCOVERY);
+    assert.strictEqual(
+        classifyStrategy(groundResult(), 'Что попробовать вместо Purcari?'),
+        RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES);
+    assert.strictEqual(
+        classifyStrategy(groundResult(), 'Recomandă o cramă mică și mai puțin cunoscută din Moldova'),
+        RECOVERY_STRATEGIES.PREFERENCE_DISCOVERY);
+    // An entity mismatch stays supreme even inside a discovery-framed question.
+    assert.strictEqual(
+        classifyStrategy(groundResult({ evidence_entity_match: 'mismatch' }), 'Что-нибудь необычное вместо Purcari?'),
+        RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES);
+    // A partial pass REQUIRES the gate's "match" verdict: when the evidence
+    // could not be attributed to the asked entity, recycling it would be the
+    // wrong-entity attribution the gate forbids.
+    assert.strictEqual(
+        classifyStrategy(groundResult({ evidence_entity_match: 'match' }), 'Какова крепость Negru de Purcari 2019?'),
+        RECOVERY_STRATEGIES.PARTIAL_EVIDENCE);
+    assert.strictEqual(
+        classifyStrategy(groundResult(), 'Какова крепость Negru de Purcari 2019?'),
+        RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES,
+        'unattributable evidence (no "match") must not be answered as the confirmed part');
 
     // ---------------------------------------------------------------- pickCandidates ----
     const picked = pickCandidates([
@@ -107,7 +136,7 @@ async function run() {
     {
         const result = await attemptRecovery({
             question: 'Какая крепость у Purcari Negru de Purcari 2019?',
-            retrieval: groundResult(),
+            retrieval: groundResult({ evidence_entity_match: 'match' }),
         });
         assert.ok(result && result.applied === true);
         assert.strictEqual(result.strategy, RECOVERY_STRATEGIES.PARTIAL_EVIDENCE);
@@ -122,7 +151,7 @@ async function run() {
     {
         const result = await attemptRecovery({
             question: 'q',
-            retrieval: groundResult(),
+            retrieval: groundResult({ evidence_entity_match: 'match' }),
             evidence: [item(9)],
         });
         assert.strictEqual(result.candidates.length, 1);
@@ -133,11 +162,25 @@ async function run() {
     {
         const result = await attemptRecovery({
             question: 'q',
-            retrieval: groundResult({ evidence: [item(3, { confidence: 'unverified' })] }),
+            retrieval: groundResult({ evidence_entity_match: 'match', evidence: [item(3, { confidence: 'unverified' })] }),
         });
         assert.ok(result && result.applied === false);
         assert.strictEqual(result.strategy, RECOVERY_STRATEGIES.HONEST_LIMITATION);
         assert.strictEqual(result.final_instruction, DEAD_END_FINAL_INSTRUCTION);
+    }
+
+    // a mismatch recovers via a discovery pass; also without a graded match a
+    // partial would not be safe, revealing the alternativestrategy.
+    {
+        const calls = [];
+        const result = await attemptRecovery({
+            question: 'Какова крепость Negru de Purcari 2019?',
+            retrieval: groundResult({ evidence_entity_match: 'not_applicable' }),
+            discoveryRouter: stubRouter([item(8, { title: 'Alternative facts' })], calls),
+        });
+        assert.strictEqual(result.strategy, RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES);
+        assert.strictEqual(calls.length, 1, 'unattributable evidence -> one discovery pass for alternatives');
+        assert.strictEqual(result.candidates[0].title, 'Alternative facts');
     }
 
     // ---------------------------------------------------------------- discovery (A/B/C) ----

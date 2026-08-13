@@ -9,6 +9,7 @@ const {
     hallucinationRisk,
     modeCorrectness,
     constraintCompliance,
+    recoveryMetrics,
     auditMetrics,
 } = require('../src/knowledge/auditMetrics');
 
@@ -99,6 +100,29 @@ async function run() {
     assert.strictEqual(metrics.mode_correctness.correct, true);
     assert.strictEqual(metrics.constraints.compliant, true);
     assert.strictEqual(metrics.hallucination.risk, 'low');
+
+    // recoveryMetrics: null/absent recovery -> not needed; applied and
+    // dead-end outcomes split cleanly for aggregation.
+    const recovered = recoveryMetrics({ ...claim(), recovery: { applied: true, strategy: 'partial_evidence' } });
+    assert.strictEqual(recovered.needs_recovery, true);
+    assert.strictEqual(recovered.applied, true);
+    assert.strictEqual(recovered.dead_end, false);
+    assert.strictEqual(recovered.outcome, 'recovered');
+    assert.strictEqual(recovered.strategy, 'partial_evidence');
+    const deadEnd = recoveryMetrics({ recovery: { applied: false, strategy: 'honest_limitation', reason: 'no_candidates' } });
+    assert.strictEqual(deadEnd.applied, false);
+    assert.strictEqual(deadEnd.dead_end, true);
+    assert.strictEqual(deadEnd.outcome, 'dead_end');
+    assert.deepStrictEqual(recoveryMetrics({}), { needs_recovery: false, applied: false, dead_end: false, outcome: 'not_needed', strategy: null, reason: null });
+    assert.deepStrictEqual(recoveryMetrics(null), { needs_recovery: false, applied: false, dead_end: false, outcome: 'not_needed', strategy: null, reason: null });
+
+    // auditMetrics surfaces the recovery block under metrics.recovery.
+    const recoveredMetrics = auditMetrics({ ...claim(), answerable: false, found: true, recovery: { applied: true, strategy: 'partial_evidence', claims: [claim()] } });
+    assert.strictEqual(recoveredMetrics.recovery.needs_recovery, true);
+    assert.strictEqual(recoveredMetrics.recovery.outcome, 'recovered');
+    const notNeededMetrics = auditMetrics({ found: false, answerable: false, recovery: null, claims: [] });
+    assert.strictEqual(notNeededMetrics.recovery.needs_recovery, false);
+    assert.strictEqual(notNeededMetrics.recovery.outcome, 'not_needed');
 
     console.log('auditMetrics: all assertions passed');
 }
