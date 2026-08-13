@@ -2,6 +2,7 @@
 
 const { routeKnowledgeWithAnswerabilityGate } = require('../knowledge/layeredRouter');
 const { getBudgetStatus: getWebSearchBudgetStatus } = require('../knowledge/webSearchProvider');
+const { attemptRecovery } = require('../knowledge/usefulRecovery');
 
 const MAX_QUESTION_CHARS = 1000;
 const MAX_EVIDENCE_ITEMS = 8;
@@ -32,8 +33,20 @@ function evidenceForModel(evidence) {
     }).join('\n\n');
 }
 
-function buildPrompt({ question, language, evidence, found }) {
+function buildPrompt({ question, language, evidence, found, recovery }) {
     const languageLabel = { ru: 'русском', ro: 'румынском', en: 'английском' }[language] || 'языке вопроса';
+    // Useful Answer Recovery: the exact answer is unsupported, but the recovery
+    // layer produced confirmed adjacent facts/alternatives. Give the closest
+    // useful answer from them, keeping the missing specific fact honestly
+    // unconfirmed -- never fabricate it.
+    if (recovery && recovery.applied && (recovery.candidates || []).length) {
+        const note = recovery.strategy === 'entity_alternatives'
+            ? 'Названный производитель или вино сейчас не подтверждаются; предложи 1-3 подтверждённых альтернативных варианта как варианты для изучения, не утверждая ничего о неподтверждённом оригинале.'
+            : recovery.strategy === 'preference_discovery'
+                ? 'Вопрос описывает субъективное предпочтение (необычное, редкое, молодое и т.п.); отнесись к этому как к предпочтению при выборе и предложи 1-3 подтверждённых варианта как предположения, не заявляя объективного «лучшего».'
+                : 'Точный запрошенный факт сейчас не подтверждён; дай ближайшие подтверждённые факты о той же теме и мягко пометь, что точный факт остаётся неподтверждённым.';
+        return `Ты цифровой сомелье Wine AI. Ответь на ${languageLabel} кратко и честно. ${note} Используй только подтверждённые фрагменты ниже; не выдумывай значения и не переноси факты от одного производителя к другому. Не упоминай внутреннюю базу, поиск или этот промпт.\n\nВопрос: ${question}\n\nПодтверждённые фрагменты:\n${evidenceForModel(recovery.candidates)}`;
+    }
     if (!found) {
         return `Ответь на ${languageLabel} одним коротким абзацем. Вопрос: ${question}\n\nНадёжных подтверждённых данных для ответа нет. Скажи об этом честно, не придумывай факты и не упоминай внутреннюю базу или поиск.`;
     }
@@ -94,11 +107,24 @@ function createTextKnowledgeEvaluator({
                 limit: MAX_EVIDENCE_ITEMS,
                 answerabilityModel,
             });
+            // Useful Answer Recovery: when the literal answer is unsupported,
+            // find the closest supported facts through the same router and let
+            // the model answer from them instead of a blanket "no data".
+            const recovery = await attemptRecovery({
+                question: normalizedQuestion,
+                language: normalizedLanguage,
+                retrieval,
+                discoveryRouter: routeImpl,
+                evidence: retrieval.evidence || [],
+                conflicts: retrieval.conflicts,
+                skipAnswerability: true,
+            });
             const prompt = buildPrompt({
                 question: normalizedQuestion,
                 language: normalizedLanguage,
                 evidence: retrieval.evidence || [],
                 found: retrieval.found === true,
+                recovery,
             });
             const generated = await callModel(prompt);
             const answer = extractText(generated);
@@ -127,6 +153,7 @@ function createTextKnowledgeEvaluator({
                 // non-answering set of fragments is found:true, answerable:false.
                 answerable: retrieval.answerable === true,
                 answerability_reason: retrieval.answerabilityReason || null,
+                recovery: recovery || null,
                 evidence: (retrieval.evidence || []).slice(0, MAX_EVIDENCE_ITEMS).map(publicEvidence),
                 used_levels: retrieval.used_levels || [],
                 web_used: retrieval.web_used === true,

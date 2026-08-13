@@ -133,20 +133,22 @@ async function run() {
         const result = await impl({ query: 'Какая крепость у Purcari Negru de Purcari 2019?' }, context);
 
         assert.strictEqual(result.claimClass, CLAIM_CLASSES.GROUNDING_REQUIRED);
-        assert.strictEqual(result.status, 'insufficient');
+        assert.strictEqual(result.status, 'recovered');
         assert.strictEqual(result.answerable, false, 'an unsupported specific claim must not be permitted');
+        assert.strictEqual(result.recovery.strategy, 'partial_evidence',
+            'evidence was retrieved but does not answer the specific question -> answer only the confirmed part');
         const instruction = result.answer_policy.final_instruction;
-        assert.ok(/cannot be reliably confirmed right now/i.test(instruction),
-            'the model must be told the fact is unconfirmed');
-        assert.ok(/will not invent it/i.test(instruction), 'the model must be told not to fabricate the value');
-        // Persona guard: the refusal must stay a sommelier, not a compliance
+        assert.ok(/Only part of this question can be confirmed right now/i.test(instruction),
+            'the model must be told only the confirmed part can be answered');
+        assert.ok(/Do not invent the unconfirmed part/i.test(instruction), 'the model must be told not to fabricate the value');
+        // Persona guard: the recovery must stay a sommelier, not a compliance
         // notice. Regression pin for the rejected phrasing style
         // ("Недостаточно контекстуальной доказательной информации...").
-        assert.ok(/warm, natural voice/i.test(instruction), 'refusal must stay in sommelier voice');
-        assert.ok(/offer something genuinely useful/i.test(instruction),
-            'an honest decline must still offer the user a way forward');
-        assert.ok(/no bureaucratic or legalistic phrasing/i.test(instruction),
-            'the refusal must explicitly forbid legalese');
+        assert.ok(/warm sommelier voice/i.test(instruction), 'recovery must stay in sommelier voice');
+        assert.ok(/two short natural sentences/i.test(instruction),
+            'recovery must stay spoken-word short, not an essay');
+        assert.ok(!/Answer directly and confidently/i.test(instruction),
+            'recovery must never present the loosely-related fragments as a confident full answer');
     }
 
     // ---------------------------------------------------------------- 3 ----
@@ -173,8 +175,11 @@ async function run() {
         assert.strictEqual(result.entityMatch, 'mismatch');
         assert.strictEqual(result.answerable, false,
             'evidence about a different producer must not make the claim answerable');
-        assert.strictEqual(result.status, 'insufficient');
+        assert.strictEqual(result.status, 'recovered', 'a mismatch must recover to confirmed alternatives, not reuse the wrong producer\'s evidence');
+        assert.strictEqual(result.recovery.strategy, 'entity_alternatives');
         const instruction = result.answer_policy.final_instruction;
+        assert.ok(/Never state facts about the unconfirmed original/i.test(instruction),
+            'the recovered alternatives must never attach facts to the unconfirmed winery');
         assert.ok(/DIFFERENT producer or wine than the one asked about/i.test(instruction),
             'the model must be warned about the entity mismatch explicitly');
         assert.ok(/Never transfer a fact from one producer or bottling to another/i.test(instruction),
@@ -381,7 +386,9 @@ async function run() {
         assert.strictEqual(result.claimClass, CLAIM_CLASSES.GROUNDING_REQUIRED);
         assert.notStrictEqual(result.status, 'general_knowledge',
             'a silent grader must never unlock free-form answering for a product-fact question');
-        assert.ok(/cannot be reliably confirmed right now/i.test(result.answer_policy.final_instruction));
+        assert.notStrictEqual(result.answerable, true, 'a silent grader must never make a specific claim confidently answerable');
+        assert.strictEqual(result.recovery.strategy, 'partial_evidence');
+        assert.ok(/Only part of this question can be confirmed right now/i.test(result.answer_policy.final_instruction));
     }
 
     console.log('ALL CLAIM-DEPENDENT ANSWERABILITY GATE TESTS PASSED!');

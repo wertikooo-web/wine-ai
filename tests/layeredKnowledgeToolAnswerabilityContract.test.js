@@ -110,8 +110,8 @@ async function run() {
     {
         const eightFragments = Array.from({ length: 8 }, (_, i) => similarButIrrelevantFragment(i + 1));
         // Web is attempted (webItems empty -> web_used stays false) so the
-        // tool must still surface an honest "insufficient" outcome, not a
-        // confident answer, once evidence truly cannot confirm the fact.
+        // tool must recover to the closest supported facts (partial evidence)
+        // rather than pretend the fragments answer the pairing question.
         const { impl } = toolImplWithGate({
             documentItems: eightFragments,
             webItems: [],
@@ -124,9 +124,16 @@ async function run() {
         assert.strictEqual(result.found, true);
         assert.strictEqual(result.answerable, false, 'the assistant must not imitate knowledge it does not have');
         assert.strictEqual(result.webUsed, false, 'web found nothing new, so webUsed correctly stays false');
-        assert.strictEqual(result.status, 'insufficient');
-        assert.ok(/cannot be reliably confirmed|honest/i.test(result.answer_policy.final_instruction),
-            'even after an unsuccessful web attempt, the model must be told to answer honestly rather than guess');
+        assert.strictEqual(result.status, 'recovered', 'the answer path must recover to the closest supported facts instead of a dead-end refusal');
+        assert.ok(result.recovery && result.recovery.applied === true, 'a recovery block must be attached');
+        assert.strictEqual(result.recovery.strategy, 'partial_evidence');
+        assert.ok(result.claims.length > 0, 'recovery must supply provenance-carrying claims');
+        assert.ok(result.claims.every((claim) => claim.source && (claim.source.url || claim.source.title || claim.source.document_page)),
+            'every recovered claim must carry provenance');
+        assert.ok(/Only part of this question can be confirmed right now/i.test(result.answer_policy.final_instruction),
+            'the model must be told to answer only the confirmed part, not the whole question');
+        assert.ok(/Do not invent the unconfirmed part/i.test(result.answer_policy.final_instruction),
+            'recovery must keep the anti-fabrication limit explicit');
     }
 
     console.log('Testing: a genuinely covering fragment -> found:true, answerable:true, no web call, confident-answer instruction...');
