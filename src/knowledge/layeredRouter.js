@@ -740,6 +740,19 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     // caller-supplied name list; options.knownEntityNames still steers
     // classifyQueryIntent()'s web routing and is deliberately not forwarded here.
     const deterministicClass = classifyClaimDependency(query, options.resolveEntityFn ? { resolveEntityFn: options.resolveEntityFn } : {});
+    if (options.skipAnswerability === true) {
+        // Internal hand-off callers (e.g. Recovery's discovery pass) want the
+        // routed evidence only -- no LLM grading call and no web fallback.
+        // answerable stays ungraded (undefined), exactly like a bare
+        // routeKnowledge() call, so this branch can never be read as a
+        // confirmed answer.
+        return {
+            ...base,
+            answerabilityReason: null,
+            claim_class: deterministicClass,
+            evidence_entity_match: null,
+        };
+    }
     if (!base.found) {
         // No evidence at all is still not automatically a refusal: for a
         // general-knowledge question the model's own training is a legitimate,

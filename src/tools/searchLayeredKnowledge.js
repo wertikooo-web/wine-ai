@@ -11,6 +11,7 @@ const {
     summarizeFreshness,
     rankClaims,
 } = require('../knowledge/claimProvenance');
+const { attemptRecovery } = require('../knowledge/usefulRecovery');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -207,17 +208,89 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         }));
 
         if (!result.found) {
+            if (isGeneralKnowledge) {
+                return {
+                    found: false,
+                    // Retrieval finding nothing is not the same as the assistant
+                    // being forbidden to answer. For a general wine-knowledge
+                    // question the model's own training is a legitimate source and
+                    // carries no risk of inventing a specific unverifiable fact.
+                    answerable: true,
+                    claimClass,
+                    answerabilityReason: result.answerabilityReason || 'no_evidence',
+                    webUsed: result.web_used === true,
+                    status: 'general_knowledge',
+                    answer_mode: answerMode,
+                    evidence: [],
+                    results: [],
+                    conflicts: [],
+                    claims: [],
+                    freshness: { freshness_sensitive: result.freshness_sensitive === true, dynamic_fields_present: false, synced_through: null },
+                    answer_policy: {
+                        ...result.answer_policy,
+                        final_instruction: GENERAL_KNOWLEDGE_INSTRUCTION,
+                    },
+                };
+            }
+
+            // Useful Answer Recovery: retrieval found nothing for an
+            // entity-specific question. Before collapsing into the dead-end
+            // refusal, run one deterministic recovery pass through the SAME
+            // router (injected adapters stay honored): reframe the question
+            // and discover the closest supported facts or alternatives. If
+            // nothing supported exists, the response is byte-for-byte the old
+            // honest refusal -- no regression.
+            const recovery = await attemptRecovery({
+                question: retrievalQuery,
+                language,
+                retrieval: result,
+                discoveryRouter: routeImpl,
+                evidence: [],
+                conflicts: result.conflicts,
+                allowedLevels: policy.levels,
+                allowCatalog: policy.allowCatalog,
+                skipAnswerability: true,
+            });
+            if (recovery && recovery.applied) {
+                const recoveryFreshness = summarizeFreshness(recovery.claims, result.freshness_sensitive === true);
+                return {
+                    found: false,
+                    // Recovery never flips the gate: `answerable` stays false.
+                    // It only supplies confirmed adjacent facts the model may
+                    // speak to instead of a blanket refusal.
+                    answerable: false,
+                    claimClass,
+                    answerabilityReason: result.answerabilityReason || 'no_evidence',
+                    webUsed: result.web_used === true,
+                    status: 'recovered',
+                    answer_mode: answerMode,
+                    evidence: recovery.candidates,
+                    results: recovery.candidates,
+                    conflicts: recovery.conflicts,
+                    claims: recovery.claims,
+                    used_levels: [...new Set(recovery.candidates.map((item) => item.level))],
+                    freshness: recoveryFreshness,
+                    freshness_sensitive: result.freshness_sensitive === true,
+                    recovery: {
+                        applied: true,
+                        strategy: recovery.strategy,
+                        reason: recovery.reason,
+                        final_instruction: recovery.final_instruction,
+                    },
+                    answer_policy: {
+                        ...result.answer_policy,
+                        final_instruction: recovery.final_instruction,
+                    },
+                };
+            }
+
             return {
                 found: false,
-                // Retrieval finding nothing is not the same as the assistant
-                // being forbidden to answer. For a general wine-knowledge
-                // question the model's own training is a legitimate source and
-                // carries no risk of inventing a specific unverifiable fact.
-                answerable: isGeneralKnowledge ? true : false,
+                answerable: false,
                 claimClass,
                 answerabilityReason: result.answerabilityReason || 'no_evidence',
                 webUsed: result.web_used === true,
-                status: isGeneralKnowledge ? 'general_knowledge' : 'not_found',
+                status: 'not_found',
                 answer_mode: answerMode,
                 evidence: [],
                 results: [],
@@ -226,9 +299,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 freshness: { freshness_sensitive: result.freshness_sensitive === true, dynamic_fields_present: false, synced_through: null },
                 answer_policy: {
                     ...result.answer_policy,
-                    final_instruction: isGeneralKnowledge
-                        ? GENERAL_KNOWLEDGE_INSTRUCTION
-                        : GROUNDED_REFUSAL_INSTRUCTION,
+                    final_instruction: GROUNDED_REFUSAL_INSTRUCTION,
                 },
             };
         }
@@ -245,9 +316,61 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             // Fragments were retrieved (found:true) but the answerability
             // gate -- and, when allowed, a web fallback already attempted
             // inside it -- could not confirm they cover this specific
-            // question. Topical similarity is not knowledge: tell the
-            // model to say so honestly instead of answering from
-            // loosely-related fragments.
+            // question. Topical similarity is not knowledge. Useful Answer
+            // Recovery gets one deterministic pass: either the fragments
+            // partially cover the question (answer only the confirmed part)
+            // or -- on a declared entity mismatch -- discovery finds confirmed
+            // alternatives instead of reusing another producer's evidence.
+            if (!isGeneralKnowledge) {
+                const recovery = await attemptRecovery({
+                    question: retrievalQuery,
+                    language,
+                    retrieval: result,
+                    discoveryRouter: routeImpl,
+                    evidence: allowedEvidence,
+                    conflicts: result.conflicts,
+                    allowedLevels: policy.levels,
+                    allowCatalog: policy.allowCatalog,
+                    skipAnswerability: true,
+                });
+                if (recovery && recovery.applied) {
+                    const recoveryFreshness = summarizeFreshness(recovery.claims, result.freshness_sensitive === true);
+                    return {
+                        found: true,
+                        // Preserve the real tri-state signal (false = checked
+                        // and rejected, null = unknown/grader unavailable) --
+                        // recovery enriches, it never flips answerable.
+                        answerable: result.answerable === true ? true : result.answerable,
+                        claimClass,
+                        entityMatch,
+                        answerabilityReason: result.answerabilityReason || null,
+                        webUsed: result.web_used === true,
+                        webReason: result.web_reason || null,
+                        webSources,
+                        status: 'recovered',
+                        evidence: recovery.candidates,
+                        results: recovery.candidates,
+                        answer_mode: answerMode,
+                        claims: recovery.claims,
+                        freshness: recoveryFreshness,
+                        used_levels: [...new Set(recovery.candidates.map((item) => item.level))],
+                        freshness_sensitive: result.freshness_sensitive,
+                        conflicts: recovery.conflicts,
+                        recovery: {
+                            applied: true,
+                            strategy: recovery.strategy,
+                            reason: recovery.reason,
+                            final_instruction: recovery.final_instruction,
+                        },
+                        answer_policy: {
+                            ...result.answer_policy,
+                            final_instruction: recovery.final_instruction
+                                + (entityMatch === 'mismatch' ? ENTITY_MISMATCH_NOTE : ''),
+                        },
+                    };
+                }
+            }
+
             return {
                 found: true,
                 // Preserve the real tri-state signal (false = checked and

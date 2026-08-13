@@ -28,6 +28,7 @@ const {
     summarizeFreshness,
     rankClaims,
 } = require('./claimProvenance');
+const { attemptRecovery } = require('./usefulRecovery');
 
 function normalizeQuestion(question) {
     const text = String(question || '').trim();
@@ -100,6 +101,30 @@ async function orchestrateKnowledge(question, options = {}) {
         values: conflict.values,
     }));
 
+    // Useful Answer Recovery: when the literal answer is not supported, run
+    // one deterministic recovery pass through the same router and surface the
+    // closest supported facts/alternatives in a `recovery` block. Recovery
+    // never flips `answerable` and never changes the literal `claims`
+    // contract -- it is a separate, transparent addition the audit/benchmark
+    // can inspect.
+    const recovery = await attemptRecovery({
+        question: normalizedQuestion,
+        language,
+        retrieval,
+        discoveryRouter: routeImpl,
+        evidence,
+        conflicts: retrieval.conflicts,
+        allowedLevels: policy.levels,
+        allowCatalog: policy.allowCatalog,
+        skipAnswerability: true,
+    });
+    const answerPolicy = recovery && recovery.applied
+        ? {
+              ...(retrieval.answer_policy || {}),
+              final_instruction: recovery.final_instruction,
+          }
+        : (retrieval.answer_policy || null);
+
     return {
         ok: true,
         question: normalizedQuestion,
@@ -115,8 +140,9 @@ async function orchestrateKnowledge(question, options = {}) {
         freshness,
         conflicts,
         claims,
+        recovery,
         narrative: buildNarrative(claims, { mode, conflicts, freshness, question: normalizedQuestion }),
-        answer_policy: retrieval.answer_policy || null,
+        answer_policy: answerPolicy,
     };
 }
 
