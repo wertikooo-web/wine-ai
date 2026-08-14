@@ -12,6 +12,7 @@ const {
     rankClaims,
 } = require('../knowledge/claimProvenance');
 const { attemptRecovery } = require('../knowledge/usefulRecovery');
+const { runInference } = require('../knowledge/wineIntelligence');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -114,6 +115,15 @@ function runShadowRouterObserver(query, toolContext) {
     }
 }
 
+// Adds the Phase 6 Wine Intelligence inference block when the mode permits
+// explicit AI inference and a Phase 6 scenario is detected. Transparent
+// addition on top of the existing retrieval contract: `claimClass`,
+// `answerable`, `claims`, and `recovery` never change.
+function attachInference(output, inference) {
+    if (!inference) return output;
+    return { ...output, inference };
+}
+
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     return async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
@@ -155,6 +165,37 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 totalLatencyMs: Number(totalLatencyMs.toFixed(3)),
                 error: shadow.error,
             }));
+        }
+
+        // Phase 6 Wine Intelligence: only the expert mode permits explicit AI
+        // inference. When a Phase 6 scenario is detected (pairing, preference
+        // recommendation, comparison, route planning), run the deterministic
+        // inference layer over the same four knowledge levels and attach the
+        // explainable result as a separate `inference` block. A failing or
+        // empty inference is never fatal and never changes the retrieval
+        // outcome.
+        let inference = null;
+        if (policy.allowInference === true) {
+            try {
+                const inferenceRun = await runInference(query, {
+                    language,
+                    allowWeb: policy.allowWeb,
+                    limit: 8,
+                });
+                if (inferenceRun && inferenceRun.scenario) {
+                    inference = {
+                        scenario: inferenceRun.scenario,
+                        found: inferenceRun.found === true,
+                        confidence: inferenceRun.confidence || null,
+                        explanation: inferenceRun.explanation || [],
+                        missing: inferenceRun.missing || [],
+                        inference: inferenceRun.inference || null,
+                        claims: inferenceRun.claims || [],
+                    };
+                }
+            } catch (error) {
+                console.log('[wine_intelligence]', error && error.message || error);
+            }
         }
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');
@@ -209,7 +250,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
 
         if (!result.found) {
             if (isGeneralKnowledge) {
-                return {
+                return attachInference({
                     found: false,
                     // Retrieval finding nothing is not the same as the assistant
                     // being forbidden to answer. For a general wine-knowledge
@@ -230,7 +271,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                         ...result.answer_policy,
                         final_instruction: GENERAL_KNOWLEDGE_INSTRUCTION,
                     },
-                };
+                }, inference);
             }
 
             // Useful Answer Recovery: retrieval found nothing for an
@@ -253,7 +294,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             });
             if (recovery && recovery.applied) {
                 const recoveryFreshness = summarizeFreshness(recovery.claims, result.freshness_sensitive === true);
-                return {
+                return attachInference({
                     found: false,
                     // Recovery never flips the gate: `answerable` stays false.
                     // It only supplies confirmed adjacent facts the model may
@@ -281,10 +322,10 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                         ...result.answer_policy,
                         final_instruction: recovery.final_instruction,
                     },
-                };
+                }, inference);
             }
 
-            return {
+            return attachInference({
                 found: false,
                 answerable: false,
                 claimClass,
@@ -301,7 +342,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                     ...result.answer_policy,
                     final_instruction: GROUNDED_REFUSAL_INSTRUCTION,
                 },
-            };
+            }, inference);
         }
 
         // Treat "no" (false) and "unknown" (null -- grader unavailable or
@@ -335,7 +376,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 });
                 if (recovery && recovery.applied) {
                     const recoveryFreshness = summarizeFreshness(recovery.claims, result.freshness_sensitive === true);
-                    return {
+                    return attachInference({
                         found: true,
                         // Preserve the real tri-state signal (false = checked
                         // and rejected, null = unknown/grader unavailable) --
@@ -367,11 +408,11 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                             final_instruction: recovery.final_instruction
                                 + (entityMatch === 'mismatch' ? ENTITY_MISMATCH_NOTE : ''),
                         },
-                    };
+                    }, inference);
                 }
             }
 
-            return {
+            return attachInference({
                 found: true,
                 // Preserve the real tri-state signal (false = checked and
                 // rejected, null = unknown/grader unavailable) rather than
@@ -402,10 +443,10 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                         ? GENERAL_KNOWLEDGE_INSTRUCTION
                         : `The evidence below is topically related but does not actually contain a direct answer to this specific question. ${GROUNDED_REFUSAL_INSTRUCTION}${entityMatch === 'mismatch' ? ENTITY_MISMATCH_NOTE : ''}`,
                 },
-            };
+            }, inference);
         }
 
-        return {
+        return attachInference({
             found: true,
             answerable: true,
             claimClass,
@@ -432,7 +473,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                     : 'Answer directly and confidently from the evidence. Never narrate internal retrieval, database coverage, or web-tool usage. For prices, stock, schedules, opening hours, and events, make time sensitivity clear and include the source link when useful.')
                     + (entityMatch === 'mismatch' || entityMatch === 'unverified_after_web' ? ENTITY_MISMATCH_NOTE : ''),
             },
-        };
+        }, inference);
     };
 }
 

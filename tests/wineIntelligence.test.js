@@ -15,6 +15,7 @@
 //     and never touches a database, network, or LLM.
 
 const assert = require('assert');
+const tool = require('../src/tools/searchLayeredKnowledge');
 const {
     SCENARIOS,
     detectScenario,
@@ -159,6 +160,40 @@ async function run() {
         assert.ok(claims.some((c) => c.claim === 'Recommendation text.' && c.kind === 'ai_inference'));
         assert.ok(claims.filter((c) => c.kind !== 'ai_inference').every((c) => c.source && (c.source.url || c.source.document_page)),
             'supporting evidence claims must carry provenance (the ai_inference summary is a synthetic conclusion, not sourced evidence)');
+    }
+
+    // ---------------------------------------------------------------- tool integration ----
+    // The live search_wine_knowledge tool attaches the inference block ONLY in
+    // the expert mode (allowInference) and never on default modes; a failing
+    // inference is non-fatal and leaves the retrieval outcome intact.
+    {
+        const doc = (text) => ({ level: 'documents', title: 'Doc', source: 'https://example.md/d', confidence: 'high', text, relevance_score: 0.9 });
+        const routeImpl = async (query) => ({
+            found: true, answerable: true, claim_class: 'grounding_required',
+            evidence_entity_match: 'match', answerabilityReason: null,
+            evidence: [doc('Castel Mimi produces Fetească Neagră.')], conflicts: [],
+            used_levels: ['documents'], web_used: false, web_reason: null,
+            freshness_sensitive: false, query_intent: 'own_entity',
+            answer_policy: { final_instruction: 'ok' },
+        });
+        const impl = tool.createImpl(routeImpl);
+
+        const expert = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев', answer_mode: 'expert' }, { log: () => {} });
+        assert.ok([SCENARIOS.PAIR_FOOD, SCENARIOS.RECOMMEND_WINE].includes(expert.inference.scenario),
+            'expert mode must attach the inference block when a Phase 6 scenario is detected');
+        assert.ok(expert.inference.claims.some((c) => c.kind === 'ai_inference'),
+            'the inference block must carry its ai_inference claim');
+
+        const leaky = /в\s+знаниях|каталог|relations\s+offers|база\s+данных|предпочтения:\s*\w+=/iu;
+        const explainText = String(expert.inference.explanation.join(' '));
+        const claimText = expert.inference.claims.find((c) => c.kind === 'ai_inference')?.claim || '';
+        assert.ok(!leaky.test(explainText) && !leaky.test(claimText),
+            'inference explanation/claim must not narrate database, search, or retrieval internals');
+
+        const webDefault = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев' }, { log: () => {} });
+        assert.strictEqual(webDefault.inference, undefined,
+            'default knowledge_web mode must NOT attach inference (allowInference=false)');
+        assert.strictEqual(webDefault.status, 'found', 'retrieval outcome is unchanged without inference');
     }
 
     console.log('ALL WINE INTELLIGENCE TESTS PASSED!');

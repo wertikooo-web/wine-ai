@@ -30,6 +30,49 @@ const { findMentionedEntities } = require('./entityResolver');
 const layeredRouter = require('./layeredRouter');
 const { buildClaimsFromEvidence, CLAIM_KINDS } = require('./claimProvenance');
 
+// Natural-language labels for internal keys so user-facing explanation text
+// never narrates database, search, or retrieval internals (INVARIANTS: voice).
+const FOOD_LABELS = {
+    fresh_cheese: 'свежий сыр',
+    fried: 'жареное блюдо',
+    pork: 'свинина',
+    beef: 'говядина',
+    lamb: 'баранина',
+    fish: 'рыба',
+    poultry: 'птица',
+    mushroom: 'грибное блюдо',
+    vegetable: 'овощное блюдо',
+};
+const COLOR_LABELS = { red: 'красное', white: 'белое', rose: 'розовое', sparkling: 'игристое' };
+const SWEETNESS_LABELS = { dry: 'сухое', semi_dry: 'полусухое', semi_sweet: 'полусладкое', sweet: 'сладкое' };
+const BODY_LABELS = { light: 'лёгкое', medium: 'средней плотности', full: 'полнотелое' };
+// Localized rendering of the pairing engine's reason phrases so the
+// explanation stays in the sommelier's voice and language.
+const REASON_LABELS = {
+    'acidity refreshes the richer texture': 'кислотность освежает плотную текстуру',
+    'the lighter tannin keeps heat from becoming harsher': 'лёгкие танины смягчают пряность',
+    'its body matches the main ingredient': 'тело совпадает с основным ингредиентом',
+    'the wine and dish have a similar intensity': 'вино и блюдо схожи по насыщенности',
+};
+const labelReason = (reason) => REASON_LABELS[reason] || reason;
+
+function labelFood(key) { return FOOD_LABELS[key] || key; }
+function labelColor(key) { return COLOR_LABELS[key] || key; }
+function labelSweetness(key) { return SWEETNESS_LABELS[key] || key; }
+function labelBody(key) { return BODY_LABELS[key] || key; }
+
+// Human-readable preference summary for a recommendation (voice-safe).
+function describePreferences(prefs) {
+    const parts = [];
+    if (prefs.color) parts.push(labelColor(prefs.color));
+    if (prefs.sweetness) parts.push(labelSweetness(prefs.sweetness));
+    if (prefs.body) parts.push(labelBody(prefs.body));
+    if (prefs.food) parts.push(`под блюдо: ${labelFood(prefs.food)}`);
+    if (prefs.occasion) parts.push('на праздник');
+    if (prefs.budget) parts.push(`до ${prefs.budget} MDL`);
+    return parts.length ? parts.join(', ') : 'без уточнений';
+}
+
 const SCENARIOS = Object.freeze({
     PAIR_FOOD: 'pair_food',
     RECOMMEND_WINE: 'recommend_wine',
@@ -260,9 +303,9 @@ async function pairFood({ question, evidence, language }) {
             missing: [pairing.clarification],
         };
     }
-    reasons.push(`Профиль блюда: ${dish.food || 'не определён'}, интенсивность ${dish.body}/4, жирность ${dish.fat}/4, кислотность ${dish.acidity}/4, острота ${dish.spice}/4.`);
+    reasons.push(`К блюду ${dish.food ? `«${labelFood(dish.food)}»` : ''} по насыщенности, жирности, кислотности и остроте подойдут такие стили:`.replace('  ', ' '));
     candidates.forEach((candidate) => {
-        reasons.push(`${candidate.style_name}: ${(candidate.reasons || []).join(', ') || 'похожая интенсивность'}${candidate.bottles.length ? `. Подходящие бутылки из каталога: ${candidate.bottles.join(', ')}` : ''}.`);
+        reasons.push(`${candidate.style_name}: ${(candidate.reasons || []).map(labelReason).join(', ') || 'похожая интенсивность'}${candidate.bottles.length ? `. Например: ${candidate.bottles.join(', ')}` : ''}.`);
     });
     return {
         found: true,
@@ -286,19 +329,19 @@ function scoreWineCandidate(candidate, prefs) {
     const style = candidate.style;
     const matches = [];
     if (prefs.color && style) {
-        if (style.color === prefs.color) { score += 20; matches.push(`цвет: ${style.color}`); }
+        if (style.color === prefs.color) { score += 20; matches.push(`цвет: ${labelColor(style.color)}`); }
         else score -= 6;
     }
     if (prefs.sweetness && style) {
         const sweet = style.sweetness >= 3 ? 'sweet' : style.sweetness === 2 ? 'semi_dry' : 'dry';
-        if (sweet === prefs.sweetness) { score += 12; matches.push(`сладость: ${sweet}`); }
+        if (sweet === prefs.sweetness) { score += 12; matches.push(`сладость: ${labelSweetness(sweet)}`); }
     }
     if (prefs.body && style) {
         const body = style.body >= 3 ? 'full' : style.body === 2 ? 'medium' : 'light';
-        if (body === prefs.body) { score += 10; matches.push(`тело: ${body}`); }
+        if (body === prefs.body) { score += 10; matches.push(`тело: ${labelBody(body)}`); }
     }
     if (prefs.food && style) {
-        if ((style.foods || []).includes(prefs.food)) { score += 15; matches.push(`подходит к ${prefs.food}`); }
+        if ((style.foods || []).includes(prefs.food)) { score += 15; matches.push(`подходит к ${labelFood(prefs.food)}`); }
     }
     if (prefs.occasion) score += 4;
     if (prefs.budget && candidate.price != null) {
@@ -352,7 +395,7 @@ async function recommendWine({ question, evidence, language }) {
         missing.push('Укажите хотя бы одно из: цвет вина, сухость, блюдо или бюджет — иначе рекомендация не может быть осмысленной.');
     }
     if (!candidates.length) {
-        missing.push(`В знаниях не найдено вин, подходящих под ${Object.keys(prefs).length ? 'указанные параметры' : 'запрос'}. Проверьте описание: цвет, сухость, блюдо, регион или бюджет.`);
+        missing.push(`Пока не удалось подобрать вина под ${Object.keys(prefs).length ? 'указанные предпочтения' : 'запрос'}. Уточните цвет, сухость, блюдо, регион или бюджет — и я подберу точнее.`);
     }
     if (missing.length) {
         return { found: false, confidence: 'low', explanation: missing, missing };
@@ -362,7 +405,7 @@ async function recommendWine({ question, evidence, language }) {
     const reasons = ranked.map((candidate) =>
         `${candidate.name} (${candidate.style})${candidate.producer ? `, производитель ${candidate.producer}` : ''}` +
         `${candidate.price != null ? `, ${candidate.price} MDL` : ''} — ${candidate.matches.join(', ')}.`);
-    reasons.push(`Обнаружены предпочтения: ${Object.keys(prefs).map((k) => `${k}=${prefs[k]}`).join(', ')}.`);
+    reasons.push(`Подбор учёл ваши предпочтения: ${describePreferences(prefs)}.`);
     return {
         found: true,
         confidence: ranked.some((c) => c.price != null || c.producer) ? 'high' : 'medium',
@@ -438,7 +481,7 @@ async function compareWines({ question, evidence, language }) {
     if (differences.length) explanation.push(`Ключевые отличия: ${differences.join(', ')}.`);
     if (!differences.length) explanation.push('По имеющимся данным вина схожи по всем доступным атрибутам.');
     if (!a.style || !b.style) {
-        explanation.push('Для одного из вин не найден полный стиль в знаниях — сравнение ограничено доступными фактами.');
+        explanation.push('По одному из вин данных меньше — сравнение строится по тому, что известно.');
     }
 
     return {
@@ -501,8 +544,8 @@ async function planRoute({ question, evidence, language }) {
 
     if (!list.length) {
         const missing = constraints.region
-            ? [`По ограничению «регион: ${constraints.region}» в знаниях не найдено виноделен с экскурсиями/дегустациями. Проверьте регион или уберите его.`]
-            : ['В знаниях не найдено виноделен с турами/дегустациями. Добавьте relations offers_tour/offers_tasting или уточните регион.'];
+            ? [`По региону «${constraints.region}» пока не удалось найти винодельни с экскурсиями или дегустациями. Уточните регион или уберите ограничение.`]
+            : ['Пока не удалось найти винодельни с экскурсиями или дегустациями. Уточните регион.'];
         return { found: false, confidence: 'low', explanation: missing, missing, inference: { scenario: SCENARIOS.PLAN_ROUTE, constraints, stops: [] } };
     }
 
@@ -516,11 +559,11 @@ async function planRoute({ question, evidence, language }) {
     }));
 
     const explanation = [
-        `Составлен маршрут по ${stops.length} виноделн(ам)${constraints.region ? ` в регионе ${constraints.region}` : ''}:`,
+        `Составлен маршрут по ${stops.length} винодельням${constraints.region ? ` в регионе ${constraints.region}` : ''}:`,
         ...stops.map((stop) => `${stop.name} — ${stop.tour ? 'экскурсия' : ''}${stop.tour && stop.tasting ? ' и ' : ''}${stop.tasting ? 'дегустация' : ''}${stop.tour || stop.tasting ? '' : ' (без подтверждённых туров)'}.`),
     ];
     if (constraints.hours) explanation.push(`Ограничение по времени: ${constraints.hours} ч — распределите визиты соответственно.`);
-    if (constraints.budget) explanation.push(`Бюджет: до ${constraints.budget} MDL на визит — уточните стоимость у каждой винодельни (цен нет в знаниях).`);
+    if (constraints.budget) explanation.push(`Бюджет: до ${constraints.budget} MDL на визит — точную стоимость уточняйте у каждой винодельни.`);
 
     return {
         found: true,
