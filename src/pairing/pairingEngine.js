@@ -129,4 +129,4 @@ function recommendForWine(input = {}) {
     };
 }
 
-module.exports = { WINE_STYLES, OFFICIAL_BOTTLE_PROFILES, profileDish, recommendForDish, findWineStyle, recommendForWine };
+module.exports = { WINE_STYLES, OFFICIAL_BOTTLE_PROFILES, DISH_SIGNALS, profileDish, recommendForDish, findWineStyle, recommendForWine };
