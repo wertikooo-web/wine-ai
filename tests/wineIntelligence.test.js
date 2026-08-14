@@ -184,6 +184,12 @@ async function run() {
         assert.ok(expert.inference.claims.some((c) => c.kind === 'ai_inference'),
             'the inference block must carry its ai_inference claim');
 
+        const leaky = /в\s+знаниях|каталог|relations\s+offers|база\s+данных|предпочтения:\s*\w+=/iu;
+        const explainText = String(expert.inference.explanation.join(' '));
+        const claimText = expert.inference.claims.find((c) => c.kind === 'ai_inference')?.claim || '';
+        assert.ok(!leaky.test(explainText) && !leaky.test(claimText),
+            'inference explanation/claim must not narrate database, search, or retrieval internals');
+
         const webDefault = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев' }, { log: () => {} });
         assert.strictEqual(webDefault.inference, undefined,
             'default knowledge_web mode must NOT attach inference (allowInference=false)');
