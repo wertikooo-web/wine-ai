@@ -21,10 +21,14 @@ const ANSWER_MODES = Object.freeze({
 
 const DEFAULT_ANSWER_MODE = ANSWER_MODES.KNOWLEDGE_WEB;
 
-// Per-mode allowed levels and behavior. 'expert' is the only mode that
-// permits explicit AI inference (recommendations, pairings, comparisons) —
-// and even there the inference is separated from facts via claim kind
-// 'ai_inference', never smuggled in as a verified fact.
+// Per-mode allowed levels and behavior. A mode declares WHICH knowledge
+// levels may be consulted. Explicit AI inference (recommendations, pairings,
+// comparisons, route planning) is gated by Phase 6 INTENT detection at
+// runtime, not by answer_mode -- it runs on the ordinary user path whenever
+// the question is a recommendation/pairing/comparison/route ask, and never on
+// plain factual turns. `allowInference` below remains the mode's declared
+// inference capability (used by the admin listing and the audit `no_inference`
+// constraint); it is not the runtime gate.
 const MODE_POLICY = Object.freeze({
     [ANSWER_MODES.KNOWLEDGE_ONLY]: {
         id: ANSWER_MODES.KNOWLEDGE_ONLY,

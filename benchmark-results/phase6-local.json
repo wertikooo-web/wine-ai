@@ -1,0 +1,635 @@
+{
+  "dataset_version": 1,
+  "dataset_file": "tests\\benchmark\\phase6-dataset.json",
+  "summary": {
+    "total_rows": 14,
+    "intent_rows": 11,
+    "attached_intent_rows": 11,
+    "found_success_rows": 8,
+    "succeeded_rows": 8,
+    "honesty_failures": 0,
+    "hard_constraint_violations": 0,
+    "unsupported_claim_violations": 0,
+    "internal_language_violations": 0,
+    "negative_control_failures": 0,
+    "no_inference_failures": 0,
+    "intent_attachment_rate": 1,
+    "recommendation_success_rate": 1,
+    "by_category": {
+      "recommend_wine": {
+        "total": 4,
+        "passed": 4
+      },
+      "pair_food": {
+        "total": 3,
+        "passed": 3
+      },
+      "compare_wines": {
+        "total": 2,
+        "passed": 2
+      },
+      "plan_route": {
+        "total": 2,
+        "passed": 2
+      },
+      "negative_control": {
+        "total": 2,
+        "passed": 2
+      },
+      "no_inference_constraint": {
+        "total": 1,
+        "passed": 1
+      }
+    },
+    "elapsed_ms": 19490.12
+  },
+  "gates": [
+    {
+      "name": "intent_attachment_rate >= 0.9 (1)",
+      "ok": true
+    },
+    {
+      "name": "recommendation_success_rate >= 0.8 (1)",
+      "ok": true
+    },
+    {
+      "name": "no hard-constraint violations",
+      "ok": true
+    },
+    {
+      "name": "no unsupported claims",
+      "ok": true
+    },
+    {
+      "name": "no honesty failures",
+      "ok": true
+    },
+    {
+      "name": "no negative-control failures",
+      "ok": true
+    },
+    {
+      "name": "no_inference constraint honored",
+      "ok": true
+    },
+    {
+      "name": "no internal-language violations",
+      "ok": true
+    }
+  ],
+  "rows": [
+    {
+      "id": "rec-mild-red",
+      "category": "recommend_wine",
+      "language": "ru",
+      "question": "Хочу мягкое красное",
+      "pass": true,
+      "scenario": "recommend_wine",
+      "found": true,
+      "recommendations": [
+        {
+          "name": "Aurelius Cabernet Sauvignon 2018",
+          "style": "Aurelius Cabernet Sauvignon 2018 · red",
+          "price": null
+        },
+        {
+          "name": "Aurelius Merlot 2019",
+          "style": "Aurelius Merlot 2019 · red",
+          "price": null
+        },
+        {
+          "name": "Aurelius Fetească Neagră 2018",
+          "style": "Aurelius Fetească Neagră 2018 · red",
+          "price": null
+        }
+      ],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "recommend_wine"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        },
+        {
+          "name": "hard_color_red",
+          "ok": true,
+          "got": "Aurelius Cabernet Sauvignon 2018:red | Aurelius Merlot 2019:red | Aurelius Fetească Neagră 2018:red"
+        }
+      ],
+      "pass_explain": [
+        "recommend_wine"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "rec-dry-white-budget",
+      "category": "recommend_wine",
+      "language": "ru",
+      "question": "Хочу сухое белое до 300 леев",
+      "pass": true,
+      "scenario": "recommend_wine",
+      "found": true,
+      "recommendations": [
+        {
+          "name": "Aurelius Viorica 2021",
+          "style": "Aurelius Viorica 2021 · white",
+          "price": null
+        },
+        {
+          "name": "Aurelius Sauvignon Blanc 2022",
+          "style": "Aurelius Sauvignon Blanc 2022 · white",
+          "price": null
+        },
+        {
+          "name": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+          "style": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+          "price": null
+        }
+      ],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "recommend_wine"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        },
+        {
+          "name": "hard_color_white",
+          "ok": true,
+          "got": "Aurelius Viorica 2021:white | Aurelius Sauvignon Blanc 2022:white"
+        }
+      ],
+      "pass_explain": [
+        "recommend_wine"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "rec-moldovan-red",
+      "category": "recommend_wine",
+      "language": "ru",
+      "question": "Посоветуй молдавское красное",
+      "pass": true,
+      "scenario": "recommend_wine",
+      "found": true,
+      "recommendations": [
+        {
+          "name": "Aurelius Cabernet Sauvignon 2018",
+          "style": "Aurelius Cabernet Sauvignon 2018 · red",
+          "price": null
+        },
+        {
+          "name": "Aurelius Merlot 2019",
+          "style": "Aurelius Merlot 2019 · red",
+          "price": null
+        },
+        {
+          "name": "Aurelius Fetească Neagră 2018",
+          "style": "Aurelius Fetească Neagră 2018 · red",
+          "price": null
+        }
+      ],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "recommend_wine"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        },
+        {
+          "name": "hard_color_red",
+          "ok": true,
+          "got": "Aurelius Cabernet Sauvignon 2018:red | Aurelius Merlot 2019:red | Aurelius Fetească Neagră 2018:red"
+        }
+      ],
+      "pass_explain": [
+        "recommend_wine"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "pair-duck",
+      "category": "pair_food",
+      "language": "ru",
+      "question": "Что взять к утке?",
+      "pass": true,
+      "scenario": "pair_food",
+      "found": true,
+      "recommendations": [],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "pair_food"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        }
+      ],
+      "pass_explain": [
+        "pair_food"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "pair-lamb",
+      "category": "pair_food",
+      "language": "ru",
+      "question": "Какое вино подать к баранине?",
+      "pass": true,
+      "scenario": "pair_food",
+      "found": true,
+      "recommendations": [],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "pair_food"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        }
+      ],
+      "pass_explain": [
+        "pair_food"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "pair-steak",
+      "category": "pair_food",
+      "language": "ru",
+      "question": "Что подать к стейку?",
+      "pass": true,
+      "scenario": "pair_food",
+      "found": true,
+      "recommendations": [],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "pair_food"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        }
+      ],
+      "pass_explain": [
+        "pair_food"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "cmp-cricova-purcari",
+      "category": "compare_wines",
+      "language": "ru",
+      "question": "Сравни Cricova и Purcari",
+      "pass": true,
+      "scenario": "compare_wines",
+      "found": true,
+      "recommendations": [
+        {},
+        {}
+      ],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "compare_wines"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        }
+      ],
+      "pass_explain": [
+        "compare_wines"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "cmp-or-choice",
+      "category": "compare_wines",
+      "language": "ru",
+      "question": "Cricova или Purcari для дегустации?",
+      "pass": true,
+      "scenario": "compare_wines",
+      "found": true,
+      "recommendations": [
+        {},
+        {}
+      ],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "compare_wines"
+        },
+        {
+          "name": "found",
+          "ok": true,
+          "got": true
+        }
+      ],
+      "pass_explain": [
+        "compare_wines"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "rec-alternative",
+      "category": "recommend_wine",
+      "language": "ru",
+      "question": "Что попробовать вместо Purcari?",
+      "pass": true,
+      "scenario": "recommend_wine",
+      "found": false,
+      "recommendations": [],
+      "missing": [
+        "Укажите хотя бы одно из: цвет вина, сухость, блюдо или бюджет — иначе рекомендация не может быть осмысленной.",
+        "Пока не удалось подобрать вина под запрос. Уточните цвет, сухость, блюдо, регион или бюджет — и я подберу точнее."
+      ],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "recommend_wine"
+        },
+        {
+          "name": "honesty",
+          "ok": true,
+          "got": "not_found,missing=2"
+        }
+      ],
+      "pass_explain": [
+        "recommend_wine",
+        "honest_not_found"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "route-tour-moldova",
+      "category": "plan_route",
+      "language": "ru",
+      "question": "Спланируй винный тур по Молдове",
+      "pass": true,
+      "scenario": "plan_route",
+      "found": false,
+      "recommendations": [],
+      "missing": [
+        "По региону «молдов» пока не удалось найти винодельни с экскурсиями или дегустациями. Уточните регион или уберите ограничение."
+      ],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "plan_route"
+        },
+        {
+          "name": "honesty",
+          "ok": true,
+          "got": "not_found,missing=1"
+        }
+      ],
+      "pass_explain": [
+        "plan_route",
+        "honest_not_found"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "route-day-trip",
+      "category": "plan_route",
+      "language": "ru",
+      "question": "Составь винный маршрут на день",
+      "pass": true,
+      "scenario": "plan_route",
+      "found": false,
+      "recommendations": [],
+      "missing": [
+        "Пока не удалось найти винодельни с экскурсиями или дегустациями. Уточните регион."
+      ],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "intent_attached",
+          "ok": true,
+          "got": "plan_route"
+        },
+        {
+          "name": "honesty",
+          "ok": true,
+          "got": "not_found,missing=1"
+        }
+      ],
+      "pass_explain": [
+        "plan_route",
+        "honest_not_found"
+      ],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "neg-factual-price",
+      "category": "negative_control",
+      "language": "ru",
+      "question": "Сколько стоит вино Cricova 1952",
+      "pass": true,
+      "scenario": null,
+      "found": null,
+      "recommendations": [],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "negative_control",
+          "ok": true,
+          "got": "no_inference"
+        }
+      ],
+      "pass_explain": [],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "neg-factual-general",
+      "category": "negative_control",
+      "language": "ru",
+      "question": "Расскажи о виноделии",
+      "pass": true,
+      "scenario": null,
+      "found": null,
+      "recommendations": [],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "negative_control",
+          "ok": true,
+          "got": "no_inference"
+        }
+      ],
+      "pass_explain": [],
+      "answer_mode": "knowledge_web"
+    },
+    {
+      "id": "no-inference-constraint",
+      "category": "no_inference_constraint",
+      "language": "ru",
+      "question": "Хочу мягкое красное",
+      "pass": true,
+      "scenario": null,
+      "found": null,
+      "recommendations": [],
+      "missing": [],
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "unsupported_claims_clean",
+          "ok": true
+        },
+        {
+          "name": "negative_control",
+          "ok": true,
+          "got": "no_inference"
+        },
+        {
+          "name": "no_inference_constraint",
+          "ok": true,
+          "got": "none"
+        }
+      ],
+      "pass_explain": [],
+      "answer_mode": "knowledge_web"
+    }
+  ]
+}

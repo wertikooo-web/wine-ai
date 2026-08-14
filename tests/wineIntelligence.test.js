@@ -71,6 +71,19 @@ async function run() {
     assert.strictEqual(detectScenario('Посоветуй красное сухое вино до 200 леев'), SCENARIOS.RECOMMEND_WINE);
     assert.strictEqual(detectScenario('Расскажи о виноделии'), null, 'non-scenario wine question stays null');
 
+    // Natural, wine-entity-free phrasings the live assistant must also route
+    // into Phase 6 (production intent broadening).
+    assert.strictEqual(detectScenario('Что взять к утке?'), SCENARIOS.PAIR_FOOD, 'duck pairing without the word wine');
+    assert.strictEqual(detectScenario('Хочу мягкое красное'), SCENARIOS.RECOMMEND_WINE, 'preference without the word wine');
+    assert.strictEqual(detectScenario('Хочу сухое белое до 300 леев'), SCENARIOS.RECOMMEND_WINE, 'budget+colour preference');
+    assert.strictEqual(detectScenario('Что попробовать вместо Purcari?'), SCENARIOS.RECOMMEND_WINE, 'alternative recommendation');
+    assert.strictEqual(detectScenario('Cricova или Purcari для дегустации?'), SCENARIOS.COMPARE_WINES, 'two wineries joined by or');
+    assert.strictEqual(detectScenario('Посоветуй молдавское красное'), SCENARIOS.RECOMMEND_WINE, 'moldovan colour preference');
+    assert.strictEqual(detectScenario('Помоги выбрать вино на праздник'), SCENARIOS.RECOMMEND_WINE, 'help me choose');
+    assert.strictEqual(detectScenario('Какое вино подать к баранине?'), SCENARIOS.PAIR_FOOD, 'wine-to-dish phrasing');
+    assert.strictEqual(detectScenario('Сколько стоит вино Cricova 1952'), null, 'factual price question stays null');
+    assert.strictEqual(detectScenario('Хочу красное яблоко'), SCENARIOS.RECOMMEND_WINE, 'descriptor+intent verb is the documented wine-tool gate');
+
     // ---------------------------------------------------------------- preference parsing ----
     const prefs = parseRecommendationPreferences('Посоветуй красное сухое вино до 200 леев к баранине');
     assert.strictEqual(prefs.color, 'red');
@@ -163,9 +176,10 @@ async function run() {
     }
 
     // ---------------------------------------------------------------- tool integration ----
-    // The live search_wine_knowledge tool attaches the inference block ONLY in
-    // the expert mode (allowInference) and never on default modes; a failing
-    // inference is non-fatal and leaves the retrieval outcome intact.
+    // The live search_wine_knowledge tool attaches the inference block by
+    // Phase 6 INTENT, not by answer mode: the ordinary knowledge_web path
+    // gets the recommendation on a Phase 6 ask, factual turns never do, and a
+    // failing inference is non-fatal and leaves the retrieval outcome intact.
     {
         const doc = (text) => ({ level: 'documents', title: 'Doc', source: 'https://example.md/d', confidence: 'high', text, relevance_score: 0.9 });
         const routeImpl = async (query) => ({
@@ -178,22 +192,28 @@ async function run() {
         });
         const impl = tool.createImpl(routeImpl);
 
-        const expert = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев', answer_mode: 'expert' }, { log: () => {} });
-        assert.ok([SCENARIOS.PAIR_FOOD, SCENARIOS.RECOMMEND_WINE].includes(expert.inference.scenario),
-            'expert mode must attach the inference block when a Phase 6 scenario is detected');
-        assert.ok(expert.inference.claims.some((c) => c.kind === 'ai_inference'),
+        const webDefault = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев' }, { log: () => {} });
+        assert.ok([SCENARIOS.PAIR_FOOD, SCENARIOS.RECOMMEND_WINE].includes(webDefault.inference.scenario),
+            'default knowledge_web mode must attach the inference block when a Phase 6 intent is detected');
+        assert.ok(webDefault.inference.claims.some((c) => c.kind === 'ai_inference'),
             'the inference block must carry its ai_inference claim');
+        assert.strictEqual(webDefault.status, 'found', 'retrieval outcome is unchanged with inference');
 
         const leaky = /в\s+знаниях|каталог|relations\s+offers|база\s+данных|предпочтения:\s*\w+=/iu;
-        const explainText = String(expert.inference.explanation.join(' '));
-        const claimText = expert.inference.claims.find((c) => c.kind === 'ai_inference')?.claim || '';
+        const explainText = String(webDefault.inference.explanation.join(' '));
+        const claimText = webDefault.inference.claims.find((c) => c.kind === 'ai_inference')?.claim || '';
         assert.ok(!leaky.test(explainText) && !leaky.test(claimText),
             'inference explanation/claim must not narrate database, search, or retrieval internals');
+        assert.ok(/inference/.test(webDefault.answer_policy.final_instruction),
+            'attaching inference must add voice-safe presentation guidance to the final instruction');
 
-        const webDefault = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев' }, { log: () => {} });
-        assert.strictEqual(webDefault.inference, undefined,
-            'default knowledge_web mode must NOT attach inference (allowInference=false)');
-        assert.strictEqual(webDefault.status, 'found', 'retrieval outcome is unchanged without inference');
+        const factual = await impl({ query: 'Сколько стоит вино Cricova 1952' }, { log: () => {} });
+        assert.strictEqual(factual.inference, undefined,
+            'a factual turn must NOT attach inference even in the default mode');
+        assert.strictEqual(factual.status, 'found', 'retrieval outcome is unchanged without inference');
+
+        const expert = await impl({ query: 'Посоветуй красное сухое вино к баранине до 300 леев', answer_mode: 'expert' }, { log: () => {} });
+        assert.ok(expert.inference, 'expert mode keeps the inference block on a Phase 6 ask');
     }
 
     console.log('ALL WINE INTELLIGENCE TESTS PASSED!');

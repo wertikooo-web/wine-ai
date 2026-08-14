@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "description": "Phase 6 Wine Intelligence acceptance rows. Every row runs through the same audit path as the live tool (orchestrateKnowledge / routeKnowledgeWithAnswerabilityGate) with the production default knowledge_web mode, so the benchmark measures the exact behavior the realtime user gets.",
+  "questions": [
+    {
+      "id": "rec-mild-red",
+      "category": "recommend_wine",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "recommend_wine",
+      "question": "Хочу мягкое красное",
+      "expected": { "intent": "recommend_wine", "found": true, "hard": { "color": "red" }, "expects_inference": true }
+    },
+    {
+      "id": "rec-dry-white-budget",
+      "category": "recommend_wine",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "recommend_wine",
+      "question": "Хочу сухое белое до 300 леев",
+      "expected": { "intent": "recommend_wine", "found": true, "hard": { "color": "white" }, "expects_inference": true }
+    },
+    {
+      "id": "rec-moldovan-red",
+      "category": "recommend_wine",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "recommend_wine",
+      "question": "Посоветуй молдавское красное",
+      "expected": { "intent": "recommend_wine", "found": true, "hard": { "color": "red" }, "expects_inference": true }
+    },
+    {
+      "id": "pair-duck",
+      "category": "pair_food",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "pair_food",
+      "question": "Что взять к утке?",
+      "expected": { "intent": "pair_food", "found": true, "expects_inference": true }
+    },
+    {
+      "id": "pair-lamb",
+      "category": "pair_food",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "pair_food",
+      "question": "Какое вино подать к баранине?",
+      "expected": { "intent": "pair_food", "found": true, "expects_inference": true }
+    },
+    {
+      "id": "pair-steak",
+      "category": "pair_food",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "pair_food",
+      "question": "Что подать к стейку?",
+      "expected": { "intent": "pair_food", "found": true, "expects_inference": true }
+    },
+    {
+      "id": "cmp-cricova-purcari",
+      "category": "compare_wines",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "compare_wines",
+      "question": "Сравни Cricova и Purcari",
+      "expected": { "intent": "compare_wines", "found": true, "expects_inference": true }
+    },
+    {
+      "id": "cmp-or-choice",
+      "category": "compare_wines",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "compare_wines",
+      "question": "Cricova или Purcari для дегустации?",
+      "expected": { "intent": "compare_wines", "found": true, "expects_inference": true }
+    },
+    {
+      "id": "rec-alternative",
+      "category": "recommend_wine",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "recommend_wine",
+      "question": "Что попробовать вместо Purcari?",
+      "expected": { "intent": "recommend_wine", "found": "either", "expects_inference": true }
+    },
+    {
+      "id": "route-tour-moldova",
+      "category": "plan_route",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "plan_route",
+      "question": "Спланируй винный тур по Молдове",
+      "expected": { "intent": "plan_route", "found": "either", "expects_inference": true }
+    },
+    {
+      "id": "route-day-trip",
+      "category": "plan_route",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "plan_route",
+      "question": "Составь винный маршрут на день",
+      "expected": { "intent": "plan_route", "found": "either", "expects_inference": true }
+    },
+    {
+      "id": "neg-factual-price",
+      "category": "negative_control",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Сколько стоит вино Cricova 1952",
+      "expected": { "expects_inference": false }
+    },
+    {
+      "id": "neg-factual-general",
+      "category": "negative_control",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Расскажи о виноделии",
+      "expected": { "expects_inference": false }
+    },
+    {
+      "id": "no-inference-constraint",
+      "category": "no_inference_constraint",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "constraints": ["no_inference"],
+      "question": "Хочу мягкое красное",
+      "expected": { "expects_inference": false, "no_inference_constraint": true }
+    }
+  ]
+}

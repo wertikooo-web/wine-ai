@@ -30,6 +30,7 @@
     "benchmark:grounding": "node tests/benchmark/grounding-benchmark.js",
     "benchmark:quality": "node scripts/benchmark-answer-quality.js",
     "acceptance:recovery": "node scripts/recovery-acceptance.js",
+    "acceptance:phase6": "node scripts/phase6-acceptance.js",
     "lint": "node --check src/server.js",
     "typecheck": "echo \"no build-time typecheck configured (JS + JSDoc project); see AGENTS.md\"",
     "avatar:validate": "npm run avatar:validate:manifest && npm run avatar:validate:events && npm run avatar:validate:assets",
