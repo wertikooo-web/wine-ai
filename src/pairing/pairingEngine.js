@@ -37,6 +37,7 @@ const DISH_SIGNALS = Object.freeze([
     { keys: ['pork', 'porc', 'свинин'], food: 'pork', body: 3, fat: 3, acidity: 1, spice: 1, salt: 2 },
     { keys: ['fish', 'pește', 'peste', 'рыб', 'trout', 'păstrăv', 'форел'], food: 'fish', body: 2, fat: 1, acidity: 2, spice: 0, salt: 1 },
     { keys: ['chicken', 'pui', 'куриц'], food: 'poultry', body: 2, fat: 1, acidity: 1, spice: 0, salt: 1 },
+    { keys: ['duck', 'duckling', 'rață', 'утк'], food: 'poultry', body: 3, fat: 3, acidity: 1, spice: 0, salt: 2 },
     { keys: ['mushroom', 'ciuperc', 'гриб'], food: 'mushroom', body: 3, fat: 2, acidity: 1, spice: 0, salt: 2 },
     { keys: ['salad', 'salată', 'салат', 'vegetable', 'legume', 'овощ'], food: 'vegetable', body: 1, fat: 1, acidity: 2, spice: 0, salt: 1 },
 ]);

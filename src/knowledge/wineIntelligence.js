@@ -91,11 +91,16 @@ const SCENARIO_LIST = Object.freeze([
 // Scenario detection (deterministic, no NLU).
 // ------------------------------------------------------------------ //
 
-const COMPARISON_RE = /(сравн|отлича|разниц|чем\s+(?:лучше|отличается)|vs\b|versus|против)/iu;
-const ROUTE_RE = /(маршрут|тур\w*|экскурс|поездк\w*|посетит|за\s*один\s*день|выезд\w*|путешеств|винный\s+тур|trip|route|tour\b|travel)/iu;
-const FOOD_PAIRING_RE = /(вино\s*к(?=\s|,|\.|\?|!|$)|к\s*блюд|что\s*подать\s*к|подобрать\s*вино|вин[оа]\s*подо|сочетан\w*\s*с(?=\s|,|\.|\?|!|$)|с\s*чем\s*пить|паруется|pairing|pair\b|гастрономи)/iu;
-const RECOMMEND_RE = /(рекоменд|посоветуй|посовету|подбери|подскажи|какое\s*вино|какое\s*выбрать|что\s*выбрать|хочу\s*вино|хочу\s*купить|как[оа]е\s*вино)/iu;
-const WINE_ENTITY_RE = /(вино|вина|винодельн|wine|wines|winery)/iu;
+const COMPARISON_RE = /(сравн|отлича|разниц|чем\s+(?:лучше|отличается)|vs\b|versus|против|преимуществ\w*\s+перед)/iu;
+const ROUTE_RE = /(маршрут|тур\w*|экскурс|поездк\w*|посетит|за\s*один\s*день|выезд\w*|путешеств|винный\s+тур|trip|route|tour\b|travel|спланируй|план\w*\s+поездк)/iu;
+const FOOD_PAIRING_RE = /(вино\s*к(?=\s|,|\.|\?|!|$)|к\s*блюд|(?:что|какое)\s+вино\s+(?:подать|взять)\s+к|что\s+подать\s+к|что\s+взять\s+к|что\s+выпить\s+к|подобрать\s+вино|подойд[её]т\s+к|подходит\s+к|вин[оа]\s+подо|сочетан\w*\s+с(?=\s|,|\.|\?|!|$)|с\s+чем\s+пить|с\s+чем\s+подать|к\s+чему|паруется|pairing|pair\b|гастроном)/iu;
+const RECOMMEND_RE = /(рекоменд|посоветуй|посовету|подбери|подскаж|подсказ|какое\s+вино|какое\s+выбрать|какое\s+взять|что\s+выбрать|что\s+взять|что\s+попробовать|вместо|хочу\s+вино|хочу\s+купить|хочу\s+выбрать|хочу\s+подобрать|хочу\s+попробовать|помоги\s+выбрать|помоги\s+подобрать|выбрать\s+вино|подобрать\s+вино|молдавск\w*\s+(?:красн|бел|розов|игристое|сух|сладк|мягк)|рекомендуешь|посоветуете)/iu;
+const WINE_ENTITY_RE = /(вин(?:о|а|е|ы|у)[а-яё]*|винн[а-яё]*|виноград[а-яё]*|wine|wines|winery|wineries)/iu;
+// A wine descriptor (colour, sweetness, body, Moldovan origin) in the same
+// turn as an intent verb is a recommendation ask even without the literal
+// word "вино" -- e.g. "Хочу мягкое красное", "Посоветуй молдавское сухое".
+const WINE_DESCRIPTOR_RE = /(красн[а-яё]*|бел[а-яё]*|розов[а-яё]*|игрист[а-яё]*|спаркл[а-яё]*|сух[а-яё]*|сладк[а-яё]*|полусладк[а-яё]*|полу-сладк|полусух[а-яё]*|полу-сух|мягк[а-яё]*|молдавск[а-яё]*|moldov\w*)/iu;
+const INTENT_VERB_RE = /(хочу|посоветуй|посовету|подбери|подскаж|подсказ|рекоменд|какое|что\s+взять|что\s+попробовать|выбрать|подобрать|помоги)/iu;
 
 // Multi-word proper nouns that resolve to wineries/products (from the shared
 // registry) count as wine-related even without the word "wine" itself.
@@ -105,6 +110,26 @@ function _mentionsRegistryEntity(query) {
     } catch {
         return false;
     }
+}
+
+// Two distinct registry entities named in one turn ("Cricova или Purcari")
+// are a comparison/choice ask even without a comparison verb.
+function _mentionsTwoWineEntities(query) {
+    try {
+        const mentions = findMentionedEntities(String(query || ''));
+        return new Set(mentions.map((m) => m.entityId)).size >= 2;
+    } catch {
+        return false;
+    }
+}
+
+// The wine-related gate: an explicit wine word, a registry entity, or a wine
+// descriptor used together with an intent verb. Keeps factual turns ("Сколько
+// стоит вино Cricova 1952", "Расскажи о виноделии") from triggering.
+function _hasWineContext(text) {
+    if (WINE_ENTITY_RE.test(text)) return true;
+    if (_mentionsRegistryEntity(text)) return true;
+    return WINE_DESCRIPTOR_RE.test(text) && INTENT_VERB_RE.test(text);
 }
 
 function _hasDishSignal(query) {
@@ -131,10 +156,11 @@ function detectScenario(query) {
     const text = String(query || '').trim();
     if (!text) return null;
     if (FOOD_PAIRING_RE.test(text) && _hasDishSignal(text)) return SCENARIOS.PAIR_FOOD;
-    if (!WINE_ENTITY_RE.test(text) && !_mentionsRegistryEntity(text)) return null;
-    if (COMPARISON_RE.test(text)) return SCENARIOS.COMPARE_WINES;
-    if (ROUTE_RE.test(text)) return SCENARIOS.PLAN_ROUTE;
-    if (RECOMMEND_RE.test(text)) return SCENARIOS.RECOMMEND_WINE;
+    if (COMPARISON_RE.test(text) && _hasWineContext(text)) return SCENARIOS.COMPARE_WINES;
+    if (_mentionsTwoWineEntities(text) && /(?:^|[^\p{L}\p{N}])(?:или|or|либо)(?:[^\p{L}\p{N}]|$)/iu.test(text)) return SCENARIOS.COMPARE_WINES;
+    if (ROUTE_RE.test(text) && _hasWineContext(text)) return SCENARIOS.PLAN_ROUTE;
+    if (RECOMMEND_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
+    if (INTENT_VERB_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
     return null;
 }
 
@@ -158,7 +184,7 @@ function parseRecommendationPreferences(query) {
                 : (/(^|\s|,)сух\w*/iu.test(text) || /\bdry\b/iu.test(text)) ? 'dry' : null;
     if (sweetness) prefs.sweetness = sweetness;
 
-    if (/\bлегк\w*/iu.test(text) || /\blight\b/iu.test(text)) prefs.body = 'light';
+    if (/\bлегк\w*/iu.test(text) || /мягк\w*/iu.test(text) || /\blight\b/iu.test(text)) prefs.body = 'light';
     else if (/полнотел|полн\w*\s+тел\w*/iu.test(text) || /\bfull[- ]?bodied\b/iu.test(text)) prefs.body = 'full';
     else if (/средн\w*\s+тел|medium/iu.test(text)) prefs.body = 'medium';
 
@@ -181,7 +207,7 @@ function parseRecommendationPreferences(query) {
 
 // Runs the four-level retrieval through injectable adapters (defaulting to
 // the real layeredRouter functions) and merges the result, relations first.
-async function gatherEvidence(query, { language = null, allowWeb = false, limit = 8, adapters = {} } = {}) {
+async function gatherEvidence(query, { language = null, allowWeb = false, allowCatalog = true, limit = 8, adapters = {} } = {}) {
     const run = async (name, fn) => {
         try {
             return await fn(query, { language, limit });
@@ -192,7 +218,7 @@ async function gatherEvidence(query, { language = null, allowWeb = false, limit 
     const [relations, canonical, catalog, documents] = await Promise.all([
         run('searchRelations', adapters.searchRelations || layeredRouter.searchRelations),
         run('searchCanonical', adapters.searchCanonical || layeredRouter.searchCanonical),
-        run('searchCatalog', adapters.searchCatalog || layeredRouter.searchCatalog),
+        allowCatalog ? run('searchCatalog', adapters.searchCatalog || layeredRouter.searchCatalog) : Promise.resolve([]),
         run('searchDocuments', adapters.searchDocuments || layeredRouter.searchDocuments),
     ]);
     const web = allowWeb ? await run('searchInternet', adapters.searchInternet || layeredRouter.searchInternet) : [];
@@ -646,6 +672,7 @@ async function runInference(question, options = {}) {
     const gathered = await gatherEvidence(text, {
         language,
         allowWeb: options.allowWeb === true,
+        allowCatalog: options.allowCatalog !== false,
         limit: options.limit || 8,
         adapters: options.adapters || {},
     });
@@ -667,6 +694,39 @@ async function runInference(question, options = {}) {
     };
 }
 
+// Intent-driven entry shared by the live tool and the audit orchestrator, so
+// the benchmark measures the same production behavior. Runs inference only
+// when detectScenario() finds a Phase 6 intent (pairing, recommendation,
+// comparison, route) -- factual turns never trigger it. `suppress` (the
+// explicit no_inference audit constraint) disables it entirely. A failing or
+// empty inference returns null and never affects the retrieval outcome.
+async function inferForQuestion(question, options = {}) {
+    if (options.suppress === true) return null;
+    const scenario = detectScenario(String(question || ''));
+    if (!scenario) return null;
+    try {
+        const run = await runInference(question, {
+            language: options.language,
+            allowWeb: options.allowWeb === true,
+            allowCatalog: options.allowCatalog !== false,
+            limit: options.limit || 8,
+            adapters: options.adapters || {},
+        });
+        if (!run || !run.scenario) return null;
+        return {
+            scenario: run.scenario,
+            found: run.found === true,
+            confidence: run.confidence || null,
+            explanation: run.explanation || [],
+            missing: run.missing || [],
+            inference: run.inference || null,
+            claims: run.claims || [],
+        };
+    } catch (error) {
+        return null;
+    }
+}
+
 module.exports = {
     SCENARIOS,
     SCENARIO_LIST,
@@ -674,6 +734,7 @@ module.exports = {
     parseRecommendationPreferences,
     gatherEvidence,
     runInference,
+    inferForQuestion,
     pairFood,
     recommendWine,
     compareWines,

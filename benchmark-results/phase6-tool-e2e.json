@@ -1,0 +1,271 @@
+{
+  "captured_at": "2026-08-14T15:17:35.520Z",
+  "path": "src/tools/searchLayeredKnowledge.impl -> routeKnowledgeWithAnswerabilityGate -> wineIntelligence.inferForQuestion",
+  "mode": "knowledge_web (production default, intent-gated)",
+  "rows": [
+    {
+      "question": "Хочу мягкое красное",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "recommend_wine",
+        "found": true,
+        "confidence": "medium",
+        "recommendations": [
+          {
+            "name": "Aurelius Cabernet Sauvignon 2018",
+            "style": "Aurelius Cabernet Sauvignon 2018 · red",
+            "price": null
+          },
+          {
+            "name": "Aurelius Merlot 2019",
+            "style": "Aurelius Merlot 2019 · red",
+            "price": null
+          },
+          {
+            "name": "Aurelius Fetească Neagră 2018",
+            "style": "Aurelius Fetească Neagră 2018 · red",
+            "price": null
+          }
+        ],
+        "pairing_candidates": [],
+        "comparison_attributes": 0,
+        "stops": 0,
+        "missing": [],
+        "claim_kinds": [
+          "document_supported_fact",
+          "ai_inference"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Хочу сухое белое до 300 леев",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "recommend_wine",
+        "found": true,
+        "confidence": "medium",
+        "recommendations": [
+          {
+            "name": "Aurelius Viorica 2021",
+            "style": "Aurelius Viorica 2021 · white",
+            "price": null
+          },
+          {
+            "name": "Aurelius Sauvignon Blanc 2022",
+            "style": "Aurelius Sauvignon Blanc 2022 · white",
+            "price": null
+          },
+          {
+            "name": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+            "style": "Чем пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!",
+            "price": null
+          }
+        ],
+        "pairing_candidates": [],
+        "comparison_attributes": 0,
+        "stops": 0,
+        "missing": [],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact",
+          "ai_inference"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Что взять к утке?",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "pair_food",
+        "found": true,
+        "confidence": "high",
+        "recommendations": [],
+        "pairing_candidates": [
+          {
+            "style_name": "Fetească Albă",
+            "score": 89,
+            "bottles": []
+          },
+          {
+            "style_name": "Fetească Regală",
+            "score": 89,
+            "bottles": []
+          },
+          {
+            "style_name": "Moldovan dry rosé",
+            "score": 89,
+            "bottles": []
+          }
+        ],
+        "comparison_attributes": 0,
+        "stops": 0,
+        "missing": [],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact",
+          "ai_inference"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Какое вино подать к баранине?",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "pair_food",
+        "found": true,
+        "confidence": "high",
+        "recommendations": [],
+        "pairing_candidates": [
+          {
+            "style_name": "Fetească Neagră",
+            "score": 84,
+            "bottles": []
+          },
+          {
+            "style_name": "Rară Neagră",
+            "score": 63,
+            "bottles": []
+          },
+          {
+            "style_name": "Fetească Albă",
+            "score": 39,
+            "bottles": []
+          }
+        ],
+        "comparison_attributes": 0,
+        "stops": 0,
+        "missing": [],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact",
+          "ai_inference"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Сравни Cricova и Purcari",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "compare_wines",
+        "found": true,
+        "confidence": "medium",
+        "recommendations": [
+          {},
+          {}
+        ],
+        "pairing_candidates": [],
+        "comparison_attributes": 6,
+        "stops": 0,
+        "missing": [],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact",
+          "ai_inference"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Cricova или Purcari для дегустации?",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "compare_wines",
+        "found": true,
+        "confidence": "medium",
+        "recommendations": [
+          {},
+          {}
+        ],
+        "pairing_candidates": [],
+        "comparison_attributes": 6,
+        "stops": 0,
+        "missing": [],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact",
+          "ai_inference"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Спланируй винный тур по Молдове",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "plan_route",
+        "found": false,
+        "confidence": "low",
+        "recommendations": [],
+        "pairing_candidates": [],
+        "comparison_attributes": 0,
+        "stops": 0,
+        "missing": [
+          "По региону «молдов» пока не удалось найти винодельни с экскурсиями или дегустациями. Уточните регион или уберите ограничение."
+        ],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Помоги выбрать вино на праздник",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": {
+        "scenario": "recommend_wine",
+        "found": false,
+        "confidence": "low",
+        "recommendations": [],
+        "pairing_candidates": [],
+        "comparison_attributes": 0,
+        "stops": 0,
+        "missing": [
+          "Укажите хотя бы одно из: цвет вина, сухость, блюдо или бюджет — иначе рекомендация не может быть осмысленной."
+        ],
+        "claim_kinds": [
+          "live_catalog_fact",
+          "document_supported_fact"
+        ]
+      },
+      "voice_safe_guidance": true,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    },
+    {
+      "question": "Сколько стоит вино Cricova 1952",
+      "status": "recovered",
+      "answerable": null,
+      "claim_class": "grounding_required",
+      "inference": null,
+      "voice_safe_guidance": false,
+      "final_instruction": "The exact producer or wine the user named cannot be confirmed. Offer 1-3 confirmed alternatives from the options below, framed as alternatives to explore. Never state facts about the unconfirmed original. Do not mention any database, search, or internal tool. "
+    }
+  ]
+}

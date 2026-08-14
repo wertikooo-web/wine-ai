@@ -29,6 +29,7 @@ const {
     rankClaims,
 } = require('./claimProvenance');
 const { attemptRecovery } = require('./usefulRecovery');
+const { inferForQuestion } = require('./wineIntelligence');
 
 function normalizeQuestion(question) {
     const text = String(question || '').trim();
@@ -72,12 +73,18 @@ function buildNarrative(claims, { mode, conflicts, freshness, question }) {
     return narrative;
 }
 
+// Voice-safe guidance appended to the final instruction when an inference
+// block is attached, so the model speaks the recommendation in the
+// sommelier's own voice and never narrates inference internals.
+const INFERENCE_GUIDANCE = ' The result includes an "inference" block. Present its recommendation naturally in your own sommelier voice as advice, not as a verified fact. The "explanation" lines are the reasons behind the suggestion and "claims" are the confirmed facts you may quote. Never state a wine, winery, vintage, price, award, or location as fact unless it appears in "claims" with a source. If "found" is false, say honestly that you cannot yet confidently recommend from confirmed data, ask one short clarifying question, or offer a nearby alternative. Never mention "inference", scenario names, claim kinds, RAG, retrieval, databases, answerability, or any internal mechanism.';
+
 async function orchestrateKnowledge(question, options = {}) {
     const normalizedQuestion = normalizeQuestion(question);
     const language = normalizeLanguage(options.language) || null;
     const mode = resolveAnswerMode(options.answerMode);
     const policy = modePolicy(mode);
     const routeImpl = options.routeImpl || routeKnowledgeWithAnswerabilityGate;
+    const constraints = Array.isArray(options.constraints) ? options.constraints : [];
 
     const retrieval = await routeImpl(normalizedQuestion, {
         language,
@@ -125,6 +132,21 @@ async function orchestrateKnowledge(question, options = {}) {
           }
         : (retrieval.answer_policy || null);
 
+    // Phase 6 Wine Intelligence: gated by INTENT, not by answer_mode. Runs
+    // whenever the question is a Phase 6 ask (pairing, recommendation,
+    // comparison, route), so the audit path measures the same behavior the
+    // live tool delivers. The explicit `no_inference` constraint suppresses it.
+    const inference = await inferForQuestion(normalizedQuestion, {
+        language,
+        allowWeb: policy.allowWeb,
+        allowCatalog: policy.allowCatalog,
+        limit: options.limit || 8,
+        suppress: constraints.includes('no_inference'),
+    });
+    const finalAnswerPolicy = inference && answerPolicy
+        ? { ...answerPolicy, final_instruction: (answerPolicy.final_instruction || '') + INFERENCE_GUIDANCE }
+        : answerPolicy;
+
     return {
         ok: true,
         question: normalizedQuestion,
@@ -141,8 +163,9 @@ async function orchestrateKnowledge(question, options = {}) {
         conflicts,
         claims,
         recovery,
+        inference,
         narrative: buildNarrative(claims, { mode, conflicts, freshness, question: normalizedQuestion }),
-        answer_policy: answerPolicy,
+        answer_policy: finalAnswerPolicy,
     };
 }
 

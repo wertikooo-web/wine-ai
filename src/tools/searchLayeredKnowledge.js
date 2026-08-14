@@ -12,7 +12,7 @@ const {
     rankClaims,
 } = require('../knowledge/claimProvenance');
 const { attemptRecovery } = require('../knowledge/usefulRecovery');
-const { runInference } = require('../knowledge/wineIntelligence');
+const { inferForQuestion } = require('../knowledge/wineIntelligence');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -72,7 +72,7 @@ const declaration = {
             answer_mode: {
                 type: 'STRING',
                 enum: ['knowledge_only', 'knowledge_catalog', 'knowledge_web', 'expert'],
-                description: 'Optional. Default knowledge_web: canonical facts + Wine.md catalog + documents + controlled web fallback. knowledge_only: canonical facts + documents only (no prices/stock/web). knowledge_catalog: canonical + documents + Wine.md catalog, no web. expert: all levels plus explicit AI inference is permitted.',
+                description: 'Optional. Default knowledge_web: canonical facts + Wine.md catalog + documents + controlled web fallback. knowledge_only: canonical facts + documents only (no prices/stock/web). knowledge_catalog: canonical + documents + Wine.md catalog, no web. expert: all levels. Wine Intelligence (recommendation/pairing/comparison/route) runs automatically when the question is a Phase 6 ask; answer_mode controls the knowledge levels, not the inference gate.',
             },
         },
         required: ['query'],
@@ -115,13 +115,21 @@ function runShadowRouterObserver(query, toolContext) {
     }
 }
 
-// Adds the Phase 6 Wine Intelligence inference block when the mode permits
-// explicit AI inference and a Phase 6 scenario is detected. Transparent
-// addition on top of the existing retrieval contract: `claimClass`,
-// `answerable`, `claims`, and `recovery` never change.
+// Adds the Phase 6 Wine Intelligence inference block when a Phase 6 intent is
+// detected. Transparent addition on top of the existing retrieval contract:
+// `claimClass`, `answerable`, `claims`, and `recovery` never change. It also
+// appends a voice-safe instruction so the model presents the recommendation
+// in the sommelier's own voice and never narrates inference internals.
+const INFERENCE_GUIDANCE = ' The result includes an "inference" block. Present its recommendation naturally in your own sommelier voice as advice, not as a verified fact. The "explanation" lines are the reasons behind the suggestion and "claims" are the confirmed facts you may quote. Never state a wine, winery, vintage, price, award, or location as fact unless it appears in "claims" with a source. If "found" is false, say honestly that you cannot yet confidently recommend from confirmed data, ask one short clarifying question, or offer a nearby alternative. Never mention "inference", scenario names, claim kinds, RAG, retrieval, databases, answerability, or any internal mechanism.';
 function attachInference(output, inference) {
     if (!inference) return output;
-    return { ...output, inference };
+    return {
+        ...output,
+        inference,
+        answer_policy: output.answer_policy
+            ? { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + INFERENCE_GUIDANCE }
+            : output.answer_policy,
+    };
 }
 
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
@@ -167,35 +175,24 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             }));
         }
 
-        // Phase 6 Wine Intelligence: only the expert mode permits explicit AI
-        // inference. When a Phase 6 scenario is detected (pairing, preference
-        // recommendation, comparison, route planning), run the deterministic
-        // inference layer over the same four knowledge levels and attach the
-        // explainable result as a separate `inference` block. A failing or
-        // empty inference is never fatal and never changes the retrieval
-        // outcome.
+        // Phase 6 Wine Intelligence: gated by INTENT, not by the answer mode.
+        // Whenever a Phase 6 scenario is detected (pairing, preference
+        // recommendation, comparison, route planning) -- the ordinary user
+        // path included -- run the deterministic inference layer over the same
+        // knowledge levels and attach the explainable result as a separate
+        // `inference` block. Factual turns ("сколько стоит вино Cricova",
+        // "расскажи о виноделии") never trigger it. A failing or empty
+        // inference is never fatal and never changes the retrieval outcome.
         let inference = null;
-        if (policy.allowInference === true) {
-            try {
-                const inferenceRun = await runInference(query, {
-                    language,
-                    allowWeb: policy.allowWeb,
-                    limit: 8,
-                });
-                if (inferenceRun && inferenceRun.scenario) {
-                    inference = {
-                        scenario: inferenceRun.scenario,
-                        found: inferenceRun.found === true,
-                        confidence: inferenceRun.confidence || null,
-                        explanation: inferenceRun.explanation || [],
-                        missing: inferenceRun.missing || [],
-                        inference: inferenceRun.inference || null,
-                        claims: inferenceRun.claims || [],
-                    };
-                }
-            } catch (error) {
-                console.log('[wine_intelligence]', error && error.message || error);
-            }
+        try {
+            inference = await inferForQuestion(query, {
+                language,
+                allowWeb: policy.allowWeb,
+                allowCatalog: policy.allowCatalog,
+                limit: 8,
+            });
+        } catch (error) {
+            console.log('[wine_intelligence]', error && error.message || error);
         }
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');

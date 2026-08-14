@@ -42,6 +42,7 @@ async function runMode(question, { language, mode, constraints, routeImpl }) {
         language,
         answerMode: mode,
         routeImpl,
+        constraints,
     });
     const latencyMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
     const metrics = auditMetrics({
