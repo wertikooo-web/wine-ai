@@ -126,20 +126,34 @@ function couldRecover(result) {
 }
 
 // Strategy selection is deterministic:
-//   - evidence was retrieved but the gate failed -> PARTIAL_EVIDENCE, except
-//     a declared entity mismatch, where reusing another producer's evidence
-//     would be exactly the wrong-entity attribution the gate forbids -> treat
-//     it as ENTITY_ALTERNATIVES (find confirmed alternatives instead),
+//   - a declared entity mismatch never reuses another producer's evidence,
+//     even when evidence exists -> ENTITY_ALTERNATIVES,
+//   - a discovery-framed request (alternative/subjective wording) is served by
+//     discovery, not by recovering the literal retrieved fragments: for
+//     "что-нибудь вместо X" or "посоветуй молодую малоизвестную винодельню",
+//     PARTIAL_EVIDENCE would answer the unsupported literal question instead
+//     of the advice the user actually asked for,
+//   - otherwise, evidence was retrieved AND the gate confirmed the evidence
+//     concerns the asked entity (match) but could not confirm the specific
+//     value -> PARTIAL_EVIDENCE (answer the confirmed part, softly omit the
+//     rest). A partial pass REQUIRES a "match" verdict: recycling fragments
+//     the grader could not attribute to the asked entity (unknown winery,
+//     region-level or unrelated material) would be exactly the wrong-entity
+//     attribution the gate forbids -> ENTITY_ALTERNATIVES,
 //   - no evidence at all -> ENTITY_ALTERNATIVES / PREFERENCE_DISCOVERY /
 //     NEAREST_CONFIRMED_FACT by the question's own wording.
 function classifyStrategy(result, question) {
-    if (result.found === true && (result.evidence || []).length > 0) {
-        return result.evidence_entity_match === 'mismatch'
-            ? RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES
-            : RECOVERY_STRATEGIES.PARTIAL_EVIDENCE;
+    const q = String(question || '');
+    if (result.found === true && (result.evidence || []).length > 0 && result.evidence_entity_match === 'mismatch') {
+        return RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES;
     }
-    if (ALTERNATIVE_RE.test(String(question || ''))) return RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES;
-    if (SUBJECTIVE_RE.test(String(question || ''))) return RECOVERY_STRATEGIES.PREFERENCE_DISCOVERY;
+    if (ALTERNATIVE_RE.test(q)) return RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES;
+    if (SUBJECTIVE_RE.test(q)) return RECOVERY_STRATEGIES.PREFERENCE_DISCOVERY;
+    if (result.found === true && (result.evidence || []).length > 0) {
+        return result.evidence_entity_match === 'match'
+            ? RECOVERY_STRATEGIES.PARTIAL_EVIDENCE
+            : RECOVERY_STRATEGIES.ENTITY_ALTERNATIVES;
+    }
     return RECOVERY_STRATEGIES.NEAREST_CONFIRMED_FACT;
 }
 

@@ -126,13 +126,14 @@ async function run() {
         assert.strictEqual(result.webUsed, false, 'web found nothing new, so webUsed correctly stays false');
         assert.strictEqual(result.status, 'recovered', 'the answer path must recover to the closest supported facts instead of a dead-end refusal');
         assert.ok(result.recovery && result.recovery.applied === true, 'a recovery block must be attached');
-        assert.strictEqual(result.recovery.strategy, 'partial_evidence');
+        assert.strictEqual(result.recovery.strategy, 'entity_alternatives',
+            'unattributable fragments (no "match" verdict) must recover to confirmed alternatives, never answer the fragments as the confirmed pairing part');
         assert.ok(result.claims.length > 0, 'recovery must supply provenance-carrying claims');
         assert.ok(result.claims.every((claim) => claim.source && (claim.source.url || claim.source.title || claim.source.document_page)),
             'every recovered claim must carry provenance');
-        assert.ok(/Only part of this question can be confirmed right now/i.test(result.answer_policy.final_instruction),
-            'the model must be told to answer only the confirmed part, not the whole question');
-        assert.ok(/Do not invent the unconfirmed part/i.test(result.answer_policy.final_instruction),
+        assert.ok(/The exact producer or wine the user named cannot be confirmed/i.test(result.answer_policy.final_instruction),
+            'the model must be told the named wine cannot be confirmed and to offer alternatives, not a partial answer');
+        assert.ok(/Never state facts about the unconfirmed original/i.test(result.answer_policy.final_instruction),
             'recovery must keep the anti-fabrication limit explicit');
     }
 

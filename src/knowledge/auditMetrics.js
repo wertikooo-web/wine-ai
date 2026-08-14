@@ -173,6 +173,25 @@ function constraintCompliance(claims, result) {
     return { compliant: checks.every((c) => c.ok), checks };
 }
 
+// Recovery outcome for this mode result: was recovery invited (answerability
+// gate failed for a non-general question) and, if so, did it actually produce
+// a useful alternative (applied) or an honest dead end? `outcome` collapses the
+// pair into 'recovered' | 'dead_end' | 'not_needed' for aggregation.
+function recoveryMetrics(result) {
+    const recovery = result && result.recovery && typeof result.recovery.applied === 'boolean'
+        ? result.recovery
+        : null;
+    const needsRecovery = !!recovery;
+    return {
+        needs_recovery: needsRecovery,
+        applied: needsRecovery && recovery.applied === true,
+        dead_end: needsRecovery && recovery.applied !== true,
+        outcome: needsRecovery ? (recovery.applied === true ? 'recovered' : 'dead_end') : 'not_needed',
+        strategy: needsRecovery ? (recovery.strategy || null) : null,
+        reason: needsRecovery ? (recovery.reason || null) : null,
+    };
+}
+
 // Full per-mode audit metrics from an orchestrator-shaped result.
 function auditMetrics(result) {
     const claims = result.claims || [];
@@ -190,6 +209,7 @@ function auditMetrics(result) {
         factual_count: claims.filter((c) => FACTUAL_KINDS.has(c.kind)).length,
         mode_correctness: modeCorrectness(result),
         constraints: constraintCompliance(claims, result),
+        recovery: recoveryMetrics(result),
     };
 }
 
@@ -205,5 +225,6 @@ module.exports = {
     modeCorrectness,
     constraintCompliance,
     complianceForConstraint,
+    recoveryMetrics,
     auditMetrics,
 };

@@ -135,16 +135,16 @@ async function run() {
         assert.strictEqual(result.claimClass, CLAIM_CLASSES.GROUNDING_REQUIRED);
         assert.strictEqual(result.status, 'recovered');
         assert.strictEqual(result.answerable, false, 'an unsupported specific claim must not be permitted');
-        assert.strictEqual(result.recovery.strategy, 'partial_evidence',
-            'evidence was retrieved but does not answer the specific question -> answer only the confirmed part');
+        assert.strictEqual(result.recovery.strategy, 'entity_alternatives',
+            'without a grader "match" verdict the evidence is not attributable to the asked wine -> recover alternatives, never answer unsupported fragments as the confirmed part');
         const instruction = result.answer_policy.final_instruction;
-        assert.ok(/Only part of this question can be confirmed right now/i.test(instruction),
-            'the model must be told only the confirmed part can be answered');
-        assert.ok(/Do not invent the unconfirmed part/i.test(instruction), 'the model must be told not to fabricate the value');
+        assert.ok(/The exact producer or wine the user named cannot be confirmed/i.test(instruction),
+            'the model must not present the fragments as a confirmed answer');
+        assert.ok(/Never state facts about the unconfirmed original/i.test(instruction),
+            'the model must be told not to transfer facts from unattributable evidence');
         // Persona guard: the recovery must stay a sommelier, not a compliance
         // notice. Regression pin for the rejected phrasing style
         // ("Недостаточно контекстуальной доказательной информации...").
-        assert.ok(/warm sommelier voice/i.test(instruction), 'recovery must stay in sommelier voice');
         assert.ok(/two short natural sentences/i.test(instruction),
             'recovery must stay spoken-word short, not an essay');
         assert.ok(!/Answer directly and confidently/i.test(instruction),
@@ -387,8 +387,9 @@ async function run() {
         assert.notStrictEqual(result.status, 'general_knowledge',
             'a silent grader must never unlock free-form answering for a product-fact question');
         assert.notStrictEqual(result.answerable, true, 'a silent grader must never make a specific claim confidently answerable');
-        assert.strictEqual(result.recovery.strategy, 'partial_evidence');
-        assert.ok(/Only part of this question can be confirmed right now/i.test(result.answer_policy.final_instruction));
+        assert.strictEqual(result.recovery.strategy, 'entity_alternatives',
+            'with no "match" verdict the retrieved evidence is not attributable -> recover confirmed alternatives, never answer unattributable fragments as the confirmed part');
+        assert.ok(/The exact producer or wine the user named cannot be confirmed/i.test(result.answer_policy.final_instruction));
     }
 
     console.log('ALL CLAIM-DEPENDENT ANSWERABILITY GATE TESTS PASSED!');

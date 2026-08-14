@@ -1,0 +1,1048 @@
+{
+  "dataset_version": 1,
+  "dataset_file": "tests\\benchmark\\recovery-dataset.json",
+  "summary": {
+    "total_rows": 22,
+    "applicable_rows": 19,
+    "recovered_rows": 19,
+    "dead_end_rows": 0,
+    "answered_directly_rows": 0,
+    "grader_down_rows": 22,
+    "useful_recovery_rate": 1,
+    "dead_end_response_rate": 0,
+    "strategy_conformance": 1,
+    "hard_dead_end_failures": 0,
+    "internal_language_violations": 0,
+    "unsupported_claim_violations": 0,
+    "recovery_invaded_controls": 0,
+    "by_category": {
+      "discovery_winery": {
+        "total": 3,
+        "passed": 3
+      },
+      "discovery_preference": {
+        "total": 4,
+        "passed": 4
+      },
+      "entity_alternatives": {
+        "total": 3,
+        "passed": 3
+      },
+      "partial_evidence": {
+        "total": 4,
+        "passed": 4
+      },
+      "insufficient_evidence": {
+        "total": 2,
+        "passed": 2
+      },
+      "unknown_winery": {
+        "total": 2,
+        "passed": 2
+      },
+      "conflicting": {
+        "total": 1,
+        "passed": 1
+      },
+      "negative_control": {
+        "total": 3,
+        "passed": 3
+      }
+    },
+    "elapsed_ms": 8777.37
+  },
+  "gates": [
+    {
+      "name": "useful_recovery_rate >= 0.75",
+      "ok": true
+    },
+    {
+      "name": "dead_end_response_rate <= 0.25",
+      "ok": true
+    },
+    {
+      "name": "no hard dead-end failures",
+      "ok": true
+    },
+    {
+      "name": "no internal-language violations",
+      "ok": true
+    },
+    {
+      "name": "no unsupported claims",
+      "ok": true
+    },
+    {
+      "name": "no recovery invasion of negative controls",
+      "ok": true
+    },
+    {
+      "name": "strategy conformance >= 0.8 (1)",
+      "ok": true
+    }
+  ],
+  "rows": [
+    {
+      "id": "discovery-winery-ru",
+      "category": "discovery_winery",
+      "language": "ru",
+      "question": "Посоветуй молодую малоизвестную молдавскую винодельню",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "discovery-winery-en",
+      "category": "discovery_winery",
+      "language": "en",
+      "question": "Recommend a small family-owned Moldovan winery worth visiting",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "discovery-winery-ro",
+      "category": "discovery_winery",
+      "language": "ro",
+      "question": "Recomandă o cramă mică și mai puțin cunoscută din Moldova",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "discovery-preference-ru",
+      "category": "discovery_preference",
+      "language": "ru",
+      "question": "Хочу что-нибудь необычное из Молдовы",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "discovery-preference-en",
+      "category": "discovery_preference",
+      "language": "en",
+      "question": "I'm looking for something unusual and rare from Moldova",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "discovery-preference-ro",
+      "category": "discovery_preference",
+      "language": "ro",
+      "question": "Vreau un vin puțin cunoscut și de familie din Moldova",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "alternatives-ru",
+      "category": "entity_alternatives",
+      "language": "ru",
+      "question": "Что попробовать вместо Purcari?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "entity_alternatives"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "alternatives-en",
+      "category": "entity_alternatives",
+      "language": "en",
+      "question": "What should I try instead of Purcari?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "entity_alternatives"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "alternatives-ro",
+      "category": "entity_alternatives",
+      "language": "ro",
+      "question": "Ce să încerc în loc de Purcari?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "entity_alternatives"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "partial-vintage-ru",
+      "category": "partial_evidence",
+      "language": "ru",
+      "question": "Какая крепость у вина Purcari Negru de Purcari 2019?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "partial_evidence"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [
+        "strategy_safe_fallback_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "partial-vintage-en",
+      "category": "partial_evidence",
+      "language": "en",
+      "question": "What is the alcohol content of Negru de Purcari 2019?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "partial_evidence"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [
+        "strategy_safe_fallback_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "partial-phone-ru",
+      "category": "partial_evidence",
+      "language": "ru",
+      "question": "Винодельня Castel Mimi — какой у неё телефон?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "partial_evidence"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [
+        "strategy_safe_fallback_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "partial-tour-ro",
+      "category": "partial_evidence",
+      "language": "ro",
+      "question": "Crama Cricova — cât costă turul trenului subteran?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "partial_evidence"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [
+        "strategy_safe_fallback_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "insufficient-liqueur-ru",
+      "category": "insufficient_evidence",
+      "language": "ru",
+      "question": "Расскажи, какие ликёрные вина производили в регионе Кодру в 1930-х годах",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "insufficient-honey-en",
+      "category": "insufficient_evidence",
+      "language": "en",
+      "question": "Tell me about Purcari's honey-based dessert wine collection in detail",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "unknown-winery-ru",
+      "category": "unknown_winery",
+      "language": "ru",
+      "question": "Расскажи про винодельню Crama Soneria",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "entity_alternatives"
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "unknown-winery-en",
+      "category": "unknown_winery",
+      "language": "en",
+      "question": "Tell me about the winery Belvedere de Valut in Moldova",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "entity_alternatives",
+          "expected": "entity_alternatives"
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "conflicting-foundation-ru",
+      "category": "conflicting",
+      "language": "ru",
+      "question": "В каком году основан подземный город Cricova — какая дата верна?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "discovery-near-city-ru",
+      "category": "discovery_preference",
+      "language": "ru",
+      "question": "Подскажи, где купить необычное малотиражное вино рядом с Кишинёвом?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "preference_discovery",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "recovery_never_flips_answerable",
+          "ok": true,
+          "got": null
+        },
+        {
+          "name": "recovery_claims_clean",
+          "ok": true,
+          "got": 0
+        },
+        {
+          "name": "dead_end_allowed",
+          "ok": true
+        },
+        {
+          "name": "strategy",
+          "ok": true,
+          "got": "preference_discovery",
+          "expected": "preference_discovery"
+        },
+        {
+          "name": "min_claims",
+          "ok": true,
+          "got": 3,
+          "expected": 1
+        }
+      ],
+      "pass_explain": [],
+      "recovery": {
+        "applied": true,
+        "strategy": "preference_discovery",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "negative-control-ru",
+      "category": "negative_control",
+      "language": "ru",
+      "question": "Где находится винодельня Purcari?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "negative_control_untouched",
+          "ok": true,
+          "got": "recovered:not-answerable:grader-down",
+          "expected": "recovery_ok_grader_down"
+        }
+      ],
+      "pass_explain": [
+        "control_untouchable_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "negative-control-ro",
+      "category": "negative_control",
+      "language": "ro",
+      "question": "În ce an a fost fondată Crama Purcari?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "negative_control_untouched",
+          "ok": true,
+          "got": "recovered:not-answerable:grader-down",
+          "expected": "recovery_ok_grader_down"
+        }
+      ],
+      "pass_explain": [
+        "control_untouchable_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    },
+    {
+      "id": "negative-control-en",
+      "category": "negative_control",
+      "language": "en",
+      "question": "When was the Cricova winery founded?",
+      "pass": true,
+      "label": "recovered:not-answerable:grader-down",
+      "strategy": "entity_alternatives",
+      "claimed": 3,
+      "checks": [
+        {
+          "name": "no_internal_language",
+          "ok": true
+        },
+        {
+          "name": "negative_control_untouched",
+          "ok": true,
+          "got": "recovered:not-answerable:grader-down",
+          "expected": "recovery_ok_grader_down"
+        }
+      ],
+      "pass_explain": [
+        "control_untouchable_grader_down"
+      ],
+      "recovery": {
+        "applied": true,
+        "strategy": "entity_alternatives",
+        "reason": "discovery"
+      }
+    }
+  ]
+}
