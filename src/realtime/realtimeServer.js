@@ -982,20 +982,30 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // it only arms at endInput() time, guarding "provider never responded",
     // not "input never ended" in the first place.
     //
-    // PR #69 review: this is deliberately an INACTIVITY watchdog, not an
-    // absolute cap on how long a turn's input may run. FREE_CONV_INPUT_HANG_
-    // TIMEOUT_MS is the maximum gap allowed between two pieces of forward
-    // progress on this generation -- every real audio frame received while
-    // it's the open generation re-arms it (see the isActiveTurn branch of
-    // the binary-frame handler below), so a genuinely long utterance (15s,
-    // 30s, as long as the user keeps actually talking and frames keep
-    // arriving) never trips it. It only fires when frames genuinely stop
-    // arriving for the full window with no input_audio.end/native-stop
-    // signal ever having closed the turn -- exactly the incident's failure
-    // mode. Armed when input STARTS (covers a turn where no frame ever
-    // arrives at all), re-armed on every subsequent frame, cleared as soon
-    // as input actually ends (endInput()) or the generation is cancelled for
-    // any other reason (cancelCurrent()). Free Conversation only --
+    // PR #69 review (round 1): this is deliberately an INACTIVITY watchdog,
+    // not an absolute cap on how long a turn's input may run.
+    //
+    // PR #69 review (round 2): "progress" means genuine SPEECH ACTIVITY, not
+    // PCM delivery. Free Conversation streams audio continuously, including
+    // silence -- the incident's own production log shows input_audio_frame
+    // arriving throughout the entire hung turn4. A watchdog that re-arms on
+    // every frame regardless of content would therefore never have fired for
+    // the actual incident, since frames never stopped arriving. Only a frame
+    // that clears the no-speech amplitude threshold (bufferHasLoudSample(),
+    // same threshold push_to_talk's no-speech gate uses) counts as progress
+    // and re-arms it -- see the isActiveTurn branch of the binary-frame
+    // handler below. A run of silent frames after speech genuinely ends
+    // therefore lets the watchdog expire and force-close the turn: the
+    // fallback for exactly the incident's failure mode (a lost
+    // native_speech_stopped/input_audio.end signal). A genuinely long
+    // utterance (15s, 30s, as long as the user keeps actually talking, real
+    // voiced audio, not just an open mic) never trips it -- silence between
+    // words/sentences is normal and shorter than the configured window;
+    // only a sustained gap with NO further speech activity does. Armed when
+    // input STARTS (covers a turn where no frame ever arrives at all),
+    // re-armed on every subsequent LOUD frame, cleared as soon as input
+    // actually ends (endInput()) or the generation is cancelled for any
+    // other reason (cancelCurrent()). Free Conversation only --
     // push_to_talk's end is already deterministic and out of scope here.
     function clearInputHangTimeout(generation) {
         if (!generation?.inputHangTimer) return;
@@ -1649,6 +1659,23 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 turnLoudSampleCount += 1;
             }
         }
+    }
+
+    // Same threshold/semantics as countLoudSamples() above, but a cheap
+    // early-exit boolean instead of a full-buffer count -- used by Free
+    // Conversation's input-hang watchdog (armInputHangTimeout()) to decide
+    // whether THIS frame is genuine speech activity worth re-arming on, not
+    // just PCM that happened to be delivered (silence between/after
+    // utterances must NOT re-arm it). See the PR #69 review comment at the
+    // watchdog re-arm call site.
+    function bufferHasLoudSample(buffer) {
+        const threshold = noSpeechAmplitudeThreshold();
+        const sampleCount = buffer.length >> 1;
+        for (let i = 0; i < sampleCount; i += 1) {
+            const sample = buffer.readInt16LE(i * 2);
+            if (sample >= threshold || sample <= -threshold) return true;
+        }
+        return false;
     }
 
     function shouldRotateProviderOnInterrupt() {
@@ -2423,13 +2450,23 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                             providerInstanceId: providerSession?.instanceId || 'unknown',
                         });
                     }
-                    // Every real audio frame is forward progress on this
-                    // generation's input -- re-arm the inactivity watchdog so
-                    // a genuinely long utterance (frames keep arriving) never
-                    // trips it, only a real gap with no frames AND no
-                    // input_audio.end/native-stop does. See armInputHangTimeout()'s
-                    // comment above (PR #69 review).
-                    if (!inputEndedAt) armInputHangTimeout(currentGeneration);
+                    // PR #69 review, round 2: re-arming on every FRAME (not
+                    // just loud ones) was wrong -- Free Conversation streams
+                    // audio continuously, including silence, and the
+                    // incident's own production log shows exactly that:
+                    // input_audio_frame kept arriving throughout the hung
+                    // turn4, which would have kept re-arming a frame-based
+                    // watchdog forever, never actually recovering the real
+                    // incident. "Progress" must mean genuine speech
+                    // activity, not PCM delivery. Only a frame that actually
+                    // clears the same no-speech amplitude threshold used
+                    // elsewhere (bufferHasLoudSample(), NO_SPEECH_AMPLITUDE_THRESHOLD)
+                    // re-arms the watchdog; a run of silent frames after
+                    // speech ends lets it expire and force-close the turn --
+                    // the fallback for a lost native_speech_stopped signal.
+                    if (!inputEndedAt && bufferHasLoudSample(resampled)) {
+                        armInputHangTimeout(currentGeneration);
+                    }
                 }
                 if (currentMode === 'push_to_talk') {
                     countLoudSamples(resampled);

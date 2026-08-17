@@ -35,6 +35,17 @@ function loudFrame(bytes = 4096) {
     return buf;
 }
 
+// Below the server's no-speech amplitude threshold (default 200) -- this is
+// what Free Conversation actually streams continuously between/after words,
+// including for the whole duration of a turn stuck waiting for a lost
+// native_speech_stopped/input_audio.end (see the 2026-08-17 production log:
+// input_audio_frame kept arriving the entire time turn4 was hung).
+function silentFrame(bytes = 4096) {
+    const buf = Buffer.alloc(bytes);
+    for (let i = 0; i < bytes; i += 2) buf.writeInt16LE(5, i);
+    return buf;
+}
+
 function captureLogs() {
     const lines = [];
     const original = console.log;
@@ -167,6 +178,67 @@ test('Free Conversation: a long turn with continuous frames is NOT cancelled by 
         client.sendJson({ type: 'input_audio.end' });
         const audioEnd = await client.waitFor((e) => e.type === 'audio.end', { label: 'audio.end (long turn)', timeoutMs: 3000 });
         assert.equal(audioEnd.turn_id, 'turn1', 'the long turn must complete normally and produce a real response, not get force-cancelled');
+
+        client.close();
+    } finally {
+        await close();
+    }
+});
+
+// MANDATORY regression test (PR #69 review, round 2): replays the exact
+// real failure, not a proxy for it. Speech PCM opens the turn, then SILENT
+// PCM keeps streaming (exactly what a real mic does and what the
+// 2026-08-17 production log shows -- input_audio_frame never stopped for
+// the hung turn4) with native_speech_stopped/input_audio.end NEVER sent.
+// A frame-delivery-based watchdog would never fire here (frames never
+// stop); only a speech-activity-based one can recover it.
+test('Free Conversation: speech followed by continuous SILENT frames with no native_speech_stopped/input_audio.end closes the turn via the speech-activity watchdog, and the session accepts the next utterance', async () => {
+    const { port, close } = await startTestServer({ mockConfig: { processingDelayMs: 30, chunkIntervalMs: 20, chunkCount: 2 } });
+    try {
+        const client = await openTapToStartSession(port);
+
+        // 1. Open a Free Conversation turn (the client's own real tap).
+        client.sendJson({
+            type: 'input_audio.start',
+            mode: 'tap_to_start',
+            turn_id: 'turn1',
+            micEchoCancellation: true,
+            micTrackId: 'track-1',
+        });
+        await client.waitFor((e) => e.type === 'input_audio.start', { label: 'input_audio.start (turn1)' });
+
+        // 2. Send real speech PCM frames -- these must keep the watchdog
+        // re-armed, same as the long-turn test above.
+        for (let i = 0; i < 4; i += 1) {
+            client.sendBinary(loudFrame());
+            await new Promise((resolve) => setTimeout(resolve, 30));
+        }
+
+        // 3. Now only SILENT PCM frames -- the exact shape of the incident:
+        // the mic pipeline keeps streaming, nothing ever tells the server
+        // the utterance ended.
+        for (let i = 0; i < 10; i += 1) {
+            client.sendBinary(silentFrame());
+            await new Promise((resolve) => setTimeout(resolve, 30));
+        }
+        // Total elapsed since the last loud frame is now well past the
+        // configured 150ms watchdog window (10 * 30ms = 300ms of silence).
+
+        // 4. Deliberately never send native_speech_stopped or
+        // input_audio.end -- this is the lost-signal scenario.
+
+        // 5. The turn must still close correctly (via the speech-activity
+        // watchdog, not a lost native signal) and the session must accept
+        // the next real utterance -- not be stuck.
+        const cancelled = await client.waitFor(
+            (e) => e.type === 'response.cancelled' && e.turn_id === 'turn1',
+            { label: 'response.cancelled (input_hang_timeout, speech-activity based)', timeoutMs: 2000 },
+        );
+        assert.equal(cancelled.reason, 'input_hang_timeout', 'the turn must be closed by the speech-activity watchdog once real speech activity stops, even though PCM frames (silence) never stopped arriving');
+
+        client.sendJson({ type: 'input_audio.speech_start', source: 'client_local_vad' });
+        const nextTurn = await client.waitFor((e) => e.type === 'input_audio.start', { label: 'input_audio.start (next turn)', timeoutMs: 2000 });
+        assert.notEqual(nextTurn.turn_id, 'turn1', 'the session must recover and accept the next real speech signal as a fresh turn, not remain stuck');
 
         client.close();
     } finally {
