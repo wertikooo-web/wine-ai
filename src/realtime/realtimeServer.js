@@ -980,11 +980,23 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // 'ignored_duplicate_user_input' branch below), and the whole session
     // stops responding to speech. armPttTurnTimeout() does not cover this --
     // it only arms at endInput() time, guarding "provider never responded",
-    // not "input never ended" in the first place. This is that missing
-    // guard: armed when input STARTS, cleared as soon as it actually ends
-    // (endInput()) or the generation is cancelled for any other reason
-    // (cancelCurrent()). Free Conversation only -- push_to_talk's end is
-    // already deterministic and out of scope for this incident.
+    // not "input never ended" in the first place.
+    //
+    // PR #69 review: this is deliberately an INACTIVITY watchdog, not an
+    // absolute cap on how long a turn's input may run. FREE_CONV_INPUT_HANG_
+    // TIMEOUT_MS is the maximum gap allowed between two pieces of forward
+    // progress on this generation -- every real audio frame received while
+    // it's the open generation re-arms it (see the isActiveTurn branch of
+    // the binary-frame handler below), so a genuinely long utterance (15s,
+    // 30s, as long as the user keeps actually talking and frames keep
+    // arriving) never trips it. It only fires when frames genuinely stop
+    // arriving for the full window with no input_audio.end/native-stop
+    // signal ever having closed the turn -- exactly the incident's failure
+    // mode. Armed when input STARTS (covers a turn where no frame ever
+    // arrives at all), re-armed on every subsequent frame, cleared as soon
+    // as input actually ends (endInput()) or the generation is cancelled for
+    // any other reason (cancelCurrent()). Free Conversation only --
+    // push_to_talk's end is already deterministic and out of scope here.
     function clearInputHangTimeout(generation) {
         if (!generation?.inputHangTimer) return;
         clearTimeout(generation.inputHangTimer);
@@ -2411,6 +2423,13 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                             providerInstanceId: providerSession?.instanceId || 'unknown',
                         });
                     }
+                    // Every real audio frame is forward progress on this
+                    // generation's input -- re-arm the inactivity watchdog so
+                    // a genuinely long utterance (frames keep arriving) never
+                    // trips it, only a real gap with no frames AND no
+                    // input_audio.end/native-stop does. See armInputHangTimeout()'s
+                    // comment above (PR #69 review).
+                    if (!inputEndedAt) armInputHangTimeout(currentGeneration);
                 }
                 if (currentMode === 'push_to_talk') {
                     countLoudSamples(resampled);

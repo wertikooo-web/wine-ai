@@ -109,6 +109,71 @@ test('Free Conversation: a VAD-opened turn that never ends is force-closed by th
     }
 });
 
+// PR #69 review: FREE_CONV_INPUT_HANG_TIMEOUT_MS must be an INACTIVITY
+// watchdog (reset by real progress), not an absolute cap on how long a
+// user's turn may run -- a real 15-30s reply must complete normally.
+// Proven here by continuously sending frames for a duration that is many
+// times longer than the configured hang-timeout window (the test uses the
+// same small 150ms window as the rest of this file, for speed -- the
+// watchdog is re-armed on every frame with no special-casing by magnitude,
+// so this generalizes directly to production's real 12000ms default: a
+// real 15-30s reply sends far more than one frame every 12s, so it never
+// goes 12s without progress either).
+test('Free Conversation: a long turn with continuous frames is NOT cancelled by the input-hang watchdog, even though total duration far exceeds the configured window', async () => {
+    const { port, close } = await startTestServer({ mockConfig: { processingDelayMs: 30, chunkIntervalMs: 20, chunkCount: 2 } });
+    try {
+        const client = await openTapToStartSession(port);
+
+        client.sendJson({
+            type: 'input_audio.start',
+            mode: 'tap_to_start',
+            turn_id: 'turn1',
+            micEchoCancellation: true,
+            micTrackId: 'track-1',
+        });
+        await client.waitFor((e) => e.type === 'input_audio.start', { label: 'input_audio.start (turn1)' });
+
+        // Configured hang window in this file is 150ms. Send a frame every
+        // 40ms (well inside the window, like a real continuous mic stream)
+        // for 20 iterations = 800ms total -- over 5x the configured window,
+        // proportionally equivalent to a real ~15s+ reply against
+        // production's 12000ms default.
+        const FRAME_INTERVAL_MS = 40;
+        const FRAME_COUNT = 20;
+        for (let i = 0; i < FRAME_COUNT; i += 1) {
+            client.sendBinary(loudFrame());
+            await new Promise((resolve) => setTimeout(resolve, FRAME_INTERVAL_MS));
+        }
+
+        // Scoped to THIS client's own WS session (not a global console.log
+        // capture -- an earlier test's server can still be tearing down
+        // asynchronously when this one starts, per testServer.js's own
+        // "best-effort close" comment, and a global log-capture assertion
+        // was found to intermittently pick up a stray leftover log line from
+        // that unrelated prior session, a real bug in the TEST, not the
+        // fix). Drain any events that arrived unsolicited during the send
+        // loop above and confirm none of them is a response.cancelled for
+        // this turn -- the watchdog firing is the ONLY thing that would
+        // produce one before input_audio.end is even sent.
+        const unsolicited = [];
+        for (;;) {
+            try { unsolicited.push(await client.nextEvent(50)); } catch { break; }
+        }
+        const prematureCancel = unsolicited.find((e) => e.type === 'response.cancelled' && e.turn_id === 'turn1');
+        assert.equal(prematureCancel, undefined, 'continuous frames must keep re-arming the watchdog -- it must never fire while real progress keeps arriving');
+
+        // The turn must still be open and completable via the normal path
+        // (this is what a real provider-VAD end-of-speech looks like).
+        client.sendJson({ type: 'input_audio.end' });
+        const audioEnd = await client.waitFor((e) => e.type === 'audio.end', { label: 'audio.end (long turn)', timeoutMs: 3000 });
+        assert.equal(audioEnd.turn_id, 'turn1', 'the long turn must complete normally and produce a real response, not get force-cancelled');
+
+        client.close();
+    } finally {
+        await close();
+    }
+});
+
 test('Free Conversation: a genuine barge-in over an actively-streaming response is still accepted (logged decision=accepted, hadActiveResponse=true)', async () => {
     // Long chunk stream so there is a wide window where the response is
     // genuinely "active" (audio.start already sent, more chunks still coming).
@@ -149,6 +214,15 @@ test('Free Conversation: a genuine barge-in over an actively-streaming response 
 });
 
 test('Free Conversation: a duplicate speech signal for the SAME still-open utterance is explicitly logged and ignored, not silently dropped', async () => {
+    // This test's own wait/drain window (below) can exceed the file's
+    // shared 150ms hang-timeout window on a slow CI box, which would then
+    // legitimately (but unintentionally) fire the OTHER fix under test here
+    // and cancel turn1 out from under this assertion -- found via repeated
+    // runs. Temporarily widen the watchdog for just this test; it's read
+    // live from process.env on every arm, so this takes effect immediately
+    // and is restored in `finally` so it never leaks into other tests.
+    const previousHangTimeout = process.env.FREE_CONV_INPUT_HANG_TIMEOUT_MS;
+    process.env.FREE_CONV_INPUT_HANG_TIMEOUT_MS = '5000';
     const { port, close } = await startTestServer({ mockConfig: { processingDelayMs: 500, chunkIntervalMs: 100, chunkCount: 2 } });
     const logs = captureLogs();
     try {
@@ -165,6 +239,14 @@ test('Free Conversation: a duplicate speech signal for the SAME still-open utter
             micTrackId: 'track-1',
         });
         await client.waitFor((e) => e.type === 'input_audio.start', { label: 'input_audio.start (turn1)' });
+        // A real client keeps streaming audio frames the whole time a turn
+        // is open -- without at least one, this test's own turn1 would sit
+        // with input_audio.end never sent AND no frame ever re-arming the
+        // input-hang watchdog (this file's shared 150ms window), so the
+        // watchdog would legitimately fire and cancel turn1 out from under
+        // this test (found via repeated runs: turn1 was correctly, but
+        // unintentionally, cancelled here before the fix below).
+        client.sendBinary(loudFrame());
 
         // A duplicate native-speech signal for the SAME still-open utterance
         // (e.g. the provider's own VAD firing again mid-utterance) must be
@@ -179,12 +261,25 @@ test('Free Conversation: a duplicate speech signal for the SAME still-open utter
             logs.lines.some((l) => l.includes('ignored_duplicate_user_input')),
             'a duplicate signal for the same open utterance must be explicitly logged, not silently swallowed',
         );
-        // And, critically, must NOT have opened a second turn or cancelled turn1.
-        assert.ok(!logs.lines.some((l) => l.includes('stage=input_audio_start') && l.includes('turnCount=2')), 'no second turn must have opened from the duplicate signal');
+        // And, critically, must NOT have opened a second turn or cancelled
+        // turn1. Scoped to this client's own WS events (not the shared
+        // console.log capture) -- an unrelated prior test's server can still
+        // be finishing async teardown when this one starts (testServer.js's
+        // own "best-effort close" comment), and a global-log-based negative
+        // assertion here was found, on review, to carry the same
+        // cross-test-leak risk that broke the long-turn test above.
+        const unsolicited = [];
+        for (;;) {
+            try { unsolicited.push(await client.nextEvent(50)); } catch { break; }
+        }
+        assert.ok(!unsolicited.some((e) => e.type === 'input_audio.start'), 'no second turn must have opened from the duplicate signal');
+        assert.ok(!unsolicited.some((e) => e.type === 'response.cancelled'), 'turn1 must not have been cancelled by the duplicate signal');
 
         client.close();
     } finally {
         logs.restore();
         await close();
+        if (previousHangTimeout === undefined) delete process.env.FREE_CONV_INPUT_HANG_TIMEOUT_MS;
+        else process.env.FREE_CONV_INPUT_HANG_TIMEOUT_MS = previousHangTimeout;
     }
 });

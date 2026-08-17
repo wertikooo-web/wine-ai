@@ -3310,10 +3310,17 @@
           sessionLimitLocalSpeechStartedAt = 0;
           sessionLimitLocalSpeechLastLoudAt = 0;
         }
-        const confirmed = evaluateLocalVadFrame(localVadState, peak, {
+        // input.length / audioContext.sampleRate is this callback's REAL
+        // duration -- audioContext.sampleRate reflects whatever rate the
+        // browser actually runs at, not the 16000 requested in
+        // ensureAudioContextRunning() (see the PR #69 review comment above:
+        // some browsers/devices silently keep the hardware's native rate,
+        // e.g. 48000, regardless of the requested value).
+        const frameDurationMs = (input.length / audioContext.sampleRate) * 1000;
+        const confirmed = evaluateLocalVadFrame(localVadState, peak, frameDurationMs, {
           highThreshold: LOCAL_VAD_HIGH_PEAK,
           lowThreshold: LOCAL_VAD_LOW_PEAK,
-          confirmFrames: LOCAL_VAD_CONFIRM_FRAMES,
+          confirmMs: LOCAL_VAD_CONFIRM_MS,
         });
         if (confirmed && !sessionLimitInputClosed) {
           if (DeviceVisual.getState() === 'speaking') triggerLocalBargeIn(peak);
@@ -3988,25 +3995,37 @@
   // perceptible delay while a single non-speech impulse (bang/clink/cough)
   // cannot. Hysteresis still guarantees one interrupt per sound episode.
   function createLocalVadState() {
-    return { consecutiveLoud: 0, armed: true };
+    return { consecutiveLoudMs: 0, armed: true };
   }
   // Returns true exactly once per continuous loud episode -- re-arms only
   // after the level drops back below the LOW threshold, so a sustained
   // barge-in utterance can never send more than one client_barge_in.
-  function evaluateLocalVadFrame(state, peak, opts) {
+  //
+  // PR #69 review (2026-08-17): the original version counted CALLBACKS, not
+  // time -- confirmFrames=2 assumed each callback is ~128ms (2048 samples at
+  // the requested 16kHz AudioContext rate), but the incident's own
+  // mic_track_settings showed sampleRate=48000. Some browsers/devices only
+  // honor the `sampleRate` option for AudioContext as a hint and silently
+  // keep the hardware's native rate -- at 48kHz, 2048 samples is ~43ms per
+  // callback, so confirmFrames=2 was really only ~85ms of debounce, well
+  // under the 128ms non-speech impulse from the incident. Counting
+  // milliseconds directly (frame length / the AudioContext's OWN reported
+  // sampleRate, whatever it actually turned out to be) removes the
+  // assumption entirely -- correct at any rate the browser actually runs at.
+  function evaluateLocalVadFrame(state, peak, durationMs, opts) {
     const high = opts.highThreshold;
     const low = opts.lowThreshold;
-    const confirmFrames = opts.confirmFrames;
+    const confirmMs = opts.confirmMs;
     if (peak >= high) {
       if (state.armed) {
-        state.consecutiveLoud += 1;
-        if (state.consecutiveLoud >= confirmFrames) {
+        state.consecutiveLoudMs += durationMs;
+        if (state.consecutiveLoudMs >= confirmMs) {
           state.armed = false;
           return true;
         }
       }
     } else if (peak < low) {
-      state.consecutiveLoud = 0;
+      state.consecutiveLoudMs = 0;
       state.armed = true;
     }
     return false;
@@ -4015,19 +4034,20 @@
   const LOCAL_VAD_HIGH_PEAK = 500;
   const LOCAL_VAD_LOW_PEAK = 250;
   // Incident 2026-08-17 (session_a27050c285b85de6, 18:02 UTC): a single loud
-  // NON-speech transient (~128ms, one audio callback) cleared HIGH_PEAK and
-  // instantly fired a barge-in mid-response, then a second false trigger
-  // right at the next response.created cancelled it again before playback
+  // NON-speech transient (~128ms) cleared HIGH_PEAK and instantly fired a
+  // barge-in mid-response, then a second false trigger right at the next
+  // response.created cancelled it again before playback
   // ever started, leaving the session's next turn stuck open indefinitely
   // (see the FREE_CONV_INPUT_HANG_TIMEOUT_MS fix in realtimeServer.js for the
   // "stuck open" half of this incident). Amplitude alone cannot tell a bang/
-  // clink/cough apart from speech; requiring TWO consecutive loud callbacks
-  // (~256ms of sustained level, not just one instantaneous peak) is the
-  // minimal debounce that rejects a single short impulse while adding no
+  // clink/cough apart from speech; requiring 256ms of SUSTAINED loudness
+  // (measured in real milliseconds, not a fixed callback count -- see the
+  // PR #69 review comment on evaluateLocalVadFrame above) is the minimal
+  // debounce that rejects a single ~128ms impulse while adding no
   // perceptible delay to a real spoken interruption -- any real word/phrase
   // clears 256ms of continuous loudness almost immediately, well inside the
-  // "no noticeable pause" bar. Was 1 (fired on the very first callback).
-  const LOCAL_VAD_CONFIRM_FRAMES = 2; // two 2048-sample callbacks (~256ms @16kHz)
+  // "no noticeable pause" bar.
+  const LOCAL_VAD_CONFIRM_MS = 256;
   const localVadState = createLocalVadState();
   let localBargeInEpisodeId = 0;
 

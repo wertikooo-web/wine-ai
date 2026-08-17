@@ -58,9 +58,15 @@ async function run() {
     // Real enough to exercise schedulePlayback()/stopPlaybackWithFadeOut()'s
     // actual gain-scheduling and source lifecycle, without needing a real
     // browser/audio device.
-    function makeMockAudioContext() {
+    function makeMockAudioContext(sampleRate = 16000) {
         let currentTime = 0;
         const ctx = {
+            // Real value the browser actually runs at -- some browsers only
+            // treat `new AudioContext({ sampleRate })` as a hint and keep the
+            // hardware's native rate (see PR #69 review: production showed
+            // 48000 despite requesting 16000). Configurable per test so both
+            // rates are covered.
+            sampleRate,
             destination: { id: 'destination' },
             createBufferSource() {
                 const src = {
@@ -101,7 +107,7 @@ async function run() {
         return ctx;
     }
 
-    function createTestSandbox() {
+    function createTestSandbox({ audioContextSampleRate = 16000 } = {}) {
         const listeners = {};
         const elements = {};
         const timers = []; // { fn, ms } captured instead of actually scheduled
@@ -150,7 +156,7 @@ async function run() {
         WebSocketMock.CLOSING = 2;
         WebSocketMock.CLOSED = 3;
 
-        const audioContext = makeMockAudioContext();
+        const audioContext = makeMockAudioContext(audioContextSampleRate);
 
         const sandbox = {
             window: mockWindow,
@@ -251,37 +257,47 @@ async function run() {
         return sandbox.testResults.timers.filter((t) => t.ms === ms).length;
     }
 
-    // ================= Pure local-VAD algorithm =================
+    // ================= Pure local-VAD algorithm (time-based, PR #69) =====
+    // evaluateLocalVadFrame(state, peak, durationMs, opts) -- durationMs is
+    // now an explicit argument the caller computes from the REAL
+    // AudioContext.sampleRate, not an assumed callback count. These tests
+    // drive it directly with hand-picked durations; the 16kHz/48kHz tests
+    // further below drive the real onaudioprocess handler end to end.
 
-    console.log('Testing local VAD requires 2 consecutive loud callbacks (~256ms) so a real interruption still lands fast...');
+    console.log('Testing local VAD requires ~256ms of SUSTAINED loudness (time, not callback count) so a real interruption still lands fast...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
-        // 2026-08-17 incident (session_a27050c285b85de6): confirmFrames=1 let a
-        // single ~128ms non-speech impulse fire an instant false barge-in.
-        assert.strictEqual(confirmFrames, 2, 'must require sustained loudness across 2 callbacks, not a single instantaneous peak');
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
-        const r1 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r1, false, 'a single loud callback must NOT confirm a barge-in on its own');
-        const r2 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r2, true, 'a second consecutive loud callback (sustained ~256ms) must confirm the barge-in');
-        const r3 = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        const confirmMs = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_MS');
+        // 2026-08-17 incident (session_a27050c285b85de6): the original
+        // callback-counting version assumed ~128ms/callback (16kHz), but the
+        // incident's own mic_track_settings showed 48kHz -- at 48kHz a 2048
+        // sample callback is only ~43ms, so "2 callbacks" was really only
+        // ~85ms, not the intended 256ms. Time-based accounting fixes this
+        // regardless of what rate the browser actually runs at.
+        assert.strictEqual(confirmMs, 256, 'must require ~256ms of sustained loudness');
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmMs };
+        const r1 = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        assert.strictEqual(r1, false, '128ms of loudness alone must NOT confirm a barge-in');
+        const r2 = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        assert.strictEqual(r2, true, '256ms total sustained loudness must confirm the barge-in');
+        const r3 = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
         assert.strictEqual(r3, false, 'continued sound must not emit a duplicate barge-in');
     }
 
-    console.log('Testing local VAD rejects a short loud non-speech impulse during playback (regression: 2026-08-17 false barge-in)...');
+    console.log('Testing local VAD rejects a 128ms loud non-speech impulse regardless of callback size (regression: 2026-08-17 false barge-in)...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
-        // One loud callback (the impulse), then immediately back to quiet --
-        // exactly a door-slam/cough/glass-clink shape, never a sustained tone.
-        const impulseResult = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(impulseResult, false, 'a lone loud impulse must never confirm a barge-in');
-        const backToQuiet = sandbox.evaluateLocalVadFrame(state, 50, opts);
-        assert.strictEqual(backToQuiet, false, 'dropping back to quiet after one impulse frame must not confirm either');
+        const confirmMs = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_MS');
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmMs };
+        // Exactly the incident's impulse shape: 128ms loud, then quiet --
+        // whether that arrives as one 128ms callback or several small ones,
+        // it must never reach the 256ms confirm threshold.
+        const impulseResult = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        assert.strictEqual(impulseResult, false, 'a 128ms loud impulse must never confirm a barge-in on its own');
+        const backToQuiet = sandbox.evaluateLocalVadFrame(state, 50, 50, opts);
+        assert.strictEqual(backToQuiet, false, 'dropping back to quiet after the impulse must not confirm either');
         assert.strictEqual(state.armed, true, 'a rejected impulse must leave the VAD armed for the next real attempt, not stuck');
     }
 
@@ -289,15 +305,15 @@ async function run() {
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
-        // False impulse: one loud callback, then quiet (does not confirm, per above).
-        sandbox.evaluateLocalVadFrame(state, 900, opts);
-        sandbox.evaluateLocalVadFrame(state, 50, opts);
-        // Real speech now starts: two consecutive loud callbacks must still confirm.
-        const first = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(first, false, 'first callback of the real utterance must not confirm yet');
-        const second = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        const confirmMs = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_MS');
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmMs };
+        // False impulse: 128ms loud, then quiet (does not confirm, per above).
+        sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        sandbox.evaluateLocalVadFrame(state, 50, 50, opts);
+        // Real speech now starts: 256ms of sustained loudness must still confirm.
+        const first = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        assert.strictEqual(first, false, 'first 128ms of the real utterance must not confirm yet');
+        const second = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
         assert.strictEqual(second, true, 'real sustained speech right after a rejected impulse must still confirm normally');
     }
 
@@ -305,44 +321,110 @@ async function run() {
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 2 };
-        sandbox.evaluateLocalVadFrame(state, 900, opts);
-        sandbox.evaluateLocalVadFrame(state, 900, opts);
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmMs: 256 };
+        sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
         assert.strictEqual(state.armed, false, 'state must be disarmed immediately after confirming once');
         // Staying loud (even fluctuating between high and the dead zone,
         // never below low) must NOT re-confirm -- one client_barge_in per
         // continuous episode.
-        const stillLoud = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        const stillLoud = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
         assert.strictEqual(stillLoud, false, 'must not re-confirm while still loud in the same episode');
-        const midZone = sandbox.evaluateLocalVadFrame(state, 300, opts); // between low(250) and high(500)
+        const midZone = sandbox.evaluateLocalVadFrame(state, 300, 128, opts); // between low(250) and high(500)
         assert.strictEqual(midZone, false, 'the hysteresis dead zone must not re-arm or re-confirm');
         assert.strictEqual(state.armed, false, 'dead zone must not re-arm');
         // Drop below LOW -- now re-armed.
-        sandbox.evaluateLocalVadFrame(state, 100, opts);
+        sandbox.evaluateLocalVadFrame(state, 100, 128, opts);
         assert.strictEqual(state.armed, true, 'must re-arm once the level drops below the LOW threshold');
-        // A new episode can be another short word; still needs 2 consecutive
-        // loud callbacks, same as the very first episode.
-        const newEpisodeFirstFrame = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(newEpisodeFirstFrame, false, 'a new episode must not confirm on its first callback either');
-        const newEpisodeSecondFrame = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(newEpisodeSecondFrame, true, 'a new sound episode confirms after 2 consecutive loud callbacks, same as the first');
+        // A new episode can be another short word; still needs ~256ms sustained,
+        // same as the very first episode.
+        const newEpisodeFirst = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        assert.strictEqual(newEpisodeFirst, false, 'a new episode must not confirm on its first 128ms either');
+        const newEpisodeSecond = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+        assert.strictEqual(newEpisodeSecond, true, 'a new sound episode confirms after ~256ms sustained, same as the first');
     }
 
     console.log('Testing local VAD: five repeated interruptions in the same session all confirm correctly, no stuck state...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 2 };
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmMs: 256 };
         for (let i = 0; i < 5; i += 1) {
-            const first = sandbox.evaluateLocalVadFrame(state, 900, opts);
-            assert.strictEqual(first, false, `interruption #${i + 1}: first loud callback must not confirm yet`);
-            const second = sandbox.evaluateLocalVadFrame(state, 900, opts);
-            assert.strictEqual(second, true, `interruption #${i + 1}: second consecutive loud callback must confirm`);
+            const first = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+            assert.strictEqual(first, false, `interruption #${i + 1}: first 128ms must not confirm yet`);
+            const second = sandbox.evaluateLocalVadFrame(state, 900, 128, opts);
+            assert.strictEqual(second, true, `interruption #${i + 1}: 256ms sustained must confirm`);
             // Drop back to silence between interruptions, as a real turn-taking
             // pause would, so the next episode starts from a clean re-arm.
-            const quiet = sandbox.evaluateLocalVadFrame(state, 50, opts);
+            const quiet = sandbox.evaluateLocalVadFrame(state, 50, 50, opts);
             assert.strictEqual(quiet, false, `interruption #${i + 1}: silence after confirming must not itself confirm`);
             assert.strictEqual(state.armed, true, `interruption #${i + 1}: VAD must be re-armed and ready for the next interruption`);
+        }
+    }
+
+    // ================= Real onaudioprocess handler at 16kHz vs 48kHz =====
+    // Drives the ACTUAL processor.onaudioprocess callback (not the pure
+    // function directly) with a real Float32Array frame, at both the
+    // requested AudioContext rate (16kHz) and the rate the incident's own
+    // browser actually reported (48kHz) -- proving the fix is correct
+    // regardless of which rate the browser honors.
+
+    async function runRealCallbackScenario(sampleRate, { label }) {
+        const sandbox = createTestSandbox({ audioContextSampleRate: sampleRate });
+        setLexical(sandbox, 'voiceMode', 'tap_to_start');
+        setLexical(sandbox, 'tapToStartActive', true);
+        setLexical(sandbox, 'isHolding', true);
+        setLexical(sandbox, 'audioContext', sandbox.testResults.audioContext);
+        setLexical(sandbox, 'acceptedPlaybackGenerationId', 'generation_real_callback');
+        vm.runInContext(`
+            const src = testResults.audioContext.createBufferSource();
+            src.buffer = testResults.audioContext.createBuffer(1, 100, ${sampleRate});
+            const gainNode = testResults.audioContext.createGain();
+            src.connect(gainNode);
+            sourceGainNodes.set(src, gainNode);
+            activeSources.add(src);
+            ws = { readyState: WebSocket.OPEN, send: (msg) => { testResults.sentMessages.push(msg); } };
+            DeviceVisual.setState('speaking');
+        `, sandbox);
+        await sandbox.ensureMic();
+        const processor = getLexical(sandbox, 'processor');
+        // 2048 samples/callback, same as production's real
+        // audioContext.createScriptProcessor(2048, 1, 1) -- duration in ms
+        // is therefore 2048/sampleRate*1000: ~128ms at 16kHz, ~43ms at 48kHz.
+        const loud = new Float32Array(2048).fill(0.08); // clears LOCAL_VAD_HIGH_PEAK
+        const frame = { inputBuffer: { getChannelData: () => loud } };
+        return { sandbox, processor, frame, callbackMs: (2048 / sampleRate) * 1000, label };
+    }
+
+    for (const sampleRate of [16000, 48000]) {
+        console.log(`Testing local VAD at ${sampleRate}Hz: a single real callback (a lone loud impulse) must NOT interrupt...`);
+        {
+            const { sandbox, processor, frame, callbackMs } = await runRealCallbackScenario(sampleRate, { label: `${sampleRate}Hz single callback` });
+            assert.ok(callbackMs < 256, `sanity: one callback at ${sampleRate}Hz (${callbackMs.toFixed(1)}ms) must be less than the 256ms confirm threshold`);
+            processor.onaudioprocess(frame);
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_real_callback', `a single ${callbackMs.toFixed(1)}ms callback at ${sampleRate}Hz must not interrupt playback`);
+        }
+
+        console.log(`Testing local VAD at ${sampleRate}Hz: enough real callbacks to cover ~256ms of sustained loudness DOES interrupt...`);
+        {
+            const { sandbox, processor, frame, callbackMs } = await runRealCallbackScenario(sampleRate, { label: `${sampleRate}Hz sustained` });
+            const callbacksNeeded = Math.ceil(256 / callbackMs) + 1; // +1 margin past the threshold
+            for (let i = 0; i < callbacksNeeded; i += 1) processor.onaudioprocess(frame);
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, `~256ms of sustained loudness at ${sampleRate}Hz (${callbacksNeeded} callbacks of ${callbackMs.toFixed(1)}ms) must interrupt playback`);
+        }
+
+        console.log(`Testing local VAD at ${sampleRate}Hz: a 128ms-long loud impulse (the exact incident shape) does not interrupt, but real sustained speech right after still does...`);
+        {
+            const { sandbox, processor, frame, callbackMs } = await runRealCallbackScenario(sampleRate, { label: `${sampleRate}Hz impulse-then-speech` });
+            const callbacksFor128ms = Math.max(1, Math.round(128 / callbackMs));
+            for (let i = 0; i < callbacksFor128ms; i += 1) processor.onaudioprocess(frame);
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_real_callback', `a ~128ms impulse at ${sampleRate}Hz must not interrupt playback`);
+            // Drop to quiet, then real speech: sustained ~256ms must confirm.
+            const quiet = new Float32Array(2048).fill(0.002);
+            processor.onaudioprocess({ inputBuffer: { getChannelData: () => quiet } });
+            const callbacksFor256ms = Math.ceil(256 / callbackMs) + 1;
+            for (let i = 0; i < callbacksFor256ms; i += 1) processor.onaudioprocess(frame);
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, `real sustained speech right after a rejected impulse at ${sampleRate}Hz must still interrupt`);
         }
     }
 
