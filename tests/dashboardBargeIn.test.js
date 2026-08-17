@@ -253,24 +253,60 @@ async function run() {
 
     // ================= Pure local-VAD algorithm =================
 
-    console.log('Testing local VAD accepts one clearly audible frame so a short interruption is not lost...');
+    console.log('Testing local VAD requires 2 consecutive loud callbacks (~256ms) so a real interruption still lands fast...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
         const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
-        assert.strictEqual(confirmFrames, 1, 'short barge-in must not wait for multiple audio callbacks');
+        // 2026-08-17 incident (session_a27050c285b85de6): confirmFrames=1 let a
+        // single ~128ms non-speech impulse fire an instant false barge-in.
+        assert.strictEqual(confirmFrames, 2, 'must require sustained loudness across 2 callbacks, not a single instantaneous peak');
         const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
         const r1 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r1, true, 'one clearly audible frame must immediately confirm a barge-in');
+        assert.strictEqual(r1, false, 'a single loud callback must NOT confirm a barge-in on its own');
         const r2 = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(r2, false, 'continued sound must not emit a duplicate barge-in');
+        assert.strictEqual(r2, true, 'a second consecutive loud callback (sustained ~256ms) must confirm the barge-in');
+        const r3 = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        assert.strictEqual(r3, false, 'continued sound must not emit a duplicate barge-in');
+    }
+
+    console.log('Testing local VAD rejects a short loud non-speech impulse during playback (regression: 2026-08-17 false barge-in)...');
+    {
+        const sandbox = createTestSandbox();
+        const state = sandbox.createLocalVadState();
+        const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
+        // One loud callback (the impulse), then immediately back to quiet --
+        // exactly a door-slam/cough/glass-clink shape, never a sustained tone.
+        const impulseResult = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        assert.strictEqual(impulseResult, false, 'a lone loud impulse must never confirm a barge-in');
+        const backToQuiet = sandbox.evaluateLocalVadFrame(state, 50, opts);
+        assert.strictEqual(backToQuiet, false, 'dropping back to quiet after one impulse frame must not confirm either');
+        assert.strictEqual(state.armed, true, 'a rejected impulse must leave the VAD armed for the next real attempt, not stuck');
+    }
+
+    console.log('Testing local VAD: false impulse followed by real sustained speech still confirms normally...');
+    {
+        const sandbox = createTestSandbox();
+        const state = sandbox.createLocalVadState();
+        const confirmFrames = getLexical(sandbox, 'LOCAL_VAD_CONFIRM_FRAMES');
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames };
+        // False impulse: one loud callback, then quiet (does not confirm, per above).
+        sandbox.evaluateLocalVadFrame(state, 900, opts);
+        sandbox.evaluateLocalVadFrame(state, 50, opts);
+        // Real speech now starts: two consecutive loud callbacks must still confirm.
+        const first = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        assert.strictEqual(first, false, 'first callback of the real utterance must not confirm yet');
+        const second = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        assert.strictEqual(second, true, 'real sustained speech right after a rejected impulse must still confirm normally');
     }
 
     console.log('Testing local VAD hysteresis: re-arms only after dropping below the LOW threshold...');
     {
         const sandbox = createTestSandbox();
         const state = sandbox.createLocalVadState();
-        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 1 };
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 2 };
+        sandbox.evaluateLocalVadFrame(state, 900, opts);
         sandbox.evaluateLocalVadFrame(state, 900, opts);
         assert.strictEqual(state.armed, false, 'state must be disarmed immediately after confirming once');
         // Staying loud (even fluctuating between high and the dead zone,
@@ -284,9 +320,30 @@ async function run() {
         // Drop below LOW -- now re-armed.
         sandbox.evaluateLocalVadFrame(state, 100, opts);
         assert.strictEqual(state.armed, true, 'must re-arm once the level drops below the LOW threshold');
-        // A new episode can be another short word and confirms immediately.
+        // A new episode can be another short word; still needs 2 consecutive
+        // loud callbacks, same as the very first episode.
         const newEpisodeFirstFrame = sandbox.evaluateLocalVadFrame(state, 900, opts);
-        assert.strictEqual(newEpisodeFirstFrame, true, 'a new short sound episode must confirm immediately after re-arm');
+        assert.strictEqual(newEpisodeFirstFrame, false, 'a new episode must not confirm on its first callback either');
+        const newEpisodeSecondFrame = sandbox.evaluateLocalVadFrame(state, 900, opts);
+        assert.strictEqual(newEpisodeSecondFrame, true, 'a new sound episode confirms after 2 consecutive loud callbacks, same as the first');
+    }
+
+    console.log('Testing local VAD: five repeated interruptions in the same session all confirm correctly, no stuck state...');
+    {
+        const sandbox = createTestSandbox();
+        const state = sandbox.createLocalVadState();
+        const opts = { highThreshold: 500, lowThreshold: 250, confirmFrames: 2 };
+        for (let i = 0; i < 5; i += 1) {
+            const first = sandbox.evaluateLocalVadFrame(state, 900, opts);
+            assert.strictEqual(first, false, `interruption #${i + 1}: first loud callback must not confirm yet`);
+            const second = sandbox.evaluateLocalVadFrame(state, 900, opts);
+            assert.strictEqual(second, true, `interruption #${i + 1}: second consecutive loud callback must confirm`);
+            // Drop back to silence between interruptions, as a real turn-taking
+            // pause would, so the next episode starts from a clean re-arm.
+            const quiet = sandbox.evaluateLocalVadFrame(state, 50, opts);
+            assert.strictEqual(quiet, false, `interruption #${i + 1}: silence after confirming must not itself confirm`);
+            assert.strictEqual(state.armed, true, `interruption #${i + 1}: VAD must be re-armed and ready for the next interruption`);
+        }
     }
 
     // ================= Hold to Talk: pointerdown fade-out =================

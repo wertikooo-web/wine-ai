@@ -3273,9 +3273,11 @@
     // (realtimeServer.js), not a newly-invented number. Hysteresis (low <
     // high) plus WebRTC echoCancellation (enabled for tap_to_start in
     // acquireMic()) suppresses the assistant's own voice. While assistant
-    // audio is actually playing, one clearly audible frame is enough: short
-    // user interruptions such as "Stop" must not be discarded by a long
-    // confirmation window.
+    // audio is actually playing, two consecutive loud callbacks (~256ms,
+    // LOCAL_VAD_CONFIRM_FRAMES) must confirm before a barge-in fires: short
+    // user interruptions such as "Stop" still land with no perceptible
+    // delay, but a single short non-speech impulse cannot fire one (see the
+    // 2026-08-17 false-barge-in incident, LOCAL_VAD_CONFIRM_FRAMES below).
     processor.onaudioprocess = (e) => {
       if (!isHolding || !ws || ws.readyState !== WebSocket.OPEN) return;
       const input = e.inputBuffer.getChannelData(0);
@@ -3980,9 +3982,11 @@
   // NO_SPEECH_AMPLITUDE_THRESHOLD (realtimeServer.js), not a newly-invented
   // number. Hysteresis (low < high) plus WebRTC echoCancellation suppresses
   // the assistant's own voice. Barge-in is evaluated only while assistant
-  // audio is actually playing, so one clearly audible frame must be enough
-  // for a short interruption such as "Stop". Hysteresis still guarantees
-  // one interrupt per sound episode.
+  // audio is actually playing; two consecutive loud callbacks (~256ms, see
+  // LOCAL_VAD_CONFIRM_FRAMES below) must clear HIGH_PEAK before a barge-in
+  // fires, so a short interruption such as "Stop" still lands with no
+  // perceptible delay while a single non-speech impulse (bang/clink/cough)
+  // cannot. Hysteresis still guarantees one interrupt per sound episode.
   function createLocalVadState() {
     return { consecutiveLoud: 0, armed: true };
   }
@@ -4010,7 +4014,20 @@
 
   const LOCAL_VAD_HIGH_PEAK = 500;
   const LOCAL_VAD_LOW_PEAK = 250;
-  const LOCAL_VAD_CONFIRM_FRAMES = 1; // one 2048-sample callback (~128ms @16kHz)
+  // Incident 2026-08-17 (session_a27050c285b85de6, 18:02 UTC): a single loud
+  // NON-speech transient (~128ms, one audio callback) cleared HIGH_PEAK and
+  // instantly fired a barge-in mid-response, then a second false trigger
+  // right at the next response.created cancelled it again before playback
+  // ever started, leaving the session's next turn stuck open indefinitely
+  // (see the FREE_CONV_INPUT_HANG_TIMEOUT_MS fix in realtimeServer.js for the
+  // "stuck open" half of this incident). Amplitude alone cannot tell a bang/
+  // clink/cough apart from speech; requiring TWO consecutive loud callbacks
+  // (~256ms of sustained level, not just one instantaneous peak) is the
+  // minimal debounce that rejects a single short impulse while adding no
+  // perceptible delay to a real spoken interruption -- any real word/phrase
+  // clears 256ms of continuous loudness almost immediately, well inside the
+  // "no noticeable pause" bar. Was 1 (fired on the very first callback).
+  const LOCAL_VAD_CONFIRM_FRAMES = 2; // two 2048-sample callbacks (~256ms @16kHz)
   const localVadState = createLocalVadState();
   let localBargeInEpisodeId = 0;
 

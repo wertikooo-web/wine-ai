@@ -694,7 +694,22 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // arriving with no open turn (every utterance after the first, or a
         // genuine barge-in over the assistant's own response) should cancel
         // anything / open a new one.
-        if (isTurnOpen()) return;
+        if (isTurnOpen()) {
+            // Explicit, non-silent outcome (2026-08-17 incident review): a
+            // silent return here left no trace that this native-speech
+            // signal was ever received, which made "did we drop a real
+            // barge-in or correctly ignore a same-utterance duplicate?"
+            // unanswerable from logs alone. Named per the incident report's
+            // decision contract: accepted / ignored_duplicate_user_input /
+            // ignored_unconfirmed_mic.
+            log('native_speech_signal', {
+                decision: 'ignored_duplicate_user_input',
+                provider: providerSession?.name || 'provider',
+                turnId: currentTurnId,
+                generationId: currentGeneration?.generationId || null,
+            });
+            return;
+        }
         // Cancel whatever generation is still active/streaming BEFORE the
         // micPipelineConfirmed check below -- a genuine barge-in over an
         // assistant response must still stop the OLD generation even on the
@@ -703,8 +718,12 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // startInput(), further below, which requires micPipelineConfirmed
         // too — leaving a real barge-in's active generation uncancelled
         // whenever that one check failed. cancelCurrent() is a no-op once
-        // the generation is already terminal, so calling it here is safe
-        // even when there is nothing to cancel.
+        // the generation is already terminal (nothing playing, nothing
+        // pending), so calling it here never cancels a response that isn't
+        // actually active -- hadActiveResponse below records which case this
+        // was for observability, without gating whether a legitimate new
+        // turn is allowed to open.
+        const hadActiveResponse = Boolean(currentGeneration && currentGeneration.status === 'active');
         cancelCurrent('native_speech_started');
         // Belt-and-suspenders on top of client-side AEC (which is the actual
         // fix): don't trust a native "speech started" into opening a new
@@ -715,12 +734,18 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // confirmed.
         if (!micPipelineConfirmed) {
             log('native_speech_started_ignored_unconfirmed_mic', {
+                decision: 'ignored_unconfirmed_mic',
                 provider: providerSession?.name || 'provider',
                 micPipelineTrackId,
             });
             return;
         }
-        log('native_speech_started', { provider: providerSession?.name || 'provider', micPipelineTrackId });
+        log('native_speech_started', {
+            decision: 'accepted',
+            provider: providerSession?.name || 'provider',
+            micPipelineTrackId,
+            hadActiveResponse,
+        });
         startInput({ mode: 'tap_to_start' });
     }
 
@@ -939,6 +964,59 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         if (!generation?.timeoutTimer) return;
         clearTimeout(generation.timeoutTimer);
         generation.timeoutTimer = null;
+    }
+
+    // PRODUCTION INCIDENT (2026-08-17, session_a27050c285b85de6, 18:02 UTC):
+    // a Free Conversation turn opened via handleNativeSpeechStarted()'s
+    // synthetic startInput() has no deterministic end -- unlike push_to_talk
+    // (client sends input_audio.end on button release), it relies entirely
+    // on the provider's own native VAD eventually firing a stop, or the
+    // client's local VAD sending input_audio.end. If that signal is ever
+    // lost (the incident's root cause: a false local_vad_barge_in cancelled
+    // one generation, then a second false native_speech_started cancelled
+    // the NEXT one before its own input ever produced a real stop signal),
+    // the turn is stuck open forever: isTurnOpen() stays true, so every
+    // subsequent handleNativeSpeechStarted() silently no-ops (see its
+    // 'ignored_duplicate_user_input' branch below), and the whole session
+    // stops responding to speech. armPttTurnTimeout() does not cover this --
+    // it only arms at endInput() time, guarding "provider never responded",
+    // not "input never ended" in the first place. This is that missing
+    // guard: armed when input STARTS, cleared as soon as it actually ends
+    // (endInput()) or the generation is cancelled for any other reason
+    // (cancelCurrent()). Free Conversation only -- push_to_talk's end is
+    // already deterministic and out of scope for this incident.
+    function clearInputHangTimeout(generation) {
+        if (!generation?.inputHangTimer) return;
+        clearTimeout(generation.inputHangTimer);
+        generation.inputHangTimer = null;
+    }
+
+    function armInputHangTimeout(generation) {
+        if (!generation || currentMode !== 'tap_to_start') return;
+        clearInputHangTimeout(generation);
+        const timeoutMs = Math.max(0, Number(process.env.FREE_CONV_INPUT_HANG_TIMEOUT_MS || 12000));
+        if (timeoutMs <= 0) return;
+        generation.inputHangTimer = setTimeout(() => {
+            generation.inputHangTimer = null;
+            if (
+                generation === currentGeneration
+                && !inputEndedAt
+                && generation.status === 'pending'
+                && !generation.cancel.cancelled
+            ) {
+                log('input_hang_timeout', {
+                    generationId: generation.generationId,
+                    turnId: generation.turnId,
+                    timeoutMs,
+                    turnInputBytes: inputBytes,
+                    sessionInputBytes,
+                });
+                const cancelledActiveGeneration = cancelCurrent('input_hang_timeout');
+                if (cancelledActiveGeneration && shouldRotateProviderOnInterrupt()) {
+                    rotateProviderSession('input_hang_timeout');
+                }
+            }
+        }, timeoutMs);
     }
 
     function armPttTurnTimeout(generation) {
@@ -1459,6 +1537,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             inputEndedAt = Date.now();
         }
         clearGenerationTimeout(currentGeneration);
+        clearInputHangTimeout(currentGeneration);
         visualOrchestrator.cancel(currentGeneration.generationId, reason);
         const cancelLatencyMs = Date.now() - cancelRequestedAt;
         emit({
@@ -1720,6 +1799,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             rotationMode,
             turnCount: turnCounter,
         });
+        armInputHangTimeout(currentGeneration);
     }
 
     function endInput(payload = {}) {
@@ -1778,6 +1858,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         if (!currentGeneration) {
             currentGeneration = createGeneration({ turnId: currentTurnId, mode: currentMode });
         }
+        clearInputHangTimeout(currentGeneration);
         if (currentGeneration.serverFramesReceived > 0) {
             log('input_audio_last_frame', {
                 turnId: currentTurnId,
