@@ -125,13 +125,27 @@ function evaluateRow({ row, modeResult }) {
     const defects = unsupportedInferenceClaims(inference);
     checks.push({ name: 'unsupported_claims_clean', ok: defects.length === 0, got: defects.length || undefined });
 
+    // One authoritative answer per turn: a Phase 6 inference turn must never
+    // ALSO carry an applied Useful Recovery when the inference block IS the
+    // answer (found:true) -- that would reframe it into a competing answer
+    // (the verifier's recovery-vs-inference conflict). When the inference
+    // honestly found nothing (found:false), recovery supplying the closest
+    // supported facts is the "offer a nearby alternative" the guidance asks
+    // for, not a conflict.
+    if (expected.expects_inference === true) {
+        const recoveryApplied = modeResult.recovery && modeResult.recovery.applied === true;
+        const inferenceAuthoritative = !!inference && inference.found === true;
+        const conflict = inferenceAuthoritative && recoveryApplied;
+        checks.push({ name: 'no_recovery_inference_conflict', ok: !conflict, got: conflict ? modeResult.recovery.strategy : 'none' });
+    }
+
     if (expected.expects_inference === true) {
         const attached = !!inference && inference.scenario === expected.intent;
         checks.push({ name: 'intent_attached', ok: attached, got: inference ? inference.scenario : 'no_inference' });
         if (attached) passExplain.push(inference.scenario);
 
         if (expected.found === true) {
-            checks.push({ name: 'found', ok: inference.found === true, got: inference.found });
+            checks.push({ name: 'found', ok: !!inference && inference.found === true, got: inference ? inference.found : 'no_inference' });
             if (expected.hard && expected.hard.color) {
                 const wines = (inference.inference && inference.inference.wines) || [];
                 const knownColor = wines.map((w) => ({ name: w.name, color: inferenceColorOf(w.style) })).filter((w) => w.color);
@@ -142,11 +156,32 @@ function evaluateRow({ row, modeResult }) {
                     got: knownColor.map((w) => `${w.name}:${w.color}`).join(' | ') || 'no_known_color',
                 });
             }
+            if (expected.intent === 'compare_wines') {
+                // Comparison with zero supported data must never be reported as
+                // a confident "found" comparison (verifier: fabricated table).
+                const rows = (inference.inference && inference.inference.attributes) || [];
+                const bothKnown = rows.filter((r) => r.a !== '—' && r.b !== '—').length;
+                const eitherKnown = rows.filter((r) => r.a !== '—' || r.b !== '—').length;
+                checks.push({ name: 'compare_has_supported_data', ok: eitherKnown >= 1 && bothKnown >= 1, got: `either=${eitherKnown},both=${bothKnown}` });
+            }
+            if (expected.intent === 'recommend_wine') {
+                // Every recommended "wine" must actually be a grounded bottle:
+                // an official profile, a produces-relation wine, or a catalog
+                // row carrying a wine signal (price/vintage/entity). A catalog
+                // editorial headline must never be recommended as a wine.
+                const wines = (inference.inference && inference.inference.wines) || [];
+                const ungrounded = wines.filter((w) => !(w.grapes && w.grapes.length) && w.price == null && !w.producer && !(w.region && w.region.length));
+                checks.push({
+                    name: 'recommended_names_grounded',
+                    ok: ungrounded.length === 0,
+                    got: ungrounded.map((w) => w.name).join(' | ') || 'all_grounded',
+                });
+            }
         } else if (expected.found === 'either') {
-            if (inference.found === true) {
+            if (inference && inference.found === true) {
                 checks.push({ name: 'honesty', ok: true, got: 'found' });
             } else {
-                const missing = (inference.missing || []).filter((m) => String(m).trim()).length;
+                const missing = ((inference && inference.missing) || []).filter((m) => String(m).trim()).length;
                 checks.push({ name: 'honesty', ok: missing > 0, got: `not_found,missing=${missing}` });
                 if (missing > 0) passExplain.push('honest_not_found');
             }
@@ -193,6 +228,10 @@ function summarize(rows) {
     const negativeFailures = negatives.filter((r) => r.evaluate.checks.some((c) => c.name === 'negative_control' && !c.ok));
     const noInferenceRows = rows.filter((r) => r.row.expected?.no_inference_constraint === true);
     const noInferenceFailures = noInferenceRows.filter((r) => r.evaluate.checks.some((c) => c.name === 'no_inference_constraint' && !c.ok));
+    // Blocker regressions surfaced by the independent verifier.
+    const recoveryConflicts = intentRows.filter((r) => r.evaluate.checks.some((c) => c.name === 'no_recovery_inference_conflict' && !c.ok));
+    const compareDataFailures = rows.filter((r) => r.evaluate.checks.some((c) => c.name === 'compare_has_supported_data' && !c.ok));
+    const ungroundedWineFailures = rows.filter((r) => r.evaluate.checks.some((c) => c.name === 'recommended_names_grounded' && !c.ok));
 
     return {
         total_rows: rows.length,
@@ -206,6 +245,9 @@ function summarize(rows) {
         internal_language_violations: internal.length,
         negative_control_failures: negativeFailures.length,
         no_inference_failures: noInferenceFailures.length,
+        recovery_inference_conflicts: recoveryConflicts.length,
+        compare_data_failures: compareDataFailures.length,
+        ungrounded_wine_failures: ungroundedWineFailures.length,
         intent_attachment_rate: intentRows.length ? round(attached.length / intentRows.length) : null,
         recommendation_success_rate: successRows.length ? round(succeeded.length / successRows.length) : null,
         by_category: rows.reduce((acc, r) => {
@@ -227,6 +269,9 @@ function gatePassed(s) {
         { name: 'no negative-control failures', ok: s.negative_control_failures === 0 },
         { name: 'no_inference constraint honored', ok: s.no_inference_failures === 0 },
         { name: 'no internal-language violations', ok: s.internal_language_violations === 0 },
+        { name: 'no recovery-inference conflicts', ok: s.recovery_inference_conflicts === 0 },
+        { name: 'no zero-data comparison fabricated', ok: s.compare_data_failures === 0 },
+        { name: 'no ungrounded recommended wine names', ok: s.ungrounded_wine_failures === 0 },
     ];
 }
 

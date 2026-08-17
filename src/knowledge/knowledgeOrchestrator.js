@@ -108,13 +108,34 @@ async function orchestrateKnowledge(question, options = {}) {
         values: conflict.values,
     }));
 
+    // Phase 6 Wine Intelligence: gated by INTENT, not by answer_mode. Runs
+    // whenever the question is a Phase 6 ask (pairing, recommendation,
+    // comparison, route), so the audit path measures the same behavior the
+    // live tool delivers. The explicit `no_inference` constraint suppresses it.
+    const inference = await inferForQuestion(normalizedQuestion, {
+        language,
+        allowWeb: policy.allowWeb,
+        allowCatalog: policy.allowCatalog,
+        limit: options.limit || 8,
+        suppress: constraints.includes('no_inference'),
+    });
+
+    // One authoritative answer per turn (INVARIANTS): when the Phase 6
+    // inference block IS the answer (found:true), Useful Recovery must not
+    // run/reframe it into a competing instruction or candidate set. When the
+    // inference honestly found nothing (found:false), recovery may still
+    // supply the closest supported facts -- the "offer a nearby alternative"
+    // the inference guidance asks for, not a competing answer.
+    const phase6Intent = Boolean(inference && inference.scenario);
+    const inferenceAuthoritative = Boolean(inference && inference.found === true);
+
     // Useful Answer Recovery: when the literal answer is not supported, run
     // one deterministic recovery pass through the same router and surface the
     // closest supported facts/alternatives in a `recovery` block. Recovery
     // never flips `answerable` and never changes the literal `claims`
     // contract -- it is a separate, transparent addition the audit/benchmark
     // can inspect.
-    const recovery = await attemptRecovery({
+    const recovery = inferenceAuthoritative ? null : await attemptRecovery({
         question: normalizedQuestion,
         language,
         retrieval,
@@ -132,17 +153,6 @@ async function orchestrateKnowledge(question, options = {}) {
           }
         : (retrieval.answer_policy || null);
 
-    // Phase 6 Wine Intelligence: gated by INTENT, not by answer_mode. Runs
-    // whenever the question is a Phase 6 ask (pairing, recommendation,
-    // comparison, route), so the audit path measures the same behavior the
-    // live tool delivers. The explicit `no_inference` constraint suppresses it.
-    const inference = await inferForQuestion(normalizedQuestion, {
-        language,
-        allowWeb: policy.allowWeb,
-        allowCatalog: policy.allowCatalog,
-        limit: options.limit || 8,
-        suppress: constraints.includes('no_inference'),
-    });
     const finalAnswerPolicy = inference && answerPolicy
         ? { ...answerPolicy, final_instruction: (answerPolicy.final_instruction || '') + INFERENCE_GUIDANCE }
         : answerPolicy;
