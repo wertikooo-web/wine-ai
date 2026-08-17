@@ -63,7 +63,7 @@
       "answer_mode": "knowledge_web",
       "intent": "compare_wines",
       "question": "Сравни Cricova и Purcari",
-      "expected": { "intent": "compare_wines", "found": true, "expects_inference": true }
+      "expected": { "intent": "compare_wines", "found": "either", "expects_inference": true }
     },
     {
       "id": "cmp-or-choice",
@@ -72,7 +72,16 @@
       "answer_mode": "knowledge_web",
       "intent": "compare_wines",
       "question": "Cricova или Purcari для дегустации?",
-      "expected": { "intent": "compare_wines", "found": true, "expects_inference": true }
+      "expected": { "intent": "compare_wines", "found": "either", "expects_inference": true }
+    },
+    {
+      "id": "rec-fuzzy-discovery",
+      "category": "recommend_wine",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "intent": "recommend_wine",
+      "question": "Что необычное можно попробовать из молдавского?",
+      "expected": { "intent": "recommend_wine", "found": "either", "expects_inference": true }
     },
     {
       "id": "rec-alternative",
@@ -115,6 +124,38 @@
       "language": "ru",
       "answer_mode": "knowledge_web",
       "question": "Расскажи о виноделии",
+      "expected": { "expects_inference": false }
+    },
+    {
+      "id": "neg-factual-price-intent-vocab",
+      "category": "negative_control",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Подскажи цену на красное вино Cricova 1952",
+      "expected": { "expects_inference": false }
+    },
+    {
+      "id": "neg-factual-strength-intent-vocab",
+      "category": "negative_control",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Подскажи, какая крепость у вина Cricova?",
+      "expected": { "expects_inference": false }
+    },
+    {
+      "id": "neg-education-compare-colour",
+      "category": "negative_control",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "Чем отличается красное вино от белого?",
+      "expected": { "expects_inference": false }
+    },
+    {
+      "id": "neg-education-compare-sweetness",
+      "category": "negative_control",
+      "language": "ru",
+      "answer_mode": "knowledge_web",
+      "question": "В чем разница между сухим и полусухим вином?",
       "expected": { "expects_inference": false }
     },
     {

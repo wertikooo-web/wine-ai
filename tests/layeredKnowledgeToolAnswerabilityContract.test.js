@@ -106,12 +106,16 @@ async function run() {
         assert.strictEqual(result.status, 'found');
     }
 
-    console.log('Testing: same fragments but the caller context still results in an honest refusal path when web adds nothing new...');
+    console.log('Testing: same fragments but the caller context still results in an honest answer when web adds nothing new...');
     {
         const eightFragments = Array.from({ length: 8 }, (_, i) => similarButIrrelevantFragment(i + 1));
         // Web is attempted (webItems empty -> web_used stays false) so the
-        // tool must recover to the closest supported facts (partial evidence)
-        // rather than pretend the fragments answer the pairing question.
+        // retrieval path cannot confirm the fragments answer the pairing
+        // question. This is a Phase 6 pairing/recommend ask ("...к баранине"),
+        // so the answer comes from the authoritative `inference` block
+        // (grounded wine styles) -- recovery must NOT run and reframe it into
+        // a competing answer, and the retrieval `answerable` signal stays
+        // honest (false).
         const { impl } = toolImplWithGate({
             documentItems: eightFragments,
             webItems: [],
@@ -122,19 +126,21 @@ async function run() {
         const result = await impl({ query: 'Какое вино Cricova выбрать к баранине?' }, context);
 
         assert.strictEqual(result.found, true);
-        assert.strictEqual(result.answerable, false, 'the assistant must not imitate knowledge it does not have');
+        assert.strictEqual(result.answerable, false, 'the assistant must not imitate knowledge the retrieval does not have');
         assert.strictEqual(result.webUsed, false, 'web found nothing new, so webUsed correctly stays false');
-        assert.strictEqual(result.status, 'recovered', 'the answer path must recover to the closest supported facts instead of a dead-end refusal');
-        assert.ok(result.recovery && result.recovery.applied === true, 'a recovery block must be attached');
-        assert.strictEqual(result.recovery.strategy, 'entity_alternatives',
-            'unattributable fragments (no "match" verdict) must recover to confirmed alternatives, never answer the fragments as the confirmed pairing part');
-        assert.ok(result.claims.length > 0, 'recovery must supply provenance-carrying claims');
+        assert.ok(result.inference && result.inference.found === true,
+            'a Phase 6 inference must be the authoritative answer for this recommend/pairing ask');
+        assert.strictEqual(result.inference.scenario, 'recommend_wine',
+            'the inference block must carry the detected Phase 6 scenario');
+        assert.ok(!(result.recovery && result.recovery.applied === true),
+            'an authoritative inference must not carry a competing recovery block (INVARIANTS: one answer per turn)');
+        assert.ok(result.claims.length > 0, 'the inference evidence must supply provenance-carrying claims');
         assert.ok(result.claims.every((claim) => claim.source && (claim.source.url || claim.source.title || claim.source.document_page)),
             'every recovered claim must carry provenance');
-        assert.ok(/The exact producer or wine the user named cannot be confirmed/i.test(result.answer_policy.final_instruction),
-            'the model must be told the named wine cannot be confirmed and to offer alternatives, not a partial answer');
-        assert.ok(/Never state facts about the unconfirmed original/i.test(result.answer_policy.final_instruction),
-            'recovery must keep the anti-fabrication limit explicit');
+        assert.match(result.answer_policy.final_instruction, /"inference"/,
+            'the model must be directed to the authoritative inference block, not a retrieval refusal');
+        assert.ok(!/cannot be reliably confirmed/i.test(result.answer_policy.final_instruction),
+            'a Phase 6 inference turn must not get a dead-end retrieval refusal instruction');
     }
 
     console.log('Testing: a genuinely covering fragment -> found:true, answerable:true, no web call, confident-answer instruction...');

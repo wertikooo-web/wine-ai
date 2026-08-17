@@ -25,9 +25,10 @@
 // Adapters are injectable so tests can feed deterministic evidence without a
 // database or network.
 
-const { WINE_STYLES, OFFICIAL_BOTTLE_PROFILES, DISH_SIGNALS, profileDish, recommendForDish, findWineStyle } = require('../pairing/pairingEngine');
+const { WINE_STYLES, OFFICIAL_BOTTLE_PROFILES, DISH_SIGNALS, profileDish, recommendForDish } = require('../pairing/pairingEngine');
 const { findMentionedEntities } = require('./entityResolver');
 const layeredRouter = require('./layeredRouter');
+const { classifyWineMdUrl } = require('../kos/sources/wineMdUrlClassifier');
 const { buildClaimsFromEvidence, CLAIM_KINDS } = require('./claimProvenance');
 
 // Natural-language labels for internal keys so user-facing explanation text
@@ -91,16 +92,54 @@ const SCENARIO_LIST = Object.freeze([
 // Scenario detection (deterministic, no NLU).
 // ------------------------------------------------------------------ //
 
-const COMPARISON_RE = /(сравн|отлича|разниц|чем\s+(?:лучше|отличается)|vs\b|versus|против|преимуществ\w*\s+перед)/iu;
+const COMPARISON_RE = /(сравн|отлич(?:а|ие|ия|ием|ий|иях)|разниц|чем\s+(?:лучше|отличается)|vs\b|versus|против|преимуществ\w*\s+перед)/iu;
 const ROUTE_RE = /(маршрут|тур\w*|экскурс|поездк\w*|посетит|за\s*один\s*день|выезд\w*|путешеств|винный\s+тур|trip|route|tour\b|travel|спланируй|план\w*\s+поездк)/iu;
 const FOOD_PAIRING_RE = /(вино\s*к(?=\s|,|\.|\?|!|$)|к\s*блюд|(?:что|какое)\s+вино\s+(?:подать|взять)\s+к|что\s+подать\s+к|что\s+взять\s+к|что\s+выпить\s+к|подобрать\s+вино|подойд[её]т\s+к|подходит\s+к|вин[оа]\s+подо|сочетан\w*\s+с(?=\s|,|\.|\?|!|$)|с\s+чем\s+пить|с\s+чем\s+подать|к\s+чему|паруется|pairing|pair\b|гастроном)/iu;
 const RECOMMEND_RE = /(рекоменд|посоветуй|посовету|подбери|подскаж|подсказ|какое\s+вино|какое\s+выбрать|какое\s+взять|что\s+выбрать|что\s+взять|что\s+попробовать|вместо|хочу\s+вино|хочу\s+купить|хочу\s+выбрать|хочу\s+подобрать|хочу\s+попробовать|помоги\s+выбрать|помоги\s+подобрать|выбрать\s+вино|подобрать\s+вино|молдавск\w*\s+(?:красн|бел|розов|игристое|сух|сладк|мягк)|рекомендуешь|посоветуете)/iu;
+// Fuzzy discovery ask ("Что необычное/что-нибудь интересное можно попробовать
+// из молдавского?") carries no chicken-color or sweet/dry descriptor, but the
+// intent IS a recommendation. Gated on a try/taste verb + wine context so a
+// factual "Расскажи что-нибудь интересное о виноделии" stays non-inference.
+const DISCOVERY_RECOMMEND_RE = /(?:необычн[а-яё]*|интересн[а-яё]*|что-нибудь|что-то\s+(?:новое|необычн[а-яё]*|интересн[а-яё]*))\s+(?:можно\s+)?(?:попробовать|взять|выпить|заказать|открыть)/iu;
 const WINE_ENTITY_RE = /(вин(?:о|а|е|ы|у)[а-яё]*|винн[а-яё]*|виноград[а-яё]*|wine|wines|winery|wineries)/iu;
 // A wine descriptor (colour, sweetness, body, Moldovan origin) in the same
 // turn as an intent verb is a recommendation ask even without the literal
 // word "вино" -- e.g. "Хочу мягкое красное", "Посоветуй молдавское сухое".
 const WINE_DESCRIPTOR_RE = /(красн[а-яё]*|бел[а-яё]*|розов[а-яё]*|игрист[а-яё]*|спаркл[а-яё]*|сух[а-яё]*|сладк[а-яё]*|полусладк[а-яё]*|полу-сладк|полусух[а-яё]*|полу-сух|мягк[а-яё]*|молдавск[а-яё]*|moldov\w*)/iu;
 const INTENT_VERB_RE = /(хочу|посоветуй|посовету|подбери|подскаж|подсказ|рекоменд|какое|что\s+взять|что\s+попробовать|выбрать|подобрать|помоги)/iu;
+// A factual ask for a specific wine attribute (price, strength, volume,
+// vintage, grapes, producer) is never a Phase 6 intent, even when the turn
+// also carries recommendation vocabulary ("Подскажи цену на Cricova",
+// "Посоветуй, сколько стоит вино Negru de Purcari?"). A budget constraint
+// ("до 300 леев", "по 300", "в пределах 300") turns a generic-wine turn into
+// a recommendation ask ("цену на красное вино до 300 леев"), so the factual
+// gate is skipped when a budget token is present AND no named wine entity is
+// named. When a named wine is present ("цена на Cricova 1952 до 300 леев")
+// the ask stays factual regardless of the budget token. All suffix wildcards
+// are `[а-яё]*` -- ASCII `\w*` never matches Cyrillic inflections
+// ("алкоголя", "градусов", "стоимостью").
+// A price-budget token: "до 300 леев", "по 300", "в пределах 300", "около
+// 200". The same token is used for both scenario detection and budget
+// extraction so they can never diverge. A number followed by a non-price unit
+// ("до 13 градусов", "до 12%", "до 750 мл", "до 1952 года") is NOT a budget:
+// the lookahead rejects strength/volume/vintage/weight units before the
+// number is treated as an MDL price. A qualifier-before-number ("крепостью до
+// 13", "объёмом до 750") is also NOT a budget: BUDGET_QUALIFIER_RE vetoes the
+// whole match. `(?!\d)` stops partial-digit matches ("до 1952 года" must not
+// yield 195).
+const BUDGET_AMOUNT_RE = /(?:до|не\s+дороже|в\s+пределах|в\s+районе|примерно|около|под|по)\s*(\d{2,5})(?!\d)(?!\s*(?:градус\w*|процент\w*|%|миллилитр\w*|мл(?!\p{L})|грамм\w*|г(?!\p{L})|литр\w*|л(?!\p{L})|год\w*|бутыл\w*))/iu;
+const BUDGET_QUALIFIER_RE = /(?:крепост[а-яё]*|объ[её]м[а-яё]*|сахар[а-яё]*|остаточн[а-яё]*|выдерж[а-яё]*|розлив[а-яё]*|сладост[а-яё]*|танин[а-яё]*|кислотност[а-яё]*)\s+(?:(?:до|не\s+дороже|в\s+пределах|в\s+районе|примерно|около|под|по)\s*)?\d/iu;
+// An explicit price cap with a currency unit ("до 300 леев", "по 500 lei").
+// A qualifier veto (BUDGET_QUALIFIER_RE) must not drop a genuine price cap
+// that co-occurs with an attribute qualifier in the same turn ("вино с
+// выдержкой 5 лет до 300 леев"): the explicit price wins.
+const PRICE_AMOUNT_RE = /(?:до|не\s+дороже|в\s+пределах|в\s+районе|примерно|около|под|по)\s*(\d{2,5})(?!\d)\s*(?:молдавских\s+)?(?:леев|лей|мдл|mdl|lei)(?!\p{L})/iu;
+// Interrogative/ask markers that make an attribute word a factual question
+// ("какая крепость", "сколько градусов", "узнать цену", "подскажи крепость").
+// A recommendation ask carries only a preference verb ("Хочу красное вино
+// крепостью до 13") and no question marker, so the factual gate stays off.
+const QUESTION_MARKER_RE = /(?:какая|каков\w*|каковой|какие|какую|какой|сколько|во\s+сколько|поч[её]м|узна[а-яё]*|подскаж|показ\w*|посовету[а-яё]*|рекоменд[а-яё]*|порекоменд[а-яё]*|подбер[а-яё]*|что\s+за|в\s+каком\s+году|какого\s+года|кто\s+(?:производит|делает))/iu;
+const FACTUAL_ATTRIBUTE_ASK_RE = /(?:во\s+сколько|сколько\s+стоит|сколько\s+стоят|сколько\s+будет\s+стоить|сколько\s+градусов|сколько\s+алкогол[а-яё]*|какая\s+цен[ауы]?|какова\s+цен[ауы]?|какую\s+цену|узнать\s+цен[ауы]?|цен[ауы]?\s+|цена\s+вина|стоимост[а-яё]*\s+(?:вина|этого|этой|на|стоит)|поч[её]м|крепост[а-яё]*\s+|градус[а-яё]*\s+(?:в|у|вина|алкоголя)|сколько\s+градусов|какой\s+градус|об[ъь][её]м[а-яё]*\s+(?:вина|бутылки|у)|год\s+выпуска|в\s+каком\s+году|какого\s+года|винтаж(?!н)[а-яё]*|сорта\s+винограда|какие\s+сорта|из\s+какого\s+винограда|кто\s+(?:производит|делает)\s+вин|производител[а-яё]*\s+(?:вина|этого|этой|эту|на)|алкогол[а-яё]*\s+(?:в|у)|сахар(?!н)[а-яё]*\s+|сладост(?!н)[а-яё]*\s+|танин(?!н)[а-яё]*\s+|кислотност[а-яё]*\s+|выдержк[а-яё]*\s+|розлив(?!н)[а-яё]*\s+)/iu;
 
 // Multi-word proper nouns that resolve to wineries/products (from the shared
 // registry) count as wine-related even without the word "wine" itself.
@@ -125,10 +164,14 @@ function _mentionsTwoWineEntities(query) {
 
 // The wine-related gate: an explicit wine word, a registry entity, or a wine
 // descriptor used together with an intent verb. Keeps factual turns ("Сколько
-// стоит вино Cricova 1952", "Расскажи о виноделии") from triggering.
+// стоит вино Cricova 1952", "Расскажи о виноделии") from triggering. A fuzzy
+// discovery ask ("Что необычное можно попробовать из молдавского?") already
+// carries the try/taste verb in DISCOVERY_RECOMMEND_RE, so a wine word or
+// wine descriptor anywhere in the turn is sufficient context for it.
 function _hasWineContext(text) {
     if (WINE_ENTITY_RE.test(text)) return true;
     if (_mentionsRegistryEntity(text)) return true;
+    if (DISCOVERY_RECOMMEND_RE.test(text) && WINE_DESCRIPTOR_RE.test(text)) return true;
     return WINE_DESCRIPTOR_RE.test(text) && INTENT_VERB_RE.test(text);
 }
 
@@ -155,11 +198,30 @@ const DISH_KEYS = (function collectDishKeys() {
 function detectScenario(query) {
     const text = String(query || '').trim();
     if (!text) return null;
+    const isBudgeted = PRICE_AMOUNT_RE.test(text) || (BUDGET_AMOUNT_RE.test(text) && !BUDGET_QUALIFIER_RE.test(text));
+    const isNamedWine = _mentionsRegistryEntity(text);
+    const isQuestion = QUESTION_MARKER_RE.test(text);
+    // A factual/education attribute ask is never a Phase 6 intent. A budget
+    // token only rescues the generic-wine recommendation form ("... красное
+    // вино до 300 леев"): when a named wine is present ("цена на Cricova 1952
+    // до 300 леев") the ask stays factual regardless of the budget token, and
+    // a bare attribute word without a question marker ("Хочу красное вино
+    // крепостью до 13") is a preference, not a factual ask. A qualifier
+    // construction ("вино крепостью до 13") is also a preference even when a
+    // recommendation verb ("Подбери", "Рекомендуй") doubles as a question
+    // marker.
+    if (FACTUAL_ATTRIBUTE_ASK_RE.test(text) && _hasWineContext(text) && !(isBudgeted && !isNamedWine) && (isQuestion || isNamedWine) && !BUDGET_QUALIFIER_RE.test(text)) return null;
     if (FOOD_PAIRING_RE.test(text) && _hasDishSignal(text)) return SCENARIOS.PAIR_FOOD;
-    if (COMPARISON_RE.test(text) && _hasWineContext(text)) return SCENARIOS.COMPARE_WINES;
+    // A comparison ask must name at least one concrete wine/winery from the
+    // registry ("Сравни Cricova" -> compare handler honestly asks for the
+    // second wine). Education turns that only compare generic wine categories
+    // ("Чем отличается красное вино от белого?") carry no registry entity,
+    // so they stay general-knowledge instead of hijacking the comparison path.
+    if (COMPARISON_RE.test(text) && _mentionsRegistryEntity(text)) return SCENARIOS.COMPARE_WINES;
     if (_mentionsTwoWineEntities(text) && /(?:^|[^\p{L}\p{N}])(?:или|or|либо)(?:[^\p{L}\p{N}]|$)/iu.test(text)) return SCENARIOS.COMPARE_WINES;
     if (ROUTE_RE.test(text) && _hasWineContext(text)) return SCENARIOS.PLAN_ROUTE;
     if (RECOMMEND_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
+    if (DISCOVERY_RECOMMEND_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
     if (INTENT_VERB_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
     return null;
 }
@@ -192,7 +254,12 @@ function parseRecommendationPreferences(query) {
         prefs.occasion = 'celebration';
     }
 
-    const budgetMatch = text.match(/(?:до|не\s+дороже|около|примерно|под|до\s*)\s*(\d{2,5})/iu);
+    // An explicit price cap ("до 300 леев") wins over a qualifier veto, so a
+    // turn carrying both an attribute qualifier and a real budget keeps the
+    // budget ("вино с выдержкой 5 лет до 300 леев").
+    const budgetMatch = PRICE_AMOUNT_RE.test(text)
+        ? text.match(PRICE_AMOUNT_RE)
+        : (!BUDGET_QUALIFIER_RE.test(text) ? text.match(BUDGET_AMOUNT_RE) : null);
     if (budgetMatch) prefs.budget = Number(budgetMatch[1]);
 
     const dishProfile = profileDish(query);
@@ -234,6 +301,28 @@ function normalize(value) {
     return String(value || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ').replace(/[’']/g, '');
 }
 
+// Distinguishes a real bottled wine in the catalog from an editorial article /
+// guide that the Wine.md feed occasionally emits as a catalog row (e.g. "Чем
+// пахнут разные сорта белого вина: сохраните себе эту удобную шпаргалку!").
+// A row is treated as a bottle only when it carries at least one concrete wine
+// signal: a resolved winery/brand entity, a vintage, a price, or a product URL
+// that classifiers as a wine product page. Anything else is never recommended
+// as a wine (INVARIANTS: no fabricated wines / no general text as a bottle).
+function isWineCatalogItem(item) {
+    if (item.level !== 'catalog' || !item.catalog) return false;
+    const c = item.catalog;
+    if (c.wine_entity_id) return true;
+    if (c.vintage != null && String(c.vintage).trim()) return true;
+    if (typeof c.price === 'number' && Number.isFinite(c.price) && c.price > 0) return true;
+    const url = String(c.product_url || c.external_id || item.source || '').trim();
+    if (!url) return false;
+    try {
+        return classifyWineMdUrl(url).type === 'wine_product';
+    } catch {
+        return false;
+    }
+}
+
 function wineNamesFromEvidence(evidence) {
     const names = new Map();
     for (const item of evidence) {
@@ -241,7 +330,7 @@ function wineNamesFromEvidence(evidence) {
             const name = String(item.relation.object_value || '').trim();
             if (name) names.set(normalize(name), name);
         }
-        if (item.level === 'catalog' && item.title) {
+        if (isWineCatalogItem(item) && item.title) {
             names.set(normalize(item.title), item.title);
         }
     }
@@ -253,10 +342,24 @@ function relationItems(evidence, predicate = null) {
         item.structured_kind === 'entity_relation' && (!predicate || item.relation?.predicate === predicate));
 }
 
+// A style is only ever resolved from a REAL profile: a catalog row carrying a
+// profile, an official bottle profile, or an exact style/grape name. The
+// colour-substring fallback ("red" appearing anywhere in a wine name) is
+// deliberately not used here: it would invent a style for a wine with no
+// supported data (INVARIANTS: no fabricated facts).
+function groundedWineStyle(name, evidence) {
+    const norm = normalize(name);
+    if (!norm) return null;
+    const profiles = [...catalogProfilesFromEvidence(evidence), ...OFFICIAL_BOTTLE_PROFILES];
+    const profile = profiles.find((p) => (p.aliases || [p.name]).some((alias) => norm.includes(normalize(alias))));
+    if (profile) return profile;
+    return WINE_STYLES.find((s) => norm === normalize(s.name) || s.grapes.some((g) => norm === normalize(g))) || null;
+}
+
 // Resolve one wine name against evidence to its best style + bottle facts.
 function wineFacts(name, evidence) {
     const norm = normalize(name);
-    const style = findWineStyle({ wine: name, catalogProfiles: catalogProfilesFromEvidence(evidence) });
+    const style = groundedWineStyle(name, evidence);
     const producer = relationItems(evidence, 'produces').find((item) => normalize(item.relation.object_value) === norm);
     const grapes = relationItems(evidence, 'made_from')
         .filter((item) => item.title && normalize(item.title) === norm)
@@ -282,11 +385,13 @@ function catalogItems(evidence) {
 }
 
 function catalogProfilesFromEvidence(evidence) {
-    return catalogItems(evidence).map((item) => ({
-        name: item.title,
-        aliases: [item.title],
-        ...(item.catalog?.profile || {}),
-    }));
+    return catalogItems(evidence)
+        .filter(isWineCatalogItem)
+        .map((item) => ({
+            name: item.title,
+            aliases: [item.title],
+            ...(item.catalog?.profile || {}),
+        }));
 }
 
 function styleLabel(style) {
@@ -356,7 +461,10 @@ function scoreWineCandidate(candidate, prefs) {
     const matches = [];
     if (prefs.color && style) {
         if (style.color === prefs.color) { score += 20; matches.push(`цвет: ${labelColor(style.color)}`); }
-        else score -= 6;
+        // Hard color gate: when the user explicitly asks for a colour, a
+        // conflicting-colour wine is never recommended, no matter how well it
+        // matches sweetness/body/budget (INVARIANTS: hard preference).
+        else return { score: 0, matches: [] };
     }
     if (prefs.sweetness && style) {
         const sweet = style.sweetness >= 3 ? 'sweet' : style.sweetness === 2 ? 'semi_dry' : 'dry';
@@ -432,6 +540,11 @@ async function recommendWine({ question, evidence, language }) {
         `${candidate.name} (${candidate.style})${candidate.producer ? `, производитель ${candidate.producer}` : ''}` +
         `${candidate.price != null ? `, ${candidate.price} MDL` : ''} — ${candidate.matches.join(', ')}.`);
     reasons.push(`Подбор учёл ваши предпочтения: ${describePreferences(prefs)}.`);
+    // Budget honesty: if the user gave a budget but no candidate carried a
+    // confirmed in-budget price, say so instead of implying the ask was met.
+    if (prefs.budget && !ranked.some((c) => c.price != null && c.price <= prefs.budget)) {
+        reasons.push('Точные цены в каталоге пока не подтверждены — сумму лучше уточнить перед покупкой.');
+    }
     return {
         found: true,
         confidence: ranked.some((c) => c.price != null || c.producer) ? 'high' : 'medium',
@@ -503,9 +616,44 @@ async function compareWines({ question, evidence, language }) {
         attr('Танины', a.style.tannin, b.style.tannin);
     }
 
+    // Data sufficiency honesty (INVARIANTS: never invent facts, never claim a
+    // comparison exists when the knowledge base carries nothing about either
+    // candidate). A comparison is only "found" when BOTH sides have at least
+    // one concrete wine attribute each -- style, grapes, region, or price. A
+    // bare producer relation ("winery-a produces X") is not enough on its own
+    // to compare the wines, so it never counts as a supported fact here;
+    // otherwise we say exactly which side is missing data instead of building
+    // a fake table.
+    const hasFacts = (facts) => Boolean(
+        facts.style || facts.grapes.length || facts.region.length || facts.price != null,
+    );
+    const aKnown = hasFacts(a);
+    const bKnown = hasFacts(b);
+    if (!aKnown && !bKnown) {
+        return {
+            found: false,
+            confidence: 'low',
+            explanation: [`По винам/винодельням «${aName}» и «${bName}» пока нет подтверждённых данных для сравнения.`],
+            missing: [`Пока нет подтверждённых сведений ни об одном из кандидатов («${aName}», «${bName}») — нужно больше данных в каталоге.`],
+        };
+    }
+    if (!aKnown || !bKnown) {
+        const unknownSide = aKnown ? bName : aName;
+        return {
+            found: false,
+            confidence: 'low',
+            explanation: [`По «${unknownSide}» пока нет подтверждённых данных, поэтому сравнение с «${aKnown ? aName : bName}» построить нельзя.`],
+            missing: [`Не хватает данных о «${unknownSide}» — уточните вопросы по этой винодельне/вину, и я смогу сравнить её с «${aKnown ? aName : bName}».`],
+        };
+    }
+
     const explanation = [`Сравнение ${aName} и ${bName}.`];
     if (differences.length) explanation.push(`Ключевые отличия: ${differences.join(', ')}.`);
-    if (!differences.length) explanation.push('По имеющимся данным вина схожи по всем доступным атрибутам.');
+    // Similarity is only claimed when real values exist on BOTH sides for at
+    // least one attribute -- never when every attribute is unknown.
+    else if (rows.some((row) => row.a !== '—' && row.b !== '—')) {
+        explanation.push('По имеющимся данным вина схожи по всем доступным атрибутам.');
+    }
     if (!a.style || !b.style) {
         explanation.push('По одному из вин данных меньше — сравнение строится по тому, что известно.');
     }
@@ -541,6 +689,12 @@ function parseRouteConstraints(question) {
     if (hoursMatch) constraints.hours = Number(hoursMatch[1]);
     const regionMatch = text.match(/(кодр|codru|штефан[ау]?\s*вод|ștefan\s*vod|стефановод|валул\s*луй\s*траян|valul\s*lui\s*traian|пуркар|белц|комрат|гагауз|молдов)/iu);
     if (regionMatch) constraints.region = regionMatch[1];
+    // "по Молдове / Moldova" is country-level, not a sub-region filter: the
+    // user means anywhere in Moldova, so the region constraint is dropped and
+    // all wineries with route evidence qualify.
+    if (constraints.region && /(^|\s)молдов|moldova/iu.test(String(constraints.region))) {
+        delete constraints.region;
+    }
     return constraints;
 }
 

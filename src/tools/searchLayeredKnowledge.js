@@ -197,6 +197,16 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');
 
+        // One authoritative answer per turn: when a Phase 6 Wine Intelligence
+        // inference block IS the answer (found:true), Useful Recovery must not
+        // reframe it into a competing instruction or a different candidate set
+        // (INVARIANTS: no two answers for one turn). When the inference
+        // honestly found nothing (found:false), recovery still supplies the
+        // closest supported facts -- that IS the "offer a nearby alternative"
+        // the inference guidance asks for, not a competing answer.
+        const phase6Intent = Boolean(inference && inference.scenario);
+        const inferenceAuthoritative = Boolean(inference && inference.found === true);
+
         // Claim-level provenance (phase 1): each retrieved item is classified
         // into a claim kind with its source/confidence/checked-at timestamps,
         // conflicts are surfaced per-claim, and the answer_mode is echoed so
@@ -218,6 +228,13 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         const GROUNDED_REFUSAL_INSTRUCTION = 'Be honest: this specific fact cannot be reliably confirmed right now. Say so in the sommelier\'s own warm, natural voice -- that you do not currently see confirmed information about this particular detail and will not invent it -- then offer something genuinely useful you CAN speak to (the style, the grape, the region, the producer in general, or checking another detail). Two short spoken sentences, no bureaucratic or legalistic phrasing, no apology loops. Do not state or imply any specific unverified value. Do not mention internal databases, retrieval levels, evidence, or web search.';
         const GENERAL_KNOWLEDGE_INSTRUCTION = 'This is a general wine-knowledge question, not a claim about a specific named product. Answer it fully and confidently in your own sommelier voice from your professional knowledge -- do NOT refuse and do NOT say the information is unconfirmed. The fragments below (if any) are only loosely related; ignore them rather than forcing them in. The single hard limit: do not attribute any specific figure, vintage, award, price, or producer-stated spec to a specific named wine or winery unless it appears in the evidence.';
         const ENTITY_MISMATCH_NOTE = ' Important: some retrieved material concerns a DIFFERENT producer or wine than the one asked about. Never transfer a fact from one producer or bottling to another; only state a fact if it is explicitly about the entity the user asked about.';
+        // Phase 6 Wine Intelligence intents are answered by the `inference`
+        // block itself (presented via INFERENCE_GUIDANCE). The base instruction
+        // must point the model at that block, not at a retrieval refusal: when a
+        // recommendation/pairing/comparison/route intent is detected, retrieval
+        // finding nothing is expected, and the honest state is carried by the
+        // inference `found`/`missing` fields, not by saying "no evidence".
+        const PHASE6_BASE_INSTRUCTION = 'Answer this turn from the "inference" block in the result. Present its advice naturally in your own sommelier voice; where inference "found" is false, follow the inference guidance to be honest and ask a short clarifying question or offer a nearby alternative. Do not turn this into a retrieval refusal.';
 
         const claimClass = result.claim_class || null;
         const isGeneralKnowledge = claimClass === CLAIM_CLASSES.GENERAL_KNOWLEDGE;
@@ -277,8 +294,12 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             // router (injected adapters stay honored): reframe the question
             // and discover the closest supported facts or alternatives. If
             // nothing supported exists, the response is byte-for-byte the old
-            // honest refusal -- no regression.
-            const recovery = await attemptRecovery({
+            // honest refusal -- no regression. When the inference block is the
+            // authoritative answer (found:true) it bypasses this: recovery
+            // would only reframe that answer into a competing one. When the
+            // inference honestly found nothing, recovery may still supply the
+            // closest supported facts.
+            const recovery = inferenceAuthoritative ? null : await attemptRecovery({
                 question: retrievalQuery,
                 language,
                 retrieval: result,
@@ -337,7 +358,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 freshness: { freshness_sensitive: result.freshness_sensitive === true, dynamic_fields_present: false, synced_through: null },
                 answer_policy: {
                     ...result.answer_policy,
-                    final_instruction: GROUNDED_REFUSAL_INSTRUCTION,
+                    final_instruction: phase6Intent ? PHASE6_BASE_INSTRUCTION : GROUNDED_REFUSAL_INSTRUCTION,
                 },
             }, inference);
         }
@@ -359,7 +380,9 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
             // partially cover the question (answer only the confirmed part)
             // or -- on a declared entity mismatch -- discovery finds confirmed
             // alternatives instead of reusing another producer's evidence.
-            if (!isGeneralKnowledge) {
+            // Only an authoritative inference answer (found:true) bypasses
+            // this: recovery would reframe it into a competing answer.
+            if (!isGeneralKnowledge && !inferenceAuthoritative) {
                 const recovery = await attemptRecovery({
                     question: retrievalQuery,
                     language,
@@ -436,9 +459,11 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 conflicts: result.conflicts,
                 answer_policy: {
                     ...result.answer_policy,
-                    final_instruction: isGeneralKnowledge
-                        ? GENERAL_KNOWLEDGE_INSTRUCTION
-                        : `The evidence below is topically related but does not actually contain a direct answer to this specific question. ${GROUNDED_REFUSAL_INSTRUCTION}${entityMatch === 'mismatch' ? ENTITY_MISMATCH_NOTE : ''}`,
+                    final_instruction: phase6Intent
+                        ? PHASE6_BASE_INSTRUCTION
+                        : isGeneralKnowledge
+                            ? GENERAL_KNOWLEDGE_INSTRUCTION
+                            : `The evidence below is topically related but does not actually contain a direct answer to this specific question. ${GROUNDED_REFUSAL_INSTRUCTION}${entityMatch === 'mismatch' ? ENTITY_MISMATCH_NOTE : ''}`,
                 },
             }, inference);
         }
