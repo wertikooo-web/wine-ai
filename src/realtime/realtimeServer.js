@@ -724,7 +724,30 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // was for observability, without gating whether a legitimate new
         // turn is allowed to open.
         const hadActiveResponse = Boolean(currentGeneration && currentGeneration.status === 'active');
-        cancelCurrent('native_speech_started');
+        // PRODUCTION INCIDENT (2026-08-18, staging release-gate diagnosis):
+        // this cancelCurrent()'s OWN return value must be used to decide
+        // whether to rotate -- NOT a second cancelCurrent('new_input') call
+        // inside startInput() below. By the time startInput() ran, THIS
+        // cancelCurrent() had already marked the generation cancelled, so
+        // startInput()'s own cancelCurrent('new_input') is a no-op that
+        // returns false (see cancelCurrent()'s early-return guard), which
+        // made its `if (cancelledActiveGeneration && shouldRotateProviderOnInterrupt())`
+        // gate never fire for this path. Concretely: providerSession kept
+        // pointing at the OLD, now-draining Grok instance (rotateOnInterrupt:
+        // true) for the entire new turn -- its PCM had nowhere live to go
+        // (piled up in the local replay buffer, see input_replay_buffer_full)
+        // until the unrelated input_hang_timeout fallback finally rotated,
+        // 12 seconds later. rotateOnInterrupt providers' own contract (see
+        // grokVoiceProvider.js's constructor comment: "once an instance is
+        // draining, realtimeServer.js never holds a reference to it as
+        // providerSession again") depends on THIS call site rotating
+        // immediately -- startInput()'s rotation is correctly still there as
+        // a backstop for callers that reach it without cancelling first, but
+        // it cannot substitute for rotating on the actual cancellation event.
+        const cancelledActiveGeneration = cancelCurrent('native_speech_started');
+        if (cancelledActiveGeneration && shouldRotateProviderOnInterrupt()) {
+            rotateProviderSession('native_speech_started');
+        }
         // Belt-and-suspenders on top of client-side AEC (which is the actual
         // fix): don't trust a native "speech started" into opening a new
         // turn/cancelling the active response unless the client has told us
