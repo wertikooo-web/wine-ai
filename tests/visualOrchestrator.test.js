@@ -3,12 +3,13 @@
 const t = require('./helpers/assertions');
 const { createVisualOrchestrator } = require('../src/visual/visualOrchestrator');
 
-function harness() {
+function harness(options = {}) {
     const events = [];
     const logs = [];
     let timerId = 0;
     const timers = new Map();
     const orchestrator = createVisualOrchestrator({
+        ...options,
         emit: (event) => { events.push(event); return true; },
         log: (stage, detail) => logs.push({ stage, detail }),
         setTimer: (callback) => {
@@ -33,6 +34,21 @@ function harness() {
 }
 
 async function run() {
+    // Wine AI Lite (closed beta): the demo catalog (fictional wineries,
+    // example.com order links) must never reach participants.
+    {
+        const lite = harness({ demoCatalogEnabled: false });
+        lite.orchestrator.beginGeneration({ generationId: 'gen-lite', turnId: 'turn-lite' });
+        lite.orchestrator.noteUserText('gen-lite', 'Расскажи про Dealul de Aur Fetească Neagră Reserve, где купить?');
+        lite.orchestrator.onAudioStart('gen-lite');
+        lite.flushTimers();
+        lite.orchestrator.onAudioEnd('gen-lite');
+        const raw = JSON.stringify(lite.events);
+        t.ok(!lite.events.some((e) => /wine|commerce|cta/i.test(e.type)), 'lite: no wine card / commerce events from the demo catalog');
+        t.ok(!raw.includes('example.com'), 'lite: no example.com link is ever emitted');
+        t.ok(!raw.includes('demo-wine'), 'lite: no demo wine id is ever emitted');
+    }
+
     const full = harness();
     full.orchestrator.beginGeneration({ generationId: 'gen-full', turnId: 'turn-full' });
     full.orchestrator.noteUserText('gen-full', 'Расскажи про Dealul de Aur Fetească Neagră Reserve, что взять к утке?');

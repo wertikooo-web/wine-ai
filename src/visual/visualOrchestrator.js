@@ -11,7 +11,10 @@ const PHASE_DELAYS_MS = Object.freeze({
     COMMERCE: 4050,
 });
 
-function createVisualOrchestrator({ emit, log = () => {}, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+// demoCatalogEnabled: the wine cards below come from the DEMO catalog
+// (fictional wineries, example.com order links). Participant sessions
+// (Wine AI Lite, closed beta) turn it off so no fake product is ever shown.
+function createVisualOrchestrator({ emit, log = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, demoCatalogEnabled = true } = {}) {
     if (typeof emit !== 'function') throw new TypeError('visual_emit_required');
     let active = null;
 
@@ -98,6 +101,7 @@ function createVisualOrchestrator({ emit, log = () => {}, setTimer = setTimeout,
 
     function createPlan(generationId) {
         if (!isActive(generationId)) return null;
+        if (!demoCatalogEnabled) return null;
         const wineId = chooseWineId(active.inputText);
         // No blind demo-wine-001 fallback: if the turn wasn't confidently
         // about a wine, no card is created — avatar-only response.

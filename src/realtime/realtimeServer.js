@@ -419,6 +419,7 @@ function attachRealtimeServer(server, options = {}) {
         createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata, {
             isAdultVerified: resolveAdultVerification(req) === true,
             liveTest: liveSnapshot ? { service: liveTest, snapshot: liveSnapshot } : null,
+            channel: url.searchParams.get('channel') === 'lite' ? 'lite' : 'dashboard',
         });
     });
 }
@@ -611,7 +612,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
 
     // One visual lifecycle per realtime connection. It consumes the same
     // authoritative generation ids for Gemini, Grok and mock providers.
-    const visualOrchestrator = createVisualOrchestrator({ emit, log });
+    const visualOrchestrator = createVisualOrchestrator({ emit, log, demoCatalogEnabled: sessionAccess.channel !== 'lite' });
 
     function rememberTurn(role, text) {
         const clean = String(text || '').trim();
