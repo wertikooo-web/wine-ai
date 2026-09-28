@@ -6,6 +6,13 @@ const BUILTIN_PROFILES = {
         displayName: 'Классический сомелье',
         description: 'Спокойный, уверенный и интеллигентный эксперт.',
         personaName: 'Александр',
+        // Canonical avatar (one source for /lite, the WineMD widget and the
+        // dashboard): public/personas/<name>.(png|jpg|webp), served at
+        // /persona-assets/. focus = object-position of the face (portrait and
+        // square sources crop differently); launcherZoom = face zoom for the
+        // small round launcher.
+        avatar: { name: 'alexander', focus: '50% 30%', launcherZoom: 1.45 },
+        displayNames: { ru: 'Александр', ro: 'Alexandru', en: 'Alexander' },
         sommelierGender: 'male',
         mood: 'calm',
         welcomeMessage: 'Здравствуйте. Я Александр, ваш классический цифровой сомелье. Рад помочь вам сориентироваться в мире молдавских вин, подобрать сочетание к ужину или рассказать историю винодельни.',
@@ -46,6 +53,8 @@ const BUILTIN_PROFILES = {
         displayName: 'Тёплый винный гид',
         description: 'Живая, дружелюбная и образная собеседница.',
         personaName: 'Мария',
+        avatar: { name: 'maria', focus: '55% 30%', launcherZoom: 1.35 },
+        displayNames: { ru: 'Мария', ro: 'Maria', en: 'Maria' },
         sommelierGender: 'female',
         mood: 'warm',
         welcomeMessage: 'Привет! Я Мария, ваш тёплый винный гид. Давайте вместе найдем вино, которое понравится именно вам! Расскажите, что вы любите, или спросите о лучших молдавских сортах.',
@@ -239,6 +248,31 @@ function resolveProfile(baseProfileId, overrides = {}, mood) {
     return resolved;
 }
 
+const FALLBACK_AVATAR_SRC = '/persona-assets/fallback.svg';
+const AVATAR_EXTENSIONS = Object.freeze(['png', 'jpg', 'jpeg', 'webp']);
+
+// Display identity of a persona for UIs: name + avatar. Persona is the only
+// input (never provider or voice). A missing asset falls back to the neutral
+// WINE AI avatar. fileExists(relativeToPublic) is injected by the server.
+function personaDisplay(profileId, { fileExists = () => false } = {}) {
+    const profile = BUILTIN_PROFILES[profileId];
+    const fallback = { avatarUrl: FALLBACK_AVATAR_SRC, avatarFocus: '50% 50%', launcherZoom: 1, avatarFallback: true };
+    if (!profile) return { personaId: null, displayName: 'WINE AI', displayNames: {}, ...fallback };
+    const avatar = profile.avatar || {};
+    const ext = /^[a-z0-9_-]+$/.test(avatar.name || '') ? AVATAR_EXTENSIONS.find((e) => fileExists(`personas/${avatar.name}.${e}`)) : null;
+    const displayNames = { ...(profile.displayNames || {}) };
+    if (!ext) return { personaId: profile.id, displayName: profile.personaName, displayNames, ...fallback };
+    return {
+        personaId: profile.id,
+        displayName: profile.personaName,
+        displayNames,
+        avatarUrl: `/persona-assets/${avatar.name}.${ext}`,
+        avatarFocus: avatar.focus || '50% 30%',
+        launcherZoom: Number(avatar.launcherZoom) || 1,
+        avatarFallback: false,
+    };
+}
+
 // Allowed values of the style fields, derived from the instruction tables
 // above so Test Control never offers a value the prompt builder ignores.
 const STYLE_ENUMS = Object.freeze({
@@ -251,6 +285,8 @@ const STYLE_ENUMS = Object.freeze({
 
 module.exports = {
     STYLE_ENUMS,
+    FALLBACK_AVATAR_SRC,
+    personaDisplay,
     BUILTIN_PROFILES,
     MOODS,
     listProfiles,

@@ -24,9 +24,21 @@ function parseCookies(header) {
     }).filter(Boolean));
 }
 
-function issueAdultCookie({ now = Date.now(), secure = false } = {}) {
+// The same signed value as the cookie. Used where a cookie cannot travel:
+// Wine AI Lite embedded as an iframe on a partner site (cross-site iframe,
+// SameSite=Lax cookie is not sent; Safari blocks third-party cookies).
+function issueAdultToken({ now = Date.now() } = {}) {
     const payload = Buffer.from(JSON.stringify({ v: 1, verifiedAt: now, expiresAt: now + MAX_AGE_MS })).toString('base64url');
-    const value = `${payload}.${sign(payload)}`;
+    return `${payload}.${sign(payload)}`;
+}
+
+function isAdultTokenValid(token, options) {
+    if (typeof token !== 'string' || !token || token.length > 512) return false;
+    return isAdultVerified(`${COOKIE_NAME}=${encodeURIComponent(token)}`, options);
+}
+
+function issueAdultCookie({ now = Date.now(), secure = false, token } = {}) {
+    const value = token || issueAdultToken({ now });
     return `${COOKIE_NAME}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(MAX_AGE_MS / 1000)}${secure ? '; Secure' : ''}`;
 }
 
@@ -46,4 +58,4 @@ function isAdultVerified(cookieHeader, { now = Date.now() } = {}) {
     }
 }
 
-module.exports = { COOKIE_NAME, MAX_AGE_MS, issueAdultCookie, isAdultVerified, parseCookies };
+module.exports = { COOKIE_NAME, MAX_AGE_MS, issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified, parseCookies };

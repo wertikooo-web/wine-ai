@@ -709,7 +709,7 @@
 <div id="ageGate" class="age-gate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle" hidden>
   <div class="age-gate__card">
     <h2 id="ageGateTitle">Доступ для взрослых</h2>
-    <p>Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.</p>
+    <p id="ageGateText">Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.</p>
     <button id="ageGateConfirm" type="button">Мне есть разрешённый законом возраст</button>
   </div>
 </div>
@@ -746,10 +746,50 @@
   .lite-msg--assistant { align-self: flex-start; background: #f1e9df; color: #2a2118; border-bottom-left-radius: 4px; }
   body.lite.vc .app-input-row { display: flex !important; width: 100%; }
   body.lite.vc .avatar-box { width: 132px; height: 132px; }
+  /* Persona avatar: cover-crop to the face (focus from the persona registry),
+     never stretched; the 3D model is not used on /lite. */
+  body.lite .avatar-box .avatar-fallback { width: 100%; height: 100%; object-fit: cover; opacity: 1 !important; }
+  body.lite .avatar-box > :not(.avatar-fallback):not(.device-sheen):not(.avatar-ring) { display: none !important; }
+  /* Living persona avatar (presentation only): idle breathing + sway,
+     listening lean-in, thinking head tilt, speaking bounce driven by the
+     assistant's own output level (--lite-amp, 0..1, read-only analyser). */
+  @keyframes liteBreath { 0%, 100% { transform: scale(1) rotate(0deg); } 30% { transform: scale(1.018) rotate(0.5deg); } 60% { transform: scale(1.028) rotate(-0.4deg); } }
+  @keyframes liteThink { 0%, 100% { transform: scale(1.02) rotate(-1.6deg) translateY(0); } 50% { transform: scale(1.02) rotate(1.6deg) translateY(-2px); } }
+  body.lite .avatar-box .avatar-fallback { transform-origin: 50% 85%; animation: liteBreath 4.8s ease-in-out infinite; will-change: transform; }
+  body.lite .avatar-box.listening .avatar-fallback { animation: none; transform: scale(1.04) translateY(-2px); transition: transform .35s ease; }
+  body.lite .avatar-box.thinking .avatar-fallback { animation: liteThink 2.6s ease-in-out infinite; }
+  body.lite .avatar-box.speaking .avatar-fallback { animation: none; transform: translateY(calc(var(--lite-amp, 0) * -5px)) scale(calc(1.02 + var(--lite-amp, 0) * 0.045)); transition: transform 90ms linear; }
+  @media (prefers-reduced-motion: reduce) {
+    body.lite .avatar-box .avatar-fallback { animation: none !important; transform: none !important; transition: none !important; }
+  }
   /* Mobile order: chat above, then text input, then the mic button. */
   body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
   body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
   body.lite.lite-active .start-intents { display: none !important; }
+  /* Wine AI Lite shell: same page standalone (QR), on phones and inside the
+     WineMD widget iframe (?embed=1). Presentation only. */
+  .lite-bar { display: none; }
+  body.lite header, body.lite .phone-shell--right { display: none !important; }
+  body.lite .lite-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(135deg, #4a1420, #6b1e2b); color: #fdf6ec; }
+  body.lite .lite-bar__title { font-weight: 800; letter-spacing: .12em; font-size: 14px; }
+  body.lite .lite-bar__persona { font-size: 13px; opacity: .85; }
+  body.lite .lite-bar__auto { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 8px; border: 1px solid rgba(253,246,236,.45); border-radius: 999px; }
+  body.lite .lite-bar__close { display: none; background: none; border: 0; color: inherit; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 2px; }
+  body.lite.embed .lite-bar__close { display: block; }
+  @media (max-width: 540px) {
+    body.lite main { padding: 0; }
+    body.lite .phone-row { padding: 0; gap: 0; }
+    body.lite .phone-shell--left { width: 100%; }
+    body.lite .phone-shell--left .phone-frame { width: 100vw; max-height: none; height: calc(100dvh - 44px); aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; background: none; padding: 0; }
+    body.lite .phone-shell--left .phone-screen { margin-top: 0; border-radius: 0; }
+    body.lite .phone-island, body.lite .phone-gesture-bar { display: none; }
+  }
+  body.lite.embed main { padding: 0; }
+  body.lite.embed .phone-row { padding: 0; gap: 0; }
+  body.lite.embed .phone-shell--left { width: 100%; }
+  body.lite.embed .phone-shell--left .phone-frame { width: 100vw; max-height: none; height: calc(100vh - 44px); aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; background: none; padding: 0; }
+  body.lite.embed .phone-shell--left .phone-screen { margin-top: 0; border-radius: 0; }
+  body.lite.embed .phone-island, body.lite.embed .phone-gesture-bar { display: none; }
   .wc-rail { display: flex; gap: 8px; overflow-x: auto; align-self: stretch; padding: 2px 0 4px; flex-shrink: 0; }
   .wc-card { flex: 0 0 min(78%, 260px); background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; text-align: left; display: flex; flex-direction: column; }
   .wc-card__img { width: 100%; height: 150px; object-fit: contain; background: #f7f1e8; }
@@ -775,6 +815,13 @@
   .lite-fb__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
   .lite-fb__thanks { margin-top: 10px; font-weight: 700; color: var(--ok, #2f6b3a); text-align: center; }
 </style>
+
+<div class="lite-bar" id="liteBar">
+  <span class="lite-bar__title">WINE AI</span>
+  <span class="lite-bar__persona" id="liteBarPersona"></span>
+  <span class="lite-bar__auto" title="Язык определяется автоматически">🌐 AUTO</span>
+  <button type="button" class="lite-bar__close" id="liteClose" aria-label="Закрыть">×</button>
+</div>
 
 <header>
   <div>
@@ -826,7 +873,7 @@
               <div class="device-stage" id="deviceStage">
                 <div class="device-glow" aria-hidden="true"></div>
                 <div class="avatar-box" id="avatarBox">
-                  <img class="avatar-fallback" src="/visual-assets/avatar-woman-1.png" alt="WineMD sommelier avatar">
+                  <img class="avatar-fallback" src="/persona-avatar/warm_guide" alt="WineMD sommelier avatar">
                   <div class="device-sheen" aria-hidden="true"></div>
                   <div class="avatar-ring"></div>
                 </div>
@@ -1407,14 +1454,14 @@
       <!-- Preset Selectors -->
       <div class="profile-selectors" id="profileSelectorContainer">
         <button class="profile-select-btn" type="button" data-profile="classic" id="btnProfileClassic">
-          <img src="/visual-assets/avatar-man-1.png" alt="Александр">
+          <img src="/persona-avatar/classic" alt="Александр" onerror="this.onerror=null;this.src='/persona-assets/fallback.svg'">
           <div>
             <strong>Александр</strong>
             <span>Классический сомелье</span>
           </div>
         </button>
         <button class="profile-select-btn" type="button" data-profile="warm_guide" id="btnProfileWarm">
-          <img src="/visual-assets/avatar-woman-1.png" alt="Мария">
+          <img src="/persona-avatar/warm_guide" alt="Мария" onerror="this.onerror=null;this.src='/persona-assets/fallback.svg'">
           <div>
             <strong>Мария</strong>
             <span>Тёплый винный гид</span>
@@ -1953,8 +2000,11 @@
   // config (channel=lite); this page only hides operator UI, connects with
   // channel=lite, and asks for a rating after each conversation.
   const LITE_MODE = /^\/lite\/?$/.test(location.pathname) || new URLSearchParams(location.search).get('lite') === '1';
+  // Embedded in the WineMD website widget (public/wine-ai-widget.js).
+  const LITE_EMBED = LITE_MODE && new URLSearchParams(location.search).get('embed') === '1' && window.parent !== window;
   if (LITE_MODE) {
     document.body.classList.add('lite');
+    if (LITE_EMBED) document.body.classList.add('embed');
     loadLiteConfig();
   }
   let liteSessionId = null;
@@ -2457,8 +2507,12 @@
       whereToBuyLabel: '購入先', whereToBuyGo: 'ストアへ',
     },
   };
-  let uiLang = localStorage.getItem('wineAiUiLang')
-    || (LITE_MODE ? (['ru', 'ro', 'en'].find((l) => String(navigator.language || '').toLowerCase().startsWith(l)) || 'ru') : 'en');
+  // Wine AI Lite: ?lang= (set by the WineMD widget from the host page) wins,
+  // then the browser language; default English (not Russian) for Moldova.
+  const LITE_URL_LANG = LITE_MODE ? new URLSearchParams(location.search).get('lang') : null;
+  let uiLang = (LITE_MODE && ['ru', 'ro', 'en'].includes(LITE_URL_LANG)) ? LITE_URL_LANG
+    : (localStorage.getItem('wineAiUiLang')
+      || (LITE_MODE ? (['ro', 'ru', 'en'].find((l) => String(navigator.language || '').toLowerCase().startsWith(l)) || 'en') : 'en'));
   function getUiString(key) {
     return (UI_STRINGS[uiLang] && UI_STRINGS[uiLang][key]) || UI_STRINGS.en[key] || '';
   }
@@ -2500,6 +2554,8 @@
       if (box) {
         box.classList.toggle('listening', state === 'listening');
         box.classList.toggle('speaking', state === 'speaking');
+        box.classList.toggle('thinking', state === 'thinking');
+        if (LITE_MODE) liteAvatarMotion(state === 'speaking');
       }
       setText('avatarStatus', getUiString(STATUS_META[state].key));
       const dot = el('avatarStatusDot');
@@ -2817,18 +2873,22 @@
   // ---- WebSocket / protocol ----
   function socketUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite`;
+    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite${adultToken ? `&av=${encodeURIComponent(adultToken)}` : ''}`;
     const providerParam = selectedRealtimeProvider ? `?provider=${encodeURIComponent(selectedRealtimeProvider)}` : '';
     return `${proto}//${location.host}/realtime${providerParam}`;
   }
 
   let adultAccessPromise = null;
+  // Signed age token for the embedded widget (cross-site iframe cookies do
+  // not travel); the cookie still covers the standalone page.
+  let adultToken = '';
+  try { adultToken = sessionStorage.getItem('wineAiAdultToken') || ''; } catch { adultToken = ''; }
   async function ensureAdultAccess() {
     if (adultAccessPromise) return adultAccessPromise;
     adultAccessPromise = (async () => {
     const gate = el('ageGate');
     const confirm = el('ageGateConfirm');
-    const status = await fetch('/api/age-verification', { credentials: 'same-origin' }).then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
+    const status = await fetch('/api/age-verification', { credentials: 'same-origin', headers: adultToken ? { 'x-adult-token': adultToken } : {} }).then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
     if (status.adult_verified) return true;
     gate.hidden = false;
     return new Promise((resolve) => {
@@ -2836,7 +2896,13 @@
         confirm.disabled = true;
         const result = await fetch('/api/age-verification', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirmed: true }) })
           .then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
-        if (result.adult_verified) { gate.hidden = true; resolve(true); return; }
+        if (result.adult_verified) {
+          if (typeof result.token === 'string') {
+            adultToken = result.token;
+            try { sessionStorage.setItem('wineAiAdultToken', adultToken); } catch { /* storage unavailable */ }
+          }
+          gate.hidden = true; resolve(true); return;
+        }
         confirm.disabled = false;
       };
     });
@@ -3280,6 +3346,7 @@
         setText('dOutputRate', payload.provider === 'mock' ? '16000 Hz' : '24000 Hz');
         break;
       case 'session.config.applied':
+        if (LITE_MODE && liteSessionId) loadLiteConfig(liteSessionId);
         setText('dInputRate', payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—');
         if (payload.prompt_debug && payload.prompt_debug.meta) {
           setText('langState', 'auto');
@@ -3884,7 +3951,9 @@
       const connected = ws && ws.readyState === WebSocket.OPEN;
       caption.textContent = getUiString(connected && !providerReadyForInput ? 'pttCaptionConnecting' : 'pttCaptionHold');
     } else {
-      caption.textContent = getUiString(tapToStartActive ? 'pttCaptionTapActive' : 'pttCaptionTapIdle');
+      caption.textContent = (LITE_MODE && !tapToStartActive)
+        ? ({ ru: 'Поговорить с сомелье', ro: 'Vorbește cu somelierul', en: 'Talk to the sommelier' }[uiLang] || 'Поговорить с сомелье')
+        : getUiString(tapToStartActive ? 'pttCaptionTapActive' : 'pttCaptionTapIdle');
     }
   }
 
@@ -4082,16 +4151,71 @@
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) disconnect();
     if (sessionId) showLiteFeedback(sessionId);
   }
+  // Speaking bounce for the Lite avatar: reads the existing output analyser
+  // (never creates or connects audio nodes) and sets --lite-amp. Stops when
+  // the assistant stops speaking; nothing runs when motion is reduced.
+  var liteAmpFrame = 0; // var: setState may run before this line executes
+  var liteAmpBuffer = null;
+  function liteAvatarMotion(speaking) {
+    const box = document.getElementById('avatarBox');
+    if (!box) return;
+    if (!speaking || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      if (liteAmpFrame) cancelAnimationFrame(liteAmpFrame);
+      liteAmpFrame = 0;
+      box.style.setProperty('--lite-amp', '0');
+      return;
+    }
+    if (liteAmpFrame) return;
+    let smoothed = 0;
+    const tick = () => {
+      try {
+        const analyser = avatarOutputAnalyser;
+        let level = 0;
+        if (analyser) {
+          if (!liteAmpBuffer || liteAmpBuffer.length !== analyser.fftSize) liteAmpBuffer = new Uint8Array(analyser.fftSize);
+          analyser.getByteTimeDomainData(liteAmpBuffer);
+          let sum = 0;
+          for (let i = 0; i < liteAmpBuffer.length; i++) { const v = (liteAmpBuffer[i] - 128) / 128; sum += v * v; }
+          level = Math.min(1, Math.sqrt(sum / liteAmpBuffer.length) * 4);
+        }
+        smoothed = smoothed * 0.6 + level * 0.4;
+        box.style.setProperty('--lite-amp', smoothed.toFixed(3));
+      } catch { /* presentation only */ }
+      liteAmpFrame = requestAnimationFrame(tick);
+    };
+    liteAmpFrame = requestAnimationFrame(tick);
+  }
+
   // ---- Visual Companion: transcript (Wine AI Lite) ----
   // Streaming fragments are merged per turn (user) / generation (assistant).
   // Never throws into the realtime event handler: presentation failure must
   // not affect the conversation.
   const liteChatBubbles = new Map();
-  function loadLiteConfig() {
-    fetch('/api/lite/config').then((r) => r.json()).then((cfg) => {
+  // Persona display (name + avatar) comes only from the persona: without a
+  // session id, the published revision (= the next session); with one, that
+  // session's own immutable snapshot. Provider/voice never affect it.
+  const LITE_FALLBACK_AVATAR = '/persona-assets/fallback.svg';
+  function applyLitePersona(persona) {
+    if (!persona) return;
+    const name = (persona.display_names && persona.display_names[uiLang]) || persona.display_name || 'WINE AI';
+    document.body.dataset.personaName = name;
+    const bar = document.getElementById('liteBarPersona');
+    if (bar) bar.textContent = name;
+    const img = document.querySelector('#avatarBox .avatar-fallback');
+    if (img) {
+      img.onerror = () => { img.onerror = null; img.src = LITE_FALLBACK_AVATAR; img.style.objectPosition = '50% 50%'; };
+      img.alt = name;
+      img.style.objectPosition = persona.avatar_focus || '50% 30%';
+      const url = persona.avatar_url || LITE_FALLBACK_AVATAR;
+      if (img.getAttribute('src') !== url) img.src = url;
+    }
+  }
+  function loadLiteConfig(sessionId) {
+    const query = sessionId ? `?session=${encodeURIComponent(sessionId)}` : '';
+    fetch('/api/lite/config' + query).then((r) => r.json()).then((cfg) => {
       document.body.classList.toggle('vc', Boolean(cfg && cfg.visual_companion));
-      if (cfg && cfg.persona_name) document.body.dataset.personaName = cfg.persona_name;
-    }).catch(() => { /* companion keeps its last state; voice unaffected */ });
+      if (cfg && cfg.persona) applyLitePersona(cfg.persona);
+    }).catch(() => { /* keeps its last state; voice unaffected */ });
   }
   let liteCompanion = null;
   function liteCompanionOnText(key, text, bubble) {
@@ -4145,6 +4269,22 @@
       if (role === 'assistant') liteCompanionOnText(key, body.textContent, bubble);
       box.scrollTop = box.scrollHeight;
     } catch { /* presentation only */ }
+  }
+
+  // Widget close: × asks the host shell to close; the host asks us to stop
+  // (conversation ends through the normal stop path, mic released).
+  if (LITE_EMBED) {
+    const stopForClose = () => {
+      try { if (tapToStartActive) stopFreeConversation(); else if (ws) disconnect(); } catch { /* best-effort */ }
+    };
+    document.getElementById('liteClose')?.addEventListener('click', () => {
+      stopForClose();
+      try { window.parent.postMessage({ type: 'wine-ai:close' }, '*'); } catch { /* host gone */ }
+    });
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent || !event.data || event.data.type !== 'wine-ai:stop') return;
+      stopForClose();
+    });
   }
 
   function hideLiteFeedback() {
@@ -7057,6 +7197,28 @@
   }
 
   // ---- Dashboard UI language wiring ----
+  // Texts of the Wine AI Lite dialogs (age gate, rating, send button).
+  const LITE_TEXTS = {
+    ru: { ageTitle: 'Доступ для взрослых', ageText: 'Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.', ageBtn: 'Мне есть разрешённый законом возраст',
+      fbTitle: 'Спасибо за разговор!', fbConv: 'Как вам разговор?', fbVoice: 'Как вам голос?', fbComment: 'Что было плохо?', fbSkip: 'Пропустить', fbSend: 'Отправить', fbThanks: 'Спасибо!', send: 'Отправить' },
+    ro: { ageTitle: 'Acces pentru adulți', ageText: 'Wine AI vorbește despre cultura vinului și produse vinicole. Continuând, confirmați că aveți vârsta legală în țara dvs.', ageBtn: 'Am vârsta legală',
+      fbTitle: 'Mulțumim pentru conversație!', fbConv: 'Cum a fost conversația?', fbVoice: 'Cum vi s-a părut vocea?', fbComment: 'Ce nu v-a plăcut?', fbSkip: 'Omite', fbSend: 'Trimite', fbThanks: 'Mulțumim!', send: 'Trimite' },
+    en: { ageTitle: 'Adults only', ageText: 'Wine AI talks about wine culture and wine products. By continuing you confirm that you are of legal drinking age in your country.', ageBtn: 'I am of legal drinking age',
+      fbTitle: 'Thank you for the conversation!', fbConv: 'How was the conversation?', fbVoice: 'How was the voice?', fbComment: 'What was not good?', fbSkip: 'Skip', fbSend: 'Send', fbThanks: 'Thank you!', send: 'Send' },
+  };
+  function applyLiteTexts() {
+    if (!LITE_MODE) return;
+    const t = LITE_TEXTS[uiLang] || LITE_TEXTS.en;
+    const set = (id, text, attr) => { const node = document.getElementById(id); if (node) { if (attr) node.setAttribute(attr, text); else node.textContent = text; } };
+    set('ageGateTitle', t.ageTitle); set('ageGateText', t.ageText); set('ageGateConfirm', t.ageBtn);
+    set('liteFbTitle', t.fbTitle); set('liteFbComment', t.fbComment, 'placeholder');
+    set('liteFbSkip', t.fbSkip); set('liteFbSend', t.fbSend); set('liteFbThanks', t.fbThanks); set('textSendBtn', t.send);
+    const questions = document.querySelectorAll('#liteFeedback .lite-fb__q');
+    if (questions[0]) questions[0].textContent = t.fbConv;
+    if (questions[1]) questions[1].textContent = t.fbVoice;
+    document.documentElement.lang = uiLang;
+  }
+
   function applyUiLanguage(lang) {
     uiLang = lang;
     localStorage.setItem('wineAiUiLang', lang);
@@ -7124,6 +7286,7 @@
     const wineToggle = el('wineDetailsToggle');
     const wineDetails = el('wineDetailsBlock');
     if (wineToggle && wineDetails) wineToggle.textContent = getUiString(wineDetails.hidden ? 'detailsMore' : 'detailsLess');
+    applyLiteTexts();
   }
 
   let globalProvidersConfig = null;
