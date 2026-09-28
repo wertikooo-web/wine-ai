@@ -257,7 +257,11 @@ function isPostgresConfigured() {
 // Service
 // ---------------------------------------------------------------------
 
-function createLiveTestService({ store, isProviderConfigured = () => true, log = (...a) => console.log('[LiveTest]', ...a) } = {}) {
+// getPersonaOverrides: current Settings overrides per persona (personaStore).
+// They are frozen into each published revision so a revision is complete:
+// editing a persona in Settings mid-test cannot change sessions of an
+// already-published revision.
+function createLiveTestService({ store, isProviderConfigured = () => true, getPersonaOverrides = () => ({}), log = (...a) => console.log('[LiveTest]', ...a) } = {}) {
     let published = null; // last successfully loaded/published revision (runtime cache)
     let loadState = 'not_loaded';
 
@@ -287,7 +291,9 @@ function createLiveTestService({ store, isProviderConfigured = () => true, log =
     async function publish(config, label) {
         const { config: clean, errors } = validateConfig(config, { isProviderConfigured });
         if (errors.length) return { ok: false, errors };
-        const result = await store.publish(clean, typeof label === 'string' ? label.slice(0, 60) : null);
+        let personaOverrides = {};
+        try { personaOverrides = JSON.parse(JSON.stringify((getPersonaOverrides() || {})[clean.persona]?.overrides || {})); } catch { personaOverrides = {}; }
+        const result = await store.publish({ ...clean, personaOverrides }, typeof label === 'string' ? label.slice(0, 60) : null);
         published = result;
         log('published', JSON.stringify({ revision: result.revision, config: describeConfig(clean) }));
         return { ok: true, published: result };
@@ -319,7 +325,15 @@ function createLiveTestService({ store, isProviderConfigured = () => true, log =
             log('snapshot_unavailable', loadState === 'failed' ? 'store_load_failed_using_settings' : 'nothing_published_using_settings');
             return null;
         }
-        return Object.freeze({ revision: published.revision, label: published.label, config: Object.freeze({ ...published.config }) });
+        const { personaOverrides, ...config } = published.config;
+        return Object.freeze({
+            revision: published.revision,
+            label: published.label,
+            config: Object.freeze(config),
+            // null for revisions published before overrides were frozen in:
+            // those fall back to the live Settings overrides (logged).
+            personaOverrides: personaOverrides ? Object.freeze(personaOverrides) : null,
+        });
     }
 
     // Persona state in the same shape as personaStore.getCached(), built once
@@ -327,7 +341,8 @@ function createLiveTestService({ store, isProviderConfigured = () => true, log =
     // identity stay whatever Settings holds; only the tested fields change).
     function personaStateFor(snapshot, profilesOverrides = {}) {
         const c = snapshot.config;
-        const base = JSON.parse(JSON.stringify(profilesOverrides[c.persona]?.overrides || {}));
+        if (!snapshot.personaOverrides) log('persona_overrides_live_fallback', `revision ${snapshot.revision} has no frozen persona overrides`);
+        const base = JSON.parse(JSON.stringify(snapshot.personaOverrides || profilesOverrides[c.persona]?.overrides || {}));
         delete base.mood;
         base.style = { ...(base.style || {}), responseLength: c.responseLength, tone: c.tone, expertiseLevel: c.expertiseLevel, conversationMode: c.conversationMode };
         base.runtimeByProvider = { ...(base.runtimeByProvider || {}), [c.provider]: { voiceId: c.voice } };

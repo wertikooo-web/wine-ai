@@ -30,6 +30,12 @@ function average(values) {
     return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 100) / 100 : null;
 }
 
+function stripInternal(config) {
+    if (!config) return config;
+    const { personaOverrides, ...rest } = config;
+    return rest;
+}
+
 function createLiveTestApi({ service, sendJson, readJsonBody, isProviderConfigured = () => true, listUsageRecords = async () => [] }) {
     function options() {
         return {
@@ -50,9 +56,10 @@ function createLiveTestApi({ service, sendJson, readJsonBody, isProviderConfigur
             load_state: service.getLoadState(),
             published,
             published_description: published ? describeConfig(published.config) : null,
+            published_config: published ? stripInternal(published.config) : null,
             presets,
             baseline,
-            history: revisions.map((r) => ({ revision: r.revision, published_at: r.published_at, label: r.label, changes: diffConfigs(r.previous_config, r.new_config) })),
+            history: revisions.map((r) => ({ revision: r.revision, published_at: r.published_at, label: r.label, changes: diffConfigs(stripInternal(r.previous_config), stripInternal(r.new_config)) })),
             options: options(),
         };
     }

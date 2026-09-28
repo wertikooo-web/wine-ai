@@ -230,6 +230,7 @@ const costApi = createCostApi({ sendJson, readJsonBody });
 const liveTest = createLiveTestService({
     store: isLiveTestPostgresConfigured() ? createPostgresLiveTestStore() : createMemoryLiveTestStore(),
     isProviderConfigured: (id) => providerRegistry.list().some((p) => p.id === id && p.configured),
+    getPersonaOverrides: () => personaStore.getProfilesOverrides(),
 });
 liveTest.load().then((published) => {
     console.log(`[WineAI] live test config: ${published ? `revision ${published.revision}` : 'nothing published'} (${liveTest.getLoadState()})`);

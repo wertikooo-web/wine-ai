@@ -86,15 +86,17 @@ async function run() {
     t.equal(r2.published.revision, 2, 'revision increments');
     const history = await store.listRevisions();
     t.equal(history.length, 2, 'history has both revisions');
-    t.deepEqual(history[0].previous_config, GEMINI, 'history keeps previous config');
-    t.deepEqual(history[0].new_config, GROK, 'history keeps new config');
+    const tested = ({ personaOverrides, ...rest }) => rest;
+    t.deepEqual(tested(history[0].previous_config), GEMINI, 'history keeps previous config');
+    t.deepEqual(tested(history[0].new_config), GROK, 'history keeps new config');
+    t.deepEqual(history[0].new_config.personaOverrides, {}, 'persona text overrides frozen into the revision');
     t.ok(diffConfigs(history[0].previous_config, history[0].new_config).some((c) => c.field === 'provider' && c.from === 'gemini' && c.to === 'grok'), 'diff shows Gemini → Grok');
 
     // restart simulation: new service instance over the same store
     const restarted = createLiveTestService({ store, log: quiet });
     await restarted.load();
     t.equal(restarted.getPublished().revision, 2, 'published config survives a service restart');
-    t.deepEqual(restarted.getPublished().config, GROK, 'same config after restart');
+    t.deepEqual(tested(restarted.getPublished().config), GROK, 'same config after restart');
 
     // store failure at load -> no invented config
     const broken = createLiveTestService({ store: { ...store, init: async () => { throw new Error('db down'); } }, log: quiet });
