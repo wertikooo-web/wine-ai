@@ -1078,14 +1078,16 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         }, timeoutMs);
     }
 
-    function armPttTurnTimeout(generation) {
+    function armPttTurnTimeout(generation, { timeoutMs: overrideTimeoutMs } = {}) {
         // Same stuck-generation safety net for both interactive input modes
         // (Hold to Talk and Tap to Start) — a turn that never gets a
         // response needs recovering either way; only a future non-
         // interactive/automated mode would want this skipped.
         if (!generation || (currentMode !== 'push_to_talk' && currentMode !== 'tap_to_start')) return;
         clearGenerationTimeout(generation);
-        const timeoutMs = Math.max(0, Number(process.env.PTT_TURN_TIMEOUT_MS || 4500));
+        const timeoutMs = Number.isFinite(overrideTimeoutMs)
+            ? Math.max(0, overrideTimeoutMs)
+            : Math.max(0, Number(process.env.PTT_TURN_TIMEOUT_MS || 4500));
         if (timeoutMs <= 0) return;
         generation.timeoutTimer = setTimeout(() => {
             if (
@@ -1383,6 +1385,24 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 droppedProviderEvent(generation, eventType, 'terminal_generation');
             }
             return false;
+        }
+        // Tool calls (knowledge search, web grounding) legitimately take
+        // several seconds before the model can say anything. The ordinary
+        // no-response watchdog (armPttTurnTimeout, 4.5s from input end) used
+        // to fire mid-tool, fail the turn and rotate the provider, so the
+        // answer was lost and the user heard nothing. While a tool runs the
+        // window is extended; once its result is back the ordinary window
+        // re-arms for the model to start speaking.
+        if ((eventType === 'tool.call' || eventType === 'tool.response') && !generation.responseCreatedSent) {
+            const toolTimeoutMs = Math.max(0, Number(process.env.PTT_TOOL_TURN_TIMEOUT_MS || 20000));
+            armPttTurnTimeout(generation, eventType === 'tool.call' ? { timeoutMs: toolTimeoutMs } : {});
+            log('turn_timeout_rearmed_for_tool', {
+                generationId: generation.generationId,
+                turnId: generation.turnId,
+                eventType,
+                toolName: payload.tool_name || (Array.isArray(payload.tool_names) ? payload.tool_names.join(',') : ''),
+                timeoutMs: eventType === 'tool.call' ? toolTimeoutMs : Math.max(0, Number(process.env.PTT_TURN_TIMEOUT_MS || 4500)),
+            });
         }
         if (eventType === 'transcript.user') {
             // Gemini streams inputTranscription as incremental fragments, not one
