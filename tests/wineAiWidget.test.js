@@ -34,6 +34,13 @@ async function run() {
     t.ok(html.includes("['ru', 'ro', 'en'].includes(LITE_URL_LANG)") && html.includes("|| 'en') : 'en'));"), 'Lite UI language: ?lang=, else browser, else English');
     for (const l of ['ru', 'ro', 'en']) t.ok(new RegExp(`\\b${l}: \\{ ageTitle:`).test(html), `age gate + rating localized (${l})`);
 
+    // Living avatar (presentation only).
+    t.ok(html.includes('@keyframes liteBreath') && html.includes('@keyframes liteThink'), 'idle breathing and thinking tilt animations');
+    t.ok(html.includes("box.classList.toggle('thinking', state === 'thinking');"), 'thinking state exposed to CSS');
+    t.ok(/function liteAvatarMotion[\s\S]*getByteTimeDomainData[\s\S]*--lite-amp/.test(html), 'speaking bounce reads the existing output analyser');
+    t.ok(!/function liteAvatarMotion[\s\S]{0,1600}(createAnalyser|\.connect\()/.test(html), 'avatar motion never creates or connects audio nodes');
+    t.ok(/prefers-reduced-motion: reduce\)[\s\S]{0,200}body\.lite \.avatar-box \.avatar-fallback \{ animation: none !important/.test(html), 'reduced motion respected');
+
     // Age token: same signature as the cookie, for cross-site iframes.
     const token = age.issueAdultToken();
     t.ok(age.isAdultTokenValid(token), 'issued token is valid');

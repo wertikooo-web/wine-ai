@@ -750,6 +750,18 @@
      never stretched; the 3D model is not used on /lite. */
   body.lite .avatar-box .avatar-fallback { width: 100%; height: 100%; object-fit: cover; opacity: 1 !important; }
   body.lite .avatar-box > :not(.avatar-fallback):not(.device-sheen):not(.avatar-ring) { display: none !important; }
+  /* Living persona avatar (presentation only): idle breathing + sway,
+     listening lean-in, thinking head tilt, speaking bounce driven by the
+     assistant's own output level (--lite-amp, 0..1, read-only analyser). */
+  @keyframes liteBreath { 0%, 100% { transform: scale(1) rotate(0deg); } 30% { transform: scale(1.018) rotate(0.5deg); } 60% { transform: scale(1.028) rotate(-0.4deg); } }
+  @keyframes liteThink { 0%, 100% { transform: scale(1.02) rotate(-1.6deg) translateY(0); } 50% { transform: scale(1.02) rotate(1.6deg) translateY(-2px); } }
+  body.lite .avatar-box .avatar-fallback { transform-origin: 50% 85%; animation: liteBreath 4.8s ease-in-out infinite; will-change: transform; }
+  body.lite .avatar-box.listening .avatar-fallback { animation: none; transform: scale(1.04) translateY(-2px); transition: transform .35s ease; }
+  body.lite .avatar-box.thinking .avatar-fallback { animation: liteThink 2.6s ease-in-out infinite; }
+  body.lite .avatar-box.speaking .avatar-fallback { animation: none; transform: translateY(calc(var(--lite-amp, 0) * -5px)) scale(calc(1.02 + var(--lite-amp, 0) * 0.045)); transition: transform 90ms linear; }
+  @media (prefers-reduced-motion: reduce) {
+    body.lite .avatar-box .avatar-fallback { animation: none !important; transform: none !important; transition: none !important; }
+  }
   /* Mobile order: chat above, then text input, then the mic button. */
   body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
   body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
@@ -2542,6 +2554,8 @@
       if (box) {
         box.classList.toggle('listening', state === 'listening');
         box.classList.toggle('speaking', state === 'speaking');
+        box.classList.toggle('thinking', state === 'thinking');
+        if (LITE_MODE) liteAvatarMotion(state === 'speaking');
       }
       setText('avatarStatus', getUiString(STATUS_META[state].key));
       const dot = el('avatarStatusDot');
@@ -4137,6 +4151,41 @@
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) disconnect();
     if (sessionId) showLiteFeedback(sessionId);
   }
+  // Speaking bounce for the Lite avatar: reads the existing output analyser
+  // (never creates or connects audio nodes) and sets --lite-amp. Stops when
+  // the assistant stops speaking; nothing runs when motion is reduced.
+  var liteAmpFrame = 0; // var: setState may run before this line executes
+  var liteAmpBuffer = null;
+  function liteAvatarMotion(speaking) {
+    const box = document.getElementById('avatarBox');
+    if (!box) return;
+    if (!speaking || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      if (liteAmpFrame) cancelAnimationFrame(liteAmpFrame);
+      liteAmpFrame = 0;
+      box.style.setProperty('--lite-amp', '0');
+      return;
+    }
+    if (liteAmpFrame) return;
+    let smoothed = 0;
+    const tick = () => {
+      try {
+        const analyser = avatarOutputAnalyser;
+        let level = 0;
+        if (analyser) {
+          if (!liteAmpBuffer || liteAmpBuffer.length !== analyser.fftSize) liteAmpBuffer = new Uint8Array(analyser.fftSize);
+          analyser.getByteTimeDomainData(liteAmpBuffer);
+          let sum = 0;
+          for (let i = 0; i < liteAmpBuffer.length; i++) { const v = (liteAmpBuffer[i] - 128) / 128; sum += v * v; }
+          level = Math.min(1, Math.sqrt(sum / liteAmpBuffer.length) * 4);
+        }
+        smoothed = smoothed * 0.6 + level * 0.4;
+        box.style.setProperty('--lite-amp', smoothed.toFixed(3));
+      } catch { /* presentation only */ }
+      liteAmpFrame = requestAnimationFrame(tick);
+    };
+    liteAmpFrame = requestAnimationFrame(tick);
+  }
+
   // ---- Visual Companion: transcript (Wine AI Lite) ----
   // Streaming fragments are merged per turn (user) / generation (assistant).
   // Never throws into the realtime event handler: presentation failure must
