@@ -239,7 +239,18 @@ function resolveProfile(baseProfileId, overrides = {}, mood) {
     return resolved;
 }
 
+// Allowed values of the style fields, derived from the instruction tables
+// above so Test Control never offers a value the prompt builder ignores.
+const STYLE_ENUMS = Object.freeze({
+    mood: Object.freeze(Object.keys(MOOD_INSTRUCTIONS)),
+    responseLength: Object.freeze(Object.keys(LENGTH_INSTRUCTIONS)),
+    tone: Object.freeze(Object.keys(TONE_INSTRUCTIONS)),
+    expertiseLevel: Object.freeze(Object.keys(EXPERTISE_INSTRUCTIONS)),
+    conversationMode: Object.freeze(['strict', 'friendly', 'free']),
+});
+
 module.exports = {
+    STYLE_ENUMS,
     BUILTIN_PROFILES,
     MOODS,
     listProfiles,

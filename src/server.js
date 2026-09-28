@@ -49,6 +49,8 @@ const env = require('./config/env');
 const { issueAdultCookie, isAdultVerified } = require('./security/ageVerification');
 const { createCostApi } = require('./cost/costApi');
 const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
+const { createLiveTestService, createPostgresLiveTestStore, createMemoryLiveTestStore, isPostgresConfigured: isLiveTestPostgresConfigured } = require('./liveTest/liveTestConfig');
+const { createLiveTestApi } = require('./liveTest/liveTestApi');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
@@ -221,6 +223,22 @@ const MAX_JSON_BODY_BYTES = 64 * 1024;
 
 const studioApi = createStudioApi({ sendJson, readJsonBody });
 const costApi = createCostApi({ sendJson, readJsonBody });
+// Closed-beta Test Control (control plane only): published config is loaded
+// once at boot and snapshotted per participant session at WebSocket creation.
+const liveTest = createLiveTestService({
+    store: isLiveTestPostgresConfigured() ? createPostgresLiveTestStore() : createMemoryLiveTestStore(),
+    isProviderConfigured: (id) => providerRegistry.list().some((p) => p.id === id && p.configured),
+});
+liveTest.load().then((published) => {
+    console.log(`[WineAI] live test config: ${published ? `revision ${published.revision}` : 'nothing published'} (${liveTest.getLoadState()})`);
+});
+const liveTestApi = createLiveTestApi({
+    service: liveTest,
+    sendJson,
+    readJsonBody,
+    isProviderConfigured: (id) => providerRegistry.list().some((p) => p.id === id && p.configured),
+    listUsageRecords: (range) => getCostStore().listUsageRecords(range),
+});
 
 function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     return new Promise((resolve, reject) => {
@@ -247,7 +265,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/dashboard/cost-guide', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/dashboard/cost-guide', '/lite', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -324,7 +342,7 @@ async function handleRequest(req, res) {
         });
     }
 
-    if (req.method === 'GET' && pathname === '/dashboard') {
+    if (req.method === 'GET' && (pathname === '/dashboard' || pathname === '/lite')) {
         const filePath = path.join(publicDir, 'dashboard.html');
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 500, { ok: false, error: 'dashboard_not_available' }))
@@ -1144,6 +1162,12 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
     }
 
+    // Closed-beta Test Control + participant feedback.
+    if (pathname.startsWith('/api/live-test/')) {
+        await liveTestApi.handle(req, res, pathname);
+        return undefined;
+    }
+
     // Cost & Usage Control (Dashboard → Расходы / Cost Control).
     if (pathname.startsWith('/api/cost/')) {
         await costApi.handle(req, res, pathname, requestUrl.searchParams);
@@ -1162,8 +1186,8 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
-    if (req.method === 'GET' && pathname === '/cost-control.js') {
-        const filePath = path.join(publicDir, 'cost-control.js');
+    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js')) {
+        const filePath = path.join(publicDir, pathname.slice(1));
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))
             .once('open', () => {
@@ -2034,6 +2058,9 @@ attachRealtimeServer(server, {
     providerFactory: defaultProvider.createSession,
     providerMetadata: defaultProvider.metadata,
     resolveProvider: (requestedProvider) => providerRegistry.resolve(requestedProvider),
+    // Participant (Wine AI Lite) sessions: one immutable snapshot of the
+    // published Test Control config per WebSocket, taken here, at creation.
+    liveTest,
     isAdultVerified: (req) => isAdultVerified(req.headers.cookie),
 });
 

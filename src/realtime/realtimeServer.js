@@ -388,6 +388,9 @@ function attachRealtimeServer(server, options = {}) {
     const providerMetadata = options.providerMetadata || { provider: 'mock', model: 'mock' };
     const resolveProvider = typeof options.resolveProvider === 'function' ? options.resolveProvider : null;
     const resolveAdultVerification = typeof options.isAdultVerified === 'function' ? options.isAdultVerified : () => false;
+    // Closed-beta Test Control (control plane). Only participant sessions
+    // (channel=lite) consult it, exactly once, right here at creation.
+    const liveTest = options.liveTest || null;
 
     server.on('upgrade', (req, socket) => {
         const url = new URL(req.url || '/', 'http://localhost');
@@ -399,9 +402,10 @@ function attachRealtimeServer(server, options = {}) {
 
         let connectionProviderFactory = providerFactory;
         let connectionProviderMetadata = providerMetadata;
+        const liveSnapshot = (liveTest && url.searchParams.get('channel') === 'lite') ? liveTest.snapshotForNewSession() : null;
         if (resolveProvider) {
             try {
-                const resolved = resolveProvider(url.searchParams.get('provider'));
+                const resolved = resolveProvider(liveSnapshot ? liveSnapshot.config.provider : url.searchParams.get('provider'));
                 connectionProviderFactory = resolved.createSession;
                 connectionProviderMetadata = resolved.metadata;
             } catch (error) {
@@ -414,6 +418,7 @@ function attachRealtimeServer(server, options = {}) {
         if (!acceptWebSocket(req, socket)) return;
         createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata, {
             isAdultVerified: resolveAdultVerification(req) === true,
+            liveTest: liveSnapshot ? { service: liveTest, snapshot: liveSnapshot } : null,
         });
     });
 }
@@ -520,6 +525,16 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // dependent follow-ups ("а какое из них легче?") that otherwise reach
     // retrieval as text naming nothing. Read-only for tools.
     const toolContext = { sessionMemory, recentTurns, isAdultVerified: sessionAccess.isAdultVerified === true, log: (stage, extra) => log(stage, extra) };
+    // Test Control snapshot (participant sessions only): fixed for the whole
+    // session; used for persona/voice at session.start and knowledge mode.
+    const liveTestSession = sessionAccess.liveTest || null;
+    const livePersonaState = liveTestSession
+        ? liveTestSession.service.personaStateFor(liveTestSession.snapshot, personaStore.getProfilesOverrides())
+        : null;
+    if (liveTestSession) {
+        const webAllowed = liveTestSession.snapshot.config.knowledgeMode !== 'database_only';
+        toolContext.isWebSearchEnabled = () => webAllowed;
+    }
     const toolHandlers = typeof providerMetadata.createToolHandlers === 'function'
         ? providerMetadata.createToolHandlers(toolContext)
         : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {});
@@ -1759,6 +1774,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             providerInstanceId: providerSession.instanceId || 'unknown',
         });
         finalizeUsage(reason);
+        if (liveTestSession && liveTestSession.recorded) liveTestSession.service.recordSessionEnd({ sessionId, language: sessionLanguage });
     }
 
     // Durable cost record for this session. The meter's finalize() is
@@ -2227,7 +2243,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                     // changes (activate, mood, save) take effect without
                     // requiring a WebSocket reconnect.
                     {
-                        const cachedPersona = personaStore.getCached();
+                        const cachedPersona = livePersonaState || personaStore.getCached();
                         const resolvedProfile = resolveProfile(cachedPersona.baseProfileId, cachedPersona.overrides, cachedPersona.mood);
                         const effectivePrompt = buildProfileRuntimePrompt({
                             corePrompt: resolvedProfile.system_prompt || CORE_PERSONA_PROMPT,
@@ -2285,6 +2301,11 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                             effectivePrompt
                         };
 
+                        if (liveTestSession && !liveTestSession.recorded) {
+                            liveTestSession.recorded = true;
+                            liveTestSession.service.recordSessionStart({ sessionId, snapshot: liveTestSession.snapshot, model: providerMetadata.model, resolvedVoice: finalVoiceId });
+                            log('live_test_snapshot', { revision: liveTestSession.snapshot.revision });
+                        }
                         console.log(`[Realtime] voice_resolved provider=${providerId} source=${finalSource} voice=${finalVoiceId} profile=${cachedPersona.baseProfileId || 'custom'}`);
                         log('voice_resolved', {
                             provider: providerId,
