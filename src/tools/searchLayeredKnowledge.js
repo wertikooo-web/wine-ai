@@ -149,7 +149,10 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         const policy = modePolicy(answerMode);
         // Dashboard switch "knowledge base only" turns the web level off for
         // every mode, force_web included.
-        const allowWeb = policy.allowWeb && isWebSearchEnabled();
+        // A participant (Test Control) session carries its own knowledge
+        // mode on toolContext; everything else uses the global switch.
+        const webSwitch = (toolContext && typeof toolContext.isWebSearchEnabled === 'function') ? toolContext.isWebSearchEnabled : isWebSearchEnabled;
+        const allowWeb = policy.allowWeb && webSwitch();
         const requestStartedAt = process.hrtime.bigint();
         // Shadow observer runs BEFORE the production call and never affects
         // it: same retrievalQuery is used below either way, unconditionally.

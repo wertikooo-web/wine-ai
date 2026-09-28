@@ -714,6 +714,41 @@
   </div>
 </div>
 
+<div id="liteFeedback" class="lite-fb" hidden role="dialog" aria-modal="true" aria-labelledby="liteFbTitle">
+  <div class="lite-fb__card">
+    <h2 id="liteFbTitle">Спасибо за разговор! · Mulțumim!</h2>
+    <div class="lite-fb__q">Как вам разговор? · Cum a fost conversația?</div>
+    <div class="lite-fb__scale" data-field="conversation_score"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+    <div class="lite-fb__q">Как вам голос? · Cum vi s-a părut vocea?</div>
+    <div class="lite-fb__scale" data-field="voice_score"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+    <textarea id="liteFbComment" maxlength="1000" rows="3" placeholder="Что было плохо? · Ce nu v-a plăcut?"></textarea>
+    <div class="lite-fb__actions">
+      <button type="button" id="liteFbSkip" class="secondary">Пропустить · Omite</button>
+      <button type="button" id="liteFbSend" disabled>Отправить · Trimite</button>
+    </div>
+    <div id="liteFbThanks" class="lite-fb__thanks" hidden>Спасибо! · Mulțumim!</div>
+  </div>
+</div>
+<style>
+  body.lite nav.tabs, body.lite #ltBanner, body.lite #uiLangSelect,
+  body.lite section.panel:not(#tab-avatar),
+  body.lite .phone-shell:not(.phone-shell--left):not(.phone-shell--right),
+  body.lite #connectBtn, body.lite .voice-mode-switcher, body.lite .app-input-row,
+  body.lite #demoWinePicker, body.lite .app-language-row, body.lite #contextChips { display: none !important; }
+  body.lite .phone-row { justify-content: center; }
+  .lite-fb { position: fixed; inset: 0; background: rgba(42,33,24,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+  .lite-fb[hidden] { display: none; }
+  .lite-fb__card { background: #fdfbf7; border-radius: 16px; padding: 20px; width: min(420px, 100%); box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+  .lite-fb__card h2 { margin: 0 0 12px; font-size: 18px; color: var(--wine); }
+  .lite-fb__q { font-size: 14px; margin: 12px 0 6px; }
+  .lite-fb__scale { display: flex; gap: 8px; }
+  .lite-fb__scale button { flex: 1; padding: 12px 0; font-size: 17px; font-weight: 700; border: 1px solid var(--border); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink, #2a2118); }
+  .lite-fb__scale button.selected { background: var(--wine); color: #fff; border-color: var(--wine); }
+  .lite-fb textarea { width: 100%; box-sizing: border-box; margin-top: 14px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; font: inherit; font-size: 14px; }
+  .lite-fb__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+  .lite-fb__thanks { margin-top: 10px; font-weight: 700; color: var(--ok, #2f6b3a); text-align: center; }
+</style>
+
 <header>
   <div>
     <h1>Wine AI</h1>
@@ -734,12 +769,19 @@
   </div>
 </header>
 
+<div id="ltBanner" class="lt-banner" hidden>
+  <span class="lt-banner__label">CURRENT LIVE CONFIG</span>
+  <span class="lt-banner__desc" id="ltBannerDesc">—</span>
+  <span class="lt-banner__meta" id="ltBannerMeta"></span>
+</div>
+
 <nav class="tabs">
   <button data-tab="avatar" class="active">Talk</button>
   <button data-tab="knowledge">Knowledge</button>
   <button data-tab="documents">Documents</button>
   <button data-tab="persona">Settings</button>
   <button data-tab="cost">Расходы / Cost Control</button>
+  <button data-tab="livetest">Live Test</button>
   <a class="avatar-lab-link" href="/avatar-lab" target="_blank" rel="noopener">Avatar Lab ↗</a>
 </nav>
 
@@ -1727,8 +1769,105 @@
     </div>
   </section>
 
+  <!-- Closed beta / Live Test Control. Logic in /live-test-control.js.
+       Control plane only: publishes a config that NEW participant sessions
+       (/lite) snapshot at creation; running sessions are never touched. -->
+  <section class="panel" id="tab-livetest">
+    <style>
+      .lt-banner { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline; padding:8px 16px; background:#2a2118; color:#f7f1e8; font-size:13px; }
+      .lt-banner__label { font-weight:800; letter-spacing:.08em; font-size:11px; color:#e8b563; }
+      .lt-banner__desc { font-weight:700; letter-spacing:.03em; overflow-wrap:anywhere; }
+      .lt-banner__meta { opacity:.75; font-size:12px; }
+      .lt-banner--none { background:#6b1e2b; }
+      .lt-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+      .lt-grid > * { min-width:0; }
+      @media (max-width: 900px) { .lt-grid { grid-template-columns:minmax(0,1fr); } }
+      .lt-form { display:grid; grid-template-columns:140px minmax(0,1fr); gap:8px 12px; align-items:center; }
+      .lt-form label { font-size:12.5px; color:var(--muted); }
+      .lt-form select { width:100%; min-width:0; }
+      .lt-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+      .lt-apply { width:100%; margin-top:16px; padding:16px; font-size:17px; font-weight:800; letter-spacing:.04em; background:var(--wine); color:#fff; border:none; border-radius:10px; cursor:pointer; }
+      .lt-apply:disabled { opacity:.45; cursor:default; }
+      .lt-baseline { background:#2a2118; color:#fff; border:none; border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer; }
+      .lt-changes { font-size:13px; margin:12px 0 0; padding:10px 12px; background:#fbf1dd; border:1px solid #efd7a6; border-radius:8px; }
+      .lt-changes--none { background:#e3f1e6; border-color:#bcdcc4; }
+      .lt-status { font-size:12.5px; color:var(--muted); margin-top:8px; min-height:1em; }
+      .lt-presets { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+      .lt-preset { border:1px solid var(--border); border-radius:8px; padding:8px 10px; background:#fff; font-size:12.5px; }
+      .lt-preset b { color:var(--wine); }
+      .lt-preset__desc { color:var(--muted); font-size:11.5px; margin:3px 0 6px; overflow-wrap:anywhere; }
+      .lt-link { font-size:15px; font-weight:700; overflow-wrap:anywhere; }
+      .lt-qr { margin-top:10px; width:180px; height:180px; background:#fff; }
+      .lt-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+      .lt-table { width:100%; border-collapse:collapse; background:#fff; font-size:12.5px; }
+      .lt-table th { padding:8px; background:#f8f3ec; color:var(--muted); font-size:11px; text-align:left; text-transform:uppercase; white-space:nowrap; }
+      .lt-table td { padding:8px; border-top:1px solid var(--border); vertical-align:top; }
+    </style>
+
+    <div class="lt-grid">
+      <div class="card">
+        <h2>Черновик конфигурации / Draft</h2>
+        <p style="font-size:12.5px; color:var(--muted); margin-top:0;">Изменения здесь ни на что не влияют, пока вы не нажмёте «APPLY TO NEW SESSIONS». Уже идущие разговоры не меняются никогда.</p>
+        <div class="lt-form">
+          <label for="ltProvider">Provider</label><select id="ltProvider"></select>
+          <label for="ltVoice">Voice</label><select id="ltVoice"></select>
+          <label for="ltPersona">Persona</label><select id="ltPersona"></select>
+          <label for="ltMood">Mood</label><select id="ltMood"></select>
+          <label for="ltResponseLength">Response length</label><select id="ltResponseLength"></select>
+          <label for="ltTone">Tone</label><select id="ltTone"></select>
+          <label for="ltExpertiseLevel">Expertise</label><select id="ltExpertiseLevel"></select>
+          <label for="ltConversationMode">Conversation mode</label><select id="ltConversationMode"></select>
+          <label for="ltKnowledgeMode">Knowledge</label><select id="ltKnowledgeMode"></select>
+          <label>Language</label><span style="font-size:13px;">AUTO — определяется по речи</span>
+        </div>
+        <div id="ltChanges" class="lt-changes lt-changes--none">Черновик совпадает с опубликованной конфигурацией.</div>
+        <button type="button" class="lt-apply" id="ltApply">APPLY TO NEW SESSIONS</button>
+        <div class="lt-row">
+          <button type="button" class="lt-baseline" id="ltResetBaseline">RESET TO BASELINE</button>
+          <button type="button" class="secondary" id="ltSaveBaseline">Сохранить черновик как baseline</button>
+        </div>
+        <div class="lt-status" id="ltStatus"></div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Пресеты</h2>
+          <p style="font-size:12.5px; color:var(--muted); margin-top:0;">«Загрузить» кладёт пресет в черновик (не публикует). «Сохранить» записывает текущий черновик в слот.</p>
+          <div class="lt-presets" id="ltPresets"></div>
+        </div>
+        <div class="card">
+          <h2>Ссылка для участников (одна на весь тест)</h2>
+          <div class="lt-link"><a id="ltLiteLink" href="/lite" target="_blank" rel="noopener">/lite</a></div>
+          <p style="font-size:12px; color:var(--muted);">Участники не видят провайдера, модель и настройки. Каждое нажатие «Поговорить» — новая сессия с текущей опубликованной конфигурацией.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Результаты по конфигурациям <button type="button" class="secondary" id="ltRefresh" style="float:right;">Обновить</button></h2>
+      <div class="lt-table-wrap"><table class="lt-table">
+        <thead><tr><th>Rev</th><th>Конфигурация</th><th>Сессий</th><th>Оценок</th><th>Разговор</th><th>Голос</th><th>Медиана, с</th><th>Ходов</th><th>Языки</th></tr></thead>
+        <tbody id="ltResultsByRev"><tr><td colspan="9">—</td></tr></tbody>
+      </table></div>
+      <h3 style="margin-top:18px;">Последние сессии</h3>
+      <div class="lt-table-wrap"><table class="lt-table">
+        <thead><tr><th>Время</th><th>Rev</th><th>Provider · voice</th><th>Длит., с</th><th>Ходов</th><th>Язык</th><th>Завершение</th><th>Оценки</th><th>Комментарий</th></tr></thead>
+        <tbody id="ltSessions"><tr><td colspan="9">—</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>История публикаций</h2>
+      <div class="lt-table-wrap"><table class="lt-table">
+        <thead><tr><th>Rev</th><th>Время</th><th>Метка</th><th>Изменения</th></tr></thead>
+        <tbody id="ltHistory"><tr><td colspan="4">—</td></tr></tbody>
+      </table></div>
+    </div>
+  </section>
+
 </main>
 <script src="/cost-control.js" defer></script>
+<script src="/live-test-control.js" defer></script>
 
 <script>
 (function () {
@@ -1768,7 +1907,17 @@
   // If a future provider is added without a working native-VAD path,
   // simply leave it out of this set rather than reintroducing a global
   // disable flag.
+  // Wine AI Lite (/lite, closed beta): participant view of this same page.
+  // The server picks provider/voice/persona from the published Test Control
+  // config (channel=lite); this page only hides operator UI, connects with
+  // channel=lite, and asks for a rating after each conversation.
+  const LITE_MODE = /^\/lite\/?$/.test(location.pathname) || new URLSearchParams(location.search).get('lite') === '1';
+  if (LITE_MODE) document.body.classList.add('lite');
+  let liteSessionId = null;
+  let liteConversationStarted = false;
+
   function isTapToStartSupportedForCurrentProvider() {
+    if (LITE_MODE) return true; // both beta providers support Free Conversation
     const provider = realtimeProviderConfigs.find((item) => item.id === selectedRealtimeProvider);
     return provider
       ? Array.isArray(provider.supported_voice_modes) && provider.supported_voice_modes.includes('tap_to_start')
@@ -2264,7 +2413,8 @@
       whereToBuyLabel: '購入先', whereToBuyGo: 'ストアへ',
     },
   };
-  let uiLang = localStorage.getItem('wineAiUiLang') || 'en';
+  let uiLang = localStorage.getItem('wineAiUiLang')
+    || (LITE_MODE ? (['ru', 'ro', 'en'].find((l) => String(navigator.language || '').toLowerCase().startsWith(l)) || 'ru') : 'en');
   function getUiString(key) {
     return (UI_STRINGS[uiLang] && UI_STRINGS[uiLang][key]) || UI_STRINGS.en[key] || '';
   }
@@ -2623,6 +2773,7 @@
   // ---- WebSocket / protocol ----
   function socketUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite`;
     const providerParam = selectedRealtimeProvider ? `?provider=${encodeURIComponent(selectedRealtimeProvider)}` : '';
     return `${proto}//${location.host}/realtime${providerParam}`;
   }
@@ -3077,6 +3228,7 @@
         // processing of this event. Nothing further to do here.
         break;
       case 'session.ready':
+        if (LITE_MODE) liteSessionId = payload.session_id || null;
         setDot('providerDot', 'ok');
         setText('providerLabel', 'provider: ' + (payload.provider || '—'));
         setText('dProvider', payload.provider || '—');
@@ -3799,6 +3951,7 @@
   async function startConversationOnTap() {
     if (tapToStartActive) return;
     tapToStartActive = true;
+    if (LITE_MODE) { liteConversationStarted = true; hideLiteFeedback(); }
     setPttCaption();
     if (ws && ws.readyState === WebSocket.OPEN) {
       // Starting a new Free Conversation over an already-open socket
@@ -3869,6 +4022,54 @@
     // "Disconnect" (still CONNECTED). Only disconnect() closes the channel.
     DeviceVisual.setState('ready');
     setPttCaption();
+    if (LITE_MODE) finishLiteConversation();
+  }
+
+  // Wine AI Lite: every conversation is its own session (so the next one
+  // picks up the currently published Test Control config), followed by a
+  // short optional rating tied to that session id.
+  function finishLiteConversation() {
+    if (!liteConversationStarted) return;
+    liteConversationStarted = false;
+    const sessionId = liteSessionId;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) disconnect();
+    if (sessionId) showLiteFeedback(sessionId);
+  }
+  function hideLiteFeedback() {
+    const box = document.getElementById('liteFeedback');
+    if (box) box.hidden = true;
+  }
+  function showLiteFeedback(sessionId) {
+    const box = document.getElementById('liteFeedback');
+    if (!box) return;
+    const scores = { conversation_score: null, voice_score: null };
+    box.querySelectorAll('.lite-fb__scale').forEach((scale) => {
+      scale.querySelectorAll('button').forEach((btn) => {
+        btn.classList.remove('selected');
+        btn.onclick = () => {
+          scores[scale.dataset.field] = Number(btn.dataset.v);
+          scale.querySelectorAll('button').forEach((b) => b.classList.toggle('selected', b === btn));
+          box.querySelector('#liteFbSend').disabled = !(scores.conversation_score || scores.voice_score);
+        };
+      });
+    });
+    box.querySelector('#liteFbComment').value = '';
+    box.querySelector('#liteFbSend').disabled = true;
+    box.querySelector('#liteFbThanks').hidden = true;
+    box.querySelector('#liteFbSend').onclick = async () => {
+      box.querySelector('#liteFbSend').disabled = true;
+      try {
+        await fetch('/api/live-test/feedback', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, ...scores, comment: box.querySelector('#liteFbComment').value }),
+        });
+      } catch { /* best-effort */ }
+      box.querySelector('#liteFbThanks').hidden = false;
+      setTimeout(hideLiteFeedback, 1500);
+    };
+    box.querySelector('#liteFbSkip').onclick = hideLiteFeedback;
+    box.hidden = false;
   }
 
   // Re-arms listening for the NEXT utterance without requiring another tap —
@@ -4569,6 +4770,7 @@
     clearSessionLimitTimers();
     disconnect();
     setPttCaption();
+    if (LITE_MODE) finishLiteConversation();
   }
   function triggerLocalBargeIn(peak, features) {
     localBargeInEpisodeId += 1;
@@ -7118,6 +7320,7 @@
         ? 'hold_to_talk'
         : data.voiceMode;
     }
+    if (LITE_MODE) voiceMode = 'tap_to_start';
     if (data && typeof data.tapToStartIdleTimeoutMs === 'number' && data.tapToStartIdleTimeoutMs > 0) {
       tapToStartIdleTimeoutMs = data.tapToStartIdleTimeoutMs;
     }
