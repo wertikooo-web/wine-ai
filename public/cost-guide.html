@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Расходы WINE AI</title>
+<style>
+  :root {
+    --wine: #6b1e2b;
+    --wine-deep: #4a1420;
+    --paper: #faf6f0;
+    --surface: #ffffff;
+    --ink: #2a2118;
+    --muted: #76675a;
+    --line: #e6dccd;
+    --tint: #f6ece8;
+    --ok: #3f7d4f;       --ok-bg: #e5f1e7;
+    --warn: #9a6512;     --warn-bg: #fbf0da;
+    --manual: #5b4a8b;   --manual-bg: #ece8f6;
+    --err: #a3352a;      --err-bg: #f7e2df;
+    --on-wine: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --wine: #d98a97; --wine-deep: #5c1a27; --paper: #17120f; --surface: #211a16;
+      --ink: #efe6dc; --muted: #b3a494; --line: #3a2f28; --tint: #2b1f1d;
+      --ok: #8fd19d; --ok-bg: #1d3323; --warn: #f0c170; --warn-bg: #3a2c12;
+      --manual: #bcb0e6; --manual-bg: #2a2440; --err: #f0a39a; --err-bg: #3b1d1a; --on-wine: #fff;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --wine: #d98a97; --wine-deep: #5c1a27; --paper: #17120f; --surface: #211a16;
+    --ink: #efe6dc; --muted: #b3a494; --line: #3a2f28; --tint: #2b1f1d;
+    --ok: #8fd19d; --ok-bg: #1d3323; --warn: #f0c170; --warn-bg: #3a2c12;
+    --manual: #bcb0e6; --manual-bg: #2a2440; --err: #f0a39a; --err-bg: #3b1d1a; --on-wine: #fff;
+  }
+  body {
+    background: var(--paper); color: var(--ink);
+    font: 16px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding-inline: 20px; padding-block: 0 56px;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  .num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+  header.top { padding-block: 40px 28px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--wine); }
+  h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.1; margin: 10px 0 12px; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { font-size: 18px; color: var(--muted); margin: 0; max-width: 62ch; }
+  h2 { font-size: 23px; line-height: 1.25; margin: 44px 0 12px; font-weight: 700; text-wrap: balance; }
+  h3 { font-size: 17px; margin: 22px 0 6px; font-weight: 700; }
+  p, li { max-width: 66ch; }
+  ul, ol { padding-left: 22px; }
+  li + li { margin-top: 6px; }
+  a { color: var(--wine); font-weight: 600; }
+  code, .path { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; background: var(--tint); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+
+  .badge { display: inline-block; font: 700 11px/1 -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .07em; padding: 4px 8px; border-radius: 999px; vertical-align: 2px; white-space: nowrap; }
+  .b-actual { color: var(--ok); background: var(--ok-bg); }
+  .b-est { color: var(--warn); background: var(--warn-bg); }
+  .b-manual { color: var(--manual); background: var(--manual-bg); }
+  .b-unpriced { color: var(--err); background: var(--err-bg); }
+
+  /* Mock of the dashboard's top cards, with example numbers */
+  .mock { margin: 18px 0 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 16px; }
+  .mock-note { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+  .tile.main { background: var(--wine-deep); border-color: var(--wine-deep); color: var(--on-wine); }
+  .tile .lbl { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .tile.main .lbl, .tile.main .sub { color: rgba(255,255,255,.8); }
+  .tile .val { font: 700 20px/1.2 ui-monospace, "SF Mono", Menlo, Consolas, monospace; margin-top: 6px; overflow-wrap: anywhere; }
+  .tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .defs { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); margin: 14px 0; }
+  .def { display: grid; grid-template-columns: 170px 1fr; gap: 16px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .def:first-child { border-top: 0; }
+  .def dt { font-weight: 700; }
+  .def dd { margin: 0; color: var(--ink); }
+  @media (max-width: 560px) { .def { grid-template-columns: 1fr; gap: 2px; } }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 12px; }
+  .steps li { counter-increment: s; position: relative; padding: 14px 16px 14px 56px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; max-width: none; margin: 0; }
+  .steps li::before { content: counter(s); position: absolute; left: 16px; top: 13px; width: 26px; height: 26px; border-radius: 50%; background: var(--wine); color: var(--paper); font: 700 14px/26px ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-align: center; }
+  .steps b { display: block; }
+
+  .levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+  .lvl { border-radius: 10px; padding: 12px 14px; }
+  .lvl strong { display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 18px; }
+  .lvl span { font-size: 14px; }
+  .l1 { background: var(--ok-bg); color: var(--ok); }
+  .l2 { background: var(--warn-bg); color: var(--warn); }
+  .l3 { background: var(--err-bg); color: var(--err); }
+
+  .callout { border-left: 4px solid var(--wine); background: var(--tint); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 18px 0; }
+  .callout p { margin: 0; }
+  .faq dt { font-weight: 700; margin-top: 18px; }
+  .faq dd { margin: 4px 0 0; color: var(--ink); max-width: 66ch; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+
+  .langbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 20px; }
+  .back { font-size: 14px; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: 700 13px/1 -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .06em; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--wine); color: var(--paper); }
+  .langbar + section header.top { padding-top: 16px; }
+  .gloss { color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="langbar" aria-label="Язык / Limba">
+    <a class="back" href="/dashboard" id="backLink">← К панели WINE AI</a>
+    <div class="seg" role="group">
+      <button type="button" id="btn-ru" data-set-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" id="btn-ro" data-set-lang="ro" aria-pressed="false">RO</button>
+    </div>
+  </nav>
+
+  <section data-lang="ru" lang="ru">
+  <header class="top">
+    <div class="eyebrow">WINE AI · Инструкция для WineMD</div>
+    <h1>Расходы WINE AI: что показывает вкладка и как ей пользоваться</h1>
+    <p class="lede">Вкладка «Расходы / Cost Control» в панели WINE AI показывает, сколько разговоров провёл цифровой сомелье, сколько времени они заняли и во что обходится работа системы. Суммы — в леях (MDL), под ними эквивалент в евро (EUR).</p>
+  </header>
+
+  <h2>Где найти</h2>
+  <p>В панели WINE AI, в верхнем меню вкладок, нажмите <strong>«Расходы / Cost Control»</strong>. Эта инструкция открывается там же, кнопкой <strong>«Инструкция / Instrucțiuni»</strong>. Данные обновляются сами раз в минуту, пока вкладка открыта. Кнопка <strong>«Обновить»</strong> обновляет их сразу.</p>
+
+  <h2>Что на экране</h2>
+  <p>Вверху — сводка месяца для клиента и пять крупных карточек.</p>
+
+  <div class="mock" aria-label="Пример верхних карточек">
+    <p class="mock-note">Пример: цифры условные, только чтобы показать расположение.</p>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Сегодня</div><div class="val">2,59 MDL</div><div class="sub">0,13 EUR · 3 разговора</div></div>
+      <div class="tile"><div class="lbl">7 дней</div><div class="val">5,27 MDL</div><div class="sub">0,27 EUR · 4 разговора</div></div>
+      <div class="tile main"><div class="lbl">Этот месяц</div><div class="val">89,12 MDL</div><div class="sub">4,57 EUR · AI + инфраструктура</div></div>
+      <div class="tile"><div class="lbl">Средний разговор</div><div class="val">1,32 MDL</div><div class="sub">0,07 EUR</div></div>
+      <div class="tile"><div class="lbl">Бюджет месяца</div><div class="val">29,7%</div><div class="sub">из 300 MDL</div></div>
+    </div>
+  </div>
+
+  <dl class="defs">
+    <div class="def"><dt>Сегодня, 7 дней</dt><dd>Стоимость работы искусственного интеллекта (голос, поиск, обработка знаний) за сегодня и за последние 7 дней, плюс число разговоров и их общая длительность.</dd></div>
+    <div class="def"><dt>Этот месяц</dt><dd>Главная цифра: всё за текущий календарный месяц. Складывается из стоимости AI и постоянных расходов на инфраструктуру. Ниже в карточке — прогноз на конец месяца.</dd></div>
+    <div class="def"><dt>Средний разговор</dt><dd>Стоимость AI за месяц, делённая на число разговоров.</dd></div>
+    <div class="def"><dt>Бюджет месяца</dt><dd>Какая доля месячного бюджета уже израсходована, и прогноз к концу месяца.</dd></div>
+    <div class="def"><dt>Сводка месяца</dt><dd>Блок «WINE AI usage this month»: разговоры, общее время разговоров, стоимость AI, инфраструктура, итог и средняя стоимость разговора (здесь уже вместе с инфраструктурой). Его удобно показывать на встрече.</dd></div>
+    <div class="def"><dt>Таблицы</dt><dd>Расходы по провайдерам и моделям, по категориям (голос, поиск, обработка знаний) и список последних разговоров: время, длительность, объём, стоимость, статус.</dd></div>
+  </dl>
+
+  <h3>Разговор — это что?</h3>
+  <p>Один разговор — это одно подключение посетителя к сомелье, в котором прозвучала хотя бы одна реплика. Если человек открыл страницу и ничего не сказал, это не считается разговором. Запись о разговоре появляется, когда он завершён: посетитель закрыл страницу или отключился.</p>
+
+  <h2>Метки ACTUAL, ESTIMATED, MANUAL</h2>
+  <p>Рядом с суммами стоят цветные метки. Они показывают, насколько точна цифра.</p>
+  <dl class="defs">
+    <div class="def"><dt><span class="badge b-actual">ACTUAL</span></dt><dd>Объём использования сообщил сам провайдер AI (например, Google Gemini). Стоимость посчитана по его официальному прайсу.</dd></div>
+    <div class="def"><dt><span class="badge b-est">ESTIMATED</span></dt><dd>Объём посчитан нашей системой: по длительности разговора, по секундам звука или по объёму текста. Это оценка, обычно близкая к реальной.</dd></div>
+    <div class="def"><dt><span class="badge b-manual">MANUAL</span></dt><dd>Постоянные расходы, введённые вручную: хостинг, база данных и т. п.</dd></div>
+    <div class="def"><dt><span class="badge b-unpriced">UNPRICED</span></dt><dd>Для этой модели в прайс-листе нет цены. Объём учтён, но в сумму не вошёл. Система не придумывает цены.</dd></div>
+  </dl>
+  <div class="callout"><p>Все суммы — расчёт по публичным ценам провайдеров. Итоговые счета провайдеров могут немного отличаться: например, из-за бесплатных лимитов или скидок.</p></div>
+
+  <h2>Первая настройка</h2>
+  <p>Делается один раз, в нижней части вкладки.</p>
+  <ol class="steps">
+    <li><b>Добавьте постоянные расходы</b>Блок «Постоянные расходы». Укажите название (например, «Хостинг», «База данных»), сумму в месяц и валюту, затем нажмите «Добавить». Суммы берите из ежемесячных счетов.</li>
+    <li><b>Проверьте курсы валют</b>Блок «Настройки»: «1 EUR = … MDL» и «1 USD = … EUR». Цены провайдеров указаны в долларах, поэтому нужны оба курса. Поставьте актуальные значения и отметьте «курсы подтверждены».</li>
+    <li><b>Задайте месячный бюджет</b>Там же, «Бюджет, MDL / мес». Пороги предупреждений по умолчанию — 70, 90 и 100%, их можно изменить.</li>
+    <li><b>Нажмите «Сохранить»</b>Если система попросит код доступа, введите код администратора WINE AI.</li>
+  </ol>
+
+  <h2>Бюджет и предупреждения</h2>
+  <p>Полоса бюджета показывает израсходованную долю. Отметки на ней — пороги предупреждений.</p>
+  <div class="levels">
+    <div class="lvl l1"><strong>до 70%</strong><span>всё в порядке</span></div>
+    <div class="lvl l2"><strong>70–90%</strong><span>предупреждение</span></div>
+    <div class="lvl l3"><strong>90% и выше</strong><span>критично / превышен</span></div>
+  </div>
+  <p>Также появляется предупреждение, если прогноз на конец месяца больше бюджета. Прогноз считается так: расход AI за прошедшие дни продлевается на весь месяц, к нему прибавляются постоянные расходы.</p>
+  <div class="callout"><p><strong>Бюджет только информирует.</strong> Даже при превышении бюджета разговоры не прерываются, посетителям не отказывают, модель не меняется. Сомелье продолжает работать как обычно.</p></div>
+
+  <h2>Выбор периода</h2>
+  <p>В правом верхнем углу вкладки есть поля «С / From» и «По / To». Выберите даты и нажмите «Применить»: таблицы по провайдерам, категориям и разговорам покажут выбранный период. Чтобы вернуться к текущему месяцу, очистите даты и нажмите «Обновить». Дни и месяцы считаются по времени Кишинёва.</p>
+
+  <h2>Для администратора: прайс-лист</h2>
+  <p>В самом низу вкладки — прайс-лист провайдеров: цена, дата начала действия и источник. Если провайдер изменил цены, добавьте новую строку с датой, с которой действует новая цена. Разговоры до этой даты останутся по старой цене, после неё — по новой. Старые строки удалять не нужно.</p>
+
+  <h2>Частые вопросы</h2>
+  <dl class="faq">
+    <dt>Почему сумма за разговор такая маленькая?</dt>
+    <dd>Один разговор с сомелье обычно стоит доли лея. Поэтому маленькие суммы показаны с большим числом знаков после запятой.</dd>
+    <dt>Сегодня 0 разговоров, а расход не нулевой. Почему?</dt>
+    <dd>Кроме разговоров, система пользуется AI для поиска по базе знаний и обработки документов. Эти расходы видны в таблице «По категории».</dd>
+    <dt>Разговор закончился, а в таблице его нет.</dt>
+    <dd>Запись появляется, когда посетитель закрыл страницу или отключился. Нажмите «Обновить» через минуту.</dd>
+    <dt>Видны ли здесь тексты разговоров?</dt>
+    <dd>Нет. Вкладка показывает только время, длительность, объём и стоимость. Содержание разговоров, настройки персонажа и ключи доступа здесь не отображаются.</dd>
+  </dl>
+
+  <footer>WINE AI · Цифровой сомелье молдавского вина · Инструкция к вкладке «Расходы / Cost Control», сентябрь 2026</footer>
+  </section>
+
+  <section data-lang="ro" lang="ro" hidden>
+  <header class="top">
+    <div class="eyebrow">WINE AI · Instrucțiuni pentru WineMD</div>
+    <h1>Cheltuielile WINE AI: ce arată fila și cum se folosește</h1>
+    <p class="lede">Fila «Расходы / Cost Control» <span class="gloss">(Cheltuieli)</span> din panoul WINE AI arată câte conversații a purtat somelierul digital, cât au durat și cât costă funcționarea sistemului. Sumele sunt în lei (MDL), iar sub ele este echivalentul în euro (EUR).</p>
+  </header>
+
+  <div class="callout"><p>Panoul WINE AI este în limba rusă. În aceste instrucțiuni, numele butoanelor și ale filelor sunt scrise exact cum apar pe ecran, cu traducerea în paranteze.</p></div>
+
+  <h2>Unde o găsiți</h2>
+  <p>În panoul WINE AI, în meniul de sus, apăsați fila <strong>«Расходы / Cost Control»</strong>. Aceste instrucțiuni se deschid tot de acolo, cu butonul <strong>«Инструкция / Instrucțiuni»</strong>. Cât timp fila este deschisă, datele se actualizează singure o dată pe minut. Butonul <strong>«Обновить»</strong> <span class="gloss">(Actualizează)</span> le actualizează imediat.</p>
+
+  <h2>Ce vedeți pe ecran</h2>
+  <p>Sus se află rezumatul lunii pentru client și cinci carduri mari.</p>
+
+  <div class="mock" aria-label="Exemplu de carduri">
+    <p class="mock-note">Exemplu: cifrele sunt convenționale, doar pentru a arăta așezarea. Titlurile cardurilor sunt ca pe ecran.</p>
+    <div class="tiles">
+      <div class="tile"><div class="lbl">Сегодня</div><div class="val">2,59 MDL</div><div class="sub">0,13 EUR · 3 conversații</div></div>
+      <div class="tile"><div class="lbl">7 дней</div><div class="val">5,27 MDL</div><div class="sub">0,27 EUR · 4 conversații</div></div>
+      <div class="tile main"><div class="lbl">Этот месяц</div><div class="val">89,12 MDL</div><div class="sub">4,57 EUR · AI + infrastructură</div></div>
+      <div class="tile"><div class="lbl">Средний разговор</div><div class="val">1,32 MDL</div><div class="sub">0,07 EUR</div></div>
+      <div class="tile"><div class="lbl">Бюджет месяца</div><div class="val">29,7%</div><div class="sub">din 300 MDL</div></div>
+    </div>
+  </div>
+
+  <dl class="defs">
+    <div class="def"><dt>«Сегодня», «7 дней» <span class="gloss">(Azi, 7 zile)</span></dt><dd>Costul inteligenței artificiale (voce, căutare, procesarea bazei de cunoștințe) pentru ziua de azi și pentru ultimele 7 zile, plus numărul de conversații și durata lor totală.</dd></div>
+    <div class="def"><dt>«Этот месяц» <span class="gloss">(Luna aceasta)</span></dt><dd>Cifra principală: tot ce s-a cheltuit în luna calendaristică curentă. Include costul AI și cheltuielile fixe pentru infrastructură. Mai jos, în card, este prognoza pentru sfârșitul lunii.</dd></div>
+    <div class="def"><dt>«Средний разговор» <span class="gloss">(Conversația medie)</span></dt><dd>Costul AI pe lună împărțit la numărul de conversații.</dd></div>
+    <div class="def"><dt>«Бюджет месяца» <span class="gloss">(Bugetul lunii)</span></dt><dd>Ce parte din bugetul lunar a fost deja cheltuită și prognoza până la sfârșitul lunii.</dd></div>
+    <div class="def"><dt>Rezumatul lunii</dt><dd>Blocul «WINE AI usage this month»: conversații, timpul total al conversațiilor, costul AI, infrastructura, totalul și costul mediu al unei conversații (aici deja împreună cu infrastructura). Este comod de arătat la o întâlnire.</dd></div>
+    <div class="def"><dt>Tabelele</dt><dd>Cheltuielile pe furnizori și modele, pe categorii (voce, căutare, procesarea cunoștințelor) și lista ultimelor conversații: ora, durata, volumul, costul și starea.</dd></div>
+  </dl>
+
+  <h3>Ce înseamnă o conversație?</h3>
+  <p>O conversație este o conectare a unui vizitator la somelier, în care s-a rostit cel puțin o replică. Dacă cineva a deschis pagina și nu a spus nimic, nu se socotește conversație. Înregistrarea apare după ce conversația s-a încheiat: vizitatorul a închis pagina sau s-a deconectat.</p>
+
+  <h2>Etichetele ACTUAL, ESTIMATED, MANUAL</h2>
+  <p>Lângă sume stau etichete colorate. Ele arată cât de precisă este cifra.</p>
+  <dl class="defs">
+    <div class="def"><dt><span class="badge b-actual">ACTUAL</span></dt><dd>Volumul de utilizare a fost raportat chiar de furnizorul AI (de exemplu, Google Gemini). Costul este calculat după lista lui oficială de prețuri.</dd></div>
+    <div class="def"><dt><span class="badge b-est">ESTIMATED</span></dt><dd>Volumul a fost calculat de sistemul nostru: după durata conversației, după secundele de sunet sau după volumul de text. Este o estimare, de obicei apropiată de realitate.</dd></div>
+    <div class="def"><dt><span class="badge b-manual">MANUAL</span></dt><dd>Cheltuieli fixe introduse manual: găzduire, bază de date etc.</dd></div>
+    <div class="def"><dt><span class="badge b-unpriced">UNPRICED</span></dt><dd>Pentru acest model nu există preț în lista de prețuri. Volumul este înregistrat, dar nu intră în sumă. Sistemul nu inventează prețuri.</dd></div>
+  </dl>
+  <div class="callout"><p>Toate sumele sunt calculate după prețurile publice ale furnizorilor. Facturile finale ale furnizorilor pot diferi puțin, de exemplu din cauza limitelor gratuite sau a reducerilor.</p></div>
+
+  <h2>Prima configurare</h2>
+  <p>Se face o singură dată, în partea de jos a filei.</p>
+  <ol class="steps">
+    <li><b>Adăugați cheltuielile fixe</b>Blocul «Постоянные расходы» <span class="gloss">(Cheltuieli fixe)</span>. Indicați denumirea (de exemplu, «Găzduire», «Bază de date»), suma pe lună și valuta, apoi apăsați «Добавить» <span class="gloss">(Adaugă)</span>. Luați sumele din facturile lunare.</li>
+    <li><b>Verificați cursurile valutare</b>Blocul «Настройки» <span class="gloss">(Setări)</span>: «1 EUR = … MDL» și «1 USD = … EUR». Prețurile furnizorilor sunt în dolari, de aceea sunt necesare ambele cursuri. Introduceți valorile actuale și bifați «курсы подтверждены» <span class="gloss">(cursuri confirmate)</span>.</li>
+    <li><b>Stabiliți bugetul lunar</b>Tot acolo, «Бюджет, MDL / мес» <span class="gloss">(Buget, MDL / lună)</span>. Pragurile de avertizare sunt implicit 70, 90 și 100%. Ele pot fi schimbate.</li>
+    <li><b>Apăsați «Сохранить»</b><span class="gloss">(Salvează)</span>. Dacă sistemul cere un cod de acces, introduceți codul administratorului WINE AI.</li>
+  </ol>
+
+  <h2>Bugetul și avertizările</h2>
+  <p>Bara bugetului arată partea deja cheltuită. Marcajele de pe ea sunt pragurile de avertizare.</p>
+  <div class="levels">
+    <div class="lvl l1"><strong>până la 70%</strong><span>totul este în regulă</span></div>
+    <div class="lvl l2"><strong>70–90%</strong><span>avertizare</span></div>
+    <div class="lvl l3"><strong>90% și peste</strong><span>critic / depășit</span></div>
+  </div>
+  <p>Apare o avertizare și atunci când prognoza pentru sfârșitul lunii depășește bugetul. Prognoza se calculează astfel: costul AI din zilele trecute se extinde pe toată luna, iar la el se adaugă cheltuielile fixe.</p>
+  <div class="callout"><p><strong>Bugetul doar informează.</strong> Chiar dacă bugetul este depășit, conversațiile nu se întrerup, vizitatorii nu sunt refuzați și modelul nu se schimbă. Somelierul continuă să lucreze ca de obicei.</p></div>
+
+  <h2>Alegerea perioadei</h2>
+  <p>În colțul din dreapta sus al filei sunt câmpurile «С / From» <span class="gloss">(De la)</span> și «По / To» <span class="gloss">(Până la)</span>. Alegeți datele și apăsați «Применить» <span class="gloss">(Aplică)</span>: tabelele pe furnizori, categorii și conversații vor arăta perioada aleasă. Pentru a reveni la luna curentă, ștergeți datele și apăsați «Обновить» <span class="gloss">(Actualizează)</span>. Zilele și lunile se socotesc după ora Chișinăului.</p>
+
+  <h2>Pentru administrator: lista de prețuri</h2>
+  <p>În partea de jos a filei se află lista de prețuri a furnizorilor: prețul, data de la care se aplică și sursa. Dacă un furnizor și-a schimbat prețurile, adăugați un rând nou cu data de la care se aplică noul preț. Conversațiile de dinainte de această dată rămân la prețul vechi, iar cele de după ea se calculează la prețul nou. Rândurile vechi nu trebuie șterse.</p>
+
+  <h2>Întrebări frecvente</h2>
+  <dl class="faq">
+    <dt>De ce suma pentru o conversație este atât de mică?</dt>
+    <dd>O conversație cu somelierul costă de obicei o fracțiune de leu. De aceea sumele mici sunt afișate cu mai multe zecimale.</dd>
+    <dt>Azi sunt 0 conversații, dar cheltuiala nu este zero. De ce?</dt>
+    <dd>Pe lângă conversații, sistemul folosește AI pentru căutarea în baza de cunoștințe și pentru procesarea documentelor. Aceste cheltuieli se văd în tabelul «По категории» <span class="gloss">(Pe categorii)</span>.</dd>
+    <dt>Conversația s-a terminat, dar nu apare în tabel.</dt>
+    <dd>Înregistrarea apare după ce vizitatorul a închis pagina sau s-a deconectat. Apăsați «Обновить» <span class="gloss">(Actualizează)</span> peste un minut.</dd>
+    <dt>Se văd aici textele conversațiilor?</dt>
+    <dd>Nu. Fila arată doar ora, durata, volumul și costul. Conținutul conversațiilor, setările personajului și cheile de acces nu sunt afișate aici.</dd>
+  </dl>
+
+  <footer>WINE AI · Somelierul digital al vinului moldovenesc · Instrucțiuni pentru fila «Расходы / Cost Control», septembrie 2026</footer>
+  </section>
+</div>
+
+<script>
+(function () {
+  var TITLES = { ru: 'Расходы WINE AI', ro: 'Cheltuieli WINE AI' };
+  function apply(lang) {
+    if (lang !== 'ro') lang = 'ru';
+    document.querySelectorAll('section[data-lang]').forEach(function (s) { s.hidden = s.getAttribute('data-lang') !== lang; });
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang)); });
+    document.documentElement.lang = lang;
+    document.title = TITLES[lang];
+    var back = document.getElementById('backLink');
+    if (back) back.textContent = lang === 'ro' ? '← Înapoi la panoul WINE AI' : '← К панели WINE AI';
+    try { localStorage.setItem('wineAiGuideLang', lang); } catch (e) { /* storage unavailable */ }
+  }
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-set-lang')); });
+  });
+  var fromHash = (location.hash || '').replace('#', '').toLowerCase();
+  var saved = null;
+  try { saved = localStorage.getItem('wineAiGuideLang'); } catch (e) { saved = null; }
+  apply(fromHash === 'ro' || fromHash === 'ru' ? fromHash : (saved || 'ru'));
+})();
+</script>
+</body>
+</html>
