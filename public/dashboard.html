@@ -1262,6 +1262,20 @@
   </section>
 
   <section class="panel" id="tab-persona">
+    <div class="card" id="knowledgeSourceCard">
+      <h2>Источник знаний / Sursa cunoștințelor</h2>
+      <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer;">
+        <input type="checkbox" id="webSearchEnabledToggle" style="margin-top:3px;">
+        <span>
+          <b>Искать также в интернете</b> / Caută și pe internet<br>
+          <span style="font-size:12px; color:var(--muted);">
+            Включено: сначала наша база знаний, интернет только если в базе нет ответа (медленнее, 4–8 с, платно).<br>
+            Выключено: отвечаем только по базе знаний; если ответа нет, ассистент честно скажет, что не знает.
+          </span>
+        </span>
+      </label>
+      <p id="webSearchToggleStatus" style="font-size:12px; color:var(--muted); margin:8px 0 0;">Загрузка…</p>
+    </div>
     <div class="card">
       <h2>Voice</h2>
       <div id="realtimeProviderOptions" class="provider-options" aria-label="Realtime provider"></div>
@@ -2958,8 +2972,9 @@
     // this a local barge-in that armed/disarmed the VAD mid-conversation
     // would leave stale consecutiveLoud/armed state carried into whatever
     // conversation opens next, in either voice mode.
-    localVadState.consecutiveLoud = 0;
+    localVadState.consecutiveLoudMs = 0;
     localVadState.armed = true;
+    Object.assign(bargeInState, createBargeInState());
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       try { socket.send(JSON.stringify({ type: 'session.interrupt', reason: 'user_disconnect' })); } catch { /* closing anyway */ }
@@ -3473,14 +3488,37 @@
         // some browsers/devices silently keep the hardware's native rate,
         // e.g. 48000, regardless of the requested value).
         const frameDurationMs = (input.length / audioContext.sampleRate) * 1000;
-        const confirmed = evaluateLocalVadFrame(localVadState, peak, frameDurationMs, {
-          highThreshold: LOCAL_VAD_HIGH_PEAK,
-          lowThreshold: LOCAL_VAD_LOW_PEAK,
-          confirmMs: LOCAL_VAD_CONFIRM_MS,
-        });
-        if (confirmed && !sessionLimitInputClosed) {
-          if (DeviceVisual.getState() === 'speaking') triggerLocalBargeIn(peak);
-          if (ws && ws.readyState === WebSocket.OPEN) {
+        // Audible playback counts even if the visual state already moved on.
+        if (DeviceVisual.getState() === 'speaking' || activeSources.size > 0) {
+          // Assistant is talking: only speech-like sound may interrupt it
+          // (see BARGE_IN_OPTS). The plain VAD is held re-armed meanwhile so
+          // it does not fire a second speech_start for the same episode.
+          const features = analyzeVoiceFrame(input, audioContext.sampleRate);
+          const verdict = evaluateBargeInFrame(bargeInState, features, frameDurationMs, BARGE_IN_OPTS);
+          localVadState.consecutiveLoudMs = 0;
+          if (verdict === 'confirmed' && !sessionLimitInputClosed) {
+            localVadState.armed = false;
+            triggerLocalBargeIn(peak, features);
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'input_audio.speech_start', source: 'client_local_vad' }));
+            }
+          } else if (verdict === 'rejected' && !bargeInState.rejectedReported) {
+            bargeInState.rejectedReported = true;
+            sendTelemetry('local_barge_in_rejected', {
+              reason: 'not_speech_like',
+              rms: Math.round(features.rms),
+              crest: Math.round(features.crest * 10) / 10,
+              zcrPerSec: Math.round(features.zcrPerSec),
+            });
+          }
+        } else {
+          Object.assign(bargeInState, createBargeInState());
+          const confirmed = evaluateLocalVadFrame(localVadState, peak, frameDurationMs, {
+            highThreshold: LOCAL_VAD_HIGH_PEAK,
+            lowThreshold: LOCAL_VAD_LOW_PEAK,
+            confirmMs: LOCAL_VAD_CONFIRM_MS,
+          });
+          if (confirmed && !sessionLimitInputClosed && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'input_audio.speech_start', source: 'client_local_vad' }));
           }
         }
@@ -3823,8 +3861,9 @@
     // Re-arm the local VAD for the NEXT Free Conversation exactly like a
     // fresh createLocalVadState() would -- must not carry over
     // consecutiveLoud/armed from the ended conversation.
-    localVadState.consecutiveLoud = 0;
+    localVadState.consecutiveLoudMs = 0;
     localVadState.armed = true;
+    Object.assign(bargeInState, createBargeInState());
     // Socket and overall connection status are deliberately left untouched
     // -- ws stays OPEN, the Connect/Disconnect button stays showing
     // "Disconnect" (still CONNECTED). Only disconnect() closes the channel.
@@ -4205,6 +4244,90 @@
   // "no noticeable pause" bar.
   const LOCAL_VAD_CONFIRM_MS = 256;
   const localVadState = createLocalVadState();
+
+  // ---- Barge-in while the assistant is SPEAKING: speech only ----
+  // Incident 2026-09-28 (Gemini, 3 answers in a row cut ~5s in by
+  // local_vad_barge_in while the user was silent): the plain local VAD above
+  // (peak >= 500 of 32767, i.e. about -36 dBFS, for 256ms) is so sensitive
+  // that a knock/clap with its room reverb, or leftover echo of the
+  // assistant's own voice, stops the answer. While audio is playing, a frame
+  // now counts toward a barge-in only when it looks like a person speaking
+  // close to the mic:
+  //   - loud enough by RMS (energy, not a single peak): echo residue and
+  //     distant noise stay under BARGE_IN_OPTS.minRms;
+  //   - low crest factor (peak / RMS): a knock, clap or clink is a short
+  //     spike inside the frame, speech is continuous;
+  //   - zero-crossing rate in the voice band: a thump is too low, a clap /
+  //     rustle / hiss is broadband noise and too high;
+  //   - and that for BARGE_IN_OPTS.confirmMs of (almost) contiguous frames.
+  // Frame statistics only, no ML: cheap and testable; tune from the
+  // local_barge_in_detected / local_barge_in_rejected telemetry fields.
+  const BARGE_IN_OPTS = Object.freeze({
+    confirmMs: 320,
+    maxGapMs: 130, // one short non-qualifying frame (a consonant) is tolerated
+    minRms: 600,
+    quietRms: 150, // below this the episode ends and the detector re-arms
+    maxCrest: 8,
+    minZcrPerSec: 250,
+    maxZcrPerSec: 5000,
+  });
+  function createBargeInState() {
+    return { speechMs: 0, gapMs: 0, armed: true, rejectedReported: false };
+  }
+  // Per-frame statistics in Int16 units (same scale as LOCAL_VAD_HIGH_PEAK).
+  function analyzeVoiceFrame(input, sampleRate) {
+    let peak = 0;
+    let sumSquares = 0;
+    let crossings = 0;
+    let prev = 0;
+    for (let i = 0; i < input.length; i++) {
+      const s = Math.max(-1, Math.min(1, input[i])) * 32767;
+      const abs = Math.abs(s);
+      if (abs > peak) peak = abs;
+      sumSquares += s * s;
+      if (i > 0 && ((prev < 0 && s >= 0) || (prev >= 0 && s < 0))) crossings += 1;
+      prev = s;
+    }
+    const rms = input.length ? Math.sqrt(sumSquares / input.length) : 0;
+    const seconds = input.length / (sampleRate || 16000);
+    return {
+      peak,
+      rms,
+      crest: rms > 0 ? peak / rms : 0,
+      zcrPerSec: seconds > 0 ? crossings / seconds : 0,
+    };
+  }
+  function isSpeechLikeFrame(features, opts) {
+    return features.rms >= opts.minRms
+      && features.crest <= opts.maxCrest
+      && features.zcrPerSec >= opts.minZcrPerSec
+      && features.zcrPerSec <= opts.maxZcrPerSec;
+  }
+  // Returns 'confirmed' exactly once per sound episode, 'rejected' for a
+  // loud frame that does not look like speech, otherwise 'none'.
+  function evaluateBargeInFrame(state, features, durationMs, opts) {
+    if (features.rms < opts.quietRms) {
+      state.speechMs = 0;
+      state.gapMs = 0;
+      state.armed = true;
+      state.rejectedReported = false;
+      return 'none';
+    }
+    if (!state.armed) return 'none';
+    if (isSpeechLikeFrame(features, opts)) {
+      state.gapMs = 0;
+      state.speechMs += durationMs;
+      if (state.speechMs >= opts.confirmMs) {
+        state.armed = false;
+        return 'confirmed';
+      }
+      return 'none';
+    }
+    state.gapMs += durationMs;
+    if (state.gapMs > opts.maxGapMs) state.speechMs = 0;
+    return features.peak >= LOCAL_VAD_HIGH_PEAK ? 'rejected' : 'none';
+  }
+  const bargeInState = createBargeInState();
   let localBargeInEpisodeId = 0;
 
   // ---- Free Conversation: automatic end on user inactivity ----
@@ -4447,11 +4570,14 @@
     disconnect();
     setPttCaption();
   }
-  function triggerLocalBargeIn(peak) {
+  function triggerLocalBargeIn(peak, features) {
     localBargeInEpisodeId += 1;
     const supersededGenerationId = acceptedPlaybackGenerationId;
     sendTelemetry('local_barge_in_detected', {
       peak: Math.round(peak),
+      rms: features ? Math.round(features.rms) : null,
+      crest: features ? Math.round(features.crest * 10) / 10 : null,
+      zcrPerSec: features ? Math.round(features.zcrPerSec) : null,
       supersededGenerationId,
       episodeId: localBargeInEpisodeId,
     });

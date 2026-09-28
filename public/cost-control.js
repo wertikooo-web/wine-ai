@@ -358,6 +358,44 @@
     }, 60000);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
-  else bind();
+  // Settings → «Источник знаний»: the web_search_enabled switch. Server-wide
+  // (stored with the cost settings), applies to every new question.
+  function bindWebSearchToggle() {
+    const box = $('webSearchEnabledToggle');
+    const status = $('webSearchToggleStatus');
+    if (!box || !status) return;
+    const describe = (on) => (on
+      ? 'Сейчас: база знаний + интернет, если в базе нет ответа.'
+      : 'Сейчас: только база знаний, интернет выключен.');
+    box.disabled = true;
+    api('/api/cost/settings').then((data) => {
+      box.checked = data.settings.web_search_enabled !== false;
+      status.textContent = describe(box.checked);
+    }).catch((error) => {
+      status.textContent = 'Не удалось загрузить настройку: ' + error.message;
+    }).finally(() => { box.disabled = false; });
+    box.addEventListener('change', async () => {
+      const wanted = box.checked;
+      box.disabled = true;
+      status.textContent = 'Сохранение…';
+      try {
+        const data = await api('/api/cost/settings', { method: 'PUT', body: JSON.stringify({ web_search_enabled: wanted }) });
+        box.checked = data.settings.web_search_enabled !== false;
+        status.textContent = 'Сохранено. ' + describe(box.checked);
+      } catch (error) {
+        box.checked = !wanted;
+        status.textContent = 'Ошибка сохранения: ' + error.message;
+      } finally {
+        box.disabled = false;
+      }
+    });
+  }
+
+  function init() {
+    bind();
+    bindWebSearchToggle();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();

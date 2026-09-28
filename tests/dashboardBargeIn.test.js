@@ -391,9 +391,41 @@ async function run() {
         // 2048 samples/callback, same as production's real
         // audioContext.createScriptProcessor(2048, 1, 1) -- duration in ms
         // is therefore 2048/sampleRate*1000: ~128ms at 16kHz, ~43ms at 48kHz.
-        const loud = new Float32Array(2048).fill(0.08); // clears LOCAL_VAD_HIGH_PEAK
+        // Speech-like frame: a 220Hz voiced tone near the mic. Since the
+        // 2026-09-28 fix a flat/DC "loud" frame no longer counts as speech
+        // while the assistant is talking (zero-crossing rate 0).
+        const loud = speechFrame(sampleRate);
         const frame = { inputBuffer: { getChannelData: () => loud } };
         return { sandbox, processor, frame, callbackMs: (2048 / sampleRate) * 1000, label };
+    }
+
+    // Continuous-phase 220Hz tone + harmonic, amplitude ~0.08 (rms ~1900).
+    function speechFrame(sampleRate, amplitude = 0.08) {
+        const out = new Float32Array(2048);
+        for (let i = 0; i < out.length; i += 1) {
+            const t = i / sampleRate;
+            out[i] = amplitude * (0.8 * Math.sin(2 * Math.PI * 220 * t) + 0.2 * Math.sin(2 * Math.PI * 660 * t));
+        }
+        return out;
+    }
+    // Deterministic broadband noise (clap / rustle): very high ZCR.
+    function noiseFrame(amplitude = 0.1, seed = 1) {
+        const out = new Float32Array(2048);
+        let x = seed;
+        for (let i = 0; i < out.length; i += 1) {
+            x = (x * 1103515245 + 12345) & 0x7fffffff;
+            out[i] = amplitude * ((x / 0x7fffffff) * 2 - 1);
+        }
+        return out;
+    }
+    // Knock: one sharp spike with a fast decay, then room hum.
+    function knockFrame(sampleRate) {
+        const out = new Float32Array(2048);
+        for (let i = 0; i < out.length; i += 1) {
+            const t = i / sampleRate;
+            out[i] = 0.9 * Math.exp(-t / 0.004) * Math.sin(2 * Math.PI * 120 * t) + 0.004 * Math.sin(2 * Math.PI * 50 * t);
+        }
+        return out;
     }
 
     for (const sampleRate of [16000, 48000]) {
@@ -408,7 +440,7 @@ async function run() {
         console.log(`Testing local VAD at ${sampleRate}Hz: enough real callbacks to cover ~256ms of sustained loudness DOES interrupt...`);
         {
             const { sandbox, processor, frame, callbackMs } = await runRealCallbackScenario(sampleRate, { label: `${sampleRate}Hz sustained` });
-            const callbacksNeeded = Math.ceil(256 / callbackMs) + 1; // +1 margin past the threshold
+            const callbacksNeeded = Math.ceil(getLexical(sandbox, 'BARGE_IN_OPTS.confirmMs') / callbackMs) + 1; // +1 margin past the threshold (320ms while the assistant speaks)
             for (let i = 0; i < callbacksNeeded; i += 1) processor.onaudioprocess(frame);
             assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, `~256ms of sustained loudness at ${sampleRate}Hz (${callbacksNeeded} callbacks of ${callbackMs.toFixed(1)}ms) must interrupt playback`);
         }
@@ -422,9 +454,51 @@ async function run() {
             // Drop to quiet, then real speech: sustained ~256ms must confirm.
             const quiet = new Float32Array(2048).fill(0.002);
             processor.onaudioprocess({ inputBuffer: { getChannelData: () => quiet } });
-            const callbacksFor256ms = Math.ceil(256 / callbackMs) + 1;
+            const callbacksFor256ms = Math.ceil(getLexical(sandbox, 'BARGE_IN_OPTS.confirmMs') / callbackMs) + 1;
             for (let i = 0; i < callbacksFor256ms; i += 1) processor.onaudioprocess(frame);
             assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, `real sustained speech right after a rejected impulse at ${sampleRate}Hz must still interrupt`);
+        }
+    }
+
+    for (const sampleRate of [16000, 48000]) {
+        const callbackMs = (2048 / sampleRate) * 1000;
+        const oneSecond = Math.ceil(1000 / callbackMs);
+        const feed = (processor, data) => processor.onaudioprocess({ inputBuffer: { getChannelData: () => data } });
+
+        console.log(`Testing barge-in at ${sampleRate}Hz: a full second of clapping/rustling noise does NOT stop the answer (2026-09-28)...`);
+        {
+            const { sandbox, processor } = await runRealCallbackScenario(sampleRate, { label: 'noise' });
+            for (let i = 0; i < oneSecond; i += 1) feed(processor, noiseFrame(0.1, i + 1));
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_real_callback', `broadband noise at ${sampleRate}Hz must not interrupt`);
+            const rejected = sandbox.testResults.sentMessages.map((m) => { try { return JSON.parse(m); } catch { return {}; } })
+                .filter((m) => m.type === 'client_telemetry' && m.stage === 'local_barge_in_rejected');
+            assert.strictEqual(rejected.length, 1, 'a rejected noise episode is reported once, not per frame');
+            assert.ok(!sandbox.testResults.sentMessages.some((m) => String(m).includes('session.interrupt')), 'no session.interrupt for noise');
+        }
+
+        console.log(`Testing barge-in at ${sampleRate}Hz: repeated knocks for a second do NOT stop the answer...`);
+        {
+            const { sandbox, processor } = await runRealCallbackScenario(sampleRate, { label: 'knock' });
+            for (let i = 0; i < oneSecond; i += 1) feed(processor, knockFrame(sampleRate));
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_real_callback', `knocking at ${sampleRate}Hz must not interrupt`);
+        }
+
+        console.log(`Testing barge-in at ${sampleRate}Hz: quiet echo of the assistant's own voice does NOT stop the answer...`);
+        {
+            const { sandbox, processor } = await runRealCallbackScenario(sampleRate, { label: 'echo' });
+            for (let i = 0; i < oneSecond; i += 1) feed(processor, speechFrame(sampleRate, 0.012));
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), 'generation_real_callback', `low-level voice echo at ${sampleRate}Hz must not interrupt`);
+        }
+
+        console.log(`Testing barge-in at ${sampleRate}Hz: a knock, then the user really speaking, DOES stop the answer...`);
+        {
+            const { sandbox, processor } = await runRealCallbackScenario(sampleRate, { label: 'knock-then-speech' });
+            feed(processor, knockFrame(sampleRate));
+            const callbacksForSpeech = Math.ceil(320 / callbackMs) + 1;
+            for (let i = 0; i < callbacksForSpeech; i += 1) feed(processor, speechFrame(sampleRate));
+            assert.strictEqual(getLexical(sandbox, 'acceptedPlaybackGenerationId'), null, `real speech after a knock at ${sampleRate}Hz must interrupt`);
+            const interrupts = sandbox.testResults.sentMessages.filter((m) => String(m).includes('session.interrupt'));
+            assert.strictEqual(interrupts.length, 1, 'exactly one session.interrupt per spoken interruption');
         }
     }
 
@@ -563,7 +637,7 @@ async function run() {
         `, sandbox);
         await sandbox.ensureMic();
         const processor = getLexical(sandbox, 'processor');
-        const loud = new Float32Array(2048).fill(0.08);
+        const loud = speechFrame(16000);
         const frame = { inputBuffer: { getChannelData: () => loud } };
         processor.onaudioprocess(frame);
         processor.onaudioprocess(frame);
@@ -701,7 +775,7 @@ async function run() {
         const idleCaption = getLexical(sandbox, "getUiString('pttCaptionTapIdle')");
         assert.strictEqual(getLexical(sandbox, "el('pttCaption').textContent"), idleCaption, 'the button caption must revert to "Начать разговор" / "Start conversation"');
         assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, 'the local VAD must be re-armed for the next conversation');
-        assert.strictEqual(getLexical(sandbox, 'localVadState.consecutiveLoud'), 0, 'the local VAD loud-frame counter must be reset');
+        assert.strictEqual(getLexical(sandbox, 'localVadState.consecutiveLoudMs'), 0, 'the local VAD loud-time counter must be reset');
     }
 
     // Repeat Start after End must reuse the SAME (still open) WebSocket --
@@ -892,7 +966,7 @@ async function run() {
         sandbox.disconnect();
         assert.strictEqual(getLexical(sandbox, 'tapToStartActive'), false, 'Disconnect must clear tapToStartActive');
         assert.strictEqual(getLexical(sandbox, 'localVadState.armed'), true, 'Disconnect must re-arm the local VAD');
-        assert.strictEqual(getLexical(sandbox, 'localVadState.consecutiveLoud'), 0, 'Disconnect must reset the local VAD loud-frame counter');
+        assert.strictEqual(getLexical(sandbox, 'localVadState.consecutiveLoudMs'), 0, 'Disconnect must reset the local VAD loud-time counter');
 
         // User switches the mode toggle. persist:false -- this sandbox has
         // no real backing /api/persona endpoint; the mode-persistence POST

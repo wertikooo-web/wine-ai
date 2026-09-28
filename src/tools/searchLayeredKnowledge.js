@@ -13,6 +13,7 @@ const {
 } = require('../knowledge/claimProvenance');
 const { attemptRecovery } = require('../knowledge/usefulRecovery');
 const { inferForQuestion } = require('../knowledge/wineIntelligence');
+const { isWebSearchEnabled } = require('../knowledge/webSearchSetting');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -146,6 +147,9 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         // simply never consults them, and claims reflect only what was
         // allowed).
         const policy = modePolicy(answerMode);
+        // Dashboard switch "knowledge base only" turns the web level off for
+        // every mode, force_web included.
+        const allowWeb = policy.allowWeb && isWebSearchEnabled();
         const requestStartedAt = process.hrtime.bigint();
         // Shadow observer runs BEFORE the production call and never affects
         // it: same retrievalQuery is used below either way, unconditionally.
@@ -154,7 +158,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         const result = await routeImpl(retrievalQuery, {
             language,
             forceWeb: args.force_web === true,
-            allowWeb: policy.allowWeb,
+            allowWeb,
             allowCatalog: policy.allowCatalog,
             limit: 8,
         });
@@ -187,7 +191,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         try {
             inference = await inferForQuestion(query, {
                 language,
-                allowWeb: policy.allowWeb,
+                allowWeb,
                 allowCatalog: policy.allowCatalog,
                 limit: 8,
             });
