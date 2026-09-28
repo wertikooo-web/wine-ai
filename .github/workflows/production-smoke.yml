@@ -104,7 +104,7 @@ jobs:
           const m = body.periods.month;
           console.log(`cost control verified: storage=${body.storage} month=${m.month} conversations=${m.conversations} api_mdl=${m.api_cost_mdl} fixed_mdl=${m.fixed_cost_mdl} total_mdl=${m.total_cost_mdl} basis=${m.basis} recent_sessions=${body.recent_sessions.length}`);
           NODE
-          for path in /api/cost/sessions /api/cost/breakdown /api/cost/pricing /api/cost/fixed-costs /api/cost/settings /api/cost/customer-summary /cost-control.js; do
+          for path in /api/cost/sessions /api/cost/breakdown /api/cost/pricing /api/cost/fixed-costs /api/cost/settings /api/cost/customer-summary /cost-control.js /dashboard/cost-guide; do
             code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path")"
             echo "$path http=$code"
             test "$code" = "200"
@@ -113,4 +113,5 @@ jobs:
           # exits early on the match (curl exit 23, write failure).
           curl -sS -L --max-time 30 -o /tmp/dashboard-cost.html "$BASE_URL/dashboard"
           grep -q 'data-tab="cost"' /tmp/dashboard-cost.html
+          grep -q 'href="/dashboard/cost-guide"' /tmp/dashboard-cost.html
           echo "dashboard contains the Cost Control tab"

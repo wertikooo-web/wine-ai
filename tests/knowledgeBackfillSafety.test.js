@@ -183,7 +183,15 @@ async function main() {
     console.log('knowledgeBackfillSafety: all assertions passed');
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+// scripts/run-tests.js awaits run(); a self-started main() was not awaited,
+// so this file's async assertions overlapped the next test files, which share
+// the same process-wide memory Postgres engine (helpers/postgresMemoryDb.js)
+// and could clobber knowledge_chunk_embeddings mid-assertion.
+if (require.main === module) {
+    main().catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
+}
+
+module.exports = { run: main };
