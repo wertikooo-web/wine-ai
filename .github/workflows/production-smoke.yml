@@ -105,13 +105,24 @@ jobs:
           console.log(`cost control verified: storage=${body.storage} month=${m.month} conversations=${m.conversations} api_mdl=${m.api_cost_mdl} fixed_mdl=${m.fixed_cost_mdl} total_mdl=${m.total_cost_mdl} basis=${m.basis} recent_sessions=${body.recent_sessions.length}`);
           NODE
           for path in /api/cost/sessions /api/cost/breakdown /api/cost/pricing /api/cost/fixed-costs /api/cost/settings /api/cost/customer-summary /cost-control.js /dashboard/cost-guide; do
-            code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path")"
-            echo "$path http=$code"
+            # Retry each path: the previous deployment can keep serving for a
+            # few minutes after merge and lack routes added by this commit.
+            for attempt in $(seq 1 40); do
+              code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path" || true)"
+              echo "$path attempt=$attempt http=$code"
+              if [ "$code" = "200" ]; then break; fi
+              sleep 15
+            done
             test "$code" = "200"
           done
           # Download first: `curl | grep -q` fails under pipefail when grep
           # exits early on the match (curl exit 23, write failure).
-          curl -sS -L --max-time 30 -o /tmp/dashboard-cost.html "$BASE_URL/dashboard"
-          grep -q 'data-tab="cost"' /tmp/dashboard-cost.html
-          grep -q 'href="/dashboard/cost-guide"' /tmp/dashboard-cost.html
+          FOUND=0
+          for attempt in $(seq 1 40); do
+            curl -sS -L --max-time 30 -o /tmp/dashboard-cost.html "$BASE_URL/dashboard" || true
+            if grep -q 'data-tab="cost"' /tmp/dashboard-cost.html && grep -q 'href="/dashboard/cost-guide"' /tmp/dashboard-cost.html; then FOUND=1; break; fi
+            echo "dashboard cost tab/guide link not found yet (attempt=$attempt)"
+            sleep 15
+          done
+          test "$FOUND" = "1"
           echo "dashboard contains the Cost Control tab"
