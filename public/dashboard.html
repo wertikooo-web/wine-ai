@@ -734,7 +734,22 @@
   body.lite section.panel:not(#tab-avatar),
   body.lite .phone-shell:not(.phone-shell--left):not(.phone-shell--right),
   body.lite #connectBtn, body.lite .voice-mode-switcher, body.lite .app-input-row,
-  body.lite #demoWinePicker, body.lite .app-language-row, body.lite #contextChips { display: none !important; }
+  body.lite #demoWinePicker, body.lite .app-language-row, body.lite #contextChips, body.lite #replyBox { display: none !important; }
+  /* Visual Companion (Wine AI Lite): transcript + text input. Text only —
+     rendered with textContent, model text is never turned into links. */
+  .lite-chat { display: none; }
+  body.lite.vc .lite-chat { display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 32vh; overflow-y: auto; margin: 8px 0; padding: 2px; }
+  body.lite.vc .lite-chat:empty { display: none; }
+  .lite-msg { max-width: 88%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .lite-msg__who { display: block; font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
+  .lite-msg--user { align-self: flex-end; background: var(--wine); color: #fff; border-bottom-right-radius: 4px; }
+  .lite-msg--assistant { align-self: flex-start; background: #f1e9df; color: #2a2118; border-bottom-left-radius: 4px; }
+  body.lite.vc .app-input-row { display: flex !important; width: 100%; }
+  body.lite.vc .avatar-box { width: 132px; height: 132px; }
+  /* Mobile order: chat above, then text input, then the mic button. */
+  body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
+  body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
+  body.lite.lite-active .start-intents { display: none !important; }
   body.lite .phone-row { justify-content: center; }
   .lite-fb { position: fixed; inset: 0; background: rgba(42,33,24,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
   .lite-fb[hidden] { display: none; }
@@ -805,6 +820,8 @@
                 </div>
                 <div class="device-contact-shadow" aria-hidden="true"></div>
               </div>
+
+              <div class="lite-chat" id="liteChat" aria-live="polite"></div>
 
               <div class="status-badge">
                 <span class="status-dot" id="avatarStatusDot"></span>
@@ -1912,7 +1929,10 @@
   // config (channel=lite); this page only hides operator UI, connects with
   // channel=lite, and asks for a rating after each conversation.
   const LITE_MODE = /^\/lite\/?$/.test(location.pathname) || new URLSearchParams(location.search).get('lite') === '1';
-  if (LITE_MODE) document.body.classList.add('lite');
+  if (LITE_MODE) {
+    document.body.classList.add('lite');
+    loadLiteConfig();
+  }
   let liteSessionId = null;
   let liteConversationStarted = false;
 
@@ -3347,6 +3367,7 @@
           itraceForTurn(payload.turn_id, 'transcript_user_received', {});
         }
         addTranscriptTurn('user', payload.text);
+        if (LITE_MODE) liteChatAppend('user', payload);
         maybeHighlightWhereToBuy(payload.text);
         break;
       case 'transcript.model':
@@ -3355,6 +3376,7 @@
           itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'transcript.model' });
         }
         addTranscriptTurn('assistant', payload.text);
+        if (LITE_MODE) liteChatAppend('assistant', payload);
         showReplyBox(payload);
         break;
       case 'language.switch_detected':
@@ -3951,7 +3973,7 @@
   async function startConversationOnTap() {
     if (tapToStartActive) return;
     tapToStartActive = true;
-    if (LITE_MODE) { liteConversationStarted = true; hideLiteFeedback(); }
+    if (LITE_MODE) { liteConversationStarted = true; hideLiteFeedback(); liteChatClear(); document.body.classList.add('lite-active'); }
     setPttCaption();
     if (ws && ws.readyState === WebSocket.OPEN) {
       // Starting a new Free Conversation over an already-open socket
@@ -4031,10 +4053,60 @@
   function finishLiteConversation() {
     if (!liteConversationStarted) return;
     liteConversationStarted = false;
+    document.body.classList.remove('lite-active');
     const sessionId = liteSessionId;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) disconnect();
     if (sessionId) showLiteFeedback(sessionId);
   }
+  // ---- Visual Companion: transcript (Wine AI Lite) ----
+  // Streaming fragments are merged per turn (user) / generation (assistant).
+  // Never throws into the realtime event handler: presentation failure must
+  // not affect the conversation.
+  const liteChatBubbles = new Map();
+  function loadLiteConfig() {
+    fetch('/api/lite/config').then((r) => r.json()).then((cfg) => {
+      document.body.classList.toggle('vc', Boolean(cfg && cfg.visual_companion));
+      if (cfg && cfg.persona_name) document.body.dataset.personaName = cfg.persona_name;
+    }).catch(() => { /* companion keeps its last state; voice unaffected */ });
+  }
+  function liteChatClear() {
+    loadLiteConfig();
+    liteChatBubbles.clear();
+    const box = document.getElementById('liteChat');
+    if (box) box.textContent = '';
+  }
+  function liteAssistantName() {
+    return (document.body.dataset.personaName || '').trim() || 'Wine AI';
+  }
+  function liteChatAppend(role, payload) {
+    try {
+      if (!document.body.classList.contains('vc')) return;
+      const box = document.getElementById('liteChat');
+      const text = String(payload && payload.text || '');
+      if (!box || !text) return;
+      const key = role + ':' + (role === 'user'
+        ? (payload.turn_id || payload.generation_id || 'current')
+        : (payload.generation_id || payload.response_id || payload.turn_id || 'current'));
+      let bubble = liteChatBubbles.get(key);
+      if (!bubble) {
+        bubble = document.createElement('div');
+        bubble.className = 'lite-msg lite-msg--' + role;
+        const who = document.createElement('span');
+        who.className = 'lite-msg__who';
+        who.textContent = role === 'user' ? (uiLang === 'ro' ? 'Dvs.' : uiLang === 'en' ? 'You' : 'Вы') : liteAssistantName();
+        const body = document.createElement('span');
+        body.className = 'lite-msg__text';
+        bubble.appendChild(who);
+        bubble.appendChild(body);
+        box.appendChild(bubble);
+        liteChatBubbles.set(key, bubble);
+      }
+      const body = bubble.querySelector('.lite-msg__text');
+      body.textContent += text;
+      box.scrollTop = box.scrollHeight;
+    } catch { /* presentation only */ }
+  }
+
   function hideLiteFeedback() {
     const box = document.getElementById('liteFeedback');
     if (box) box.hidden = true;
