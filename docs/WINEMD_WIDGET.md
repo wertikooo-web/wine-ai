@@ -46,3 +46,14 @@ refuse (`age_verification_required`) on the partner site.
 - Widget script: `/wine-ai-widget.js`
 - Standalone / QR: `/lite`
 - Embedded page: `/lite?embed=1` (only styled as embedded inside an iframe)
+
+## Persona avatar
+Name and avatar come only from the **persona** (never provider or voice):
+`src/persona/profileRegistry.js` → `avatar: { name, focus, launcherZoom }` and `displayNames`.
+Files: `public/personas/<name>.(png|jpg|jpeg|webp)` (`maria`, `alexander`), served at
+`/persona-assets/…`; one source for `/lite`, the widget launcher and the dashboard.
+Missing or failing file → `/persona-assets/fallback.svg`.
+- Launcher and the widget before a session: the published Test Control persona (next session).
+- Inside a session: that session's immutable snapshot (`/api/lite/config?session=…`).
+- Cropping: `object-fit: cover` + `focus` (face position) for portrait or square sources;
+  the small launcher zooms on the face (`launcherZoom`). Images are never stretched.

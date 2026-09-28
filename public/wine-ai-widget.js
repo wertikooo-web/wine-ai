@@ -48,7 +48,7 @@
     .launcher:hover { transform: translateY(-2px); box-shadow: 0 20px 46px rgba(62,12,27,.4); }
     .launcher:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
     .avatar { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 3px solid #b97445; background: #f7f1e8; flex: none; }
-    .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; display: block; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; }
     .label { display: flex; flex-direction: column; gap: 3px; }
     .label b { font-size: 12px; letter-spacing: .14em; }
     .label span { font-size: 14px; font-weight: 600; }
@@ -70,11 +70,30 @@
   launcher.setAttribute('aria-expanded', 'false');
   const avatar = document.createElement('span');
   avatar.className = 'avatar';
+  // Persona avatar of the NEXT session (published Test Control persona),
+  // the same asset /lite uses; never chosen by provider or voice. Neutral
+  // WINE AI avatar until loaded and whenever it cannot be loaded.
+  const FALLBACK_AVATAR = `${origin}/persona-assets/fallback.svg`;
   const img = document.createElement('img');
-  img.src = `${origin}/visual-assets/avatar-woman-1.png`;
+  img.src = FALLBACK_AVATAR;
   img.alt = '';
   img.setAttribute('aria-hidden', 'true');
+  img.addEventListener('error', () => { if (img.src !== FALLBACK_AVATAR) { img.src = FALLBACK_AVATAR; img.style.objectPosition = '50% 50%'; img.style.transform = 'none'; } });
   avatar.appendChild(img);
+  function refreshPersona() {
+    fetch(`${origin}/api/lite/config`, { credentials: 'omit' })
+      .then((r) => r.json())
+      .then((cfg) => {
+        const p = cfg && cfg.persona;
+        if (!p || !p.avatar_url || !/^\/persona-assets\/[a-z0-9_-]+\.(png|jpe?g|webp|svg)$/.test(p.avatar_url)) return;
+        img.style.objectPosition = p.avatar_focus || '50% 30%';
+        img.style.transformOrigin = p.avatar_focus || '50% 30%';
+        img.style.transform = `scale(${Math.min(2, Math.max(1, Number(p.launcher_zoom) || 1))})`;
+        img.src = `${origin}${p.avatar_url}`;
+        if (p.display_name) launcher.setAttribute('aria-label', `${TEXT.open} (${p.display_name})`);
+      })
+      .catch(() => { /* keep the fallback */ });
+  }
   const label = document.createElement('span');
   label.className = 'label';
   const brand = document.createElement('b');
@@ -107,12 +126,14 @@
       try { iframe.contentWindow.postMessage({ type: 'wine-ai:stop' }, origin); } catch { /* not loaded yet */ }
       iframe.classList.remove('open');
     }
+    if (!open) refreshPersona();
     launcher.classList.toggle('hidden', open);
     launcher.setAttribute('aria-expanded', String(open));
     launcher.setAttribute('aria-label', open ? TEXT.close : TEXT.open);
   }
 
   launcher.addEventListener('click', () => setOpen(!isOpen));
+  refreshPersona();
   window.addEventListener('message', (event) => {
     if (event.origin !== origin || !iframe || event.source !== iframe.contentWindow) return;
     if (event.data && event.data.type === 'wine-ai:close') setOpen(false);

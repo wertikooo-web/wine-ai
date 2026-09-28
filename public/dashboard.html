@@ -746,6 +746,10 @@
   .lite-msg--assistant { align-self: flex-start; background: #f1e9df; color: #2a2118; border-bottom-left-radius: 4px; }
   body.lite.vc .app-input-row { display: flex !important; width: 100%; }
   body.lite.vc .avatar-box { width: 132px; height: 132px; }
+  /* Persona avatar: cover-crop to the face (focus from the persona registry),
+     never stretched; the 3D model is not used on /lite. */
+  body.lite .avatar-box .avatar-fallback { width: 100%; height: 100%; object-fit: cover; opacity: 1 !important; }
+  body.lite .avatar-box > :not(.avatar-fallback):not(.device-sheen):not(.avatar-ring) { display: none !important; }
   /* Mobile order: chat above, then text input, then the mic button. */
   body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
   body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
@@ -857,7 +861,7 @@
               <div class="device-stage" id="deviceStage">
                 <div class="device-glow" aria-hidden="true"></div>
                 <div class="avatar-box" id="avatarBox">
-                  <img class="avatar-fallback" src="/visual-assets/avatar-woman-1.png" alt="WineMD sommelier avatar">
+                  <img class="avatar-fallback" src="/persona-avatar/warm_guide" alt="WineMD sommelier avatar">
                   <div class="device-sheen" aria-hidden="true"></div>
                   <div class="avatar-ring"></div>
                 </div>
@@ -1438,14 +1442,14 @@
       <!-- Preset Selectors -->
       <div class="profile-selectors" id="profileSelectorContainer">
         <button class="profile-select-btn" type="button" data-profile="classic" id="btnProfileClassic">
-          <img src="/visual-assets/avatar-man-1.png" alt="Александр">
+          <img src="/persona-avatar/classic" alt="Александр" onerror="this.onerror=null;this.src='/persona-assets/fallback.svg'">
           <div>
             <strong>Александр</strong>
             <span>Классический сомелье</span>
           </div>
         </button>
         <button class="profile-select-btn" type="button" data-profile="warm_guide" id="btnProfileWarm">
-          <img src="/visual-assets/avatar-woman-1.png" alt="Мария">
+          <img src="/persona-avatar/warm_guide" alt="Мария" onerror="this.onerror=null;this.src='/persona-assets/fallback.svg'">
           <div>
             <strong>Мария</strong>
             <span>Тёплый винный гид</span>
@@ -3328,6 +3332,7 @@
         setText('dOutputRate', payload.provider === 'mock' ? '16000 Hz' : '24000 Hz');
         break;
       case 'session.config.applied':
+        if (LITE_MODE && liteSessionId) loadLiteConfig(liteSessionId);
         setText('dInputRate', payload.input_audio ? payload.input_audio.sample_rate + ' Hz (' + payload.input_audio.sample_rate_source + ')' : '—');
         if (payload.prompt_debug && payload.prompt_debug.meta) {
           setText('langState', 'auto');
@@ -4137,15 +4142,31 @@
   // Never throws into the realtime event handler: presentation failure must
   // not affect the conversation.
   const liteChatBubbles = new Map();
-  function loadLiteConfig() {
-    fetch('/api/lite/config').then((r) => r.json()).then((cfg) => {
+  // Persona display (name + avatar) comes only from the persona: without a
+  // session id, the published revision (= the next session); with one, that
+  // session's own immutable snapshot. Provider/voice never affect it.
+  const LITE_FALLBACK_AVATAR = '/persona-assets/fallback.svg';
+  function applyLitePersona(persona) {
+    if (!persona) return;
+    const name = (persona.display_names && persona.display_names[uiLang]) || persona.display_name || 'WINE AI';
+    document.body.dataset.personaName = name;
+    const bar = document.getElementById('liteBarPersona');
+    if (bar) bar.textContent = name;
+    const img = document.querySelector('#avatarBox .avatar-fallback');
+    if (img) {
+      img.onerror = () => { img.onerror = null; img.src = LITE_FALLBACK_AVATAR; img.style.objectPosition = '50% 50%'; };
+      img.alt = name;
+      img.style.objectPosition = persona.avatar_focus || '50% 30%';
+      const url = persona.avatar_url || LITE_FALLBACK_AVATAR;
+      if (img.getAttribute('src') !== url) img.src = url;
+    }
+  }
+  function loadLiteConfig(sessionId) {
+    const query = sessionId ? `?session=${encodeURIComponent(sessionId)}` : '';
+    fetch('/api/lite/config' + query).then((r) => r.json()).then((cfg) => {
       document.body.classList.toggle('vc', Boolean(cfg && cfg.visual_companion));
-      if (cfg && cfg.persona_name) {
-        document.body.dataset.personaName = cfg.persona_name;
-        const bar = document.getElementById('liteBarPersona');
-        if (bar) bar.textContent = cfg.persona_name;
-      }
-    }).catch(() => { /* companion keeps its last state; voice unaffected */ });
+      if (cfg && cfg.persona) applyLitePersona(cfg.persona);
+    }).catch(() => { /* keeps its last state; voice unaffected */ });
   }
   let liteCompanion = null;
   function liteCompanionOnText(key, text, bubble) {

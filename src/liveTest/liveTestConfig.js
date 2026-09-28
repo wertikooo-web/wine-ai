@@ -196,6 +196,11 @@ function createPostgresLiveTestStore(poolProvider = () => db.getPool()) {
             await init();
             await pool().query('UPDATE live_test_sessions SET language = COALESCE($2, language), ended_at = $3 WHERE session_id = $1', [session_id, language || null, ended_at]);
         },
+        async getSession(sessionId) {
+            await init();
+            const { rows } = await pool().query('SELECT session_id, config_revision, snapshot FROM live_test_sessions WHERE session_id = $1', [sessionId]);
+            return rows[0] ? { session_id: rows[0].session_id, config_revision: rows[0].config_revision, snapshot: rows[0].snapshot } : null;
+        },
         async listSessions(limit = 300) {
             await init();
             const { rows } = await pool().query('SELECT * FROM live_test_sessions ORDER BY started_at DESC LIMIT $1', [limit]);
@@ -241,6 +246,7 @@ function createMemoryLiveTestStore(seed = {}) {
             const row = sessions.get(session_id);
             if (row) { if (language) row.language = language; row.ended_at = ended_at; }
         },
+        async getSession(sessionId) { return copy(sessions.get(sessionId) || null); },
         async listSessions(limit = 300) { return copy([...sessions.values()].sort((a, b) => b.started_at.localeCompare(a.started_at)).slice(0, limit)); },
         async addFeedback(row) { feedback.unshift({ ...copy(row), created_at: new Date().toISOString() }); },
         async listFeedback(limit = 1000) { return copy(feedback.slice(0, limit)); },

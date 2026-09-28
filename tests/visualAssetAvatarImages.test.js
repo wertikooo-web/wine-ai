@@ -50,7 +50,10 @@ async function run() {
         // one is added there without a matching server route, this list
         // must be updated too (belt-and-suspenders with the dashboard-html
         // cross-check below).
-        const avatarPaths = ['/visual-assets/avatar-woman-1.png', '/visual-assets/avatar-man-1.png'];
+        // Persona avatars now come from one source (public/personas via
+        // /persona-avatar/<personaId> -> /persona-assets/<file>, fallback
+        // when a file is missing); the legacy /visual-assets routes stay.
+        const avatarPaths = ['/visual-assets/avatar-woman-1.png', '/visual-assets/avatar-man-1.png', '/persona-avatar/warm_guide', '/persona-avatar/classic', '/persona-assets/fallback.svg'];
 
         for (const assetPath of avatarPaths) {
             const res = await fetch(`${BASE}${assetPath}`);
@@ -74,7 +77,7 @@ async function run() {
         // silently 404ing in production.
         const dashboardHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'dashboard.html'), 'utf8');
         const referenced = new Set();
-        for (const match of dashboardHtml.matchAll(/\/visual-assets\/avatar-[\w.-]+\.png/g)) {
+        for (const match of dashboardHtml.matchAll(/\/visual-assets\/avatar-[\w.-]+\.png|\/persona-avatar\/[a-z_]+|\/persona-assets\/[\w.-]+\.(?:png|jpe?g|webp|svg)/g)) {
             referenced.add(match[0]);
         }
         assert.ok(referenced.size > 0, 'sanity: dashboard.html must reference at least one avatar image path');

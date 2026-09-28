@@ -51,6 +51,7 @@ const { createCostApi } = require('./cost/costApi');
 const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
 const { createLiveTestService, createPostgresLiveTestStore, createMemoryLiveTestStore, isPostgresConfigured: isLiveTestPostgresConfigured } = require('./liveTest/liveTestConfig');
 const { createLiveTestApi } = require('./liveTest/liveTestApi');
+const { personaDisplay } = require('./persona/profileRegistry');
 const { createCompanionApi } = require('./companion/companionApi');
 const { getCompanionStore, refreshIndex: refreshCompanionIndex } = require('./companion/companionCatalog');
 
@@ -272,7 +273,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -351,15 +352,58 @@ async function handleRequest(req, res) {
         });
     }
 
+    // Persona avatars (public/personas): one asset source for /lite, the
+    // WineMD widget and the dashboard. Names are fixed by the persona registry.
+    const personaAssetMatch = /^\/persona-assets\/([a-z0-9_-]+)\.(png|jpg|jpeg|webp|svg)$/.exec(pathname);
+    if (req.method === 'GET' && personaAssetMatch) {
+        const types = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml' };
+        const filePath = path.join(publicDir, 'personas', `${personaAssetMatch[1]}.${personaAssetMatch[2]}`);
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': types[personaAssetMatch[2]], 'cache-control': 'public, max-age=3600', 'access-control-allow-origin': '*' });
+            })
+            .pipe(res);
+        return undefined;
+    }
+
+    // Avatar by persona id (dashboard persona cards): redirects to the
+    // persona's asset, or the fallback when it is missing.
+    const personaAvatarMatch = /^\/persona-avatar\/([a-z_]+)$/.exec(pathname);
+    if (req.method === 'GET' && personaAvatarMatch) {
+        const display = personaDisplay(personaAvatarMatch[1], { fileExists: (file) => fs.existsSync(path.join(publicDir, file)) });
+        res.writeHead(302, { location: display.avatarUrl, 'cache-control': 'no-store' });
+        res.end();
+        return undefined;
+    }
+
     // Wine AI Lite presentation flags (Visual Companion rollback switch).
     if (req.method === 'GET' && pathname === '/api/lite/config') {
-        const published = liveTest.getPublished();
-        const personaId = published?.config?.persona || personaStore.getActiveProfileId();
-        const { getProfileById } = require('./persona/profileRegistry');
+        // Persona display (name + avatar) comes from the persona only: the
+        // session's own immutable snapshot when ?session= is given, else the
+        // published revision (= the next new session), else Settings.
+        const sessionParam = requestUrl.searchParams.get('session');
+        let personaId = null;
+        let personaSource = null;
+        if (sessionParam && /^session_[a-z0-9]{8,40}$/i.test(sessionParam)) {
+            try {
+                const recorded = await liveTest.store.getSession(sessionParam);
+                if (recorded && recorded.snapshot && recorded.snapshot.persona) { personaId = recorded.snapshot.persona; personaSource = 'session'; }
+            } catch { /* fall through */ }
+        }
+        if (!personaId) {
+            const published = liveTest.getPublished();
+            personaId = published?.config?.persona || personaStore.getActiveProfileId();
+            personaSource = published ? 'published' : 'settings';
+        }
+        const display = personaDisplay(personaId, { fileExists: (file) => fs.existsSync(path.join(publicDir, file)) });
+        // Public, read-only: the WineMD widget reads it from the partner site.
+        res.setHeader('access-control-allow-origin', '*');
         return sendJson(res, 200, {
             ok: true,
             visual_companion: process.env.VISUAL_COMPANION_ENABLED !== 'false',
-            persona_name: getProfileById(personaId)?.personaName || null,
+            persona_name: display.displayName,
+            persona: { id: display.personaId, display_name: display.displayName, display_names: display.displayNames, avatar_url: display.avatarUrl, avatar_focus: display.avatarFocus, launcher_zoom: display.launcherZoom, avatar_fallback: display.avatarFallback, source: personaSource },
         });
     }
 
