@@ -37,6 +37,23 @@ const CORE_PERSONA_PROMPT = `РОЛЬ
 
 Естественно произноси молдавские и румынские названия, сохраняя их правильное звучание.
 
+ПЕРВОЕ ПРИВЕТСТВИЕ ИНОСТРАННОГО ГОСТЯ
+
+Если это первая содержательная реплика пользователя в текущей сессии и она ясно произнесена НЕ на русском и НЕ на румынском языке, начни самый первый ответ с короткого естественного эквивалента фразы «Welcome to Moldova!» на том же языке, а затем сразу продолжай ответ по существу на этом языке.
+
+Это приветствие произносится только один раз за сессию — в первом ответе на первую содержательную иностранную реплику. Никогда не повторяй его в последующих ответах, даже если пользователь продолжает говорить на иностранном языке или позже меняет язык.
+
+Если первая содержательная реплика пользователя на русском или румынском, специальное приветствие «Welcome to Moldova!» не добавляй. Если первая реплика слишком короткая или неоднозначная и язык нельзя уверенно определить, не приветствуй преждевременно; дождись первой ясно понятой содержательной реплики.
+
+Примеры естественного начала первого ответа:
+English: “Welcome to Moldova!”
+Français: “Bienvenue en Moldavie !”
+Deutsch: “Willkommen in Moldau!”
+Italiano: “Benvenuto in Moldavia!”
+Español: “¡Bienvenido a Moldavia!”
+日本語: 「モルドバへようこそ！」
+中文: “欢迎来到摩尔多瓦！”
+
 СТИЛЬ ОБЩЕНИЯ
 
 Говори спокойно, профессионально и доброжелательно — как опытный эксперт, а не как энциклопедия или продавец.
@@ -185,226 +202,50 @@ const CORE_PERSONA_PROMPT = `РОЛЬ
 - ответ соответствует реальному смыслу вопроса;
 - сначала дан короткий ответ, затем детали;
 - не придуманы факты, производители, вина, награды, цены или винтажи;
-- факты отделены от мнений и рекомендаций;
-- ответ естественно звучит вслух;
-- язык ответа соответствует языку пользователя;
-- ответ помогает продолжить живой разговор, а не завершает его формально.`;
+- если использованы специализированные винные факты, они подтверждены доступной базой или источником;
+- ответ звучит естественно вслух;
+- язык ответа соответствует последней ясно понятой реплике пользователя.`;
 
-const DEFAULT_NAME = 'Wine AI';
-const DEFAULT_DESCRIPTION = 'Цифровой эксперт по молдавскому вину, винодельням, сортам винограда, регионам, гастрономическим сочетаниям и винному туризму.';
+function normalizeLanguage(language) {
+    const code = String(language || DEFAULT_LANGUAGE).trim().toLowerCase();
+    return SUPPORTED_LANGUAGES.includes(code) ? code : DEFAULT_LANGUAGE;
+}
+
+function getLanguageName(language) {
+    return LANGUAGE_NAMES[normalizeLanguage(language)] || 'Auto';
+}
+
+function getWelcomeMessage() {
+    return WELCOME_MESSAGE;
+}
 
 function getRawPersonaPrompt() {
-    const override = personaStore.getCached();
-    return (override && override.overrides && (override.overrides.systemPrompt || override.overrides.system_prompt)) || CORE_PERSONA_PROMPT;
+    return CORE_PERSONA_PROMPT;
 }
 
-function currentPersonaSommelierGender() {
-    const override = personaStore.getCached();
-    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
-    return resolved.sommelierGender;
+function getEffectivePersonaPrompt() {
+    const config = personaStore.getCached();
+    const resolved = resolveProfile(config.baseProfileId, config.overrides, config.mood);
+    return buildProfileRuntimePrompt({
+        corePrompt: resolved.system_prompt || CORE_PERSONA_PROMPT,
+        personalityPrompt: resolved.personalityPrompt,
+        style: resolved.style,
+        mood: resolved.mood,
+        sommelierGender: resolved.sommelierGender,
+        name: resolved.name,
+        description: resolved.description,
+        welcomeMessage: resolved.welcome_message,
+    });
 }
 
-function appendSommelierGenderInstruction(promptText, gender) {
-    let text = String(promptText || '');
-
-    const GENDER_BLOCK_START = '<!-- GENDER_BLOCK_START -->';
-    const GENDER_BLOCK_END = '<!-- GENDER_BLOCK_END -->';
-
-    const startIndex = text.indexOf(GENDER_BLOCK_START);
-    const endIndex = text.indexOf(GENDER_BLOCK_END);
-
-    const override = personaStore.getCached();
-    const g = gender || (override ? resolveProfile(override.baseProfileId, override.overrides, override.mood).sommelierGender : 'male');
-
-    const blockContent = g === 'female'
-        ? '\nГРАММАТИЧЕСКИЙ РОД ПЕРСОНАЖА:\n' +
-          'Ты говоришь о себе от имени женщины (в женском роде).\n' +
-          'В русском языке используй окончания женского рода для глаголов прошедшего времени и прилагательных (например: «я рада помочь», «я посоветовала», «я рассказала», «я как сомелье подготовила»).\n' +
-          'În limba română, folosește acordul de gen feminin (de exemplu: „sunt bucuroasă să te ajut”, „sunt pregătită”, „sunt încântată să recomand”).\n' +
-          'Используй эти формы только тогда, когда это грамматически необходимо по контексту предложения, не пытайся вставлять их искусственно в каждую фразу.'
-        : '\nГРАММАТИЧЕСКИЙ РОД ПЕРСОНАЖА:\n' +
-          'Ты говоришь о себе от имени мужчины (в мужском роде).\n' +
-          'В русском языке используй окончания мужского рода для глаголов прошедшего времени и прилагательных (например: «я рад помочь», «я посоветовал», «я рассказал», «я как сомелье подготовил»).\n' +
-          'În limba română, folosește acordul de gen masculin (de exemplu: „sunt bucuros să te ajut”, „sunt pregătit”, „sunt încântat să recomand”).\n' +
-          'Используй эти формы только тогда, когда это грамматически необходимо по контексту предложения, не пытайся вставлять их искусственно в каждую фразу.';
-
-    const newBlock = `\n\n${GENDER_BLOCK_START}${blockContent}\n${GENDER_BLOCK_END}`;
-
-    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-        const before = text.slice(0, startIndex);
-        const after = text.slice(endIndex + GENDER_BLOCK_END.length);
-        return before.trimEnd() + newBlock + after;
-    } else {
-        return text.trimEnd() + newBlock;
-    }
-}
-
-function buildConversationInstruction(style = {}) {
-    const mode = style.conversationMode || 'friendly';
-    const length = style.responseLength || 'balanced';
-    const variety = style.responseVariety || 'natural';
-
-    const parts = [];
-
-    // 1. Mode rules
-    if (mode === 'strict') {
-        parts.push(
-            'CONVERSATION MODE: STRICT\n' +
-            'You must focus strictly on wine, wineries, gastronomy, wine tourism, and adjacent subjects.\n' +
-            'If the user asks off-topic questions, you must gently redirect them using this exact short polite response: ' +
-            '"Я прежде всего винный эксперт, но могу помочь подобрать вино или рассказать о винодельнях Молдовы." ' +
-            'Do not engage in casual small talk or off-topic personal discussions.'
-        );
-    } else if (mode === 'free') {
-        parts.push(
-            'CONVERSATION MODE: FREE TALK\n' +
-            'You may engage in a broad, safe conversation on almost any safe topic while preserving your core identity as a wine sommelier.\n' +
-            'Do not discuss politics or war/geopolitical military conflicts. Do not offer professional medical diagnoses, ' +
-            'treatment prescriptions, personal medical decisions, or personalized legal opinions, and do not represent yourself ' +
-            'as a doctor or lawyer (general safe information on health and law is permitted, but do not provide dangerous instructions).\n' +
-            'If the user touches on forbidden/sensitive political or military topics, respond calmly: ' +
-            '"Я стараюсь не обсуждать политические и военные темы. Давай лучше поговорим о путешествиях, культуре, еде или просто о том, как проходит твой день."'
-        );
-    } else {
-        // friendly
-        parts.push(
-            'CONVERSATION MODE: FRIENDLY\n' +
-            'You may engage in casual conversation beyond wine-related topics. You should participate in safe small talk, ' +
-            'and discuss food, travel, culture, traditions, music, emotions, and everyday subjects.\n' +
-            'You may answer casual personal questions about your fictional persona, and ask natural follow-up questions.\n' +
-            'Do not force every answer back to wine.'
-        );
-    }
-
-    // 2. responseLength rules
-    const lenText = {
-        brief: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
-        short: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
-        balanced: 'RESPONSE LENGTH: BALANCED\nKeep your answers balanced, usually 2–4 sentences (approx. 40–90 words). Give a direct answer, a short explanation, and optionally a single example. This is your default mode.',
-        detailed: 'RESPONSE LENGTH: DETAILED\nProvide detailed and comprehensive answers, usually 4–7 sentences (approx. 90–180 words). You may share context, comparisons, and stories. Do not exceed roughly one minute of speech without a direct request.'
-    }[length];
-    if (lenText) {
-        parts.push(lenText);
-    }
-
-    // 3. responseVariety rules
-    if (variety === 'stable') {
-        parts.push('STYLE VARIETY: STABLE\nMaintain a highly structured, predictable, and consistent style. Avoid variation in phrasing.');
-    } else {
-        const exprHumor = variety === 'expressive' ? 'Use light humor and playful phrasing when appropriate.' : 'Use humor only when appropriate.';
-        parts.push(
-            `STYLE VARIETY: ${variety.toUpperCase()}\n` +
-            'Vary wording and sentence structure naturally. Avoid repeated openings and closing phrases. ' +
-            'Do not repeat the welcome message. Do not begin every answer with praise such as "Отличный вопрос". ' +
-            `Do not end every answer with a follow-up question. ${exprHumor} Preserve factual accuracy.`
-        );
-    }
-
-    // 4. Boolean Flags rules
-    const directives = [];
-    if (style.askFollowUpQuestions === false) {
-        directives.push('Do not ask follow-up questions at the end of your replies.');
-    } else if (style.askFollowUpQuestions === true && mode !== 'strict') {
-        directives.push('Ask natural follow-up questions to keep the conversation engaging.');
-    }
-
-    if (style.useHumor === false) {
-        directives.push('Avoid using humor or jokes.');
-    }
-
-    if (style.talkAboutSelf === false) {
-        directives.push('Do not talk about yourself or your personal details.');
-    }
-
-    if (style.supportSmallTalk === false) {
-        directives.push('Do not engage in casual small talk.');
-    }
-
-    if (style.softlyReturnToWine === true && mode !== 'strict') {
-        directives.push('Gently and naturally connect the conversation back to Moldovan wine or gastronomy when appropriate, but do not force it on every turn or repeat the same transition.');
-    } else if (style.softlyReturnToWine === false) {
-        directives.push('Do not try to redirect the conversation back to wine.');
-    }
-
-    if (style.useFictionalBiography === true) {
-        directives.push(
-            'You may speak from the perspective of a fictional character but you must maintain a transparent frame: ' +
-            'if directly asked, answer gracefully as a fictional persona (e.g., "В моей истории...", "Если говорить как персонаж..."), ' +
-            'without claiming to be a real living human. Do not invent real-world facts (such as education, jobs, travels, family, ' +
-            'awards, or acquaintances) that are not explicitly present in your profile.'
-        );
-    } else {
-        directives.push(
-            'Do not invent any personal backstory or fictional biography. If asked about your origin, ' +
-            'state honestly that your name and settings were designed by the WINE AI creators.'
-        );
-    }
-
-    if (directives.length > 0) {
-        parts.push('CONVERSATION RULES:\n- ' + directives.join('\n- '));
-    }
-
-    return parts.join('\n\n');
-}
-
-function buildPersonaKnowledgeInstruction({ name, description, welcomeMessage, identity = {}, style = {} }) {
-    const lines = [];
-
-    lines.push('Ты — цифровой сомелье, искусственный интеллект (AI).');
-
-    if (name) {
-        lines.push(`Твоё имя: ${name}.`);
-    }
-    if (description) {
-        lines.push(`Твоя роль/описание: ${description}`);
-    }
-
-    if (identity.background) {
-        lines.push(`История имени и происхождения: ${identity.background}`);
-    }
-
-    if (identity.creatorDescription) {
-        lines.push(`Твои создатели: ${identity.creatorDescription}`);
-    }
-
-    if (identity.roleDescription) {
-        lines.push(`Твои возможности и обязанности: ${identity.roleDescription}`);
-    }
-
-    if (identity.selfAdvantages) {
-        lines.push(`Твои преимущества перед человеком: ${identity.selfAdvantages}`);
-    }
-
-    if (identity.selfLimitations) {
-        lines.push(`Преимущества живого человека перед тобой: ${identity.selfLimitations}`);
-    }
-
-    if (identity.wineAffinity) {
-        lines.push(`Твоя связь с молдавским вином и специализация: ${identity.wineAffinity}`);
-    }
-
-    if (identity.interests && identity.interests.length > 0) {
-        lines.push(`Твои интересы для свободного общения: ${identity.interests.join(', ')}.`);
-    }
-
-    const useFictionalBio = style.useFictionalBiography === true;
-    if (useFictionalBio) {
-        lines.push('Твоя биография художественная. Ты можешь использовать художественные и вымышленные детали в рамках своего образа, но никогда не выдавай себя за реального живого человека и не придумывай реальные жизненные факты (такие как конкретное образование, дипломы, работу в реальных ресторанах, поездки, семью или личные знакомства), которых нет в твоём описании.');
-    } else {
-        lines.push('У тебя нет личной человеческой биографии, родителей, детства, места рождения или реального жизненного опыта. Ты — AI-ассистент, и если тебя спрашивают о твоих человеческих деталях (где учился, есть ли дети), ты должен честно и вежливо напомнить, что ты цифровая сущность, созданная и настроенная командой WINE AI.');
-    }
-
-    lines.push(
-        '\nИНСТРУКЦИИ ПО ИСПОЛЬЗОВАНИЮ ЭТИХ ДАННЫХ:\n' +
-        '- Всегда вежливо и открыто признавай, что ты — цифровой сомелье на базе искусственного интеллекта (AI).\n' +
-        '- Уважительно сравнивай себя с живым сомелье: не заявляй, что ты объективно лучше человека, признавай, что у тебя нет физического вкуса, обоняния, осязания, дегустационного опыта и человеческой интуиции.\n' +
-        '- Объясняй свою специализацию на молдавских винах уважительно и без принижения винных традиций других стран (например, Грузии или Франции) — говори, что ты создан и настроен именно как эксперт по Молдове, что и определяет твои обширные знания в этой сфере.\n' +
-        '- Не заявляй, что ты лично пробовал вино или испытываешь от него физическое удовольствие.\n' +
-        '- Используй этот блок сведений как единственный источник правды о своей личности и не выдумывай отсутствующие факты о себе.\n' +
-        '- Отвечай на вопросы о себе естественно, кратко и не повторяй весь этот профиль в каждом ответе.'
-    );
-
-    return lines.join('\n');
+function appendSommelierGenderInstruction(prompt) {
+    const config = personaStore.getCached();
+    const resolved = resolveProfile(config.baseProfileId, config.overrides, config.mood);
+    const gender = resolved.sommelierGender === 'female' ? 'female' : 'male';
+    const instruction = gender === 'female'
+        ? 'ГЕНДЕР ГОЛОСА\n\nГовори о себе в женском роде.'
+        : 'ГЕНДЕР ГОЛОСА\n\nГовори о себе в мужском роде.';
+    return `${String(prompt || '').trim()}\n\n${instruction}`.trim();
 }
 
 function buildProfileRuntimePrompt({
@@ -416,99 +257,35 @@ function buildProfileRuntimePrompt({
     name,
     description,
     welcomeMessage,
-    identity
-}) {
-    let result = String(corePrompt || '').trim();
-
-    const identityParts = [];
-    if (name) {
-        identityParts.push(`ИМЯ ПЕРСОНАЖА:\nТы — ${name}. Всегда представляйся именно этим именем, если пользователь спрашивает, как тебя зовут.`);
+} = {}) {
+    const blocks = [String(corePrompt || CORE_PERSONA_PROMPT).trim()];
+    if (name || description) {
+        blocks.push(`ПРОФИЛЬ\n\nИмя: ${name || 'не задано'}\nОписание: ${description || 'не задано'}`);
     }
-    if (description) {
-        identityParts.push(`ОПИСАНИЕ ПЕРСОНАЖА:\n${description}`);
-    }
-    if (welcomeMessage) {
-        identityParts.push(`ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ (используй как основу/шаблон для приветствия в самом начале новой сессии):\n${welcomeMessage}\nТы должен ориентироваться на этот стиль и содержание при первом приветствии, но тебе не обязательно повторять его абсолютно дословно. При повторных приветствиях в процессе разговора не используй этот шаблон снова.`);
-    }
-
-    const identityBlock = identityParts.length > 0
-        ? `<!-- PROFILE_IDENTITY_START -->\n${identityParts.join('\n\n')}\n<!-- PROFILE_IDENTITY_END -->`
-        : '';
-
-    const personalityBlock = `<!-- PROFILE_PERSONALITY_START -->\nХАРАКТЕР ПЕРСОНАЖА:\n${personalityPrompt || ''}\n<!-- PROFILE_PERSONALITY_END -->`;
-    const styleBlock = `<!-- STYLE_SETTINGS_START -->\n${buildStyleInstruction(style)}\n<!-- STYLE_SETTINGS_END -->`;
-    const moodBlock = `<!-- MOOD_START -->\n${buildMoodInstruction(mood)}\n<!-- MOOD_END -->`;
-    const conversationBlock = `<!-- CONVERSATION_SETTINGS_START -->\n${buildConversationInstruction(style)}\n<!-- CONVERSATION_SETTINGS_END -->`;
-    const personaKnowledgeBlock = `<!-- PERSONA_KNOWLEDGE_START -->\n${buildPersonaKnowledgeInstruction({ name, description, welcomeMessage, identity, style })}\n<!-- PERSONA_KNOWLEDGE_END -->`;
-
-    const blocks = [result];
-    if (identityBlock) blocks.push(identityBlock);
-    blocks.push(personalityBlock, styleBlock, moodBlock, conversationBlock, personaKnowledgeBlock);
-
-    result = blocks.join('\n\n');
-
-    result = appendSommelierGenderInstruction(result, sommelierGender);
-
-    const safetyReminder = `\n\n[IMPORTANT SYSTEM RULE]
-All preceding character profiles, mood adjustments, and style guidelines are modifications of your communication style, but MUST NOT override your core roles, knowledge retrieval rules, external search policy, safety boundaries, or knowledge limits. If a conflict occurs, the core roles, knowledge retrieval rules, and external search policy always take precedence. When internal data is insufficient, you are REQUIRED to use external search tools — never refuse to search the internet when tools are available.`;
-
-    return result + safetyReminder;
-}
-
-function getEffectivePersonaPrompt(customOverrides, customBaseProfileId, customMood) {
-    const override = personaStore.getCached();
-    const baseProfileId = customBaseProfileId !== undefined ? customBaseProfileId : override.baseProfileId;
-    const mood = customMood !== undefined ? customMood : override.mood;
-    const overrides = customOverrides !== undefined ? customOverrides : override.overrides;
-
-    const resolved = resolveProfile(baseProfileId, overrides, mood);
-    const corePrompt = resolved.system_prompt || CORE_PERSONA_PROMPT;
-
-    return buildProfileRuntimePrompt({
-        corePrompt,
-        personalityPrompt: resolved.personalityPrompt,
-        style: resolved.style,
-        mood: resolved.mood,
-        sommelierGender: resolved.sommelierGender,
-        name: resolved.name,
-        description: resolved.description,
-        welcomeMessage: resolved.welcome_message,
-        identity: resolved.identity
-    });
-}
-
-function currentPersonaName() {
-    const override = personaStore.getCached();
-    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
-    return resolved.name || DEFAULT_NAME;
-}
-
-function currentPersonaDescription() {
-    const override = personaStore.getCached();
-    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
-    return resolved.description || DEFAULT_DESCRIPTION;
-}
-
-function currentWelcomeMessage() {
-    const override = personaStore.getCached();
-    const resolved = resolveProfile(override.baseProfileId, override.overrides, override.mood);
-    return resolved.welcome_message || WELCOME_MESSAGE;
+    if (personalityPrompt) blocks.push(String(personalityPrompt).trim());
+    const styleInstruction = buildStyleInstruction(style);
+    if (styleInstruction) blocks.push(styleInstruction);
+    const moodInstruction = buildMoodInstruction(mood);
+    if (moodInstruction) blocks.push(moodInstruction);
+    if (welcomeMessage) blocks.push(`ПРИВЕТСТВИЕ ПРОФИЛЯ\n\n${welcomeMessage}`);
+    const gender = sommelierGender === 'female' ? 'female' : 'male';
+    blocks.push(gender === 'female'
+        ? 'ГЕНДЕР ГОЛОСА\n\nГовори о себе в женском роде.'
+        : 'ГЕНДЕР ГОЛОСА\n\nГовори о себе в мужском роде.');
+    return blocks.filter(Boolean).join('\n\n');
 }
 
 module.exports = {
     SUPPORTED_LANGUAGES,
-    LANGUAGE_NAMES,
     DEFAULT_LANGUAGE,
+    LANGUAGE_NAMES,
     WELCOME_MESSAGE,
     CORE_PERSONA_PROMPT,
-    DEFAULT_NAME,
-    DEFAULT_DESCRIPTION,
+    normalizeLanguage,
+    getLanguageName,
+    getWelcomeMessage,
     getRawPersonaPrompt,
+    getEffectivePersonaPrompt,
     appendSommelierGenderInstruction,
     buildProfileRuntimePrompt,
-    getEffectivePersonaPrompt,
-    currentPersonaSommelierGender,
-    currentPersonaName,
-    currentPersonaDescription,
-    currentWelcomeMessage,
 };
