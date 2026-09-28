@@ -14,6 +14,7 @@ const {
 const { attemptRecovery } = require('../knowledge/usefulRecovery');
 const { inferForQuestion } = require('../knowledge/wineIntelligence');
 const { isWebSearchEnabled } = require('../knowledge/webSearchSetting');
+const { findWinesInTexts } = require('../companion/companionCatalog');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -133,8 +134,39 @@ function attachInference(output, inference) {
     };
 }
 
+// Visual Companion (Wine AI Lite only): wines from the verified partner
+// catalog that this result is about are shown to the participant as cards
+// with verified links. Telling the model which ones lets it say "I'm
+// showing it on screen" truthfully -- and only then (see the persona's
+// ЭКРАН И ССЫЛКИ rules). Never throws; never adds a URL for the model.
+const NO_URL_INSTRUCTION = ' Do not read, spell out or invent any URL; if the user asks for a link and no screen_cards are given, say honestly that there is no verified link for it yet.';
+const SCREEN_CARDS_INSTRUCTION = ' The wines listed in "screen_cards" are shown to the user on screen as cards with a verified link; you may say you are showing the card and link on screen. Never say or invent a URL.';
+function attachScreenCards(output, args, toolContext) {
+    try {
+        if (!output || typeof output !== 'object' || !toolContext || toolContext.companionScreen !== true) return output;
+        const texts = [String(args && args.query || '')];
+        for (const item of (output.evidence || []).slice(0, 8)) texts.push(String(item.title || ''), String(item.text || '').slice(0, 400));
+        for (const claim of (output.claims || []).slice(0, 12)) texts.push(String(claim.value || claim.text || ''));
+        const found = findWinesInTexts(texts);
+        if (!found.length) {
+            return output.answer_policy
+                ? { ...output, answer_policy: { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + NO_URL_INSTRUCTION } }
+                : output;
+        }
+        return {
+            ...output,
+            screen_cards: found.map((w) => ({ wine: w.wineName, winery: w.wineryName })),
+            answer_policy: output.answer_policy
+                ? { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + SCREEN_CARDS_INSTRUCTION }
+                : output.answer_policy,
+        };
+    } catch {
+        return output;
+    }
+}
+
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
-    return async function layeredKnowledgeImpl(args, toolContext) {
+    const layeredKnowledgeImpl = async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
         const language = optionalString(args.language, 8) || null;
         const answerMode = resolveAnswerMode(args.answer_mode);
@@ -503,6 +535,9 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                     + (entityMatch === 'mismatch' || entityMatch === 'unverified_after_web' ? ENTITY_MISMATCH_NOTE : ''),
             },
         }, inference);
+    };
+    return async function layeredKnowledgeWithScreenCards(args, toolContext) {
+        return attachScreenCards(await layeredKnowledgeImpl(args, toolContext), args, toolContext);
     };
 }
 
