@@ -265,7 +265,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/dashboard/cost-guide', '/lite', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -339,6 +339,18 @@ async function handleRequest(req, res) {
             model: defaultProvider.metadata.model,
             endpoints: KNOWN_ENDPOINTS,
             next: 'Open /dashboard in a browser and start a conversation.',
+        });
+    }
+
+    // Wine AI Lite presentation flags (Visual Companion rollback switch).
+    if (req.method === 'GET' && pathname === '/api/lite/config') {
+        const published = liveTest.getPublished();
+        const personaId = published?.config?.persona || personaStore.getActiveProfileId();
+        const { getProfileById } = require('./persona/profileRegistry');
+        return sendJson(res, 200, {
+            ok: true,
+            visual_companion: process.env.VISUAL_COMPANION_ENABLED !== 'false',
+            persona_name: getProfileById(personaId)?.personaName || null,
         });
     }
 
