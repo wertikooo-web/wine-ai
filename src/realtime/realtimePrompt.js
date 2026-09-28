@@ -5,6 +5,7 @@
 // as a default — this module has no domain knowledge of wine.
 const crypto = require('crypto');
 const { getRawPersonaPrompt, appendSommelierGenderInstruction, getEffectivePersonaPrompt } = require('../persona/wineExpertPersona');
+const { appendFirstForeignWelcomeInstruction } = require('../persona/firstForeignWelcomeInstruction');
 const { buildVoiceSommelierStyleBlock } = require('../persona/voiceSommelierStyleModule');
 
 // Generous ceiling per block, mirroring the reasoning that produced this
@@ -78,7 +79,14 @@ function buildRealtimeSystemInstruction({
     currentContext,
 } = {}) {
     const basePersona = persona || getRawPersonaPrompt();
-    const decoratedPersona = appendSommelierGenderInstruction(basePersona);
+    // Product-level first-turn behaviour must survive custom dashboard/profile
+    // personas, so it is appended unconditionally at the shared prompt
+    // assembly point instead of living only in the default sommelier persona.
+    // This deliberately does NOT touch provider/session/turn state: Gemini or
+    // Grok already receives the user's audio and can determine the language
+    // of the first meaningful utterance before composing its first response.
+    const personaWithForeignWelcome = appendFirstForeignWelcomeInstruction(basePersona);
+    const decoratedPersona = appendSommelierGenderInstruction(personaWithForeignWelcome);
     const personaBlock = requireWithinLimit(decoratedPersona, 'persona');
     const current = requireWithinLimit(
         typeof currentContext === 'string' ? currentContext : buildCurrentContext(currentContext),
