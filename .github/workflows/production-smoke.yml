@@ -109,5 +109,8 @@ jobs:
             echo "$path http=$code"
             test "$code" = "200"
           done
-          curl -sS -L --max-time 30 "$BASE_URL/dashboard" | grep -q 'data-tab="cost"'
+          # Download first: `curl | grep -q` fails under pipefail when grep
+          # exits early on the match (curl exit 23, write failure).
+          curl -sS -L --max-time 30 -o /tmp/dashboard-cost.html "$BASE_URL/dashboard"
+          grep -q 'data-tab="cost"' /tmp/dashboard-cost.html
           echo "dashboard contains the Cost Control tab"
