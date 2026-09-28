@@ -337,6 +337,12 @@ function detectConflicts(evidence) {
         .map(([key, values]) => ({ key, values: [...values] }));
 }
 
+function eagerWebIntents(value = process.env.WEB_EAGER_INTENTS) {
+    const raw = String(value || '').trim();
+    const list = raw ? raw.split(',').map((item) => item.trim()).filter(Boolean) : ['off_topic_factual'];
+    return new Set(list);
+}
+
 async function routeKnowledge(query, options = {}) {
     const language = options.language || null;
     const allowWeb = options.allowWeb !== false;
@@ -351,7 +357,15 @@ async function routeKnowledge(query, options = {}) {
     // or weak internal evidence), so facts about our own partners still
     // default to our own data. Smalltalk never triggers web -- there is
     // nothing to look up.
-    const eagerWeb = intent === 'general_wine' || intent === 'off_topic_factual';
+    //
+    // general_wine used to be eager too. With web grounding actually working
+    // (4-8s per call) that made every general wine question wait for the
+    // internet even when our own knowledge base already answered it, and
+    // pushed voice turns past the realtime watchdog. It is now KOS-first:
+    // web only when internal evidence is weak, the question is freshness-
+    // sensitive, or the answerability gate does not confirm the evidence.
+    // WEB_EAGER_INTENTS (comma list) restores eager intents without a deploy.
+    const eagerWeb = eagerWebIntents().has(intent);
     const attempts = [];
     const adapters = options.adapters || {};
 
