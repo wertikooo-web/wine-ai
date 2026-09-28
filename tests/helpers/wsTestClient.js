@@ -87,6 +87,10 @@ function connect(port, path = '/realtime', headers = {}) {
                 // upgraded ones) is never left waiting on a half-closed
                 // socket.
                 close: () => socket.destroy(),
+                // Sends a real (masked, empty) WS close frame, as a browser
+                // does on tab close — exercises the server's onClose path
+                // deterministically, independent of TCP teardown delivery.
+                sendCloseFrame: () => socket.write(Buffer.from([0x88, 0x80, 0x01, 0x02, 0x03, 0x04])),
             });
         });
 

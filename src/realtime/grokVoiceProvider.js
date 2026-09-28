@@ -540,6 +540,15 @@ class GrokVoiceProviderSession {
         if (this.active === active) this.active = null;
     }
 
+    reportUsage(usage) {
+        if (!usage || typeof this.options.onUsage !== 'function') return;
+        try {
+            this.options.onUsage(usage, { kind: 'realtime_usage', providerInstanceId: this.instanceId });
+        } catch {
+            // Cost telemetry must never affect the conversation.
+        }
+    }
+
     handleMessage(data) {
         let event;
         try {
@@ -548,6 +557,10 @@ class GrokVoiceProviderSession {
             return;
         }
         const type = String(event.type || '');
+        // Cost telemetry (src/cost/sessionUsageMeter.js): observe the usage
+        // object on response.done, including late ones while draining.
+        // Never affects turn state.
+        if (type === 'response.done') this.reportUsage(event.response?.usage || event.usage);
 
         // TEMPORARY diagnostic (tap_to_start only) for the
         // provider-native-VAD-not-working investigation — logs the `type`

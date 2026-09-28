@@ -47,6 +47,8 @@ const wineCatalogService = require('./kos/wines/wineCatalogService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
 const { issueAdultCookie, isAdultVerified } = require('./security/ageVerification');
+const { createCostApi } = require('./cost/costApi');
+const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
@@ -81,6 +83,15 @@ function getAvatarClientConfig() {
 initKosSchema().catch((error) => {
     console.error('[WineAI] KOS schema initialization failed:', error);
 });
+
+// Cost & Usage Control schema (idempotent CREATE IF NOT EXISTS, separate
+// from the KOS migration transaction so a failure here can never mark KOS
+// unavailable). Non-fatal: telemetry retries init lazily on first write.
+if (isCostPostgresConfigured()) {
+    getCostStore().init().catch((error) => {
+        console.error('[WineAI] cost schema initialization failed (non-fatal):', error.message);
+    });
+}
 
 // One-time data migration: import crawled docs and entity facts into Postgres.
 // Runs at boot if the target tables are empty — idempotent, safe to restart.
@@ -209,6 +220,7 @@ function sendJson(res, statusCode, payload) {
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 
 const studioApi = createStudioApi({ sendJson, readJsonBody });
+const costApi = createCostApi({ sendJson, readJsonBody });
 
 function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     return new Promise((resolve, reject) => {
@@ -235,7 +247,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -1130,6 +1142,23 @@ async function handleRequest(req, res) {
             at: new Date().toISOString(),
         }));
         return sendJson(res, 200, { ok: true });
+    }
+
+    // Cost & Usage Control (Dashboard → Расходы / Cost Control).
+    if (pathname.startsWith('/api/cost/')) {
+        await costApi.handle(req, res, pathname, requestUrl.searchParams);
+        return undefined;
+    }
+
+    if (req.method === 'GET' && pathname === '/cost-control.js') {
+        const filePath = path.join(publicDir, 'cost-control.js');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
     }
 
     if (req.method === 'POST' && pathname === '/api/analytics/purchase-click') {

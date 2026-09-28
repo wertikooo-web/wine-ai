@@ -14,6 +14,8 @@
 // (confirmed via staging diagnostics: Railway's hosting IPs get an anti-bot
 // HTTP 202 from DuckDuckGo, never real results -- not fixable from here).
 
+const { recordApiCall } = require('../cost/costTelemetry');
+
 const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER || 'gemini-grounding'; // gemini-grounding | brave | disabled
 const GROUNDING_MODEL = process.env.WEB_SEARCH_GROUNDING_MODEL || 'gemini-2.5-flash';
 const DEFAULT_TIMEOUT_MS = Number(process.env.WEB_SEARCH_TIMEOUT_MS || 8000);
@@ -185,6 +187,10 @@ async function geminiGroundingSearch(query, {
             } finally {
                 clearTimeout(timeout);
             }
+            // Cost telemetry (fire-and-forget, never throws): model tokens as
+            // reported by the provider + one grounded request.
+            recordApiCall({ category: 'llm_text', provider: 'gemini', model, operation: 'web_search_grounding', sessionId, usageMetadata: response?.usageMetadata || null });
+            recordApiCall({ category: 'web_search', provider: 'gemini', model, operation: 'google_search_grounding', sessionId, requests: 1, basis: 'actual', extraRaw: { web_search_queries: Array.isArray(response?.candidates?.[0]?.groundingMetadata?.webSearchQueries) ? response.candidates[0].groundingMetadata.webSearchQueries.length : null } });
         }
     } catch (error) {
         return { found: false, results: [], provider: 'gemini-grounding', error: error?.name === 'AbortError' ? 'timeout' : (error?.message || 'unknown_error') };

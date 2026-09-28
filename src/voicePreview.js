@@ -2,6 +2,7 @@
 
 const { isValidVoiceName, DEFAULT_VOICE_NAME } = require('./geminiVoices');
 const { normalizeGrokVoiceId, DEFAULT_GROK_VOICE_ID } = require('./grokVoices');
+const { recordApiCall } = require('./cost/costTelemetry');
 
 const TTS_MODEL = process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
 const MAX_PREVIEW_TEXT_CHARS = 300;
@@ -41,6 +42,9 @@ async function synthesizeVoicePreview({ voiceName, text, apiKey } = {}) {
             },
         },
     });
+
+    // Cost telemetry (fire-and-forget, never throws).
+    recordApiCall({ category: 'tts', provider: 'gemini', model: TTS_MODEL, operation: 'voice_preview', usageMetadata: response?.usageMetadata || null });
 
     const part = response?.candidates?.[0]?.content?.parts?.find((item) => item.inlineData);
     const audioBase64 = part?.inlineData?.data || response?.data;
@@ -95,6 +99,10 @@ async function synthesizeGrokVoicePreview({ voiceName, text, apiKey, fetchImpl =
             : 'grok_tts_failed';
         throw error;
     }
+
+    // Cost telemetry: xAI TTS returns no usage object; record measured
+    // characters (unpriced until a grok TTS price row is configured).
+    recordApiCall({ category: 'tts', provider: 'grok', model: 'grok-tts', operation: 'voice_preview', inputChars: resolvedText.length });
 
     const audio = Buffer.from(await response.arrayBuffer());
     if (audio.length === 0) {
