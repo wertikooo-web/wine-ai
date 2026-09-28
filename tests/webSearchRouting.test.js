@@ -54,8 +54,11 @@ async function run() {
         assert.ok(!stub.calls.includes('web'), 'searchInternet must never be called when internal evidence is already strong for our own entity');
     }
 
-    // --- general_wine: web fires eagerly, even with strong internal -------
-    console.log('Testing: general_wine queries call web eagerly, in parallel, regardless of internal evidence strength...');
+    // --- general_wine: KOS-first; web only when internal is weak ----------
+    // (Was eager until 2026-09-28: with web grounding taking 4-8s it made
+    // every general question wait for the internet even when our own base
+    // answered it, and pushed voice turns past the realtime watchdog.)
+    console.log('Testing: general_wine with strong internal evidence answers from KOS, no web...');
     {
         const stub = adapters({
             documentItems: [{ level: LEVELS.DOCUMENTS, text: 'x', title: 'Pairing', source: 'doc', confidence: 'high', relevance_score: 0.95 }],
@@ -63,10 +66,32 @@ async function run() {
         });
         const result = await routeKnowledge('Что такое терруар в виноделии?', { adapters: stub.value });
         assert.strictEqual(result.query_intent, 'general_wine');
-        assert.strictEqual(result.web_used, true, 'web must run even though internal evidence is already strong -- eager, not fallback-only');
-        assert.strictEqual(result.web_reason, 'general_wine_topic');
-        assert.ok(stub.calls.includes('web'));
+        assert.strictEqual(result.web_attempted, false, 'strong internal evidence must suppress web for general_wine (KOS-first)');
+        assert.ok(!stub.calls.includes('web'), 'searchInternet must not be called when our own base already answers');
+    }
+    console.log('Testing: general_wine with weak/empty internal evidence still goes to the web...');
+    {
+        const stub = adapters({ webItems: [webItem('Terroir explained')] });
+        const result = await routeKnowledge('Что такое терруар в виноделии?', { adapters: stub.value });
+        assert.strictEqual(result.query_intent, 'general_wine');
+        assert.strictEqual(result.web_used, true, 'empty internal evidence must fall back to web');
+        assert.strictEqual(result.web_reason, 'weak_internal');
         assert.ok(result.evidence.some((item) => item.level === LEVELS.WEB));
+    }
+    console.log('Testing: WEB_EAGER_INTENTS restores eager web for general_wine without a deploy...');
+    {
+        process.env.WEB_EAGER_INTENTS = 'general_wine,off_topic_factual';
+        try {
+            const stub = adapters({
+                documentItems: [{ level: LEVELS.DOCUMENTS, text: 'x', title: 'Pairing', source: 'doc', confidence: 'high', relevance_score: 0.95 }],
+                webItems: [webItem('Terroir explained')],
+            });
+            const result = await routeKnowledge('Что такое терруар в виноделии?', { adapters: stub.value });
+            assert.strictEqual(result.web_used, true);
+            assert.strictEqual(result.web_reason, 'general_wine_topic');
+        } finally {
+            delete process.env.WEB_EAGER_INTENTS;
+        }
     }
 
     // Regression: when there are more (generic, weakly-relevant) internal

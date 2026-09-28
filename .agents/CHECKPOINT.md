@@ -5,4 +5,4 @@
 - decisions: Budget is observability only. Costs re-priced on read from raw usage + versioned ai_pricing. Cost schema separate from KOS migrations. Unknown models are UNPRICED, not guessed. Grok priced per measured minute (ESTIMATED). Cost writes gated by ADMIN_TOKEN when set.
 - blockers: none. (Sandbox network policy blocks the Railway host; production is verified through the Railway Production Smoke workflow.)
 - production_state: deployed at `e7be7ad` (in-app RU/RO guide at /dashboard/cost-guide, verified by production-smoke run 36431781858 attempt 2). Earlier: `c74d91a`; Cost Control endpoints verified by production-smoke run 36428368001. That run's final dashboard grep failed only because `curl | grep -q` exits 23 under pipefail (smoke-script bug, fixed in the follow-up PR).
-- next_action: none for this mission; owner to run one real voice conversation, enter fixed costs, confirm rates and budget.
+- next_action: merge the tool-call turn-timeout fix (prod incident 2026-09-28: ptt_turn_timeout 4.5s fired during 5-8s search_wine_knowledge web grounding, 3 of 5 Grok turns lost); then verify a real conversation with tool use.
