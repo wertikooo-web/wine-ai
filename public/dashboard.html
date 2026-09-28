@@ -739,6 +739,7 @@
   <button data-tab="knowledge">Knowledge</button>
   <button data-tab="documents">Documents</button>
   <button data-tab="persona">Settings</button>
+  <button data-tab="cost">Расходы / Cost Control</button>
   <a class="avatar-lab-link" href="/avatar-lab" target="_blank" rel="noopener">Avatar Lab ↗</a>
 </nav>
 
@@ -1558,7 +1559,161 @@
     </div>
   </section>
 
+  <!-- Cost & Usage Control. Rendering/data logic lives in /cost-control.js;
+       budget here is observability only and never affects realtime. -->
+  <section class="panel" id="tab-cost">
+    <style>
+      .cc-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+      .cc-head h2 { margin:0; color:var(--wine); font-size:20px; }
+      .cc-sub { color:var(--muted); font-size:12px; }
+      .cc-cards { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+      @media (max-width: 1100px) { .cc-cards { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+      @media (max-width: 520px) { .cc-cards { grid-template-columns:1fr; } }
+      .cc-card { background:white; border:1px solid var(--border); border-radius:12px; padding:16px; min-width:0; }
+      .cc-card--main { background:linear-gradient(160deg, var(--wine), var(--wine-dark)); color:white; border-color:var(--wine-dark); }
+      .cc-card__label { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; }
+      .cc-card--main .cc-card__label, .cc-card--main .cc-card__meta { color:rgba(255,255,255,.82); }
+      .cc-card__value { font-size:26px; font-weight:800; margin-top:6px; overflow-wrap:anywhere; }
+      .cc-card--main .cc-card__value { font-size:32px; }
+      .cc-card__eur { font-size:13px; margin-top:2px; opacity:.85; }
+      .cc-card__meta { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.45; }
+      .cc-badge { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.06em; padding:2px 7px; border-radius:999px; vertical-align:middle; }
+      .cc-badge--actual { background:#e3f1e6; color:var(--ok); border:1px solid #bcdcc4; }
+      .cc-badge--estimated { background:#fbf1dd; color:var(--warn); border:1px solid #efd7a6; }
+      .cc-badge--manual { background:#ece8f6; color:#5b4a8b; border:1px solid #d3cbe9; }
+      .cc-badge--unpriced { background:#f4e4e2; color:var(--err); border:1px solid #e6c2bd; }
+      .cc-progress { height:14px; background:#f1e9df; border-radius:999px; overflow:hidden; position:relative; margin:10px 0 6px; }
+      .cc-progress__bar { height:100%; background:var(--ok); border-radius:999px; transition:width .3s; }
+      .cc-progress__bar.warning { background:var(--warn); }
+      .cc-progress__bar.critical, .cc-progress__bar.exceeded { background:var(--err); }
+      .cc-progress__marker { position:absolute; top:0; bottom:0; width:2px; background:rgba(42,33,24,.35); }
+      .cc-grid2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+      .cc-grid2 > * { min-width:0; }
+      @media (max-width: 900px) { .cc-grid2 { grid-template-columns:minmax(0,1fr); } }
+      #tab-cost .card { min-width:0; }
+      .cc-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+      .cc-table { width:100%; border-collapse:collapse; background:white; font-size:13px; }
+      .cc-table th { padding:9px 10px; background:#f8f3ec; color:var(--muted); font-size:11px; letter-spacing:.04em; text-align:left; text-transform:uppercase; white-space:nowrap; }
+      .cc-table td { padding:9px 10px; border-top:1px solid var(--border); vertical-align:top; }
+      .cc-table td.num, .cc-table th.num { text-align:right; white-space:nowrap; }
+      .cc-customer { background:#fffaf2; border:1px solid var(--border); border-left:4px solid var(--wine); border-radius:12px; padding:16px 18px; margin-bottom:18px; }
+      .cc-customer h3 { margin:0 0 10px; color:var(--wine); font-size:15px; }
+      .cc-customer dl { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px 18px; margin:0; }
+      @media (max-width: 700px) { .cc-customer dl { grid-template-columns:1fr 1fr; } }
+      .cc-customer dt { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+      .cc-customer dd { margin:2px 0 0; font-size:17px; font-weight:750; }
+      .cc-customer dd small { display:block; font-size:11px; font-weight:500; color:var(--muted); }
+      .cc-form { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+      .cc-form label { display:flex; flex-direction:column; font-size:11px; color:var(--muted); gap:4px; font-weight:600; }
+      .cc-form input, .cc-form select { padding:8px 10px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:13px; min-width:0; }
+      .cc-btn { border:0; border-radius:8px; padding:9px 14px; background:var(--wine); color:white; font-weight:700; cursor:pointer; font-size:13px; }
+      .cc-btn--ghost { background:white; color:var(--wine); border:1px solid var(--border); }
+      .cc-status { font-size:12px; color:var(--muted); min-height:16px; margin-top:6px; }
+      .cc-warn { padding:10px 12px; border-radius:10px; font-size:13px; margin-bottom:14px; }
+      .cc-warn--warning { background:#fbf1dd; color:#7a5310; border:1px solid #efd7a6; }
+      .cc-warn--critical, .cc-warn--exceeded { background:#f8e1de; color:#7d241a; border:1px solid #e6c2bd; }
+      .cc-muted { color:var(--muted); }
+      .cc-legend { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:4px 0 16px; }
+    </style>
+
+    <div class="cc-head">
+      <div>
+        <h2>Расходы / Cost Control</h2>
+        <div class="cc-sub" id="ccSubtitle">Загрузка…</div>
+      </div>
+      <div class="cc-form">
+        <label>С / From<input type="date" id="ccFrom"></label>
+        <label>По / To<input type="date" id="ccTo"></label>
+        <button class="cc-btn cc-btn--ghost" id="ccApplyRange" type="button">Применить</button>
+        <button class="cc-btn" id="ccRefresh" type="button">Обновить</button>
+      </div>
+    </div>
+
+    <div class="cc-legend">
+      <span><span class="cc-badge cc-badge--actual">ACTUAL</span> usage reported by the provider, priced by the pricing table</span>
+      <span><span class="cc-badge cc-badge--estimated">ESTIMATED</span> usage measured/estimated locally</span>
+      <span><span class="cc-badge cc-badge--manual">MANUAL</span> fixed costs entered manually</span>
+    </div>
+
+    <div id="ccBudgetWarning"></div>
+
+    <div class="cc-customer" id="ccCustomer">
+      <h3>WINE AI usage this month</h3>
+      <dl id="ccCustomerList"></dl>
+    </div>
+
+    <div class="cc-cards" id="ccCards"></div>
+
+    <div class="card">
+      <h2>Бюджет месяца / Monthly budget</h2>
+      <div id="ccBudget"></div>
+    </div>
+
+    <div class="cc-grid2">
+      <div class="card">
+        <h2>По провайдеру и модели / By provider &amp; model</h2>
+        <div class="cc-table-wrap"><table class="cc-table" id="ccByProvider"></table></div>
+      </div>
+      <div class="card">
+        <h2>По категории / By category</h2>
+        <div class="cc-table-wrap"><table class="cc-table" id="ccByCategory"></table></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Последние разговоры / Recent sessions</h2>
+      <div class="cc-table-wrap"><table class="cc-table" id="ccSessions"></table></div>
+    </div>
+
+    <div class="cc-grid2">
+      <div class="card">
+        <h2>Постоянные расходы / Fixed monthly costs <span class="cc-badge cc-badge--manual">MANUAL</span></h2>
+        <div class="cc-table-wrap" style="margin-bottom:12px;"><table class="cc-table" id="ccFixed"></table></div>
+        <form class="cc-form" id="ccFixedForm">
+          <label>Название<input name="name" required maxlength="120" placeholder="Railway"></label>
+          <label>Сумма / мес<input name="amount" type="number" min="0" step="0.01" required style="width:110px"></label>
+          <label>Валюта<select name="currency"><option>EUR</option><option>USD</option><option>MDL</option></select></label>
+          <label>Категория<select name="category"><option value="infrastructure">infrastructure</option><option value="database">database/storage</option><option value="other">other</option></select></label>
+          <button class="cc-btn" type="submit">Добавить</button>
+        </form>
+        <div class="cc-status" id="ccFixedStatus"></div>
+      </div>
+      <div class="card">
+        <h2>Настройки / Budget &amp; rates</h2>
+        <form class="cc-form" id="ccSettingsForm">
+          <label>Бюджет, MDL / мес<input name="monthly_budget_mdl" type="number" min="0" step="1" style="width:140px"></label>
+          <label>1 EUR = MDL<input name="eur_to_mdl" type="number" min="0" step="0.0001" style="width:110px"></label>
+          <label>1 USD = EUR<input name="usd_to_eur" type="number" min="0" step="0.0001" style="width:110px"></label>
+          <label>Пороги, %<input name="warning_thresholds" placeholder="70,90,100" style="width:110px"></label>
+          <label style="flex-direction:row; align-items:center;"><input name="rates_confirmed" type="checkbox"> курсы подтверждены</label>
+          <button class="cc-btn" type="submit">Сохранить</button>
+        </form>
+        <div class="cc-status" id="ccSettingsStatus"></div>
+        <p class="cc-muted" style="font-size:12px; margin:10px 0 0;">Бюджет — только наблюдение: превышение не прерывает разговоры и не меняет модели. / Budget is observability only.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Прайс-лист провайдеров / Pricing table</h2>
+      <p class="cc-muted" style="font-size:12px; margin-top:0;">Публичные прайсы провайдеров с датой начала действия. Новая строка с более поздней датой меняет цену только для использования с этой даты. Сырые данные использования хранятся, поэтому история пересчитывается.</p>
+      <div class="cc-table-wrap" style="margin-bottom:12px;"><table class="cc-table" id="ccPricing"></table></div>
+      <form class="cc-form" id="ccPricingForm">
+        <label>Provider<input name="provider" required placeholder="gemini" style="width:90px"></label>
+        <label>Model<input name="model" required placeholder="gemini-3.1-flash-live-preview"></label>
+        <label>Category<select name="category" id="ccPricingCategory"></select></label>
+        <label>Unit<select name="billing_unit"><option value="tokens">tokens</option><option value="audio_minute">audio_minute</option><option value="request">request</option></select></label>
+        <label>Currency<select name="currency"><option>USD</option><option>EUR</option><option>MDL</option></select></label>
+        <label>Unit prices (JSON)<input name="unit_prices" required placeholder='{"text_input_per_1m":0.75}' style="width:240px"></label>
+        <label>Effective from<input name="effective_from" type="date" required></label>
+        <label>Source<input name="source_note" placeholder="pricing page URL"></label>
+        <button class="cc-btn" type="submit">Добавить версию</button>
+      </form>
+      <div class="cc-status" id="ccPricingStatus"></div>
+    </div>
+  </section>
+
 </main>
+<script src="/cost-control.js" defer></script>
 
 <script>
 (function () {

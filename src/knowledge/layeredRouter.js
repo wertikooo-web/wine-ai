@@ -7,6 +7,7 @@ const catalogStore = require('../catalog/wineMdCatalogStore');
 const { resolveEntity } = require('./entityResolver');
 const liveWineMdTool = require('../tools/checkWineMdAvailability');
 const relationsStore = require('./entityRelations');
+const { recordApiCall } = require('../cost/costTelemetry');
 
 const LEVELS = Object.freeze({
     CANONICAL: 'canonical',
@@ -666,6 +667,8 @@ async function checkAnswerability(question, evidence, {
                     },
                 },
             });
+            // Cost telemetry (fire-and-forget, never throws).
+            recordApiCall({ category: 'llm_text', provider: 'gemini', model, operation: 'answerability_check', usageMetadata: response?.usageMetadata || null, requests: 1 });
         }
     } catch (error) {
         // TEMP DIAGNOSTIC (staging only, remove once the unparseable-output

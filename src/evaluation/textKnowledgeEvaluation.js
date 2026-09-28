@@ -83,11 +83,14 @@ function createTextKnowledgeEvaluator({
         if (!apiKey) throw createInputError('text_evaluation_unavailable');
         const { GoogleGenAI } = require('@google/genai');
         const ai = new GoogleGenAI({ apiKey });
-        return ai.models.generateContent({
+        const response = await ai.models.generateContent({
             model,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: { temperature: 0.2, maxOutputTokens: 500 },
         });
+        // Cost telemetry (fire-and-forget, never throws).
+        require('../cost/costTelemetry').recordApiCall({ category: 'llm_text', provider: 'gemini', model, operation: 'text_evaluation', usageMetadata: response?.usageMetadata || null });
+        return response;
     }
 
     return {

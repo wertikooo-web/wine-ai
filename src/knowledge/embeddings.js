@@ -16,6 +16,7 @@ const EMBEDDING_DIMENSIONS = Number(process.env.GEMINI_EMBEDDING_DIMENSIONS || 7
 const EMBEDDING_PAYLOAD_VERSION = 'v2';
 
 const crypto = require('crypto');
+const { recordApiCall } = require('../cost/costTelemetry');
 
 // Compose the exact text sent to the embeddings model for a chunk. Shared by
 // scripts/knowledge-embed-backfill.js and src/knowledge/publishService.js so
@@ -66,6 +67,18 @@ async function embedTexts(texts, { apiKey, taskType = 'RETRIEVAL_DOCUMENT' } = {
             taskType,
             outputDimensionality: EMBEDDING_DIMENSIONS,
         },
+    });
+
+    // Cost telemetry: the embeddings API returns no token count, so usage
+    // is recorded as measured characters (priced as ESTIMATED). Fire-and-forget.
+    recordApiCall({
+        category: 'embedding',
+        provider: 'gemini',
+        model: EMBEDDING_MODEL,
+        operation: taskType,
+        requests: 1,
+        inputChars: texts.reduce((sum, text) => sum + String(text || '').length, 0),
+        extraRaw: { texts: texts.length },
     });
 
     const embeddings = response?.embeddings;

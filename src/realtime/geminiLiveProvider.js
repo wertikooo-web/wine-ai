@@ -255,6 +255,7 @@ class GeminiLiveProvider {
             onUserSpeechStarted: options.onUserSpeechStarted,
             onUserSpeechStopped: options.onUserSpeechStopped,
             onProviderEvent: options.onProviderEvent,
+            onUsage: options.onUsage,
         });
     }
 }
@@ -278,8 +279,12 @@ class GeminiLiveProviderSession {
         onUserSpeechStarted,
         onUserSpeechStopped,
         onProviderEvent,
+        onUsage,
     }) {
         this.name = 'gemini';
+        // Cost telemetry sink (src/cost/sessionUsageMeter.js). Observes
+        // LiveServerMessage.usageMetadata only; never affects turn state.
+        this.onUsage = typeof onUsage === 'function' ? onUsage : null;
         this.voiceMode = voiceMode === 'tap_to_start' ? 'tap_to_start' : 'hold_to_talk';
         this.onUserSpeechStarted = typeof onUserSpeechStarted === 'function' ? onUserSpeechStarted : null;
         this.onUserSpeechStopped = typeof onUserSpeechStopped === 'function' ? onUserSpeechStopped : null;
@@ -1072,7 +1077,19 @@ class GeminiLiveProviderSession {
         });
     }
 
+    reportUsage(usageMetadata) {
+        if (!this.onUsage || !usageMetadata) return;
+        try {
+            this.onUsage(usageMetadata, { kind: 'gemini_usage_metadata', providerInstanceId: this.instanceId });
+        } catch (error) {
+            // Cost telemetry must never affect the conversation.
+        }
+    }
+
     handleMessage(message) {
+        // Usage is billed whether or not this instance is still active, so it
+        // is reported before the closed check and before any early return.
+        if (message?.usageMetadata) this.reportUsage(message.usageMetadata);
         if (this.closed) return;
         if (isRawTraceEnabled()) {
             this.rawTraceSeq += 1;

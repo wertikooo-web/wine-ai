@@ -6,6 +6,7 @@
  */
 
 const { GoogleGenAI } = require('@google/genai');
+const { recordApiCall } = require('../cost/costTelemetry');
 
 const GEMINI_VISION_MODEL = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash';
 
@@ -51,6 +52,8 @@ async function recognizeImage(imageBuffer, mimeType = 'image/png') {
             temperature: 0,
         }
     });
+    // Cost telemetry (fire-and-forget, never throws).
+    recordApiCall({ category: 'other', provider: 'gemini', model: GEMINI_VISION_MODEL, operation: 'vision_ocr', usageMetadata: response?.usageMetadata || null });
 
     const text = response.text;
     if (!text || typeof text !== 'string') {

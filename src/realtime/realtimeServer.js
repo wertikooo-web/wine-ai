@@ -39,6 +39,8 @@ const { resolveProfileRuntime } = require('../persona/runtimeResolver');
 const { buildProfileRuntimePrompt, CORE_PERSONA_PROMPT } = require('../persona/wineExpertPersona');
 const { GEMINI_VOICES } = require('../geminiVoices');
 const { GROK_VOICES } = require('../grokVoices');
+const { createSessionUsageMeter } = require('../cost/sessionUsageMeter');
+const { recordRealtimeSession } = require('../cost/costTelemetry');
 
 function id(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
@@ -454,6 +456,15 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // Session-wide microphone mode. A scripted warning is a TEXT turn, but
     // it must never switch Free Conversation out of continuous listening.
     let sessionVoiceMode = currentMode;
+    // Cost telemetry (src/cost/): one usage meter per WebSocket session,
+    // shared across provider rotations, finalized once in closeProvider().
+    // Observation only — nothing in this file reads it back.
+    const usageMeter = createSessionUsageMeter({
+        sessionId,
+        provider: providerMetadata.provider || 'mock',
+        model: providerMetadata.model || null,
+        voiceMode: sessionVoiceMode,
+    });
     let turnCounter = 0;
     // Set from the client's OWN tap_to_start input_audio.start message (which
     // reports its real track.getSettings(), not requested constraints) —
@@ -536,6 +547,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     let inputResampler = createInputResampler(inputSampleRate);
     let sessionRuntimeSnapshot = null;
     let providerSession = providerFactory(buildProviderSessionOptions('initial'));
+    usageMeter.noteProviderInstance(providerSession?.instanceId);
     // Provider Manager fact (see docs/architecture/STATE_OWNERSHIP.md 3.5):
     // has `providerSession` already been assigned to a turn via
     // beginResponse()/endInput()? A turn can end (audio.end, response.failed,
@@ -659,6 +671,8 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             // trigger source for the existing one.
             onUserSpeechStarted: handleNativeSpeechStarted,
             onUserSpeechStopped: handleNativeSpeechStopped,
+            // Cost telemetry sink for provider usage metadata; never throws.
+            onUsage: usageMeter.onProviderUsage,
         };
     }
 
@@ -1108,7 +1122,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 && !generation.cancel.cancelled
             ),
             onEvent: (event) => emitProviderEvent(generation, event),
-            onAudioChunk: (event) => emitProviderEvent(generation, event),
+            onAudioChunk: (event) => {
+                usageMeter.noteOutputAudioChunk(event);
+                return emitProviderEvent(generation, event);
+            },
             log,
         };
     }
@@ -1624,6 +1641,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             });
         }
         providerSession = providerFactory(buildProviderSessionOptions(reason));
+        usageMeter.noteProviderInstance(providerSession?.instanceId);
         const oldPromptMeta = oldProviderSession?.systemInstructionMeta || {};
         const newPromptMeta = providerSession.systemInstructionMeta || {};
         log('provider_session_rotated', {
@@ -1720,6 +1738,19 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             provider: providerSession.name || 'provider',
             providerInstanceId: providerSession.instanceId || 'unknown',
         });
+        finalizeUsage(reason);
+    }
+
+    // Durable cost record for this session. The meter's finalize() is
+    // idempotent and recordRealtimeSession() is fire-and-forget and never
+    // rejects, so this cannot block or break session teardown.
+    function finalizeUsage(reason) {
+        try {
+            const usageRecord = usageMeter.finalize({ endReason: reason });
+            if (usageRecord) recordRealtimeSession(usageRecord);
+        } catch (error) {
+            log('cost_telemetry_error', { message: error?.message || 'unknown' });
+        }
     }
 
     function startInput(payload = {}) {
@@ -1748,6 +1779,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             rotateProviderSession('per_turn_new_turn');
         }
         turnCounter += 1;
+        usageMeter.noteTurn();
         currentTurnId = payload.turn_id || id(`turn${turnCounter}`);
         // DIAGNOSTIC ONLY (temporary): opaque id the client attaches to one
         // physical PTT press, threaded through so its client-side stage
@@ -1848,7 +1880,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                     && !generationForStream.cancel.cancelled
                 ),
                 onEvent: (event) => emitProviderEvent(generationForStream, event),
-                onAudioChunk: (event) => emitProviderEvent(generationForStream, event),
+                onAudioChunk: (event) => {
+                    usageMeter.noteOutputAudioChunk(event);
+                    return emitProviderEvent(generationForStream, event);
+                },
                 log,
             });
         }
@@ -2510,6 +2545,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 }
             }
             providerSession.sendAudio(resampled);
+            usageMeter.noteInputAudioBytes(resampled.length, GEMINI_INPUT_SAMPLE_RATE);
             // Attribution fix: once a turn has closed (input_audio_end), these
             // are session-level continuous-listening bytes, not that turn's
             // input — logging the stale currentTurnId here made every
