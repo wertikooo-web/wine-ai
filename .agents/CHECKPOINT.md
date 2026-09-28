@@ -1,8 +1,8 @@
 # Mission checkpoint
 
 - goal: WINE AI Cost & Usage Control end-to-end (usage persistence, pricing table, MDL/EUR, budget observability, Dashboard tab Расходы / Cost Control), deployed and verified in production.
-- completed: Implemented on branch `claude/wine-ai-cost-usage-xc5m2x` (src/cost/*, additive provider/realtime hooks, /api/cost/*, public/cost-control.js, docs/COST_CONTROL.md). tests/costControl.test.js 170 assertions pass; tests/costStore.postgres.integration.test.js passes on local PostgreSQL 16. npm test: same 16 fail / 2 skip set as main baseline (pre-existing), +1 OK. Tests after pttFrameGuards (runner exits there on main too) run individually: identical to main. Local E2E (server + Postgres + WS session) produced exactly one row per session.
+- completed: PR #71 merged to main at `c74d91a`. tests/costControl.test.js 170 assertions pass; tests/costStore.postgres.integration.test.js passes on PostgreSQL 16; npm test failure set identical to pre-change main (16 pre-existing failures, runner exits at pttFrameGuards on main too; remaining 45 files run individually, identical to main). PR CI green (production-smoke, startup-smoke, registry-postgres). Railway auto-deployed; post-merge smoke run 36428368001 verified in production: /api/cost/summary 200 storage=postgres, all /api/cost/* and /cost-control.js 200, usage already recorded (month api_mdl=0.047179, estimated).
 - decisions: Budget is observability only. Costs re-priced on read from raw usage + versioned ai_pricing. Cost schema separate from KOS migrations. Unknown models are UNPRICED, not guessed. Grok priced per measured minute (ESTIMATED). Cost writes gated by ADMIN_TOKEN when set.
-- blockers: Sandbox network policy blocks the Railway production host; production verification runs through the Railway Production Smoke workflow (new Cost Control step, post-merge only).
-- production_state: unchanged/not inspected (pre-merge).
-- next_action: commit, push, open PR, merge after checks, verify production via Railway Production Smoke on main.
+- blockers: none. (Sandbox network policy blocks the Railway host; production is verified through the Railway Production Smoke workflow.)
+- production_state: deployed at `c74d91a`; Cost Control endpoints verified by production-smoke run 36428368001. That run's final dashboard grep failed only because `curl | grep -q` exits 23 under pipefail (smoke-script bug, fixed in the follow-up PR).
+- next_action: merge the smoke-script fix; confirm the post-merge production smoke is green.
