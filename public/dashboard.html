@@ -738,9 +738,9 @@
   /* Visual Companion (Wine AI Lite): transcript + text input. Text only —
      rendered with textContent, model text is never turned into links. */
   .lite-chat { display: none; }
-  body.lite.vc .lite-chat { display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 32vh; overflow-y: auto; margin: 8px 0; padding: 2px; }
+  body.lite.vc .lite-chat { display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 42vh; overflow-y: auto; margin: 8px 0; padding: 2px; }
   body.lite.vc .lite-chat:empty { display: none; }
-  .lite-msg { max-width: 88%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .lite-msg { flex-shrink: 0; max-width: 88%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
   .lite-msg__who { display: block; font-size: 11px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
   .lite-msg--user { align-self: flex-end; background: var(--wine); color: #fff; border-bottom-right-radius: 4px; }
   .lite-msg--assistant { align-self: flex-start; background: #f1e9df; color: #2a2118; border-bottom-left-radius: 4px; }
@@ -750,6 +750,18 @@
   body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
   body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
   body.lite.lite-active .start-intents { display: none !important; }
+  .wc-rail { display: flex; gap: 8px; overflow-x: auto; align-self: stretch; padding: 2px 0 4px; flex-shrink: 0; }
+  .wc-card { flex: 0 0 min(78%, 260px); background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; text-align: left; display: flex; flex-direction: column; }
+  .wc-card__img { width: 100%; height: 150px; object-fit: contain; background: #f7f1e8; }
+  .wc-card__body { padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+  .wc-card__winery { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .wc-card__name { font-weight: 700; color: var(--wine); font-size: 15px; }
+  .wc-card__meta { color: var(--muted); font-size: 12px; }
+  .wc-card__desc { margin-top: 3px; line-height: 1.4; }
+  .wc-card__row { font-size: 12px; }
+  .wc-card__ctas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .wc-card__cta { display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--wine); color: #fff; font-weight: 700; font-size: 12.5px; text-decoration: none; }
+  .wc-card__cta + .wc-card__cta { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
   body.lite .phone-row { justify-content: center; }
   .lite-fb { position: fixed; inset: 0; background: rgba(42,33,24,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
   .lite-fb[hidden] { display: none; }
@@ -1874,6 +1886,17 @@
     </div>
 
     <div class="card">
+      <h2>Каталог вин WineMD (карточки на /lite)</h2>
+      <p style="font-size:12.5px; color:var(--muted); margin-top:0;">Только эти вина показываются участникам карточкой со ссылкой. Ссылки принимаются только https; демо-записи и example.com отклоняются. Минимум: wineryName, wineName; желательно imageUrl и productUrl.</p>
+      <textarea id="vcImportJson" rows="7" style="width:100%; box-sizing:border-box; font-family:monospace; font-size:12px;" placeholder='[{"externalId":"SKU-1","wineryName":"…","wineName":"…","vintage":2021,"shortDescription":"…","grapes":["Fetească Neagră"],"imageUrl":"https://…","productUrl":"https://…"}]'></textarea>
+      <div class="lt-row"><button type="button" class="secondary" id="vcImportBtn">Импортировать</button><span class="lt-status" id="vcImportStatus"></span></div>
+      <div class="lt-table-wrap" style="margin-top:10px;"><table class="lt-table">
+        <thead><tr><th>Вино</th><th>Винодельня</th><th>Ссылка</th><th>Фото</th><th>Статус</th><th></th></tr></thead>
+        <tbody id="vcWines"><tr><td colspan="6">—</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
       <h2>История публикаций</h2>
       <div class="lt-table-wrap"><table class="lt-table">
         <thead><tr><th>Rev</th><th>Время</th><th>Метка</th><th>Изменения</th></tr></thead>
@@ -1885,6 +1908,7 @@
 </main>
 <script src="/cost-control.js" defer></script>
 <script src="/live-test-control.js" defer></script>
+<script src="/lite-companion.js" defer></script>
 
 <script>
 (function () {
@@ -4069,8 +4093,23 @@
       if (cfg && cfg.persona_name) document.body.dataset.personaName = cfg.persona_name;
     }).catch(() => { /* companion keeps its last state; voice unaffected */ });
   }
+  let liteCompanion = null;
+  function liteCompanionOnText(key, text, bubble) {
+    try {
+      if (!liteCompanion && window.WineCompanion) {
+        liteCompanion = window.WineCompanion.createCompanion({
+          doc: document,
+          fetchImpl: (url, options) => fetch(url, options),
+          getLang: () => (['ru', 'ro', 'en'].includes(uiLang) ? uiLang : 'ru'),
+          telemetry: (stage, data) => sendTelemetry(stage, data),
+        });
+      }
+      if (liteCompanion) liteCompanion.onAssistantText(key, text, bubble);
+    } catch { /* presentation only */ }
+  }
   function liteChatClear() {
     loadLiteConfig();
+    try { if (liteCompanion) liteCompanion.reset(); } catch { /* presentation only */ }
     liteChatBubbles.clear();
     const box = document.getElementById('liteChat');
     if (box) box.textContent = '';
@@ -4103,6 +4142,7 @@
       }
       const body = bubble.querySelector('.lite-msg__text');
       body.textContent += text;
+      if (role === 'assistant') liteCompanionOnText(key, body.textContent, bubble);
       box.scrollTop = box.scrollHeight;
     } catch { /* presentation only */ }
   }

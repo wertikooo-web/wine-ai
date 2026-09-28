@@ -198,6 +198,53 @@
     $('ltLiteLink').textContent = link;
   }
 
+  // ---- Visual Companion catalog (operator) ----
+  async function loadCompanionWines() {
+    const body = $('vcWines');
+    if (!body) return;
+    try {
+      const data = await api('/api/companion/wines');
+      body.innerHTML = '';
+      if (!data.wines.length) { body.innerHTML = '<tr><td colspan="6">Каталог пуст — участники не увидят карточек.</td></tr>'; return; }
+      for (const w of data.wines) {
+        const tr = document.createElement('tr');
+        const cells = [[w.wineName, w.vintage].filter(Boolean).join(' '), w.wineryName, w.productUrl ? 'есть' : '—', w.imageUrl ? 'есть' : '—', w.published ? 'показывается' : 'скрыто'];
+        for (const text of cells) { const td = document.createElement('td'); td.textContent = text; tr.appendChild(td); }
+        const td = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'secondary'; btn.textContent = w.published ? 'Скрыть' : 'Показывать';
+        btn.addEventListener('click', async () => {
+          try { await api(`/api/companion/wines/${encodeURIComponent(w.wineId)}/published`, { method: 'POST', body: JSON.stringify({ published: !w.published }) }); } catch (error) { $('vcImportStatus').textContent = 'Ошибка: ' + error.message; }
+          loadCompanionWines();
+        });
+        td.appendChild(btn); tr.appendChild(td);
+        body.appendChild(tr);
+      }
+    } catch (error) {
+      body.innerHTML = `<tr><td colspan="6">Ошибка: ${esc(error.message)}</td></tr>`;
+    }
+  }
+
+  function bindCompanionImport() {
+    const btn = $('vcImportBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      let wines;
+      try {
+        const parsed = JSON.parse($('vcImportJson').value);
+        wines = Array.isArray(parsed) ? parsed : [parsed];
+      } catch { $('vcImportStatus').textContent = 'Неверный JSON'; return; }
+      $('vcImportStatus').textContent = 'Импорт…';
+      try {
+        const response = await fetch('/api/companion/wines/import', { method: 'POST', headers: { 'content-type': 'application/json', ...adminHeaders() }, body: JSON.stringify({ wines, source: 'dashboard' }) });
+        const data = await response.json();
+        const rejected = (data.rejected || []).map((r) => `#${r.index + 1}: ${r.errors.join(', ')}`).join('; ');
+        $('vcImportStatus').textContent = `Импортировано: ${(data.imported || []).length}` + (rejected ? ` · Отклонено: ${rejected}` : '');
+        loadCompanionWines();
+      } catch (error) { $('vcImportStatus').textContent = 'Ошибка: ' + error.message; }
+    });
+  }
+
   function bind() {
     if (/^\/lite\/?$/.test(location.pathname) || new URLSearchParams(location.search).get('lite') === '1') return;
     for (const f of FIELDS) {
@@ -240,9 +287,11 @@
         await load();
       } catch (error) { status('Ошибка: ' + error.message); }
     });
-    $('ltRefresh').addEventListener('click', () => { load().catch(() => {}); loadResults(); });
+    $('ltRefresh').addEventListener('click', () => { load().catch(() => {}); loadResults(); loadCompanionWines(); });
+    bindCompanionImport();
     document.querySelector('nav.tabs [data-tab="livetest"]')?.addEventListener('click', () => {
       loadResults();
+      loadCompanionWines();
       if (!loadedOnce) { loadedOnce = true; }
     });
     load().catch((error) => {

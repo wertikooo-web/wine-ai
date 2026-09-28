@@ -51,6 +51,8 @@ const { createCostApi } = require('./cost/costApi');
 const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
 const { createLiveTestService, createPostgresLiveTestStore, createMemoryLiveTestStore, isPostgresConfigured: isLiveTestPostgresConfigured } = require('./liveTest/liveTestConfig');
 const { createLiveTestApi } = require('./liveTest/liveTestApi');
+const { createCompanionApi } = require('./companion/companionApi');
+const { getCompanionStore, refreshIndex: refreshCompanionIndex } = require('./companion/companionCatalog');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
@@ -232,6 +234,10 @@ const liveTest = createLiveTestService({
 liveTest.load().then((published) => {
     console.log(`[WineAI] live test config: ${published ? `revision ${published.revision}` : 'nothing published'} (${liveTest.getLoadState()})`);
 });
+const companionApi = createCompanionApi({ sendJson, readJsonBody });
+getCompanionStore().init().then(() => refreshCompanionIndex()).catch((error) => {
+    console.error('[WineAI] companion catalog init failed (non-fatal):', error.message);
+});
 const liveTestApi = createLiveTestApi({
     service: liveTest,
     sendJson,
@@ -265,7 +271,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -1174,6 +1180,12 @@ async function handleRequest(req, res) {
         return sendJson(res, 200, { ok: true });
     }
 
+    // Visual Companion catalog (verified partner wines, cards, CTAs).
+    if (pathname.startsWith('/api/companion/')) {
+        await companionApi.handle(req, res, pathname);
+        return undefined;
+    }
+
     // Closed-beta Test Control + participant feedback.
     if (pathname.startsWith('/api/live-test/')) {
         await liveTestApi.handle(req, res, pathname);
@@ -1198,7 +1210,7 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
-    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js')) {
+    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js' || pathname === '/lite-companion.js')) {
         const filePath = path.join(publicDir, pathname.slice(1));
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))

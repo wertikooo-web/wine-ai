@@ -529,6 +529,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // Test Control snapshot (participant sessions only): fixed for the whole
     // session; used for persona/voice at session.start and knowledge mode.
     const liveTestSession = sessionAccess.liveTest || null;
+    // Wine AI Lite shows Visual Companion cards; lets the knowledge tool tell
+    // the model which verified wines are on screen (presentation only).
+    toolContext.companionScreen = sessionAccess.channel === 'lite' && process.env.VISUAL_COMPANION_ENABLED !== 'false';
     const livePersonaState = liveTestSession
         ? liveTestSession.service.personaStateFor(liveTestSession.snapshot, personaStore.getProfilesOverrides())
         : null;

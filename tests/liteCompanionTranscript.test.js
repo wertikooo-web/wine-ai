@@ -58,8 +58,9 @@ async function run() {
         createElement: el,
     };
     // eslint-disable-next-line no-new-func
-    const factory = new Function('document', 'uiLang', 'liteChatBubbles', `${extractFunction(html, 'liteAssistantName')}\n${append}\nreturn liteChatAppend;`);
-    const render = factory(fakeDocument, 'ru', new Map());
+    const companionCalls = [];
+    const factory = new Function('document', 'uiLang', 'liteChatBubbles', 'liteCompanionOnText', `${extractFunction(html, 'liteAssistantName')}\n${append}\nreturn liteChatAppend;`);
+    const render = factory(fakeDocument, 'ru', new Map(), (key, text) => companionCalls.push([key, text]));
     render('user', { turn_id: 't1', text: 'Где купить? ' });
     render('user', { turn_id: 't1', text: '<img src=x onerror=alert(1)> javascript:alert(1)' });
     render('assistant', { generation_id: 'g1', text: 'Смотрите https://evil.example/x ' });
@@ -70,6 +71,7 @@ async function run() {
     ok(userBubble.children[1].textContent.includes('<img src=x'), 'markup stays literal text');
     ok(modelBubble.children[1].textContent === 'Смотрите https://evil.example/x и всё.', 'model URL stays plain text');
     ok(!nodes.some((node) => node.tag === 'a'), 'no anchor element is ever created');
+    ok(companionCalls.length === 2 && companionCalls[1][1] === 'Смотрите https://evil.example/x и всё.', 'assistant text (full, per generation) is handed to the card companion');
     render('assistant', null);
     render('assistant', { generation_id: 'g2' });
     ok(box.children.length === 2, 'empty/invalid payloads are ignored without throwing');
