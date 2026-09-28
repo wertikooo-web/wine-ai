@@ -709,7 +709,7 @@
 <div id="ageGate" class="age-gate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle" hidden>
   <div class="age-gate__card">
     <h2 id="ageGateTitle">Доступ для взрослых</h2>
-    <p>Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.</p>
+    <p id="ageGateText">Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.</p>
     <button id="ageGateConfirm" type="button">Мне есть разрешённый законом возраст</button>
   </div>
 </div>
@@ -750,6 +750,30 @@
   body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
   body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
   body.lite.lite-active .start-intents { display: none !important; }
+  /* Wine AI Lite shell: same page standalone (QR), on phones and inside the
+     WineMD widget iframe (?embed=1). Presentation only. */
+  .lite-bar { display: none; }
+  body.lite header, body.lite .phone-shell--right { display: none !important; }
+  body.lite .lite-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(135deg, #4a1420, #6b1e2b); color: #fdf6ec; }
+  body.lite .lite-bar__title { font-weight: 800; letter-spacing: .12em; font-size: 14px; }
+  body.lite .lite-bar__persona { font-size: 13px; opacity: .85; }
+  body.lite .lite-bar__auto { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 8px; border: 1px solid rgba(253,246,236,.45); border-radius: 999px; }
+  body.lite .lite-bar__close { display: none; background: none; border: 0; color: inherit; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 2px; }
+  body.lite.embed .lite-bar__close { display: block; }
+  @media (max-width: 540px) {
+    body.lite main { padding: 0; }
+    body.lite .phone-row { padding: 0; gap: 0; }
+    body.lite .phone-shell--left { width: 100%; }
+    body.lite .phone-shell--left .phone-frame { width: 100vw; max-height: none; height: calc(100dvh - 44px); aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; background: none; padding: 0; }
+    body.lite .phone-shell--left .phone-screen { margin-top: 0; border-radius: 0; }
+    body.lite .phone-island, body.lite .phone-gesture-bar { display: none; }
+  }
+  body.lite.embed main { padding: 0; }
+  body.lite.embed .phone-row { padding: 0; gap: 0; }
+  body.lite.embed .phone-shell--left { width: 100%; }
+  body.lite.embed .phone-shell--left .phone-frame { width: 100vw; max-height: none; height: calc(100vh - 44px); aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; background: none; padding: 0; }
+  body.lite.embed .phone-shell--left .phone-screen { margin-top: 0; border-radius: 0; }
+  body.lite.embed .phone-island, body.lite.embed .phone-gesture-bar { display: none; }
   .wc-rail { display: flex; gap: 8px; overflow-x: auto; align-self: stretch; padding: 2px 0 4px; flex-shrink: 0; }
   .wc-card { flex: 0 0 min(78%, 260px); background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; text-align: left; display: flex; flex-direction: column; }
   .wc-card__img { width: 100%; height: 150px; object-fit: contain; background: #f7f1e8; }
@@ -775,6 +799,13 @@
   .lite-fb__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
   .lite-fb__thanks { margin-top: 10px; font-weight: 700; color: var(--ok, #2f6b3a); text-align: center; }
 </style>
+
+<div class="lite-bar" id="liteBar">
+  <span class="lite-bar__title">WINE AI</span>
+  <span class="lite-bar__persona" id="liteBarPersona"></span>
+  <span class="lite-bar__auto" title="Язык определяется автоматически">🌐 AUTO</span>
+  <button type="button" class="lite-bar__close" id="liteClose" aria-label="Закрыть">×</button>
+</div>
 
 <header>
   <div>
@@ -1953,8 +1984,11 @@
   // config (channel=lite); this page only hides operator UI, connects with
   // channel=lite, and asks for a rating after each conversation.
   const LITE_MODE = /^\/lite\/?$/.test(location.pathname) || new URLSearchParams(location.search).get('lite') === '1';
+  // Embedded in the WineMD website widget (public/wine-ai-widget.js).
+  const LITE_EMBED = LITE_MODE && new URLSearchParams(location.search).get('embed') === '1' && window.parent !== window;
   if (LITE_MODE) {
     document.body.classList.add('lite');
+    if (LITE_EMBED) document.body.classList.add('embed');
     loadLiteConfig();
   }
   let liteSessionId = null;
@@ -2457,8 +2491,12 @@
       whereToBuyLabel: '購入先', whereToBuyGo: 'ストアへ',
     },
   };
-  let uiLang = localStorage.getItem('wineAiUiLang')
-    || (LITE_MODE ? (['ru', 'ro', 'en'].find((l) => String(navigator.language || '').toLowerCase().startsWith(l)) || 'ru') : 'en');
+  // Wine AI Lite: ?lang= (set by the WineMD widget from the host page) wins,
+  // then the browser language; default English (not Russian) for Moldova.
+  const LITE_URL_LANG = LITE_MODE ? new URLSearchParams(location.search).get('lang') : null;
+  let uiLang = (LITE_MODE && ['ru', 'ro', 'en'].includes(LITE_URL_LANG)) ? LITE_URL_LANG
+    : (localStorage.getItem('wineAiUiLang')
+      || (LITE_MODE ? (['ro', 'ru', 'en'].find((l) => String(navigator.language || '').toLowerCase().startsWith(l)) || 'en') : 'en'));
   function getUiString(key) {
     return (UI_STRINGS[uiLang] && UI_STRINGS[uiLang][key]) || UI_STRINGS.en[key] || '';
   }
@@ -2817,18 +2855,22 @@
   // ---- WebSocket / protocol ----
   function socketUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite`;
+    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite${adultToken ? `&av=${encodeURIComponent(adultToken)}` : ''}`;
     const providerParam = selectedRealtimeProvider ? `?provider=${encodeURIComponent(selectedRealtimeProvider)}` : '';
     return `${proto}//${location.host}/realtime${providerParam}`;
   }
 
   let adultAccessPromise = null;
+  // Signed age token for the embedded widget (cross-site iframe cookies do
+  // not travel); the cookie still covers the standalone page.
+  let adultToken = '';
+  try { adultToken = sessionStorage.getItem('wineAiAdultToken') || ''; } catch { adultToken = ''; }
   async function ensureAdultAccess() {
     if (adultAccessPromise) return adultAccessPromise;
     adultAccessPromise = (async () => {
     const gate = el('ageGate');
     const confirm = el('ageGateConfirm');
-    const status = await fetch('/api/age-verification', { credentials: 'same-origin' }).then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
+    const status = await fetch('/api/age-verification', { credentials: 'same-origin', headers: adultToken ? { 'x-adult-token': adultToken } : {} }).then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
     if (status.adult_verified) return true;
     gate.hidden = false;
     return new Promise((resolve) => {
@@ -2836,7 +2878,13 @@
         confirm.disabled = true;
         const result = await fetch('/api/age-verification', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirmed: true }) })
           .then((r) => r.ok ? r.json() : { adult_verified: false }).catch(() => ({ adult_verified: false }));
-        if (result.adult_verified) { gate.hidden = true; resolve(true); return; }
+        if (result.adult_verified) {
+          if (typeof result.token === 'string') {
+            adultToken = result.token;
+            try { sessionStorage.setItem('wineAiAdultToken', adultToken); } catch { /* storage unavailable */ }
+          }
+          gate.hidden = true; resolve(true); return;
+        }
         confirm.disabled = false;
       };
     });
@@ -3884,7 +3932,9 @@
       const connected = ws && ws.readyState === WebSocket.OPEN;
       caption.textContent = getUiString(connected && !providerReadyForInput ? 'pttCaptionConnecting' : 'pttCaptionHold');
     } else {
-      caption.textContent = getUiString(tapToStartActive ? 'pttCaptionTapActive' : 'pttCaptionTapIdle');
+      caption.textContent = (LITE_MODE && !tapToStartActive)
+        ? ({ ru: 'Поговорить с сомелье', ro: 'Vorbește cu somelierul', en: 'Talk to the sommelier' }[uiLang] || 'Поговорить с сомелье')
+        : getUiString(tapToStartActive ? 'pttCaptionTapActive' : 'pttCaptionTapIdle');
     }
   }
 
@@ -4090,7 +4140,11 @@
   function loadLiteConfig() {
     fetch('/api/lite/config').then((r) => r.json()).then((cfg) => {
       document.body.classList.toggle('vc', Boolean(cfg && cfg.visual_companion));
-      if (cfg && cfg.persona_name) document.body.dataset.personaName = cfg.persona_name;
+      if (cfg && cfg.persona_name) {
+        document.body.dataset.personaName = cfg.persona_name;
+        const bar = document.getElementById('liteBarPersona');
+        if (bar) bar.textContent = cfg.persona_name;
+      }
     }).catch(() => { /* companion keeps its last state; voice unaffected */ });
   }
   let liteCompanion = null;
@@ -4145,6 +4199,22 @@
       if (role === 'assistant') liteCompanionOnText(key, body.textContent, bubble);
       box.scrollTop = box.scrollHeight;
     } catch { /* presentation only */ }
+  }
+
+  // Widget close: × asks the host shell to close; the host asks us to stop
+  // (conversation ends through the normal stop path, mic released).
+  if (LITE_EMBED) {
+    const stopForClose = () => {
+      try { if (tapToStartActive) stopFreeConversation(); else if (ws) disconnect(); } catch { /* best-effort */ }
+    };
+    document.getElementById('liteClose')?.addEventListener('click', () => {
+      stopForClose();
+      try { window.parent.postMessage({ type: 'wine-ai:close' }, '*'); } catch { /* host gone */ }
+    });
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent || !event.data || event.data.type !== 'wine-ai:stop') return;
+      stopForClose();
+    });
   }
 
   function hideLiteFeedback() {
@@ -7057,6 +7127,28 @@
   }
 
   // ---- Dashboard UI language wiring ----
+  // Texts of the Wine AI Lite dialogs (age gate, rating, send button).
+  const LITE_TEXTS = {
+    ru: { ageTitle: 'Доступ для взрослых', ageText: 'Wine AI рассказывает о винной культуре и продукции. Продолжая, вы подтверждаете, что достигли возраста, разрешённого законом вашей страны.', ageBtn: 'Мне есть разрешённый законом возраст',
+      fbTitle: 'Спасибо за разговор!', fbConv: 'Как вам разговор?', fbVoice: 'Как вам голос?', fbComment: 'Что было плохо?', fbSkip: 'Пропустить', fbSend: 'Отправить', fbThanks: 'Спасибо!', send: 'Отправить' },
+    ro: { ageTitle: 'Acces pentru adulți', ageText: 'Wine AI vorbește despre cultura vinului și produse vinicole. Continuând, confirmați că aveți vârsta legală în țara dvs.', ageBtn: 'Am vârsta legală',
+      fbTitle: 'Mulțumim pentru conversație!', fbConv: 'Cum a fost conversația?', fbVoice: 'Cum vi s-a părut vocea?', fbComment: 'Ce nu v-a plăcut?', fbSkip: 'Omite', fbSend: 'Trimite', fbThanks: 'Mulțumim!', send: 'Trimite' },
+    en: { ageTitle: 'Adults only', ageText: 'Wine AI talks about wine culture and wine products. By continuing you confirm that you are of legal drinking age in your country.', ageBtn: 'I am of legal drinking age',
+      fbTitle: 'Thank you for the conversation!', fbConv: 'How was the conversation?', fbVoice: 'How was the voice?', fbComment: 'What was not good?', fbSkip: 'Skip', fbSend: 'Send', fbThanks: 'Thank you!', send: 'Send' },
+  };
+  function applyLiteTexts() {
+    if (!LITE_MODE) return;
+    const t = LITE_TEXTS[uiLang] || LITE_TEXTS.en;
+    const set = (id, text, attr) => { const node = document.getElementById(id); if (node) { if (attr) node.setAttribute(attr, text); else node.textContent = text; } };
+    set('ageGateTitle', t.ageTitle); set('ageGateText', t.ageText); set('ageGateConfirm', t.ageBtn);
+    set('liteFbTitle', t.fbTitle); set('liteFbComment', t.fbComment, 'placeholder');
+    set('liteFbSkip', t.fbSkip); set('liteFbSend', t.fbSend); set('liteFbThanks', t.fbThanks); set('textSendBtn', t.send);
+    const questions = document.querySelectorAll('#liteFeedback .lite-fb__q');
+    if (questions[0]) questions[0].textContent = t.fbConv;
+    if (questions[1]) questions[1].textContent = t.fbVoice;
+    document.documentElement.lang = uiLang;
+  }
+
   function applyUiLanguage(lang) {
     uiLang = lang;
     localStorage.setItem('wineAiUiLang', lang);
@@ -7124,6 +7216,7 @@
     const wineToggle = el('wineDetailsToggle');
     const wineDetails = el('wineDetailsBlock');
     if (wineToggle && wineDetails) wineToggle.textContent = getUiString(wineDetails.hidden ? 'detailsMore' : 'detailsLess');
+    applyLiteTexts();
   }
 
   let globalProvidersConfig = null;

@@ -46,7 +46,7 @@ const documentStorageService = require('./kos/sources/documentStorageService');
 const wineCatalogService = require('./kos/wines/wineCatalogService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
-const { issueAdultCookie, isAdultVerified } = require('./security/ageVerification');
+const { issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified } = require('./security/ageVerification');
 const { createCostApi } = require('./cost/costApi');
 const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
 const { createLiveTestService, createPostgresLiveTestStore, createMemoryLiveTestStore, isPostgresConfigured: isLiveTestPostgresConfigured } = require('./liveTest/liveTestConfig');
@@ -272,7 +272,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -300,7 +300,7 @@ async function handleRequest(req, res) {
     const pathname = requestUrl.pathname;
 
     if (req.method === 'GET' && pathname === '/api/age-verification') {
-        return sendJson(res, 200, { ok: true, adult_verified: isAdultVerified(req.headers.cookie) });
+        return sendJson(res, 200, { ok: true, adult_verified: isAdultVerified(req.headers.cookie) || isAdultTokenValid(req.headers['x-adult-token']) });
     }
 
     if (req.method === 'POST' && pathname === '/api/age-verification') {
@@ -310,8 +310,10 @@ async function handleRequest(req, res) {
         }
         if (body.confirmed !== true) return sendJson(res, 400, { ok: false, error: 'adult_confirmation_required' });
         const secure = process.env.NODE_ENV === 'production' || req.headers['x-forwarded-proto'] === 'https';
-        res.setHeader('Set-Cookie', issueAdultCookie({ secure }));
-        return sendJson(res, 200, { ok: true, adult_verified: true });
+        const token = issueAdultToken();
+        res.setHeader('Set-Cookie', issueAdultCookie({ secure, token }));
+        // token: for the embedded widget, where the cookie cannot travel.
+        return sendJson(res, 200, { ok: true, adult_verified: true, token });
     }
 
     if (req.method === 'GET' && pathname === '/health') {
@@ -1211,7 +1213,7 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
-    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js' || pathname === '/lite-companion.js')) {
+    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js' || pathname === '/lite-companion.js' || pathname === '/wine-ai-widget.js')) {
         const filePath = path.join(publicDir, pathname.slice(1));
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))
@@ -2086,7 +2088,8 @@ attachRealtimeServer(server, {
     // Participant (Wine AI Lite) sessions: one immutable snapshot of the
     // published Test Control config per WebSocket, taken here, at creation.
     liveTest,
-    isAdultVerified: (req) => isAdultVerified(req.headers.cookie),
+    isAdultVerified: (req) => isAdultVerified(req.headers.cookie)
+        || isAdultTokenValid(new URL(req.url || '/', 'http://localhost').searchParams.get('av')),
 });
 
 server.listen(PORT, () => {
