@@ -13,6 +13,7 @@ const { getCostStore, sanitizeSettingsPatch, sanitizeFixedItem, isPostgresConfig
 const { validatePricingRow, CATEGORY_LABELS } = require('./pricing');
 const { buildSummary, buildCustomerSummary, periodBounds, zonedMidnight, priceRecord, totalsFor, breakdown, sessionView } = require('./costAggregation');
 const { invalidatePricingCache, getTelemetryStats } = require('./costTelemetry');
+const { setWebSearchEnabled } = require('../knowledge/webSearchSetting');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -199,6 +200,7 @@ function createCostApi({ sendJson, readJsonBody, getStore = getCostStore, nowFn 
                 const { patch, errors } = sanitizeSettingsPatch(body);
                 if (errors.length) { sendJson(res, 400, { ok: false, error: 'invalid_settings', details: errors }); return true; }
                 const settings = await getStore().updateSettings(patch);
+                if ('web_search_enabled' in patch) setWebSearchEnabled(settings.web_search_enabled);
                 sendJson(res, 200, { ok: true, settings });
                 return true;
             }

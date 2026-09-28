@@ -19,7 +19,12 @@
 // search when the entity was not recognised — see the recovery audit in
 // AGENTS.md and the entity resolution benchmark.
 
+const { isWebSearchEnabled } = require('../knowledge/webSearchSetting');
+
 const EXTERNAL_TOOLS = new Set(['search_web', 'search_place', 'fetch_page']);
+// Internet tools switched off by the Dashboard "knowledge base only" setting.
+// search_place (OpenStreetMap addresses) stays available.
+const INTERNET_TOOLS = new Set(['search_web', 'fetch_page']);
 
 // Shared helper for Stage 1 safety gate: sets the external-tool block for
 // the current generation when knowledge search returned NOT_FOUND.
@@ -45,6 +50,7 @@ function optionalString(value, maxChars = 200) {
 
 function bindTool({ name, impl }, toolContext = {}) {
     const log = toolContext.log || (() => {});
+    const webEnabled = toolContext.isWebSearchEnabled || isWebSearchEnabled;
     return async function toolHandler({ args = {}, generationId, turnId } = {}) {
         const startedAt = Date.now();
 
@@ -70,6 +76,19 @@ function bindTool({ name, impl }, toolContext = {}) {
             return {
                 error: 'external_search_blocked',
                 message: 'External search tools are not available for this query. Answer based on available knowledge or say you do not know.',
+            };
+        }
+
+        if (INTERNET_TOOLS.has(name) && !webEnabled()) {
+            log('tool_blocked', {
+                tool: name,
+                generationId: generationId || 'none',
+                turnId: turnId || 'none',
+                reason: 'web_search_disabled',
+            });
+            return {
+                error: 'web_search_disabled',
+                message: 'Internet search is turned off. Answer only from the knowledge base results; if they do not contain the answer, say honestly that you do not have this information.',
             };
         }
 

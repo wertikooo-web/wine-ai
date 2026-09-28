@@ -23,6 +23,11 @@ const DEFAULT_SETTINGS = Object.freeze({
     rates_confirmed: false,
     warning_thresholds: [70, 90, 100],
     timezone: process.env.COST_TIMEZONE || 'Europe/Chisinau',
+    // Knowledge source switch (Dashboard → Settings): false = answer only
+    // from our own knowledge base, never search the internet. Lives here
+    // because it is the main per-call cost lever and needs the same
+    // persistence + admin gate; read at runtime via webSearchSetting.js.
+    web_search_enabled: true,
 });
 
 const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS);
@@ -43,6 +48,10 @@ function sanitizeSettingsPatch(patch = {}) {
         }
     }
     if ('rates_confirmed' in patch) out.rates_confirmed = patch.rates_confirmed === true;
+    if ('web_search_enabled' in patch) {
+        if (typeof patch.web_search_enabled === 'boolean') out.web_search_enabled = patch.web_search_enabled;
+        else errors.push('web_search_enabled_invalid');
+    }
     if ('warning_thresholds' in patch) {
         const list = Array.isArray(patch.warning_thresholds) ? patch.warning_thresholds.map(Number) : [];
         if (list.length && list.every((x) => Number.isFinite(x) && x > 0 && x <= 1000)) {
