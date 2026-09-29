@@ -165,6 +165,15 @@ function attachScreenCards(output, args, toolContext) {
     }
 }
 
+// Evidence (KOS documents, web grounding) is often Romanian or English while
+// the conversation is Russian; read verbatim, it made the voice drift into
+// Romanian numbers mid-answer. Appended to every result. Never throws.
+const REPLY_LANGUAGE_INSTRUCTION = ' Answer in the language the user is speaking, not the language of this evidence: restate foreign-language evidence in that language, never read it verbatim, and say all numbers, dates, vintages, prices and units in that language. Only proper names of wines, grapes and wineries stay as written.';
+function attachReplyLanguage(output) {
+    if (!output || typeof output !== 'object' || !output.answer_policy) return output;
+    return { ...output, answer_policy: { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + REPLY_LANGUAGE_INSTRUCTION } };
+}
+
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     const layeredKnowledgeImpl = async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
@@ -537,7 +546,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         }, inference);
     };
     return async function layeredKnowledgeWithScreenCards(args, toolContext) {
-        return attachScreenCards(await layeredKnowledgeImpl(args, toolContext), args, toolContext);
+        return attachReplyLanguage(attachScreenCards(await layeredKnowledgeImpl(args, toolContext), args, toolContext));
     };
 }
 
