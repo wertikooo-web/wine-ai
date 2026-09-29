@@ -167,6 +167,16 @@ async function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
     const report = { base_url: BASE_URL, at: new Date().toISOString() };
 
+    // Wait for a build that reports bridge status (/health.bridge, #89+).
+    for (let attempt = 1; attempt <= Number(process.env.PROBE_DEPLOY_WAIT_TRIES || 1); attempt += 1) {
+        const health = await http('/health');
+        report.health_bridge = health.json?.bridge || null;
+        if (report.health_bridge) break;
+        console.log(`waiting for a deployment with /health.bridge (attempt ${attempt})`);
+        await sleep(15000);
+    }
+    console.log(`/health.bridge before sessions: ${JSON.stringify(report.health_bridge)}`);
+
     // Deployment fingerprint: the served /lite page vs candidate commits.
     const lite = await http('/lite');
     report.lite_sha256 = crypto.createHash('sha256').update(lite.text).digest('hex');
@@ -208,6 +218,8 @@ async function main() {
     report.sessions.push(await session('dashboard gemini', `${WS_BASE}/realtime?provider=gemini`, [{ label: 'gemini text Q1', text: QUESTIONS[1] }, { label: 'gemini text Q2', text: QUESTIONS[2] }]));
     report.sessions.push(await session('dashboard grok', `${WS_BASE}/realtime?provider=grok`, [{ label: 'grok text Q1', text: QUESTIONS[1] }, { label: 'grok text Q2', text: QUESTIONS[2] }]));
 
+    const healthAfter = await http('/health');
+    console.log(`/health.bridge after sessions: ${JSON.stringify(healthAfter.json?.bridge || null)}`);
     const ttsAfter = await http('/api/cost/breakdown');
     report.tts_records_after = ttsRow(ttsAfter).map((r) => ({ model: r.model, records: r.records }));
 

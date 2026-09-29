@@ -233,7 +233,7 @@ jobs:
             CANDIDATES="$CANDIDATES $c=$h"
           done
           export CANDIDATE_HASHES="$CANDIDATES"
-          node scripts/diag/bridge-probe.js
+          PROBE_DEPLOY_WAIT_TRIES=40 node scripts/diag/bridge-probe.js
       - name: Bridge probe (real /lite in Chrome, fake microphone)
         if: ${{ github.event.inputs.diagnostic == 'bridge' }}
         shell: bash
