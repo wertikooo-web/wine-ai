@@ -832,6 +832,7 @@
     <div class="sub" id="headerSub">Digital expert on Moldovan wine</div>
   </div>
   <div style="display:flex; gap:10px; align-items:center;">
+    <form method="post" action="/logout" style="margin:0"><button type="submit" class="ui-lang-select" id="adminLogoutBtn" title="Выйти из админки">Выйти</button></form>
     <select id="uiLangSelect" class="ui-lang-select">
       <option value="en">EN</option>
       <option value="ru">RU</option>
@@ -4242,6 +4243,14 @@
     fetch('/api/lite/config' + query).then((r) => r.json()).then((cfg) => {
       document.body.classList.toggle('vc', Boolean(cfg && cfg.visual_companion));
       if (cfg && cfg.persona) applyLitePersona(cfg.persona);
+      // Free Conversation limits come from here in Lite (the operator's
+      // /api/persona is admin-only).
+      if (cfg && typeof cfg.free_conversation_session_limit_ms === 'number' && cfg.free_conversation_session_limit_ms > 0) {
+        freeConversationSessionLimitMs = cfg.free_conversation_session_limit_ms;
+      }
+      if (cfg && typeof cfg.tap_to_start_idle_timeout_ms === 'number' && cfg.tap_to_start_idle_timeout_ms > 0) {
+        tapToStartIdleTimeoutMs = cfg.tap_to_start_idle_timeout_ms;
+      }
     }).catch(() => { /* keeps its last state; voice unaffected */ });
   }
   let liteCompanion = null;
@@ -7435,7 +7444,7 @@
     setHtml('wineDetail4', getUiString('wineDetail4'));
     setText('askWineBtn', getUiString('askWine'));
     setText('whereToBuyLabel', getUiString('whereToBuyLabel'));
-    loadWhereToBuy('dealul-de-aur-feteasca-neagra-reserve-2019').catch(() => {});
+    if (!LITE_MODE) loadWhereToBuy('dealul-de-aur-feteasca-neagra-reserve-2019').catch(() => {});
 
     // Details toggles keep whatever open/closed state they're currently in —
     // just relabel them in the new language instead of resetting visibility.
@@ -7737,7 +7746,12 @@
   el('personaResetBtn').addEventListener('click', resetPersona);
   el('personaActivateBtn').addEventListener('click', saveAndActivatePersona);
 
-  (async function() {
+  // Lite (public /lite, QR, widget) never calls operator APIs: they are
+  // admin-only. Its persona, avatar and limits come from /api/lite/config.
+  if (LITE_MODE) {
+    voiceMode = 'tap_to_start';
+    applyVoiceModeUI();
+  } else (async function() {
     await initProvidersConfig();
     const data = await loadPersona();
     await handleLegacyMigration(data);
@@ -7765,16 +7779,20 @@
     }
     applyVoiceModeUI();
   })().catch((err) => log('persona_load_error', { message: err.message }));
-  loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
-  loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
-  loadKosSources().catch((err) => log('kos_sources_load_error', { message: err.message }));
-  loadWineCatalog().catch((err) => log('wine_catalog_load_error', { message: err.message }));
-  loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
+  if (!LITE_MODE) {
+    loadKnowledgeStatus().catch((err) => log('knowledge_load_error', { message: err.message }));
+    loadKnowledgeSources().catch((err) => log('knowledge_sources_load_error', { message: err.message }));
+    loadKosSources().catch((err) => log('kos_sources_load_error', { message: err.message }));
+    loadWineCatalog().catch((err) => log('wine_catalog_load_error', { message: err.message }));
+    loadAvatarStatus().catch((err) => log('avatar_load_error', { message: err.message }));
+  }
   initVisualStory().catch((err) => log('visual_story_load_error', { message: err.message }));
-  prefetchScreenContext('winery', 'crama-dealul-de-aur');
-  prefetchScreenContext('wine', 'dealul-de-aur-feteasca-neagra-reserve-2019');
-  loadPipelineStatus().catch((err) => log('pipeline_status_load_error', { message: err.message }));
-  loadDiscoveredList().catch((err) => log('discovered_list_load_error', { message: err.message }));
+  if (!LITE_MODE) {
+    prefetchScreenContext('winery', 'crama-dealul-de-aur');
+    prefetchScreenContext('wine', 'dealul-de-aur-feteasca-neagra-reserve-2019');
+    loadPipelineStatus().catch((err) => log('pipeline_status_load_error', { message: err.message }));
+    loadDiscoveredList().catch((err) => log('discovered_list_load_error', { message: err.message }));
+  }
 })();
 </script>
 </body>

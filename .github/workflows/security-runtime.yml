@@ -27,9 +27,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Wait briefly for Railway autodeploy
+      - name: Wait for Railway autodeploy
         if: github.event_name == 'push'
-        run: sleep 90
+        env:
+          SECURITY_BASE_URL: ${{ github.event.inputs.base_url || 'https://wine-ai-realtime-production.up.railway.app' }}
+        run: |
+          sleep 90
+          # The checks expect admin auth; wait until the deployment serves it.
+          for attempt in $(seq 1 40); do
+            code="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$SECURITY_BASE_URL/api/persona" || true)"
+            echo "anonymous persona attempt=$attempt http=$code"
+            if [ "$code" = "401" ]; then break; fi
+            sleep 15
+          done
       - name: Run live runtime security checks
         env:
           SECURITY_BASE_URL: ${{ github.event.inputs.base_url || 'https://wine-ai-realtime-production.up.railway.app' }}

@@ -12,6 +12,8 @@ const crypto = require('crypto');
 const { getCompanionStore, validateRecord, publicCard, matchNames, refreshIndex } = require('./companionCatalog');
 
 function isWriteAllowed(req) {
+    // Authenticated by the server-wide admin gate (session cookie or token).
+    if (req.wineAiAdmin === true) return true;
     const token = process.env.ADMIN_TOKEN || '';
     if (!token) return true;
     const got = Buffer.from(String(req.headers['x-admin-token'] || ''));

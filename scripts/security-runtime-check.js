@@ -126,27 +126,29 @@ const tests = [
     name: 'Unknown API route does not disclose stack traces',
     run: async () => {
       const { response, text } = await request('/api/security-probe-does-not-exist');
-      assert(response.status === 404, `expected 404, got ${response.status}`);
+      // /api/* is admin by default: anonymous gets 401 before routing.
+      assert(response.status === 401 || response.status === 404, `expected 401/404, got ${response.status}`);
       assert(!/\bat\s+[^\n]+:\d+:\d+/.test(text), 'stack trace disclosed');
       assert(!text.includes(process.cwd()), 'server filesystem path disclosed');
     },
   },
   {
     id: 'RT-009',
-    name: 'Public persona response contains no provider credentials',
+    name: 'Persona API is admin-only and contains no provider credentials',
     run: async () => {
       const { response, text } = await request('/api/persona');
-      assert(response.status === 200, `expected 200, got ${response.status}`);
+      assert(response.status === 401, `expected 401, got ${response.status}`);
       for (const pattern of secretValuePatterns) assert(!pattern.test(text), `credential-like value matched ${pattern}`);
     },
   },
   {
     id: 'RT-010',
-    name: 'Dashboard is served with no-store caching',
+    name: 'Dashboard requires login and is served with no-store caching',
     run: async () => {
-      const { response, text } = await request('/dashboard');
-      assert(response.status === 200, `expected 200, got ${response.status}`);
-      assert(text.length > 1000, 'dashboard response unexpectedly small');
+      const { response } = await request('/dashboard');
+      assert(response.status === 302, `expected 302, got ${response.status}`);
+      const location = response.headers.get('location') || '';
+      assert(location.startsWith('/login?next='), `expected redirect to /login, got ${location || '(missing)'}`);
       const cacheControl = response.headers.get('cache-control') || '';
       assert(/no-store/i.test(cacheControl), `expected no-store, got ${cacheControl || '(missing)'}`);
     },

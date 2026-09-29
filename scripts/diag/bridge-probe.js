@@ -28,7 +28,8 @@ const QUESTIONS = [
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function http(pathname, options = {}) {
-    const res = await fetch(`${BASE_URL}${pathname}`, { redirect: 'manual', ...options });
+    const headers = { ...(options.headers || {}), ...(process.env.ADMIN_TOKEN ? { 'x-admin-token': process.env.ADMIN_TOKEN } : {}) };
+    const res = await fetch(`${BASE_URL}${pathname}`, { redirect: 'manual', ...options, headers });
     const text = await res.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* not json */ }
@@ -37,7 +38,7 @@ async function http(pathname, options = {}) {
 
 function open(url) {
     return new Promise((resolve, reject) => {
-        const ws = new WS(url);
+        const ws = new WS(url, process.env.ADMIN_TOKEN ? { headers: { 'x-admin-token': process.env.ADMIN_TOKEN } } : undefined);
         const events = [];
         ws.on('message', (data, isBinary) => {
             if (isBinary) return;

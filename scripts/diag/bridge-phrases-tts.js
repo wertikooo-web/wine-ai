@@ -10,7 +10,7 @@ const { PHRASES } = require('../../src/realtime/bridgePhrases');
 const BASE_URL = String(process.env.BASE_URL || 'https://wine-ai-realtime-production.up.railway.app').replace(/\/$/, '');
 
 async function get(p) {
-    const res = await fetch(`${BASE_URL}${p}`);
+    const res = await fetch(`${BASE_URL}${p}`, { headers: process.env.ADMIN_TOKEN ? { 'x-admin-token': process.env.ADMIN_TOKEN } : {} });
     return { status: res.status, json: await res.json().catch(() => null) };
 }
 
@@ -35,7 +35,7 @@ async function main() {
     for (const voice of targets) {
         for (const [lang, list] of Object.entries(PHRASES)) {
             for (const text of list) {
-                const res = await fetch(`${BASE_URL}/api/voice-preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gemini', voice_name: voice, text }) });
+                const res = await fetch(`${BASE_URL}/api/voice-preview`, { method: 'POST', headers: { 'content-type': 'application/json', ...(process.env.ADMIN_TOKEN ? { 'x-admin-token': process.env.ADMIN_TOKEN } : {}) }, body: JSON.stringify({ provider: 'gemini', voice_name: voice, text }) });
                 const body = await res.json().catch(() => ({}));
                 const ms = body.audio_base64 ? Math.round(Buffer.from(body.audio_base64, 'base64').length / 2 / (body.sample_rate || 24000) * 1000) : 0;
                 console.log(`voice=${voice} lang=${lang} http=${res.status} ${body.error ? 'error=' + body.error : ''} audio_ms=${ms} text="${text}"`);

@@ -21,6 +21,11 @@ jobs:
     if: ${{ !github.event.inputs.diagnostic }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # Optional: same value as ADMIN_TOKEN in Railway. Without it the deep
+      # admin checks (knowledge chunks, Cost Control, Live Test) are skipped
+      # and only the anonymous protection checks run.
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
     steps:
       - name: Wait for Railway deployment and verify health
         shell: bash
@@ -53,8 +58,10 @@ jobs:
           set -euo pipefail
           BASE_URL="https://wine-ai-realtime-production.up.railway.app"
           STATUS_FILE="$(mktemp)"
-          code="$(curl -sS -L --max-time 30 -o "$STATUS_FILE" -w '%{http_code}' "$BASE_URL/api/knowledge/status")"
+          # Admin API: anonymous is 401 once admin auth is deployed.
+          code="$(curl -sS -L --max-time 30 -o "$STATUS_FILE" -w '%{http_code}' -H "x-admin-token: ${ADMIN_TOKEN:-}" "$BASE_URL/api/knowledge/status")"
           echo "knowledge status http=$code"
+          if [ "$code" = "401" ] && [ -z "${ADMIN_TOKEN:-}" ]; then echo "knowledge status is admin-only; set the ADMIN_TOKEN secret to verify chunks"; exit 0; fi
           cat "$STATUS_FILE"
           test "$code" = "200"
           node - "$STATUS_FILE" <<'NODE'
@@ -66,15 +73,58 @@ jobs:
           console.log(`knowledge status verified; chunks=${chunks}`);
           NODE
 
-      - name: Verify public dashboard
+      - name: Verify public /lite
         shell: bash
         run: |
           set -euo pipefail
           BASE_URL="https://wine-ai-realtime-production.up.railway.app"
-          code="$(curl -sS -L --max-time 30 -o /tmp/dashboard.html -w '%{http_code}' "$BASE_URL/dashboard")"
-          echo "dashboard http=$code bytes=$(wc -c < /tmp/dashboard.html)"
+          code="$(curl -sS --max-time 30 -o /tmp/lite.html -w '%{http_code}' "$BASE_URL/lite")"
+          echo "lite http=$code bytes=$(wc -c < /tmp/lite.html)"
           test "$code" = "200"
-          test "$(wc -c < /tmp/dashboard.html)" -gt 1000
+          grep -q 'channel=lite' /tmp/lite.html
+
+      # Admin protection. Waits for the deployment that carries admin auth
+      # (anonymous admin API -> 401), then checks the whole matrix.
+      - name: Verify admin protection (post-deploy)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          for attempt in $(seq 1 40); do
+            code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL/api/cost/summary" || true)"
+            echo "anonymous cost summary attempt=$attempt http=$code"
+            if [ "$code" = "401" ]; then break; fi
+            sleep 15
+          done
+          test "$code" = "401"
+          for path in / /dashboard /dashboard/cost-guide /knowledge-studio /answer-audit /avatar-lab /avatar-dev; do
+            out="$(curl -sS --max-time 30 -o /dev/null -D - -w 'HTTP_CODE=%{http_code}' "$BASE_URL$path")"
+            code="$(printf '%s' "$out" | sed -n 's/.*HTTP_CODE=//p')"
+            location="$(printf '%s' "$out" | tr -d '\r' | sed -n 's/^[Ll]ocation: //p')"
+            echo "anonymous page $path http=$code location=$location"
+            test "$code" = "302"
+            case "$location" in /login\?next=*) ;; *) echo "expected redirect to /login"; exit 1 ;; esac
+            printf '%s' "$out" | grep -qi '^cache-control: no-store'
+          done
+          for path in /api/persona /api/persona/profiles /api/voices /api/knowledge/status /api/knowledge/sources /api/kos/sources /api/cost/summary /api/live-test/state /api/live-test/results /api/companion/wines /api/avatar/status; do
+            code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path")"
+            echo "anonymous GET $path http=$code"
+            test "$code" = "401"
+          done
+          for path in /api/persona /api/live-test/publish /api/knowledge/reindex /api/cost/settings /api/voice-preview; do
+            code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{}' "$BASE_URL$path")"
+            echo "anonymous POST $path http=$code"
+            test "$code" = "401"
+          done
+          for path in /health /lite /login /api/lite/config /api/companion/catalog /api/age-verification /wine-ai-widget.js; do
+            code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path")"
+            echo "public GET $path http=$code"
+            test "$code" = "200"
+          done
+          curl -sS --max-time 30 -o /tmp/lite-config.json "$BASE_URL/api/lite/config"
+          if grep -Eiq 'systemPrompt|personalityPrompt|effectivePrompt|runtimeByProvider|api[_-]?key|authorization|bearer' /tmp/lite-config.json; then echo "lite config exposes internal fields"; exit 1; fi
+          echo "admin protection verified"
 
       # Cost & Usage Control (Dashboard → Расходы / Cost Control). Only after a
       # merge to main: a PR run hits production before the feature is deployed.
@@ -86,10 +136,12 @@ jobs:
         run: |
           set -euo pipefail
           BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          if [ -z "${ADMIN_TOKEN:-}" ]; then echo "ADMIN_TOKEN secret not set: Cost Control is admin-only, skipped"; exit 0; fi
+          AUTH="x-admin-token: $ADMIN_TOKEN"
           SUMMARY_FILE="$(mktemp)"
           OK=0
           for attempt in $(seq 1 40); do
-            code="$(curl -sS -L --max-time 30 -o "$SUMMARY_FILE" -w '%{http_code}' "$BASE_URL/api/cost/summary" || true)"
+            code="$(curl -sS -L --max-time 30 -o "$SUMMARY_FILE" -w '%{http_code}' -H "$AUTH" "$BASE_URL/api/cost/summary" || true)"
             echo "cost summary attempt=$attempt http=$code"
             if [ "$code" = "200" ]; then OK=1; break; fi
             sleep 15
@@ -114,7 +166,7 @@ jobs:
             # Retry each path: the previous deployment can keep serving for a
             # few minutes after merge and lack routes added by this commit.
             for attempt in $(seq 1 40); do
-              code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path" || true)"
+              code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' -H "$AUTH" "$BASE_URL$path" || true)"
               echo "$path attempt=$attempt http=$code"
               if [ "$code" = "200" ]; then break; fi
               sleep 15
@@ -125,7 +177,7 @@ jobs:
           # exits early on the match (curl exit 23, write failure).
           FOUND=0
           for attempt in $(seq 1 40); do
-            curl -sS -L --max-time 30 -o /tmp/dashboard-cost.html "$BASE_URL/dashboard" || true
+            curl -sS -L --max-time 30 -o /tmp/dashboard-cost.html -H "$AUTH" "$BASE_URL/dashboard" || true
             if grep -q 'data-tab="cost"' /tmp/dashboard-cost.html && grep -q 'href="/dashboard/cost-guide"' /tmp/dashboard-cost.html; then FOUND=1; break; fi
             echo "dashboard cost tab/guide link not found yet (attempt=$attempt)"
             sleep 15
@@ -140,10 +192,12 @@ jobs:
         run: |
           set -euo pipefail
           BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          if [ -z "${ADMIN_TOKEN:-}" ]; then echo "ADMIN_TOKEN secret not set: Live Test Control is admin-only, skipped"; exit 0; fi
+          AUTH="x-admin-token: $ADMIN_TOKEN"
           STATE_FILE="$(mktemp)"
           OK=0
           for attempt in $(seq 1 40); do
-            code="$(curl -sS -L --max-time 30 -o "$STATE_FILE" -w '%{http_code}' "$BASE_URL/api/live-test/state" || true)"
+            code="$(curl -sS -L --max-time 30 -o "$STATE_FILE" -w '%{http_code}' -H "$AUTH" "$BASE_URL/api/live-test/state" || true)"
             echo "live-test state attempt=$attempt http=$code"
             if [ "$code" = "200" ]; then OK=1; break; fi
             sleep 15
@@ -161,14 +215,14 @@ jobs:
           NODE
           for path in /lite /live-test-control.js /api/live-test/results; do
             for attempt in $(seq 1 40); do
-              code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path" || true)"
+              code="$(curl -sS -L --max-time 30 -o /dev/null -w '%{http_code}' -H "$AUTH" "$BASE_URL$path" || true)"
               echo "$path attempt=$attempt http=$code"
               if [ "$code" = "200" ]; then break; fi
               sleep 15
             done
             test "$code" = "200"
           done
-          curl -sS -L --max-time 30 -o /tmp/dashboard-lt.html "$BASE_URL/dashboard"
+          curl -sS -L --max-time 30 -o /tmp/dashboard-lt.html -H "$AUTH" "$BASE_URL/dashboard"
           grep -q 'data-tab="livetest"' /tmp/dashboard-lt.html
           grep -q 'channel=lite' /tmp/dashboard-lt.html
           echo "dashboard contains the Live Test tab and the /lite client"
@@ -207,6 +261,10 @@ jobs:
     if: ${{ github.event.inputs.diagnostic != '' && github.event.inputs.diagnostic != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Admin-only endpoints (voice preview, operator channel, studio, cost)
+      # need the same token as ADMIN_TOKEN in Railway.
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:

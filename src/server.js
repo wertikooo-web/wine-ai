@@ -48,6 +48,98 @@ const db = require('./knowledge/db');
 const env = require('./config/env');
 const { bridgeStatus } = require('./realtime/bridgePhrases');
 const { issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified } = require('./security/ageVerification');
+const { classifyRoute, createAdminAuth, renderLoginPage, safeNext } = require('./security/adminAuth');
+
+// Admin gate: one shared admin account, server-side sessions. Route matrix
+// and env vars: docs/ADMIN_AUTH.md. /lite and its runtime stay public.
+const adminAuth = createAdminAuth({ log: (stage, extra) => console.log(`[WineAI] ${stage} ${JSON.stringify(extra || {})}`) });
+if (adminAuth.production && !adminAuth.loginAvailable) {
+    console.warn('[WineAI] ADMIN_PASSWORD is not set: admin routes are unavailable (fail closed); /lite stays public.');
+}
+
+// Small urlencoded form body (login form only).
+function readFormBody(req, maxBytes = 4096) {
+    return new Promise((resolve, reject) => {
+        let received = 0;
+        const chunks = [];
+        req.on('data', (chunk) => {
+            received += chunk.length;
+            if (received > maxBytes) {
+                reject(Object.assign(new Error('body_too_large'), { code: 'body_too_large' }));
+                req.destroy();
+                return;
+            }
+            chunks.push(chunk);
+        });
+        req.on('end', () => {
+            const text = Buffer.concat(chunks).toString('utf8');
+            const type = String(req.headers['content-type'] || '');
+            if (type.includes('application/json')) {
+                try { resolve(JSON.parse(text || '{}')); } catch { resolve({}); }
+                return;
+            }
+            resolve(Object.fromEntries(new URLSearchParams(text)));
+        });
+        req.on('error', reject);
+    });
+}
+
+function sendLoginPage(res, statusCode, options) {
+    res.writeHead(statusCode, {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-frame-options': 'DENY',
+        ...(options.retryAfter ? { 'retry-after': String(options.retryAfter) } : {}),
+    });
+    res.end(renderLoginPage({ ...options, configured: adminAuth.loginAvailable }));
+}
+
+// Returns true when the request was fully handled (login/logout/denied).
+async function handleAdminGate(req, res, pathname, requestUrl) {
+    if (pathname === '/login' && req.method === 'GET') {
+        const next = safeNext(requestUrl.searchParams.get('next'));
+        if (adminAuth.enforced && adminAuth.isAdminRequest(req)) {
+            res.writeHead(303, { location: next, 'cache-control': 'no-store' });
+            res.end();
+            return true;
+        }
+        sendLoginPage(res, 200, { next });
+        return true;
+    }
+    if (pathname === '/login' && req.method === 'POST') {
+        let body = {};
+        try { body = await readFormBody(req); } catch { /* treated as empty */ }
+        const next = safeNext(body.next);
+        const result = adminAuth.login(req, { username: body.username, password: body.password });
+        if (!result.ok) {
+            if (result.status === 401) await new Promise((r) => setTimeout(r, 400));
+            sendLoginPage(res, result.status, { next, error: result.error, retryAfter: result.retryAfter });
+            return true;
+        }
+        res.writeHead(303, { location: next, 'set-cookie': result.cookie, 'cache-control': 'no-store' });
+        res.end();
+        return true;
+    }
+    if (pathname === '/logout' && req.method === 'POST') {
+        const result = adminAuth.logout(req);
+        res.writeHead(303, { location: '/login', 'set-cookie': result.cookie, 'cache-control': 'no-store' });
+        res.end();
+        return true;
+    }
+    if (classifyRoute(req.method, pathname) !== 'admin') return false;
+    res.setHeader('cache-control', 'no-store');
+    if (!adminAuth.isAdminRequest(req)) {
+        if (pathname === '/api' || pathname.startsWith('/api/') || !(req.method === 'GET' || req.method === 'HEAD')) {
+            sendJson(res, 401, { ok: false, error: 'admin_auth_required' });
+            return true;
+        }
+        res.writeHead(302, { location: `/login?next=${encodeURIComponent(pathname + requestUrl.search)}` });
+        res.end();
+        return true;
+    }
+    if (adminAuth.enforced) req.wineAiAdmin = true;
+    return false;
+}
 const { createCostApi } = require('./cost/costApi');
 const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
 const { createLiveTestService, createPostgresLiveTestStore, createMemoryLiveTestStore, isPostgresConfigured: isLiveTestPostgresConfigured } = require('./liveTest/liveTestConfig');
@@ -300,6 +392,7 @@ async function handleRequest(req, res) {
     // that distinction matters once any route takes a query string.
     const requestUrl = new URL(req.url, 'http://localhost');
     const pathname = requestUrl.pathname;
+    if (await handleAdminGate(req, res, pathname, requestUrl)) return;
 
     if (req.method === 'GET' && pathname === '/api/age-verification') {
         return sendJson(res, 200, { ok: true, adult_verified: isAdultVerified(req.headers.cookie) || isAdultTokenValid(req.headers['x-adult-token']) });
@@ -380,6 +473,17 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
+    // Same resolution as the dashboard's start-intent hydration: first
+    // profile with non-empty startIntents wins.
+    function liteStartIntents() {
+        const profiles = personaStore.getProfilesOverrides() || {};
+        for (const profileId of ['classic', 'warm_guide', ...Object.keys(profiles)]) {
+            const intents = profiles[profileId]?.overrides?.startIntents;
+            if (intents && typeof intents === 'object' && Object.keys(intents).length) return intents;
+        }
+        return {};
+    }
+
     // Wine AI Lite presentation flags (Visual Companion rollback switch).
     if (req.method === 'GET' && pathname === '/api/lite/config') {
         // Persona display (name + avatar) comes from the persona only: the
@@ -402,9 +506,17 @@ async function handleRequest(req, res) {
         const display = personaDisplay(personaId, { fileExists: (file) => fs.existsSync(path.join(publicDir, file)) });
         // Public, read-only: the WineMD widget reads it from the partner site.
         res.setHeader('access-control-allow-origin', '*');
+        const liteContext = requestUrl.searchParams.get('context');
         return sendJson(res, 200, {
             ok: true,
+            // Free Conversation limits for /lite (it no longer reads the
+            // admin-only /api/persona).
+            free_conversation_session_limit_ms: Math.round(personaStore.getSessionLimitMinutes(liteContext || null) * 60 * 1000),
+            tap_to_start_idle_timeout_ms: TAP_TO_START_IDLE_TIMEOUT_MS,
             visual_companion: process.env.VISUAL_COMPANION_ENABLED !== 'false',
+            // Operator-configured quick-start buttons (user-facing labels
+            // only), read-only for /lite.
+            start_intents: liteStartIntents(),
             persona_name: display.displayName,
             persona: { id: display.personaId, display_name: display.displayName, display_names: display.displayNames, avatar_url: display.avatarUrl, avatar_focus: display.avatarFocus, launcher_zoom: display.launcherZoom, avatar_fallback: display.avatarFallback, source: personaSource },
         });
@@ -2131,6 +2243,7 @@ async function handleRequest(req, res) {
 attachRealtimeServer(server, {
     // Longest Free Conversation limit of any deployment context (backstop).
     getSessionLimitMs: () => Math.max(...[null, 'kiosk', 'mobile_qr'].map((c) => personaStore.getSessionLimitMinutes(c))) * 60 * 1000,
+    isAdminRequest: (req) => !adminAuth.enforced || adminAuth.isAdminRequest(req),
     providerFactory: defaultProvider.createSession,
     providerMetadata: defaultProvider.metadata,
     resolveProvider: (requestedProvider) => providerRegistry.resolve(requestedProvider),

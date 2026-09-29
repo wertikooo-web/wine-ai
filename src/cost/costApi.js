@@ -49,6 +49,8 @@ function safeEqual(a, b) {
 }
 
 function isWriteAllowed(req) {
+    // Authenticated by the server-wide admin gate (session cookie or token).
+    if (req.wineAiAdmin === true) return true;
     const token = process.env.ADMIN_TOKEN || '';
     if (!token) return true;
     return safeEqual(req.headers['x-admin-token'] || '', token);
