@@ -231,6 +231,9 @@ jobs:
             sleep 15
           done
           echo "production did not pick up main in time"; exit 1
+      - name: Link data coverage (companion catalog + entity facts)
+        if: ${{ github.event.inputs.diagnostic == 'links' }}
+        run: node scripts/diag/link-coverage.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
