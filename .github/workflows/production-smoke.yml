@@ -166,3 +166,28 @@ jobs:
           grep -q 'data-tab="livetest"' /tmp/dashboard-lt.html
           grep -q 'channel=lite' /tmp/dashboard-lt.html
           echo "dashboard contains the Live Test tab and the /lite client"
+
+      # WineMD widget + persona avatars (PR #82). Also proves the deployment is
+      # recent: these routes do not exist in builds before #82.
+      - name: Verify WineMD widget and persona avatars (post-deploy)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          for path in /wine-ai-widget.js /persona-assets/fallback.svg /api/lite/config; do
+            for attempt in $(seq 1 40); do
+              code="$(curl -sS -L --max-time 30 -o /tmp/widget-check -w '%{http_code}' "$BASE_URL$path" || true)"
+              echo "$path attempt=$attempt http=$code"
+              if [ "$code" = "200" ]; then break; fi
+              sleep 15
+            done
+            test "$code" = "200"
+          done
+          node - /tmp/widget-check <<'NODE'
+          const fs = require('fs');
+          const body = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const p = body.persona;
+          if (!p || !p.display_name || !/^\/persona-assets\/[a-z0-9_-]+\.(png|jpe?g|webp|svg)$/.test(p.avatar_url || '')) throw new Error('lite config has no persona avatar');
+          console.log(`widget verified: persona=${p.id} name=${p.display_name} avatar=${p.avatar_url} fallback=${p.avatar_fallback}`);
+          NODE
