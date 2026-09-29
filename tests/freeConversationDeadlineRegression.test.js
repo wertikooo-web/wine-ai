@@ -92,3 +92,17 @@ test('grandfathered final turn failure closes cleanly', () => {
   assert.ok(dashboard.includes("case 'response.failed':"));
   assert.ok(dashboard.includes("triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT)"));
 });
+
+// Production 29 Sep (/lite probe after the fix): the deadline stayed 0 for
+// the whole conversation -- the countdown display reset the session-limit
+// state right after the timers were armed -- so the final-turn grace and the
+// warning retry never applied.
+test('session-limit timers are armed after the countdown state reset', () => {
+  const start = dashboard.indexOf('function resumeTapListening()');
+  const body = dashboard.slice(start, start + 2500);
+  const display = body.indexOf('startVoiceSessionTimerDisplay();');
+  const arm = body.indexOf('armSessionLimitTimers();');
+  assert.ok(display > 0 && arm > 0 && display < arm, 'startVoiceSessionTimerDisplay() (resets sessionLimitDeadlineAt) must run before armSessionLimitTimers()');
+  assert.match(dashboard, /function resetSessionLimitTurnState\(\) \{\s*sessionLimitDeadlineAt = 0;/);
+});
+

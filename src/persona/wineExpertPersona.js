@@ -292,7 +292,7 @@ function buildConversationInstruction(style = {}) {
     const lenText = {
         brief: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
         short: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
-        balanced: 'RESPONSE LENGTH: BALANCED (VOICE)\nThis is a spoken conversation. Answer in 1–3 short sentences (up to ~40 words): the direct answer first, then at most one short detail. Go into detail only when the user explicitly asks for it. At most one question at the end, and not in every answer. This is your default mode.',
+        balanced: 'RESPONSE LENGTH: BALANCED (VOICE)\nThis is a spoken conversation. Answer in 1–3 short sentences in total, counting any question at the end (up to ~40 words): the direct answer first, then at most one short detail. Go into detail only when the user explicitly asks for it. At most one question at the end, and not in every answer. This is your default mode.',
         detailed: 'RESPONSE LENGTH: DETAILED\nProvide detailed and comprehensive answers, usually 4–7 sentences (approx. 90–180 words). You may share context, comparisons, and stories. Do not exceed roughly one minute of speech without a direct request.'
     }[length];
     if (lenText) {
