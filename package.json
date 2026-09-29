@@ -27,7 +27,7 @@
     "benchmark:retrieval": "node tests/benchmark/retrieval-benchmark.js",
     "benchmark:retrieval:hybrid": "node tests/benchmark/retrieval-benchmark.js --hybrid",
     "benchmark:retrieval:json": "node tests/benchmark/retrieval-benchmark.js --json",
-    "benchmark:grounding": "node scripts/benchmark-answer-quality.js",
+    "benchmark:grounding": "node tests/benchmark/grounding-benchmark.js",
     "benchmark:quality": "node scripts/benchmark-answer-quality.js",
     "acceptance:recovery": "node scripts/recovery-acceptance.js",
     "acceptance:phase6": "node scripts/phase6-acceptance.js",
