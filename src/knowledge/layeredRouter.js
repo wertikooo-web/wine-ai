@@ -337,6 +337,16 @@ function detectConflicts(evidence) {
         .map(([key, values]) => ({ key, values: [...values] }));
 }
 
+// General wine knowledge (grapes, styles, serving, pairing basics) is
+// answered from the knowledge base and the model's own training -- a web
+// round-trip (4-8 s of silence in voice) adds nothing there. Web stays for
+// grounding-required claims the base cannot confirm, freshness questions
+// and explicit force_web. WEB_FOR_GENERAL_KNOWLEDGE=true restores the old
+// behavior without a deploy.
+function webForGeneralKnowledge(value = process.env.WEB_FOR_GENERAL_KNOWLEDGE) {
+    return String(value || '').trim().toLowerCase() === 'true';
+}
+
 function eagerWebIntents(value = process.env.WEB_EAGER_INTENTS) {
     const raw = String(value || '').trim();
     const list = raw ? raw.split(',').map((item) => item.trim()).filter(Boolean) : ['off_topic_factual'];
@@ -420,17 +430,23 @@ async function routeKnowledge(query, options = {}) {
 
     let web;
     let webReason;
+    let shouldUseWebFallback = false;
     if (eagerWebPromise) {
         web = await eagerWebPromise;
         webReason = intent === 'general_wine' ? 'general_wine_topic' : 'off_topic_factual';
     } else {
-        const shouldUseWebFallback = !smalltalk && allowWeb && (forceWeb || freshness || !strongInternal);
+        // Weak internal evidence alone does not send a general-knowledge
+        // question to the web (see webForGeneralKnowledge()); the
+        // answerability gate still decides for anything grounding-required.
+        const generalKnowledgeOnly = !forceWeb && !freshness && intent === 'general_wine' && !webForGeneralKnowledge()
+            && classifyClaimDependency(query, options.resolveEntityFn ? { resolveEntityFn: options.resolveEntityFn } : {}) === CLAIM_CLASSES.GENERAL_KNOWLEDGE;
+        shouldUseWebFallback = !smalltalk && allowWeb && (forceWeb || freshness || (!strongInternal && !generalKnowledgeOnly));
         web = shouldUseWebFallback
             ? await runLevel(LEVELS.WEB, () => (adapters.searchInternet || searchInternet)(query, { ...options, language }))
             : [];
         webReason = !shouldUseWebFallback ? null : forceWeb ? 'forced' : freshness ? 'freshness' : 'weak_internal';
     }
-    const shouldUseWeb = Boolean(eagerWebPromise) || (!smalltalk && allowWeb && (forceWeb || freshness || !strongInternal));
+    const shouldUseWeb = Boolean(eagerWebPromise) || shouldUseWebFallback;
 
     const evidence = sortEvidence([...internal, ...web], { webPriority: Boolean(eagerWebPromise) });
     const conflicts = detectConflicts(evidence);
@@ -826,7 +842,13 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     // just because its own grader happened to be down. If eager web already
     // ran (base.web_used) there is nothing further to fetch -- the combined
     // evidence the check just graded already included it.
-    if (answerable === true || options.allowWeb === false || base.web_used) {
+    // General wine knowledge the base does not fully cover is answered from
+    // the model's own knowledge (search_wine_knowledge's general_knowledge
+    // path), not from a slow web round-trip. Explicit force_web and
+    // freshness questions still go to the web.
+    const generalKnowledgeNoWeb = resolvedClass === CLAIM_CLASSES.GENERAL_KNOWLEDGE
+        && options.forceWeb !== true && !base.freshness_sensitive && !webForGeneralKnowledge();
+    if (answerable === true || options.allowWeb === false || base.web_used || generalKnowledgeNoWeb) {
         return {
             ...base,
             answerable,
