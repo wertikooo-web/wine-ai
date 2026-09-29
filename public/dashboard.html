@@ -3492,9 +3492,11 @@
         break;
       case 'audio.start':
         lastAnswerAudioStartedAt = Date.now();
+        // After 0:00 the next answer IS the granted final answer (when the
+        // user was still speaking at the deadline its turn id is not known
+        // yet) -- close after it instead of waiting out the whole grace.
         if (sessionLimitFinalTurnPending
-          && sessionLimitFinalTurnId
-          && payload.turn_id === sessionLimitFinalTurnId) {
+          && (!sessionLimitFinalTurnId || payload.turn_id === sessionLimitFinalTurnId)) {
           sessionLimitFinalTurnPending = false;
           sessionLimitInputClosed = true;
           clearInactivityTimers();
