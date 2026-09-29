@@ -46,6 +46,7 @@ const documentStorageService = require('./kos/sources/documentStorageService');
 const wineCatalogService = require('./kos/wines/wineCatalogService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
+const { bridgeStatus } = require('./realtime/bridgePhrases');
 const { issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified } = require('./security/ageVerification');
 const { createCostApi } = require('./cost/costApi');
 const { getCostStore, isPostgresConfigured: isCostPostgresConfigured } = require('./cost/costStore');
@@ -327,6 +328,8 @@ async function handleRequest(req, res) {
             service: 'wine-ai-realtime',
             provider: defaultProvider.id,
             model: defaultProvider.metadata.model,
+            // Bridge phrases: flag, delay and rendered phrase counts per voice.
+            bridge: bridgeStatus(),
             endpoints: KNOWN_ENDPOINTS,
             kos: {
                 enabled: true,

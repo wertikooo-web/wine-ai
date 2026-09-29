@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: 'Run a production diagnostic instead of the smoke (bridge | phrases | tts)'
+        required: false
+        default: ''
 
 concurrency:
   group: railway-production-smoke-${{ github.ref }}
@@ -13,6 +18,7 @@ concurrency:
 
 jobs:
   production-smoke:
+    if: ${{ !github.event.inputs.diagnostic }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -191,3 +197,46 @@ jobs:
           if (!p || !p.display_name || !/^\/persona-assets\/[a-z0-9_-]+\.(png|jpe?g|webp|svg)$/.test(p.avatar_url || '')) throw new Error('lite config has no persona avatar');
           console.log(`widget verified: persona=${p.id} name=${p.display_name} avatar=${p.avatar_url} fallback=${p.avatar_fallback}`);
           NODE
+
+  # Manual production diagnostics: workflow_dispatch with diagnostic=
+  #   bridge  - bridge phrase end-to-end (WebSocket timeline + real /lite in Chrome)
+  #   phrases - render the bridge phrases through production TTS
+  #   tts     - when this month's Gemini TTS calls happened
+  # Opens ordinary conversations / TTS previews; changes no configuration.
+  production-diagnostics:
+    if: ${{ github.event.inputs.diagnostic != '' && github.event.inputs.diagnostic != null }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: TTS call timeline
+        if: ${{ github.event.inputs.diagnostic == 'tts' }}
+        run: node scripts/diag/tts-timeline.js
+      - name: Bridge phrases through production TTS
+        if: ${{ github.event.inputs.diagnostic == 'phrases' }}
+        run: node scripts/diag/bridge-phrases-tts.js
+      - name: Bridge probe (WebSocket, Gemini + Grok, ms timeline)
+        if: ${{ github.event.inputs.diagnostic == 'bridge' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch -q origin main
+          CANDIDATES=""
+          for c in $(git log --format=%H -n 15 origin/main); do
+            h="$(git show "$c:public/dashboard.html" 2>/dev/null | sha256sum | cut -d' ' -f1)"
+            CANDIDATES="$CANDIDATES $c=$h"
+          done
+          export CANDIDATE_HASHES="$CANDIDATES"
+          node scripts/diag/bridge-probe.js
+      - name: Bridge probe (real /lite in Chrome, fake microphone)
+        if: ${{ github.event.inputs.diagnostic == 'bridge' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/bridge-browser-probe.js

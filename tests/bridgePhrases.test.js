@@ -1,6 +1,6 @@
 'use strict';
 
-// Bridge phrases ("Секунду…") while a knowledge search keeps the assistant
+// Bridge phrases ("Минуточку, сейчас посмотрю.") while a knowledge search keeps the assistant
 // silent. Unit coverage of the scheduler/cache plus an end-to-end run through
 // the real realtime server with a provider whose tool call takes a while.
 
@@ -68,15 +68,67 @@ async function unit() {
     }
     {
         let calls = 0;
+        let clock = 0;
         const cache = createBridgeAudioCache({
             synthesize: async ({ text }) => { calls += 1; if (text === PHRASES.en[1]) throw new Error('tts down'); return { audioBase64: 'AAAA', sampleRate: 24000 }; },
+            sleep: async () => {}, now: () => clock, retryCooldownMs: 1000,
         });
         await Promise.all([cache.warm('Kore'), cache.warm('Kore')]);
         const total = PHRASES.ru.length + PHRASES.ro.length + PHRASES.en.length;
-        t.equal(calls, total, 'each phrase rendered once per voice (concurrent warm deduplicated)');
+        t.equal(calls, total + 1, 'each phrase rendered once per voice (concurrent warm deduplicated); a failed one retried once');
         t.equal(cache.size(), total - 1, 'a failed render is skipped, the rest are cached');
         t.equal(cache.get('Kore', 'en', 1), null);
         t.ok(cache.get('Kore', 'ru', 0));
+        await cache.warm('Kore');
+        t.equal(calls, total + 1, 'no re-render inside the cooldown');
+        clock = 5000;
+        await cache.warm('Kore');
+        t.equal(calls, total + 3, 'after the cooldown only the missing phrase is re-rendered (with its retry)');
+        t.equal(cache.status().rendered.Kore, total - 1);
+    }
+    {
+        // Production 2026-09-29: Gemini TTS returned no audio for the first
+        // Russian phrase with voice Leda; the scheduler never advanced past
+        // it, so no bridge was ever sent. Empty audio must not be cached,
+        // must be retried, and must not block the other phrases.
+        let emptyCalls = 0;
+        const cache = createBridgeAudioCache({
+            synthesize: async ({ text }) => {
+                if (text === PHRASES.ru[0]) { emptyCalls += 1; return { audioBase64: '' }; }
+                return { audioBase64: 'AAAA', sampleRate: 24000 };
+            },
+            sleep: async () => {},
+        });
+        await cache.warm('Leda');
+        t.equal(emptyCalls, 2, 'empty audio is retried once');
+        t.equal(cache.get('Leda', 'ru', 0), null, 'empty audio is not cached');
+        const sent = [];
+        const logs = [];
+        const s = createBridgeScheduler({ config: { enabled: true, delayMs: 10, minTurnGap: 1 }, cache, emit: (e) => sent.push(e), log: (stage, extra) => logs.push({ stage, ...extra }), getVoice: () => 'Leda', getLanguage: () => 'ru' });
+        for (let turn = 1; turn <= 3; turn += 1) {
+            s.onToolCall({ generationId: `g${turn}`, turnId: `t${turn}`, turnNumber: turn });
+            await sleep(30);
+        }
+        t.equal(sent.length, 3, 'a missing phrase no longer blocks every later bridge');
+        t.deepEqual(sent.map((e) => e.text), [PHRASES.ru[1], PHRASES.ru[2], PHRASES.ru[1]], 'rendered phrases rotate, the missing one is skipped (wrap-around)');
+        t.ok(logs.some((l) => l.stage === 'bridge_sent'));
+    }
+    {
+        const sent = [];
+        const logs = [];
+        let warmed = 0;
+        const s = createBridgeScheduler({ config: { enabled: true, delayMs: 10, minTurnGap: 1 }, cache: { warm: () => { warmed += 1; return Promise.resolve(); }, get: () => null }, emit: (e) => sent.push(e), log: (stage, extra) => logs.push({ stage, ...extra }), getVoice: () => 'Leda', getLanguage: () => 'ru' });
+        s.onToolCall({ generationId: 'g1', turnId: 't1', turnNumber: 1 });
+        await sleep(30);
+        t.equal(sent.length, 0, 'nothing rendered: skipped');
+        t.ok(logs.some((l) => l.stage === 'bridge_skipped' && l.reason === 'no_rendered_phrase'), 'skip is logged with its reason');
+        t.equal(warmed, 2, 'and a re-render of the missing phrases is requested');
+        s.onToolCall({ generationId: 'g2', turnId: 't2', turnNumber: 2 });
+        s.cancel('g2');
+        t.ok(logs.some((l) => l.stage === 'bridge_cancelled' && l.generationId === 'g2'), 'cancellation before the delay is logged');
+    }
+    for (const list of Object.values(PHRASES)) {
+        for (const text of list) t.ok(!/…|\.\.\./.test(text) && text.length >= 12, `no ultra-short / ellipsis phrase (empty TTS audio): "${text}"`);
     }
 }
 
