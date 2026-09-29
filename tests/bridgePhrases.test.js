@@ -142,7 +142,27 @@ async function endToEnd() {
     t.ok(!grok.includes('assistant.bridge'), 'non-Gemini provider: no bridge');
 }
 
+// Client contract (public/dashboard.html): the phrase is finished, never cut
+// mid-word by the answer -- the answer is queued after it -- while barge-in,
+// stop and disconnect still cut it at once.
+function clientContract() {
+    const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'public', 'dashboard.html'), 'utf8');
+    const caseBody = (name) => {
+        const start = html.indexOf(`case '${name}':`);
+        return html.slice(start, html.indexOf("\n      case '", start + 1));
+    };
+    t.ok(!/stopBridge/.test(caseBody('audio.start')), 'answer start does not cut the bridge');
+    t.ok(/playbackQueueTime = audioContext \? Math\.max\(audioContext\.currentTime, bridgeQueueFloor\(\)\)/.test(caseBody('audio.start')), 'answer is queued after the bridge');
+    t.ok(!/stopBridge/.test(caseBody('audio.chunk')) && /bridgeQueueFloor\(\)/.test(caseBody('audio.chunk')), 'answer chunks never start before the bridge ends');
+    t.ok(/function bridgeQueueFloor\(\) \{\s*return bridgeSource && bridgeEndsAt \? bridgeEndsAt \+ BRIDGE_TO_ANSWER_GAP_S : 0;/.test(html), 'floor = end of the phrase + short pause, 0 without a bridge');
+    t.ok(/function triggerLocalBargeIn[\s\S]{0,80}stopBridge\('local_vad_barge_in'\)/.test(html), 'user speech cuts the bridge at once');
+    t.ok(/function stopPlaybackImmediately[\s\S]{0,80}stopBridge\(/.test(html), 'playback stop cuts the bridge');
+    t.ok(/function disconnect\(\) \{\s*stopBridge\('disconnect'\)/.test(html), 'disconnect cuts the bridge');
+    t.ok(/function stopBridge[\s\S]{0,160}bridgeEndsAt = 0;/.test(html), 'a cut bridge no longer delays the answer');
+}
+
 async function run() {
+    clientContract();
     await unit();
     await endToEnd();
 }

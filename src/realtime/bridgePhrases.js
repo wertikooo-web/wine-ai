@@ -3,8 +3,9 @@
 // "Bridge" phrases: when a tool call (knowledge search) keeps the assistant
 // silent for longer than BRIDGE_DELAY_MS, the server sends the client a
 // short pre-rendered phrase ("Секунду…") in the persona's own voice. The
-// client plays it on a separate audio node and cuts it the moment the real
-// answer starts, the user speaks, or the conversation stops.
+// client plays it on a separate audio node; when the real answer arrives the
+// phrase is said to the end and the answer queued after it. It is cut only
+// when the user speaks or the conversation stops.
 //
 // Deliberately outside the model and outside the turn lifecycle: the model
 // never produces or hears these phrases, and no generation/turn state is
