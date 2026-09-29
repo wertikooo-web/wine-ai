@@ -69,14 +69,31 @@ async function run() {
         assert.strictEqual(result.web_attempted, false, 'strong internal evidence must suppress web for general_wine (KOS-first)');
         assert.ok(!stub.calls.includes('web'), 'searchInternet must not be called when our own base already answers');
     }
-    console.log('Testing: general_wine with weak/empty internal evidence still goes to the web...');
+    // (Since 2026-09-29: a general-knowledge question with weak internal
+    // evidence is answered from the model's own knowledge, not the web --
+    // see tests/generalKnowledgeNoWeb.test.js. WEB_FOR_GENERAL_KNOWLEDGE=true
+    // restores the fallback below.)
+    console.log('Testing: general_wine with weak/empty internal evidence no longer goes to the web...');
     {
         const stub = adapters({ webItems: [webItem('Terroir explained')] });
         const result = await routeKnowledge('Что такое терруар в виноделии?', { adapters: stub.value });
         assert.strictEqual(result.query_intent, 'general_wine');
-        assert.strictEqual(result.web_used, true, 'empty internal evidence must fall back to web');
-        assert.strictEqual(result.web_reason, 'weak_internal');
-        assert.ok(result.evidence.some((item) => item.level === LEVELS.WEB));
+        assert.strictEqual(result.web_attempted, false, 'general knowledge: no web round-trip');
+        assert.ok(!stub.calls.includes('web'));
+    }
+    console.log('Testing: WEB_FOR_GENERAL_KNOWLEDGE=true restores the weak-internal web fallback...');
+    {
+        const saved = process.env.WEB_FOR_GENERAL_KNOWLEDGE;
+        process.env.WEB_FOR_GENERAL_KNOWLEDGE = 'true';
+        try {
+            const stub = adapters({ webItems: [webItem('Terroir explained')] });
+            const result = await routeKnowledge('Что такое терруар в виноделии?', { adapters: stub.value });
+            assert.strictEqual(result.web_used, true, 'empty internal evidence falls back to web when re-enabled');
+            assert.strictEqual(result.web_reason, 'weak_internal');
+            assert.ok(result.evidence.some((item) => item.level === LEVELS.WEB));
+        } finally {
+            if (saved === undefined) delete process.env.WEB_FOR_GENERAL_KNOWLEDGE; else process.env.WEB_FOR_GENERAL_KNOWLEDGE = saved;
+        }
     }
     console.log('Testing: WEB_EAGER_INTENTS restores eager web for general_wine without a deploy...');
     {
