@@ -3148,6 +3148,14 @@
       DeviceVisual.setState('disconnected');
       visualStoryController?.reset();
       log('ws_close', {});
+      // Unexpected close (network drop, backgrounded tab, server restart)
+      // while a Free Conversation is still active: end it cleanly (mic off,
+      // ended UI) so the next tap starts a fresh conversation. A normal end
+      // goes through disconnect(), which clears tapToStartActive first.
+      if (tapToStartActive) {
+        pendingAutoEnd = null;
+        performAutoEnd('technical_error');
+      }
     });
 
     socket.addEventListener('error', () => {
@@ -5060,8 +5068,14 @@
   function triggerAutoEnd(reason, closingText) {
     if (pendingAutoEnd) return; // already ending
     clearInactivityTimers();
-    clearSessionLimitTimers();
-    pendingAutoEnd = { reason, closingText, phase: activeSources.size > 0 ? 'await_drain' : 'ready' };
+    // An inactivity end can be cancelled by speech; keep the absolute
+    // session limit armed in that case.
+    if (reason !== 'inactivity_timeout') clearSessionLimitTimers();
+    // Wait for an answer that is still streaming or being prepared, not only
+    // one that is audible right now (chunk gaps leave activeSources empty),
+    // so the closing line is never cut by the previous answer's end.
+    const answerInProgress = activeSources.size > 0 || !serverAudioEnded || DeviceVisual.getState() === 'thinking';
+    pendingAutoEnd = { reason, closingText, phase: answerInProgress ? 'await_drain' : 'ready' };
     // The closing line must not be talked over / cancelled by new speech.
     if (reason === 'session_timeout') sessionLimitInputClosed = true;
     sendTelemetry('auto_end_triggered', { reason, phase: pendingAutoEnd.phase });

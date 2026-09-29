@@ -122,8 +122,9 @@ test('server backstop: a /lite Free Conversation past limit + grace is ended and
     process.env.FREE_CONV_SERVER_LIMIT_GRACE_MS = '100';
     const mock = new MockRealtimeProvider({ ...DEFAULT_CONFIG, processingDelayMs: 20, chunkIntervalMs: 20, chunkCount: 1 });
     const server = http.createServer((req, res) => res.end());
+    const sessions = [];
     attachRealtimeServer(server, {
-        providerFactory: (options) => mock.createSession(options),
+        providerFactory: (options) => { const session = mock.createSession(options); sessions.push(session); return session; },
         getSessionLimitMs: () => 300,
     });
     await new Promise((r) => server.listen(0, r));
@@ -143,7 +144,10 @@ test('server backstop: a /lite Free Conversation past limit + grace is ended and
         const lite = await run('/realtime?channel=lite');
         assert.ok(lite.ended, 'lite session gets session.ended from the server backstop');
         assert.equal(lite.ended.reason, 'session_limit');
+        await sleep(50);
+        assert.ok(sessions.length > 0 && sessions.every((session) => session.closed), 'the provider session is really closed (no billing past the limit)');
         lite.client.close();
+        sessions.length = 0;
 
         const op = await run('/realtime');
         assert.equal(op.ended, null, 'the operator (dashboard) channel is not ended by the backstop');

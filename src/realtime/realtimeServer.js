@@ -662,20 +662,23 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // client waited for it forever and the conversation went on past 0:00.
     // Armed once, at the first Free Conversation turn; the longest configured
     // limit (any context) plus a grace, so it never ends a session the
-    // client would still keep.
+    // client would still keep (client worst case: +45s final turn, +45s
+    // drain, +10s closing line).
     let sessionHardStopTimer = null;
     function armSessionHardStop() {
         if (sessionHardStopTimer || sessionAccess.channel !== 'lite') return;
         const limitMs = typeof sessionAccess.getSessionLimitMs === 'function' ? Number(sessionAccess.getSessionLimitMs()) : 0;
         if (!(limitMs > 0)) return;
-        const graceMs = Math.max(0, Number(process.env.FREE_CONV_SERVER_LIMIT_GRACE_MS || 75000));
+        const graceMs = Math.max(0, Number(process.env.FREE_CONV_SERVER_LIMIT_GRACE_MS || 120000));
         sessionHardStopTimer = setTimeout(() => {
             sessionHardStopTimer = null;
             if (socketClosed) return;
             log('session_limit_server_close', { limitMs, graceMs, turnCount: turnCounter });
             emit({ type: 'session.ended', reason: 'session_limit' });
-            cancelCurrent('session_limit');
-            try { socket.close(4000, 'session_limit'); } catch { /* already closing */ }
+            // Raw upgraded socket: close the provider (ends Gemini billing)
+            // and send a WS close frame, same as the normal close path.
+            closeProvider('session_limit');
+            try { sendClose(socket); } catch { /* already closing */ }
         }, limitMs + graceMs);
         sessionHardStopTimer.unref?.();
     }
