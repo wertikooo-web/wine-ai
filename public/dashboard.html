@@ -4369,8 +4369,12 @@
     // inactivity clock and the overall session-duration cap for this
     // conversation, not per-utterance.
     armInactivityWarnTimer();
-    armSessionLimitTimers();
+    // Order matters: startVoiceSessionTimerDisplay() resets the session-limit
+    // turn state (including sessionLimitDeadlineAt); arming first left the
+    // deadline at 0 for the whole conversation, so the final-turn grace and
+    // the warning retry never applied (production /lite probe, 29 Sep).
     startVoiceSessionTimerDisplay();
+    armSessionLimitTimers();
     // Report the mic pipeline actually backing this conversation (not the
     // requested constraints — track.getSettings() reflects what the browser
     // actually granted) so the server can gate barge-in on a confirmed,
