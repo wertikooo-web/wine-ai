@@ -215,6 +215,22 @@ jobs:
         with:
           node-version: '20'
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Wait until production serves main's /lite
+        if: ${{ github.event.inputs.diagnostic == 'session' || github.event.inputs.diagnostic == 'bridge' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          git fetch -q origin main
+          EXPECTED="$(git show origin/main:public/dashboard.html | sha256sum | cut -d' ' -f1)"
+          echo "expected /lite sha256=$EXPECTED (main $(git rev-parse --short origin/main))"
+          for attempt in $(seq 1 60); do
+            GOT="$(curl -sS --max-time 20 "$BASE_URL/lite" | sha256sum | cut -d' ' -f1 || true)"
+            if [ "$GOT" = "$EXPECTED" ]; then echo "production serves main (attempt $attempt)"; exit 0; fi
+            echo "attempt $attempt: production /lite sha256=$GOT"
+            sleep 15
+          done
+          echo "production did not pick up main in time"; exit 1
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
