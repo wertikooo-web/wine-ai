@@ -25,6 +25,21 @@ const {
 } = require('./inputAudioResampling');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./mockRealtimeProvider');
 const { createVisualOrchestrator } = require('../visual/visualOrchestrator');
+const { bridgeConfig, createBridgeAudioCache, createBridgeScheduler } = require('./bridgePhrases');
+
+// Rendered bridge phrases are shared by every session in the process (one
+// short TTS render per phrase and voice). See bridgePhrases.js.
+let defaultBridgeCache = null;
+function getDefaultBridgeCache() {
+    if (!defaultBridgeCache) {
+        const { synthesizeVoicePreview } = require('../voicePreview');
+        defaultBridgeCache = createBridgeAudioCache({
+            synthesize: (args) => synthesizeVoicePreview({ ...args, operation: 'bridge_phrase' }),
+            log: (stage, extra) => console.log(`[Realtime] stage=${stage} ${Object.entries(extra || {}).map(([k, v]) => `${k}=${v}`).join(' ')}`),
+        });
+    }
+    return defaultBridgeCache;
+}
 const {
     DASHBOARD_ALLOW_CUSTOM_PROMPT,
     PROMPT_MAX_CHARS,
@@ -67,6 +82,8 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'pending_decodes_before', 'pending_decodes_after',
     'accepted_generation_cleared', 'stale_audio_chunk_dropped', 'pending_decode_dropped',
     'local_playback_stopped', 'socket_close_started', 'mic_stopped',
+    // Bridge phrase playback (see bridgePhrases.js / dashboard playBridge()).
+    'bridge_played', 'bridge_stopped', 'bridge_ignored',
     // Pre-existing stages that were being sent but were never actually
     // whitelisted, so they were silently dropped by the check below —
     // discovered while adding the itrace_* diagnostic below.
@@ -420,6 +437,8 @@ function attachRealtimeServer(server, options = {}) {
             isAdultVerified: resolveAdultVerification(req) === true,
             liveTest: liveSnapshot ? { service: liveTest, snapshot: liveSnapshot } : null,
             channel: url.searchParams.get('channel') === 'lite' ? 'lite' : 'dashboard',
+            bridgeConfig: options.bridgeConfig,
+            bridgeCache: options.bridgeCache,
         });
     });
 }
@@ -616,6 +635,18 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // One visual lifecycle per realtime connection. It consumes the same
     // authoritative generation ids for Gemini, Grok and mock providers.
     const visualOrchestrator = createVisualOrchestrator({ emit, log, demoCatalogEnabled: sessionAccess.channel !== 'lite' });
+    // Bridge phrase while a tool call keeps the assistant silent (Gemini
+    // only: the phrases are rendered with Gemini TTS in the same voice).
+    // Pure side effect: reads no turn state beyond ids, changes none.
+    const bridgeSettings = sessionAccess.bridgeConfig || bridgeConfig();
+    const bridge = createBridgeScheduler({
+        config: bridgeSettings,
+        cache: bridgeSettings.enabled ? (sessionAccess.bridgeCache || getDefaultBridgeCache()) : null,
+        emit,
+        log,
+        getVoice: () => (providerMetadata.provider === 'gemini' ? (providerSession?.voiceName || sessionVoiceName || null) : null),
+        getLanguage: () => sessionLanguage,
+    });
 
     function rememberTurn(role, text) {
         const clean = String(text || '').trim();
@@ -1155,6 +1186,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         if (typeof providerSession?.connect !== 'function') return;
         await providerSession.connect(log);
         promptApplyCount += 1;
+        bridge.prewarm();
         log('provider_ready', {
             reason,
             provider: providerSession.name || 'provider',
@@ -1381,6 +1413,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         const eventType = payload?.type || 'unknown';
         const modelOutputEvents = new Set(['transcript.model', 'audio.start', 'audio.chunk', 'audio.end']);
         const startsGenerationEvents = new Set(['transcript.model', 'audio.start', 'audio.chunk']);
+        if (eventType !== 'tool.call' && eventType !== 'tool.response') bridge.cancel(generation.generationId);
         if (eventType === 'provider_interrupt_ack') {
             return emit(payload);
         }
@@ -1412,6 +1445,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // answer was lost and the user heard nothing. While a tool runs the
         // window is extended; once its result is back the ordinary window
         // re-arms for the model to start speaking.
+        if (eventType === 'tool.call' && !generation.responseCreatedSent) {
+            bridge.onToolCall({ generationId: generation.generationId, turnId: generation.turnId, turnNumber: turnCounter });
+        }
         if ((eventType === 'tool.call' || eventType === 'tool.response') && !generation.responseCreatedSent) {
             const toolTimeoutMs = Math.max(0, Number(process.env.PTT_TOOL_TURN_TIMEOUT_MS || 20000));
             armPttTurnTimeout(generation, eventType === 'tool.call' ? { timeoutMs: toolTimeoutMs } : {});
@@ -1604,6 +1640,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     }
 
     function cancelCurrent(reason) {
+        bridge.cancelAll();
         if (
             !currentGeneration
             || currentGeneration.status === 'cancelled'
@@ -1767,6 +1804,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     }
 
     function closeProvider(reason) {
+        bridge.dispose();
         if (providerClosed) return;
         providerClosed = true;
         inputResampler.reset();
