@@ -2129,6 +2129,8 @@ async function handleRequest(req, res) {
 }
 
 attachRealtimeServer(server, {
+    // Longest Free Conversation limit of any deployment context (backstop).
+    getSessionLimitMs: () => Math.max(...[null, 'kiosk', 'mobile_qr'].map((c) => personaStore.getSessionLimitMinutes(c))) * 60 * 1000,
     providerFactory: defaultProvider.createSession,
     providerMetadata: defaultProvider.metadata,
     resolveProvider: (requestedProvider) => providerRegistry.resolve(requestedProvider),

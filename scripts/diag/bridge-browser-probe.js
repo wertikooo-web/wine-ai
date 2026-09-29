@@ -122,6 +122,14 @@ async function main() {
         console.log(`\nVERDICT bridge "${b.text}" received at ${b.t - tClick}ms (${expectedMs}ms audio): `
             + (started ? `PLAYED — buffer started ${started.t - b.t}ms later, ${started.duration_ms}ms, rms=${started.rms}, AudioContext=${started.ctx}` : 'NOT STARTED')
             + `; client telemetry=${telemetry ? telemetry.stage : 'none'}`);
+        if (started) {
+            // Answer must be scheduled after the phrase ends (not cut, no overlap).
+            const bridgeEnd = started.ctx_time + started.duration_ms / 1000;
+            const answer = log.find((r) => r.dir === 'audio_start' && r.t > started.t && r !== started);
+            if (answer) console.log(`  answer first buffer scheduled at ctx ${answer.when}s vs bridge end ${bridgeEnd.toFixed(3)}s -> ${answer.when >= bridgeEnd - 0.005 ? 'AFTER the phrase (no overlap)' : 'OVERLAP'}`);
+            const stop = log.find((r) => r.dir === 'out' && r.t >= b.t && r.stage === 'bridge_stopped');
+            console.log(`  bridge cut before its end: ${stop ? 'YES (' + (stop.t - started.t) + 'ms)' : 'NO'}`);
+        }
     }
 }
 

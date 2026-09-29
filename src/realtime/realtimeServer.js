@@ -90,6 +90,7 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'session_limit_final_turn_granted', 'session_limit_grace_expired',
     'session_limit_warning_deferred', 'session_limit_warning_spoken',
     'auto_end_triggered', 'inactivity_warning_spoken',
+    'auto_end_completed', 'auto_end_fallback_disconnect',
     // Pre-existing stages that were being sent but were never actually
     // whitelisted, so they were silently dropped by the check below —
     // discovered while adding the itrace_* diagnostic below.
@@ -445,6 +446,7 @@ function attachRealtimeServer(server, options = {}) {
             channel: url.searchParams.get('channel') === 'lite' ? 'lite' : 'dashboard',
             bridgeConfig: options.bridgeConfig,
             bridgeCache: options.bridgeCache,
+            getSessionLimitMs: options.getSessionLimitMs,
         });
     });
 }
@@ -653,6 +655,33 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         getVoice: () => (providerMetadata.provider === 'gemini' ? (providerSession?.voiceName || sessionVoiceName || null) : null),
         getLanguage: () => sessionLanguage,
     });
+
+    // Server-side backstop for the public /lite Free Conversation session
+    // limit (the client countdown and closing sequence own the normal end).
+    // Production 2026-09-29: the client's closing line never played, the
+    // client waited for it forever and the conversation went on past 0:00.
+    // Armed once, at the first Free Conversation turn; the longest configured
+    // limit (any context) plus a grace, so it never ends a session the
+    // client would still keep (client worst case: +45s final turn, +45s
+    // drain, +10s closing line).
+    let sessionHardStopTimer = null;
+    function armSessionHardStop() {
+        if (sessionHardStopTimer || sessionAccess.channel !== 'lite') return;
+        const limitMs = typeof sessionAccess.getSessionLimitMs === 'function' ? Number(sessionAccess.getSessionLimitMs()) : 0;
+        if (!(limitMs > 0)) return;
+        const graceMs = Math.max(0, Number(process.env.FREE_CONV_SERVER_LIMIT_GRACE_MS || 120000));
+        sessionHardStopTimer = setTimeout(() => {
+            sessionHardStopTimer = null;
+            if (socketClosed) return;
+            log('session_limit_server_close', { limitMs, graceMs, turnCount: turnCounter });
+            emit({ type: 'session.ended', reason: 'session_limit' });
+            // Raw upgraded socket: close the provider (ends Gemini billing)
+            // and send a WS close frame, same as the normal close path.
+            closeProvider('session_limit');
+            try { sendClose(socket); } catch { /* already closing */ }
+        }, limitMs + graceMs);
+        sessionHardStopTimer.unref?.();
+    }
 
     function rememberTurn(role, text) {
         const clean = String(text || '').trim();
@@ -1109,6 +1138,12 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     function armInputHangTimeout(generation) {
         if (!generation || currentMode !== 'tap_to_start') return;
         clearInputHangTimeout(generation);
+        // A tool call means the model already took the user's question as
+        // finished; waiting for the tool is not a hung input. (Production
+        // 2026-09-29: a >10s knowledge/web search in Free Conversation was
+        // cancelled here -- the user heard the bridge phrase, then nothing.)
+        // A hung tool is still bounded by PTT_TOOL_TURN_TIMEOUT_MS.
+        if (generation.toolCallInFlight) return;
         const timeoutMs = Math.max(0, Number(process.env.FREE_CONV_INPUT_HANG_TIMEOUT_MS || 12000));
         if (timeoutMs <= 0) return;
         generation.inputHangTimer = setTimeout(() => {
@@ -1118,6 +1153,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 && !inputEndedAt
                 && generation.status === 'pending'
                 && !generation.cancel.cancelled
+                && !generation.toolCallInFlight
             ) {
                 log('input_hang_timeout', {
                     generationId: generation.generationId,
@@ -1453,6 +1489,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         // re-arms for the model to start speaking.
         if (eventType === 'tool.call' && !generation.responseCreatedSent) {
             bridge.onToolCall({ generationId: generation.generationId, turnId: generation.turnId, turnNumber: turnCounter });
+        }
+        // Free Conversation: no input-hang cancel while a tool runs (see
+        // armInputHangTimeout()).
+        if (eventType === 'tool.call') {
+            generation.toolCallInFlight = true;
+            clearInputHangTimeout(generation);
+        } else if (eventType === 'tool.response') {
+            generation.toolCallInFlight = false;
         }
         if ((eventType === 'tool.call' || eventType === 'tool.response') && !generation.responseCreatedSent) {
             const toolTimeoutMs = Math.max(0, Number(process.env.PTT_TOOL_TURN_TIMEOUT_MS || 20000));
@@ -1811,6 +1855,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
 
     function closeProvider(reason) {
         bridge.dispose();
+        if (sessionHardStopTimer) { clearTimeout(sessionHardStopTimer); sessionHardStopTimer = null; }
         if (providerClosed) return;
         providerClosed = true;
         inputResampler.reset();
@@ -1875,6 +1920,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         if (currentMode === 'tap_to_start' || currentMode === 'push_to_talk') {
             sessionVoiceMode = currentMode;
         }
+        if (currentMode === 'tap_to_start') armSessionHardStop();
         currentGeneration = createGeneration({
             turnId: currentTurnId,
             mode: currentMode,

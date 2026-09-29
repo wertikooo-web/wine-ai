@@ -26,7 +26,35 @@ test('deadline grants a final turn that began before zero', () => {
 
 test('spoken warning cannot interrupt a busy conversation', () => {
   assert.match(dashboard, /session_limit_warning_deferred/);
-  assert.match(dashboard, /freeConversationUserTurnOpen \|\| localSpeechActive \|\| activeSources\.size > 0 \|\| DeviceVisual\.getState\(\) === 'thinking'/);
+  assert.match(dashboard, /if \(localSpeechActive \|\| activeSources\.size > 0 \|\| DeviceVisual\.getState\(\) === 'thinking'\)/);
+});
+
+// Production 29 Sep (/lite probe): the 0:30 warning was deferred every time
+// and never spoken -- freeConversationUserTurnOpen is true between
+// utterances in Free Conversation. A deferred warning is retried instead.
+test('spoken warning is not blocked by the always-open Free Conversation turn, and is retried', () => {
+  assert.doesNotMatch(dashboard, /freeConversationUserTurnOpen \|\| localSpeechActive/);
+  assert.match(dashboard, /sessionLimitWarnTimer = setTimeout\(trySpokenWarning, 2000\)/);
+});
+
+// Production 29 Sep (/lite probe): a question asked at 2:57 got no answer,
+// the closing line was never spoken, and the WebSocket stayed open past
+// 0:00 (the client waited for the closing line forever).
+test('a question asked before 0:00 without an answer yet is still answered', () => {
+  assert.match(dashboard, /lastLocalUtteranceStartedAt <= sessionLimitDeadlineAt\s*&& lastLocalUtteranceStartedAt > lastAnswerAudioStartedAt/);
+  assert.ok(dashboard.includes('if (localSpeechBeganBeforeDeadline || responseStillThinking || answerOwedForSpeechBeforeDeadline) {'));
+});
+
+test('the closing sequence always ends the session, even if the closing line never plays', () => {
+  assert.match(dashboard, /const AUTO_END_CLOSING_FALLBACK_MS = 10000/);
+  assert.match(dashboard, /auto_end_fallback_disconnect[\s\S]{0,120}performAutoEnd\(reason\)/);
+  assert.match(dashboard, /pendingAutoEnd\.phase = 'closing_sent';\s*armAutoEndFallback\(AUTO_END_CLOSING_FALLBACK_MS\)/);
+  assert.match(dashboard, /if \(reason === 'session_timeout'\) sessionLimitInputClosed = true;/);
+});
+
+test('the server backstop ends the session in the client', () => {
+  assert.match(dashboard, /case 'session\.ended':[\s\S]{0,200}performAutoEnd\(/);
+  assert.match(server, /log\('session_limit_server_close'/);
 });
 
 test('persona does not force RAG and web for unrelated questions', () => {
@@ -44,7 +72,7 @@ test('synthetic text warning is not mistaken for a user audio turn', () => {
 
 test('deadline waits for a pre-deadline turn that is still thinking', () => {
   assert.ok(dashboard.includes("const responseStillThinking = DeviceVisual.getState() === 'thinking'"));
-  assert.ok(dashboard.includes('if (localSpeechBeganBeforeDeadline || responseStillThinking) {'));
+  assert.ok(dashboard.includes('if (localSpeechBeganBeforeDeadline || responseStillThinking || answerOwedForSpeechBeforeDeadline) {'));
 });
 
 // Production 29 Sep: /lite kept talking past 3:00. In Free Conversation the

@@ -48,6 +48,21 @@ function optionalString(value, maxChars = 200) {
     return str ? str.slice(0, maxChars) : '';
 }
 
+// Total deadline for one tool call (all providers). Below the realtime
+// server's tool turn timeout (PTT_TOOL_TURN_TIMEOUT_MS, 20s) so the model
+// always gets a result in time to answer. Production 2026-09-29: a knowledge
+// search in /lite ran >10s and the user heard the bridge phrase, then
+// nothing. On timeout the model is told to answer briefly and honestly.
+function toolDeadlineMs() {
+    const value = Number(process.env.TOOL_DEADLINE_MS || 12000);
+    return Number.isFinite(value) && value > 0 ? value : 12000;
+}
+
+const TOOL_TIMEOUT_RESULT = Object.freeze({
+    error: 'tool_timeout',
+    message: 'The lookup took too long. Answer briefly and honestly with what you reliably know, without inventing facts, and offer to check again or narrow the question. Do not mention the timeout.',
+});
+
 function bindTool({ name, impl }, toolContext = {}) {
     const log = toolContext.log || (() => {});
     const webEnabled = toolContext.isWebSearchEnabled || isWebSearchEnabled;
@@ -93,7 +108,23 @@ function bindTool({ name, impl }, toolContext = {}) {
         }
 
         try {
-            const result = await impl(args || {}, toolContext);
+            const deadlineMs = toolDeadlineMs();
+            let deadlineTimer = null;
+            const timedOut = Symbol('tool_timeout');
+            const result = await Promise.race([
+                Promise.resolve().then(() => impl(args || {}, toolContext)),
+                new Promise((resolve) => { deadlineTimer = setTimeout(() => resolve(timedOut), deadlineMs); }),
+            ]).finally(() => clearTimeout(deadlineTimer));
+            if (result === timedOut) {
+                log('tool_timeout', {
+                    tool: name,
+                    generationId: generationId || 'none',
+                    turnId: turnId || 'none',
+                    durationMs: Date.now() - startedAt,
+                    deadlineMs,
+                });
+                return { ...TOOL_TIMEOUT_RESULT };
+            }
             log('tool_executed', {
                 tool: name,
                 generationId: generationId || 'none',
@@ -124,6 +155,8 @@ function bindTool({ name, impl }, toolContext = {}) {
 }
 
 module.exports = {
+    TOOL_TIMEOUT_RESULT,
+    toolDeadlineMs,
     requireNonEmptyString,
     optionalString,
     bindTool,

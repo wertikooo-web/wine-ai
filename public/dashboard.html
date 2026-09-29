@@ -3148,6 +3148,14 @@
       DeviceVisual.setState('disconnected');
       visualStoryController?.reset();
       log('ws_close', {});
+      // Unexpected close (network drop, backgrounded tab, server restart)
+      // while a Free Conversation is still active: end it cleanly (mic off,
+      // ended UI) so the next tap starts a fresh conversation. A normal end
+      // goes through disconnect(), which clears tapToStartActive first.
+      if (tapToStartActive) {
+        pendingAutoEnd = null;
+        performAutoEnd('technical_error');
+      }
     });
 
     socket.addEventListener('error', () => {
@@ -3341,6 +3349,11 @@
         // Local stop already ran above, synchronously, before any other
         // processing of this event. Nothing further to do here.
         break;
+      case 'session.ended':
+        // Server-side session limit backstop (realtimeServer.js).
+        if (pendingAutoEnd) pendingAutoEnd = null;
+        performAutoEnd(payload.reason === 'session_limit' ? 'session_timeout' : (payload.reason || 'session_timeout'));
+        break;
       case 'session.ready':
         if (LITE_MODE) liteSessionId = payload.session_id || null;
         setDot('providerDot', 'ok');
@@ -3478,6 +3491,7 @@
         setText('langState', payload.to_language || '—');
         break;
       case 'audio.start':
+        lastAnswerAudioStartedAt = Date.now();
         if (sessionLimitFinalTurnPending
           && sessionLimitFinalTurnId
           && payload.turn_id === sessionLimitFinalTurnId) {
@@ -3486,6 +3500,7 @@
           clearInactivityTimers();
           clearSessionLimitTimers();
           pendingAutoEnd = { reason: 'session_timeout', closingText: FREE_CONV_SESSION_LIMIT_TEXT, phase: 'await_drain' };
+          armAutoEndFallback(AUTO_END_DRAIN_FALLBACK_MS);
           sendTelemetry('auto_end_triggered', { reason: 'session_timeout', phase: 'await_drain' });
         }
         // A late/reordered audio.start for a generation already cancelled
@@ -3748,7 +3763,7 @@
       if (voiceMode === 'tap_to_start' && tapToStartActive) {
         const nowMs = Date.now();
         if (peak >= LOCAL_VAD_HIGH_PEAK) {
-          if (!sessionLimitLocalSpeechStartedAt) sessionLimitLocalSpeechStartedAt = nowMs;
+          if (!sessionLimitLocalSpeechStartedAt) { sessionLimitLocalSpeechStartedAt = nowMs; lastLocalUtteranceStartedAt = nowMs; }
           sessionLimitLocalSpeechLastLoudAt = nowMs;
         } else if (peak < LOCAL_VAD_LOW_PEAK
           && sessionLimitLocalSpeechLastLoudAt
@@ -4831,6 +4846,29 @@
   let sessionLimitLocalSpeechStartedAt = 0;
   let sessionLimitLocalSpeechLastLoudAt = 0;
   const FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS = 900;
+  // Last utterance start (not reset by silence) vs last answer start: an
+  // utterance begun before 0:00 that has no answer yet is still owed one.
+  let lastLocalUtteranceStartedAt = 0;
+  let lastAnswerAudioStartedAt = 0;
+  const FREE_CONV_SESSION_PENDING_ANSWER_MAX_MS = 20000;
+  // The closing sequence waits for the model to say the closing line; if
+  // that never plays (production 2026-09-29: it was interrupted and the
+  // conversation stayed open past 0:00) the session ends anyway.
+  let autoEndFallbackTimer = null;
+  const AUTO_END_CLOSING_FALLBACK_MS = 10000;
+  const AUTO_END_DRAIN_FALLBACK_MS = 45000;
+  function armAutoEndFallback(ms) {
+    if (autoEndFallbackTimer) clearTimeout(autoEndFallbackTimer);
+    const owner = pendingAutoEnd;
+    autoEndFallbackTimer = setTimeout(() => {
+      autoEndFallbackTimer = null;
+      if (!pendingAutoEnd || pendingAutoEnd !== owner) return;
+      const reason = pendingAutoEnd.reason;
+      sendTelemetry('auto_end_fallback_disconnect', { reason, phase: pendingAutoEnd.phase });
+      pendingAutoEnd = null;
+      performAutoEnd(reason);
+    }, ms);
+  }
 
   function resetSessionLimitTurnState() {
     sessionLimitDeadlineAt = 0;
@@ -4841,6 +4879,8 @@
     freeConversationUserTurnOpen = false;
     sessionLimitLocalSpeechStartedAt = 0;
     sessionLimitLocalSpeechLastLoudAt = 0;
+    lastLocalUtteranceStartedAt = 0;
+    lastAnswerAudioStartedAt = 0;
   }
 
   // Small always-visible countdown under the Free Conversation button --
@@ -4954,20 +4994,24 @@
     const limitMs = freeConversationSessionLimitMs;
     const warnAt = Math.max(0, limitMs - FREE_CONV_SESSION_WARNING_LEAD_MS);
     sessionLimitDeadlineAt = Date.now() + limitMs;
-    sessionLimitWarnTimer = setTimeout(() => {
+    const trySpokenWarning = () => {
       sessionLimitWarnTimer = null;
       if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
-      // Do not inject the spoken warning into an active user turn or answer.
-      // The visible countdown already communicates the remaining time.
+      // Do not inject the spoken warning into the user's speech or an
+      // answer; retry shortly instead. (freeConversationUserTurnOpen is not
+      // a reason: in Free Conversation it is true between utterances too,
+      // so the warning was deferred every time and never spoken.)
       const localSpeechActive = Boolean(sessionLimitLocalSpeechLastLoudAt
         && Date.now() - sessionLimitLocalSpeechLastLoudAt <= FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS);
-      if (freeConversationUserTurnOpen || localSpeechActive || activeSources.size > 0 || DeviceVisual.getState() === 'thinking') {
+      if (localSpeechActive || activeSources.size > 0 || DeviceVisual.getState() === 'thinking') {
         sendTelemetry('session_limit_warning_deferred', {});
+        if (sessionLimitDeadlineAt - Date.now() > 8000) sessionLimitWarnTimer = setTimeout(trySpokenWarning, 2000);
         return;
       }
       speakScriptedLine(FREE_CONV_SESSION_WARNING_TEXT);
       sendTelemetry('session_limit_warning_spoken', {});
-    }, warnAt);
+    };
+    sessionLimitWarnTimer = setTimeout(trySpokenWarning, warnAt);
     sessionLimitEndTimer = setTimeout(() => {
       sessionLimitEndTimer = null;
       if (!(voiceMode === 'tap_to_start' && tapToStartActive)) return;
@@ -4982,16 +5026,26 @@
       // A turn that started before 0:00 is grandfathered. Let the user finish,
       // let Gemini answer fully, drain playback, then speak the closing line.
       const responseStillThinking = DeviceVisual.getState() === 'thinking';
+      // A question asked before 0:00 whose answer has not started yet
+      // (the user may already have stopped speaking) is still answered.
+      const answerOwedForSpeechBeforeDeadline = Boolean(
+        lastLocalUtteranceStartedAt
+        && lastLocalUtteranceStartedAt <= sessionLimitDeadlineAt
+        && lastLocalUtteranceStartedAt > lastAnswerAudioStartedAt
+        && nowMs - lastLocalUtteranceStartedAt <= FREE_CONV_SESSION_PENDING_ANSWER_MAX_MS
+      );
       // freeConversationUserTurnOpen is NOT a grace reason: in Free
       // Conversation the server keeps one input turn open between
       // utterances (no input_audio.end until the conversation stops), so it
       // was true at almost every deadline, the grace was granted to a turn
       // that had already been answered, and the conversation never ended.
       // Only real, recent speech or an answer still being prepared count.
-      if (localSpeechBeganBeforeDeadline || responseStillThinking) {
+      if (localSpeechBeganBeforeDeadline || responseStillThinking || answerOwedForSpeechBeforeDeadline) {
         sessionLimitFinalTurnPending = true;
-        sessionLimitFinalTurnId = responseStillThinking ? currentTurnId : null;
-        sendTelemetry('session_limit_final_turn_granted', {});
+        sessionLimitFinalTurnId = (responseStillThinking || (answerOwedForSpeechBeforeDeadline && !localSpeechBeganBeforeDeadline)) ? currentTurnId : null;
+        // Speech already over: no new questions from here on.
+        if (!localSpeechBeganBeforeDeadline) sessionLimitInputClosed = true;
+        sendTelemetry('session_limit_final_turn_granted', { speaking: localSpeechBeganBeforeDeadline, thinking: responseStillThinking, answerOwed: answerOwedForSpeechBeforeDeadline });
         sessionLimitGraceTimer = setTimeout(() => {
           sessionLimitGraceTimer = null;
           if (!(voiceMode === 'tap_to_start' && tapToStartActive) || !sessionLimitFinalTurnPending) return;
@@ -5014,12 +5068,23 @@
   function triggerAutoEnd(reason, closingText) {
     if (pendingAutoEnd) return; // already ending
     clearInactivityTimers();
-    clearSessionLimitTimers();
-    pendingAutoEnd = { reason, closingText, phase: activeSources.size > 0 ? 'await_drain' : 'ready' };
+    // An inactivity end can be cancelled by speech; keep the absolute
+    // session limit armed in that case.
+    if (reason !== 'inactivity_timeout') clearSessionLimitTimers();
+    // Wait for an answer that is still streaming or being prepared, not only
+    // one that is audible right now (chunk gaps leave activeSources empty),
+    // so the closing line is never cut by the previous answer's end.
+    const answerInProgress = activeSources.size > 0 || !serverAudioEnded || DeviceVisual.getState() === 'thinking';
+    pendingAutoEnd = { reason, closingText, phase: answerInProgress ? 'await_drain' : 'ready' };
+    // The closing line must not be talked over / cancelled by new speech.
+    if (reason === 'session_timeout') sessionLimitInputClosed = true;
     sendTelemetry('auto_end_triggered', { reason, phase: pendingAutoEnd.phase });
     if (pendingAutoEnd.phase === 'ready') {
       speakScriptedLine(pendingAutoEnd.closingText);
       pendingAutoEnd.phase = 'closing_sent';
+      armAutoEndFallback(AUTO_END_CLOSING_FALLBACK_MS);
+    } else {
+      armAutoEndFallback(AUTO_END_DRAIN_FALLBACK_MS);
     }
   }
 
@@ -5033,6 +5098,7 @@
     if (pendingAutoEnd.phase === 'await_drain') {
       speakScriptedLine(pendingAutoEnd.closingText);
       pendingAutoEnd.phase = 'closing_sent';
+      armAutoEndFallback(AUTO_END_CLOSING_FALLBACK_MS);
       return true;
     }
     if (pendingAutoEnd.phase === 'closing_sent') {
@@ -5045,6 +5111,7 @@
   }
 
   function performAutoEnd(reason) {
+    if (autoEndFallbackTimer) { clearTimeout(autoEndFallbackTimer); autoEndFallbackTimer = null; }
     sendTelemetry('auto_end_completed', { reason });
     reportSessionEndAnalytics(reason);
     pendingTerminationReason = reason;
