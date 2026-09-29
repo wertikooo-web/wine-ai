@@ -106,3 +106,8 @@ test('session-limit timers are armed after the countdown state reset', () => {
   assert.match(dashboard, /function resetSessionLimitTurnState\(\) \{\s*sessionLimitDeadlineAt = 0;/);
 });
 
+// Production 29 Sep (probe after #91): the final answer ended ~3:15 but the
+// closing line waited for the 45s grace to expire (3:46).
+test('the first answer after 0:00 is treated as the final answer', () => {
+  assert.ok(dashboard.includes("&& (!sessionLimitFinalTurnId || payload.turn_id === sessionLimitFinalTurnId)) {"));
+});
