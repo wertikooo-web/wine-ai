@@ -7,8 +7,8 @@
   "scripts": {
     "prestart": "node scripts/knowledge-republish.js && node scripts/knowledge-index.js && node scripts/knowledge-embed-backfill.js",
     "knowledge:republish": "node scripts/knowledge-republish.js",
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
+    "start": "GEMINI_LIVE_MODEL=gemini-3.8-live node src/server.js",
+    "dev": "GEMINI_LIVE_MODEL=gemini-3.8-live node src/server.js",
     "knowledge:index": "node scripts/knowledge-index.js",
     "knowledge:check": "node scripts/knowledge-check.js",
     "knowledge:update": "node scripts/knowledge-update.js",
@@ -38,9 +38,7 @@
     "avatar:validate:events": "node .claude/skills/winemd-rive/scripts/validate-visual-events.mjs",
     "avatar:validate:assets": "node .claude/skills/winemd-rive/scripts/validate-character-assets.mjs"
   },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1091.0",
     "@aws-sdk/s3-request-presigner": "^3.1091.0",
