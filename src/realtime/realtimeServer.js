@@ -90,6 +90,7 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'session_limit_final_turn_granted', 'session_limit_grace_expired',
     'session_limit_warning_deferred', 'session_limit_warning_spoken',
     'auto_end_triggered', 'inactivity_warning_spoken',
+    'auto_end_completed', 'auto_end_fallback_disconnect',
     // Pre-existing stages that were being sent but were never actually
     // whitelisted, so they were silently dropped by the check below —
     // discovered while adding the itrace_* diagnostic below.
