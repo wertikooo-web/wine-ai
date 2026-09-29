@@ -16,7 +16,7 @@ function extractSampleRate(mimeType) {
 // One-shot (non-live) Gemini TTS call used only for the parent panel's
 // "listen to voice" preview button. Separate from GeminiLiveProvider, which
 // drives the actual realtime WebSocket session.
-async function synthesizeVoicePreview({ voiceName, text, apiKey } = {}) {
+async function synthesizeVoicePreview({ voiceName, text, apiKey, operation = 'voice_preview' } = {}) {
     const resolvedVoice = isValidVoiceName(voiceName) ? voiceName : DEFAULT_VOICE_NAME;
     const resolvedText = String(text || DEFAULT_PREVIEW_TEXT).trim().slice(0, MAX_PREVIEW_TEXT_CHARS) || DEFAULT_PREVIEW_TEXT;
     const key = apiKey || process.env.GEMINI_API_KEY || '';
@@ -44,7 +44,7 @@ async function synthesizeVoicePreview({ voiceName, text, apiKey } = {}) {
     });
 
     // Cost telemetry (fire-and-forget, never throws).
-    recordApiCall({ category: 'tts', provider: 'gemini', model: TTS_MODEL, operation: 'voice_preview', usageMetadata: response?.usageMetadata || null });
+    recordApiCall({ category: 'tts', provider: 'gemini', model: TTS_MODEL, operation, usageMetadata: response?.usageMetadata || null });
 
     const part = response?.candidates?.[0]?.content?.parts?.find((item) => item.inlineData);
     const audioBase64 = part?.inlineData?.data || response?.data;

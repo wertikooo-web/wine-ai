@@ -18,7 +18,13 @@ const { recordApiCall } = require('../cost/costTelemetry');
 
 const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER || 'gemini-grounding'; // gemini-grounding | brave | disabled
 const GROUNDING_MODEL = process.env.WEB_SEARCH_GROUNDING_MODEL || 'gemini-2.5-flash';
-const DEFAULT_TIMEOUT_MS = Number(process.env.WEB_SEARCH_TIMEOUT_MS || 8000);
+// Voice turn budget: a slower search is abandoned and the answer comes from
+// the knowledge base / general knowledge instead of more silence.
+const DEFAULT_TIMEOUT_MS = Number(process.env.WEB_SEARCH_TIMEOUT_MS || 4500);
+// The grounding call only has to surface sources and a short digest; it
+// needs no hidden "thinking" pass and no long essay (both cost seconds).
+const GROUNDING_THINKING_BUDGET = Number(process.env.WEB_SEARCH_THINKING_BUDGET || 0);
+const GROUNDING_MAX_OUTPUT_TOKENS = Number(process.env.WEB_SEARCH_MAX_OUTPUT_TOKENS || 700);
 const DAILY_QUERY_BUDGET = Number(process.env.WEB_SEARCH_DAILY_BUDGET || 500);
 const SESSION_QUERY_BUDGET = Number(process.env.WEB_SEARCH_SESSION_BUDGET || 20);
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h -- grounding facts don't churn
@@ -177,13 +183,27 @@ async function geminiGroundingSearch(query, {
             const { GoogleGenAI } = require('@google/genai');
             const ai = new GoogleGenAI({ apiKey });
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+            let timeout;
+            // Hard deadline even if the SDK ignored the abort signal.
+            const deadline = new Promise((_, reject) => {
+                timeout = setTimeout(() => {
+                    controller.abort();
+                    reject(Object.assign(new Error('timeout'), { name: 'AbortError' }));
+                }, timeoutMs);
+            });
             try {
-                response = await ai.models.generateContent({
+                response = await Promise.race([deadline, ai.models.generateContent({
                     model,
                     contents: [{ role: 'user', parts: [{ text: normalizedQuery }] }],
-                    config: { tools: [{ googleSearch: {} }] },
-                });
+                    config: {
+                        tools: [{ googleSearch: {} }],
+                        thinkingConfig: { thinkingBudget: GROUNDING_THINKING_BUDGET },
+                        maxOutputTokens: GROUNDING_MAX_OUTPUT_TOKENS,
+                        // Without this the timeout above never cancelled the
+                        // request: the controller was aborted but unused.
+                        abortSignal: controller.signal,
+                    },
+                })]);
             } finally {
                 clearTimeout(timeout);
             }

@@ -3178,6 +3178,7 @@
   // to react while the socket is still open; closing local playback does
   // NOT depend on that message succeeding either way.
   function disconnect() {
+    stopBridge('disconnect');
     const socket = ws;
     let resolveClosed;
     const canObserveClose = socket && typeof socket.addEventListener === 'function';
@@ -3499,6 +3500,7 @@
           modelEventSeenForTurn[payload.turn_id] = true;
           itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'audio.start' });
         }
+        stopBridge('answer_started');
         firstAudioAt = performance.now();
         if (inputEndedAt) setText('dTtfb', Math.round(firstAudioAt - inputEndedAt) + ' ms');
         playbackQueueTime = audioContext ? audioContext.currentTime : 0;
@@ -3509,7 +3511,11 @@
         setText('speakerState', 'assistant');
         DeviceVisual.setState('speaking');
         break;
+      case 'assistant.bridge':
+        playBridge(payload);
+        break;
       case 'audio.chunk':
+        stopBridge('answer_started');
         if (!audioChunkSeenForTurn[payload.turn_id]) {
           audioChunkSeenForTurn[payload.turn_id] = true;
           itraceForTurn(payload.turn_id, 'first_audio_chunk_received', {});
@@ -5025,6 +5031,7 @@
     if (LITE_MODE) finishLiteConversation();
   }
   function triggerLocalBargeIn(peak, features) {
+    stopBridge('local_vad_barge_in');
     localBargeInEpisodeId += 1;
     const supersededGenerationId = acceptedPlaybackGenerationId;
     sendTelemetry('local_barge_in_detected', {
@@ -5160,6 +5167,7 @@
   // separate, purely local action rather than something we wait on the
   // server to trigger for us.
   function stopPlaybackImmediately({ reason, generationId }) {
+    stopBridge(reason || 'playback_stop');
     const stopOperationId = nextStopOperationId();
     const startedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     sendTelemetry('playback_stop_started', { stopOperationId, reason, generationId, acceptedPlaybackGenerationId });
@@ -5278,6 +5286,50 @@
     if (avatar3d) avatar3d.resetAudio();
     DeviceVisual.setState('listening');
     sendTelemetry('local_playback_stopped', { stopOperationId, reason });
+  }
+
+  // ---- Bridge phrase ("Секунду…") ----
+  // Short pre-rendered phrase the server sends while a knowledge search keeps
+  // the assistant silent (bridgePhrases.js). Played on its OWN buffer source,
+  // never through the generation queue (activeSources/acceptedPlayback…), so
+  // it cannot affect playback ownership or turn state. Cut the moment the
+  // real answer starts, the user speaks, or the conversation stops. Routed
+  // through the avatar analyser so the avatar speaks it too.
+  var bridgeSource = null; // var: reachable from stop paths before this line runs
+  function playBridge(payload) {
+    if (!payload || !payload.audio_base64 || !audioContext) return;
+    if (bridgeSource || activeSources.size > 0
+      || (payload.generation_id && cancelledGenerationIds.has(payload.generation_id))) {
+      sendTelemetry('bridge_ignored', { generationId: payload.generation_id, reason: bridgeSource ? 'already_playing' : 'answer_or_cancelled' });
+      return;
+    }
+    try {
+      const bytes = decodeBase64ToBytes(payload.audio_base64);
+      const samples = Math.floor(bytes.byteLength / 2);
+      if (!samples) return;
+      const buffer = audioContext.createBuffer(1, samples, payload.sample_rate || 24000);
+      const channel = buffer.getChannelData(0);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
+      source.onended = () => { if (bridgeSource === source) bridgeSource = null; };
+      bridgeSource = source;
+      source.start();
+      sendTelemetry('bridge_played', { generationId: payload.generation_id });
+    } catch (error) {
+      bridgeSource = null;
+      sendTelemetry('bridge_ignored', { generationId: payload.generation_id, reason: 'play_error' });
+    }
+  }
+  function stopBridge(reason) {
+    const source = bridgeSource;
+    if (!source) return;
+    bridgeSource = null;
+    try { source.stop(); } catch { /* already ended */ }
+    try { source.disconnect(); } catch { /* ignore */ }
+    sendTelemetry('bridge_stopped', { reason });
   }
 
   function playAudioChunk(payload) {
