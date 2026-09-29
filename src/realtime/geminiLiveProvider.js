@@ -1211,6 +1211,7 @@ class GeminiLiveProviderSession {
 
         if (content.outputTranscription?.text) {
             this.active.modelOutputStarted = true;
+            this.clearTurnClosedDuringInputOnOutput();
             this.active.onEvent({
                 type: 'transcript.model',
                 response_id: this.active.responseId,
@@ -1242,6 +1243,7 @@ class GeminiLiveProviderSession {
             if (!this.active.audioStarted) {
                 this.active.audioStarted = true;
                 this.active.modelOutputStarted = true;
+                this.clearTurnClosedDuringInputOnOutput();
                 // Last generation we actually told the CLIENT to expect
                 // audio for -- used by handleProviderInterrupted()'s
                 // fallback below when our own generation-attribution can't
@@ -1334,6 +1336,21 @@ class GeminiLiveProviderSession {
             }
             this.emitOutputEnd('turnComplete');
         }
+    }
+
+    // A turnComplete without output (e.g. Gemini's own VAD interrupting while
+    // a tool call is pending) marks the turn "closed during input". If Gemini
+    // then answers in the same generation, that mark is stale: keeping it
+    // made the later endInput() raise a false provider_turn_closed_during_input.
+    clearTurnClosedDuringInputOnOutput() {
+        if (!this.active || this.turnClosedDuringInput?.generationId !== this.active.generationId) return;
+        this.active.log('provider_turn_reopened_with_output', {
+            generationId: this.active.generationId,
+            turnId: this.active.turnId,
+            providerInstanceId: this.instanceId,
+            msSinceClose: Date.now() - this.turnClosedDuringInput.closedAt,
+        });
+        this.turnClosedDuringInput = null;
     }
 
     shouldDropTurnCompleteWithoutModelOutput() {
