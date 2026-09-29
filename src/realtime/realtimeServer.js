@@ -84,6 +84,12 @@ const CLIENT_TELEMETRY_ALLOWED_STAGES = new Set([
     'local_playback_stopped', 'socket_close_started', 'mic_stopped',
     // Bridge phrase playback (see bridgePhrases.js / dashboard playBridge()).
     'bridge_played', 'bridge_stopped', 'bridge_ignored',
+    // Free Conversation session cap / inactivity auto-end (dashboard.html);
+    // were sent but silently rejected, leaving the 3-minute cap invisible
+    // in production logs.
+    'session_limit_final_turn_granted', 'session_limit_grace_expired',
+    'session_limit_warning_deferred', 'session_limit_warning_spoken',
+    'auto_end_triggered', 'inactivity_warning_spoken',
     // Pre-existing stages that were being sent but were never actually
     // whitelisted, so they were silently dropped by the check below —
     // discovered while adding the itrace_* diagnostic below.

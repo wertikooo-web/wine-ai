@@ -44,7 +44,20 @@ test('synthetic text warning is not mistaken for a user audio turn', () => {
 
 test('deadline waits for a pre-deadline turn that is still thinking', () => {
   assert.ok(dashboard.includes("const responseStillThinking = DeviceVisual.getState() === 'thinking'"));
-  assert.ok(dashboard.includes('freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline || responseStillThinking'));
+  assert.ok(dashboard.includes('if (localSpeechBeganBeforeDeadline || responseStillThinking) {'));
+});
+
+// Production 29 Sep: /lite kept talking past 3:00. In Free Conversation the
+// input turn stays open between utterances, so an "open turn" grace was
+// granted at every deadline to an already-answered turn and never resolved.
+test('deadline is not deferred just because the Free Conversation input turn is open', () => {
+  assert.doesNotMatch(dashboard, /if \(freeConversationUserTurnOpen \|\| localSpeechBeganBeforeDeadline/);
+});
+
+test('a granted final turn has an absolute backstop', () => {
+  assert.match(dashboard, /const FREE_CONV_SESSION_FINAL_GRACE_MS = \d+/);
+  assert.match(dashboard, /session_limit_grace_expired[\s\S]{0,80}triggerAutoEnd\('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT\)/);
+  assert.match(dashboard, /if \(sessionLimitGraceTimer\) \{ clearTimeout\(sessionLimitGraceTimer\)/);
 });
 
 test('grandfathered final turn failure closes cleanly', () => {

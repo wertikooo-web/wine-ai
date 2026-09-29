@@ -764,6 +764,9 @@
   }
   /* Mobile order: chat above, then text input, then the mic button. */
   body.lite.vc .live-screen > #pttBtn, body.lite.vc .live-screen > #voiceSessionTimer { order: 2; }
+  /* Session countdown: readable on a phone, red in the last 30 s. */
+  body.lite .voice-session-timer { font-size: 14px; font-weight: 700; color: inherit; opacity: .85; margin-top: 6px; }
+  body.lite .voice-session-timer.ending { color: #b3261e; opacity: 1; }
   body.lite.vc .live-screen > .app-input-row { order: 1; margin-top: 6px; }
   body.lite.lite-active .start-intents { display: none !important; }
   /* Wine AI Lite shell: same page standalone (QR), on phones and inside the
@@ -4813,6 +4816,10 @@
   const FREE_CONV_SESSION_LIMIT_TEXT = 'Мне пора немного отдохнуть. Если захотите продолжить, начните новый разговор.';
   let sessionLimitWarnTimer = null;
   let sessionLimitEndTimer = null;
+  // Absolute backstop after the deadline: a grandfathered final turn may
+  // finish, but never keep the conversation open indefinitely.
+  let sessionLimitGraceTimer = null;
+  const FREE_CONV_SESSION_FINAL_GRACE_MS = 45000;
   let freeConversationStartedAt = null; // set once per conversation, in resumeTapListening()
   let voiceSessionTickInterval = null;
   let sessionLimitDeadlineAt = 0;
@@ -4857,6 +4864,7 @@
     const remaining = freeConversationSessionLimitMs - elapsed;
     el2.hidden = false;
     el2.textContent = formatRemainingMmSs(remaining);
+    el2.classList.toggle('ending', remaining <= FREE_CONV_SESSION_WARNING_LEAD_MS);
   }
 
   function startVoiceSessionTimerDisplay() {
@@ -4914,6 +4922,7 @@
   function clearSessionLimitTimers() {
     if (sessionLimitWarnTimer) { clearTimeout(sessionLimitWarnTimer); sessionLimitWarnTimer = null; }
     if (sessionLimitEndTimer) { clearTimeout(sessionLimitEndTimer); sessionLimitEndTimer = null; }
+    if (sessionLimitGraceTimer) { clearTimeout(sessionLimitGraceTimer); sessionLimitGraceTimer = null; }
   }
 
   // Best-effort: asks the model (via the same text-turn channel typing a
@@ -4973,10 +4982,24 @@
       // A turn that started before 0:00 is grandfathered. Let the user finish,
       // let Gemini answer fully, drain playback, then speak the closing line.
       const responseStillThinking = DeviceVisual.getState() === 'thinking';
-      if (freeConversationUserTurnOpen || localSpeechBeganBeforeDeadline || responseStillThinking) {
+      // freeConversationUserTurnOpen is NOT a grace reason: in Free
+      // Conversation the server keeps one input turn open between
+      // utterances (no input_audio.end until the conversation stops), so it
+      // was true at almost every deadline, the grace was granted to a turn
+      // that had already been answered, and the conversation never ended.
+      // Only real, recent speech or an answer still being prepared count.
+      if (localSpeechBeganBeforeDeadline || responseStillThinking) {
         sessionLimitFinalTurnPending = true;
-        sessionLimitFinalTurnId = (freeConversationUserTurnOpen || responseStillThinking) ? currentTurnId : null;
+        sessionLimitFinalTurnId = responseStillThinking ? currentTurnId : null;
         sendTelemetry('session_limit_final_turn_granted', {});
+        sessionLimitGraceTimer = setTimeout(() => {
+          sessionLimitGraceTimer = null;
+          if (!(voiceMode === 'tap_to_start' && tapToStartActive) || !sessionLimitFinalTurnPending) return;
+          sessionLimitFinalTurnPending = false;
+          sessionLimitInputClosed = true;
+          sendTelemetry('session_limit_grace_expired', {});
+          triggerAutoEnd('session_timeout', FREE_CONV_SESSION_LIMIT_TEXT);
+        }, FREE_CONV_SESSION_FINAL_GRACE_MS);
         return;
       }
       sessionLimitInputClosed = true;
