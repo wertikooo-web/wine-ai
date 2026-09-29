@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       diagnostic:
-        description: 'Run a production diagnostic instead of the smoke (bridge | phrases | tts)'
+        description: 'Run a production diagnostic instead of the smoke (bridge | phrases | tts | session)'
         required: false
         default: ''
 
@@ -218,6 +218,12 @@ jobs:
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
+      - name: Free Conversation session probe (3:00 limit, answer length, language per turn)
+        if: ${{ github.event.inputs.diagnostic == 'session' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/session-probe.js
       - name: Bridge phrases through production TTS
         if: ${{ github.event.inputs.diagnostic == 'phrases' }}
         run: node scripts/diag/bridge-phrases-tts.js
