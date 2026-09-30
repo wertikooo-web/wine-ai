@@ -872,7 +872,11 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     // freshness questions still go to the web.
     const generalKnowledgeNoWeb = resolvedClass === CLAIM_CLASSES.GENERAL_KNOWLEDGE
         && options.forceWeb !== true && !base.freshness_sensitive && !webForGeneralKnowledge();
-    if (answerable === true || options.allowWeb === false || base.web_used || generalKnowledgeNoWeb) {
+    // base.web_attempted: this same query already went to the web in
+    // routeKnowledge (freshness / force_web / weak internal evidence) and got
+    // nothing -- a second identical grounding call only added seconds of
+    // silence (production 30 Sep: 4.5s empty + 2.9s repeat).
+    if (answerable === true || options.allowWeb === false || base.web_used || base.web_attempted || generalKnowledgeNoWeb) {
         return {
             ...base,
             answerable,
