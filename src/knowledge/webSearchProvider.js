@@ -20,7 +20,9 @@ const WEB_SEARCH_PROVIDER = process.env.WEB_SEARCH_PROVIDER || 'gemini-grounding
 const GROUNDING_MODEL = process.env.WEB_SEARCH_GROUNDING_MODEL || 'gemini-2.5-flash';
 // Voice turn budget: a slower search is abandoned and the answer comes from
 // the knowledge base / general knowledge instead of more silence.
-const DEFAULT_TIMEOUT_MS = Number(process.env.WEB_SEARCH_TIMEOUT_MS || 4500);
+// One grounding call that finishes beats one that times out plus a retry:
+// production (30 Sep) saw 4.5s timeouts followed by a 2.9s success.
+const DEFAULT_TIMEOUT_MS = Number(process.env.WEB_SEARCH_TIMEOUT_MS || 6500);
 // The grounding call only has to surface sources and a short digest; it
 // needs no hidden "thinking" pass and no long essay (both cost seconds).
 const GROUNDING_THINKING_BUDGET = Number(process.env.WEB_SEARCH_THINKING_BUDGET || 0);

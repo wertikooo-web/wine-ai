@@ -45,3 +45,18 @@ test('a non-freshness question does not start web early (decision unchanged)', a
     assert.ok(!calls.includes('web'), 'strong internal evidence: no web');
     assert.equal(result.web_used, false);
 });
+
+// Production 30 Sep: the freshness web search came back empty at its 4.5s
+// deadline, then the answerability gate called the same web search again
+// (+2.9s). A query that already went to the web must not go twice.
+test('web that already ran empty is not repeated by the answerability gate', async () => {
+    const { routeKnowledgeWithAnswerabilityGate } = require('../src/knowledge/layeredRouter');
+    const calls = [];
+    const adapters = slowAdapters(5, 5, calls);
+    adapters.searchInternet = async () => { calls.push('web'); return []; };
+    const result = await routeKnowledgeWithAnswerabilityGate('Какие новости у винодельни Purcari за последнюю неделю?', { adapters });
+    assert.equal(calls.filter((c) => c === 'web').length, 1, 'one web call per question');
+    assert.equal(result.web_used, false);
+    assert.equal(result.web_attempted, true);
+    assert.notEqual(result.answerable, true, 'empty web never becomes a confirmed answer');
+});
