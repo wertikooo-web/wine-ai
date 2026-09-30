@@ -129,3 +129,69 @@ Do not expose provider API keys in static sites/widgets. Widget identity/configu
 ## Definition of done for a new widget
 
 A new widget is a presentation/configuration client of the shared WINE AI engine. It can start a session, invoke canonical intents, conduct normal voice/text conversation, render structured result cards/verified links, emit widget-scoped analytics, and be disabled/changed without altering other widgets or realtime providers.
+
+## Post-launch TODO: shared WINE AI Widget SDK
+
+This is deliberately deferred until after the current launch. The production `/lite` client is frozen for the launch and must not be refactored merely to create a new demo skin.
+
+After launch, extract the reusable client/realtime capabilities currently coupled to `/lite` into a shared WINE AI Widget SDK. The goal is to let each site own its visual interface while using one maintained technical client.
+
+Conceptual SDK responsibilities include:
+- connect/disconnect to the WINE AI backend
+- start/stop a conversation
+- microphone/audio capture
+- audio playback
+- send text/audio turns
+- interruption/barge-in
+- transcripts and assistant text events
+- structured wine/winery/result cards
+- verified link/action events
+- session/widget identity and analytics hooks
+
+The intended architecture is:
+
+```text
+WINE AI BACKEND
+      |
+WINE AI Widget SDK
+      |
++-----+----------------+----------------+
+|                      |                |
+/lite UI          WINE AI Demo     Customer widgets
+(current UI)      custom UI        Purcari/Cricova/etc.
+```
+
+A Demo, WineMD, Purcari or other customer widget may then have a completely different avatar, buttons, layout, branding and cards. It should call the same SDK instead of copying microphone, WebSocket, playback, interruption or provider logic.
+
+Example conceptual API (final API to be designed after audit):
+
+```js
+connect()
+startConversation()
+startMicrophone()
+sendAudio()
+sendText()
+interrupt()
+onTranscript()
+onAssistantText()
+onCard()
+onLinks()
+disconnect()
+```
+
+### Why deferred
+
+Extracting the SDK correctly requires separating reusable realtime/client logic from the current `/lite` UI and proving that the production `/lite` behavior remains unchanged. Doing that immediately before the public launch adds unnecessary regression risk.
+
+### Post-launch acceptance criteria
+
+The SDK work is complete only when:
+- existing `/lite` behaves the same after migration;
+- at least one separate custom widget uses the SDK without copying realtime code;
+- a realtime fix in the SDK is shared by all SDK-based widgets;
+- widget UI/branding can change without changing Gemini/Grok/GPT integrations;
+- provider secrets remain server-side;
+- widget/session analytics remain attributable by `widget_id`;
+- microphone, playback, interruption and cleanup have regression/E2E coverage.
+
+Create this as a separate post-launch engineering task/PR. Do not mix it into launch-critical Demo Widget work.
