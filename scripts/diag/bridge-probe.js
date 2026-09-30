@@ -172,7 +172,7 @@ async function main() {
     for (let attempt = 1; attempt <= Number(process.env.PROBE_DEPLOY_WAIT_TRIES || 1); attempt += 1) {
         const health = await http('/health');
         report.health_bridge = health.json?.bridge || null;
-        if (report.health_bridge) break;
+        if (report.health_bridge && Array.isArray(health.json?.knowledge_timings)) break;
         console.log(`waiting for a deployment with /health.bridge (attempt ${attempt})`);
         await sleep(15000);
     }
@@ -221,6 +221,8 @@ async function main() {
 
     const healthAfter = await http('/health');
     console.log(`/health.bridge after sessions: ${JSON.stringify(healthAfter.json?.bridge || null)}`);
+    console.log('/health.knowledge_timings (latest knowledge searches, ms):');
+    for (const t of healthAfter.json?.knowledge_timings || []) console.log(`   ${JSON.stringify(t)}`);
     const ttsAfter = await http('/api/cost/breakdown');
     report.tts_records_after = ttsRow(ttsAfter).map((r) => ({ model: r.model, records: r.records }));
 

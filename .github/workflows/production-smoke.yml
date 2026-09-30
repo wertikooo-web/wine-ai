@@ -333,4 +333,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ ! -f /tmp/bridge-probe/question.wav ]; then echo "no spoken question (voice preview needs ADMIN_TOKEN): browser probe skipped"; exit 0; fi
           CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/bridge-browser-probe.js
