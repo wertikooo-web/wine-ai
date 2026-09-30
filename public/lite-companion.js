@@ -173,6 +173,62 @@
     return root;
   }
 
+  // show_links result: verified links as clickable TEXT inside the answer
+  // (site, map, Instagram, Facebook, tours, WineMD), with the wine photo
+  // when the catalog has one. Only https links of known kinds; the label
+  // is ours, the hostname is shown so the guest sees where it goes.
+  const LINK_KIND_LABELS = {
+    site: { ru: 'Сайт винодельни', ro: 'Site-ul cramei', en: 'Winery website', icon: '🌐' },
+    map: { ru: 'На карте', ro: 'Pe hartă', en: 'On the map', icon: '📍' },
+    instagram: { ru: 'Instagram', ro: 'Instagram', en: 'Instagram', icon: '📷' },
+    facebook: { ru: 'Facebook', ro: 'Facebook', en: 'Facebook', icon: '👍' },
+    tours: { ru: 'Экскурсии и бронирование', ro: 'Excursii și rezervare', en: 'Tours and booking', icon: '🎟' },
+    winemd: { ru: 'Винодельня на WineMD', ro: 'Crama pe WineMD', en: 'Winery on WineMD', icon: '🍇' },
+    wine_page: { ru: 'Вино на WineMD', ro: 'Vinul pe WineMD', en: 'Wine on WineMD', icon: '🍷' },
+  };
+  function buildLinksBlock(doc, payload, { lang = 'ru', onLinkClick = () => {} } = {}) {
+    const el = (tag, className, text) => {
+      const node = doc.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null) node.textContent = String(text);
+      return node;
+    };
+    const links = (Array.isArray(payload && payload.links) ? payload.links : [])
+      .map((l) => ({ kind: l && l.kind, url: safeHttpsUrl(l && l.url), info: l && typeof l.info === 'string' ? l.info.slice(0, 80) : null }))
+      .filter((l) => l.url && LINK_KIND_LABELS[l.kind]);
+    if (!links.length) return null;
+    const root = el('div', 'lite-links');
+    const image = safeHttpsUrl(payload.image_url);
+    if (image) {
+      const img = el('img', 'lite-links__img');
+      img.alt = String(payload.title || '');
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = () => { if (img.parentNode) img.parentNode.removeChild(img); };
+      img.src = image;
+      root.appendChild(img);
+    }
+    const list = el('div', 'lite-links__list');
+    if (payload.title) list.appendChild(el('div', 'lite-links__title', [payload.title, payload.price].filter(Boolean).join(' · ')));
+    for (const l of links) {
+      const row = el('div', 'lite-links__row');
+      const meta = LINK_KIND_LABELS[l.kind];
+      const a = el('a', 'lite-links__a', `${meta.icon} ${meta[lang] || meta.ru}`);
+      a.href = l.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.addEventListener('click', () => { try { onLinkClick(payload, l); } catch { /* analytics only */ } });
+      row.appendChild(a);
+      let host = '';
+      try { host = l.kind === 'map' ? 'Google Maps' : new URL(l.url).hostname.replace(/^www\./, ''); } catch { host = ''; }
+      const tail = [l.kind === 'tours' && lang === 'ru' ? l.info : null, host].filter(Boolean).join(' · ');
+      if (tail) row.appendChild(el('span', 'lite-links__host', ` — ${tail}`));
+      list.appendChild(row);
+    }
+    root.appendChild(list);
+    return root;
+  }
+
   // Controller used by the Lite page.
   function createCompanion({ doc, fetchImpl, getLang = () => 'ru', telemetry = () => {} }) {
     let catalog = null;
@@ -300,5 +356,5 @@
     return { reset, onAssistantText, loadCatalog, loadWineries };
   }
 
-  return { normalizeName, findWines, findWineries, safeHttpsUrl, buildCard, buildWineryCard, createCompanion, CTA_LABELS, MAX_CARDS_PER_TURN };
+  return { normalizeName, findWines, findWineries, safeHttpsUrl, buildCard, buildWineryCard, buildLinksBlock, createCompanion, CTA_LABELS, LINK_KIND_LABELS, MAX_CARDS_PER_TURN };
 }));

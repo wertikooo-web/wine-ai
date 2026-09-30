@@ -805,6 +805,13 @@
   .wc-card__desc { margin-top: 3px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .wc-card__row { font-size: 12px; }
   .wc-card__ctas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .lite-links { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+  .lite-links__img { flex: 0 0 56px; width: 56px; height: 84px; object-fit: contain; background: #f7f1e8; border-radius: 8px; }
+  .lite-links__list { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .lite-links__title { font-weight: 700; color: var(--wine); font-size: 13px; }
+  .lite-links__row { font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+  .lite-links__a { color: var(--wine); font-weight: 700; text-decoration: underline; }
+  .lite-links__host { color: var(--muted); font-size: 12px; }
   .wc-card__cta { display: inline-block; padding: 7px 11px; border-radius: 999px; background: var(--wine); color: #fff; font-weight: 700; font-size: 12.5px; text-decoration: none; }
   .wc-card__cta + .wc-card__cta { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
   body.lite .phone-row { justify-content: center; }
@@ -3472,6 +3479,9 @@
         itraceForTurn(currentTurnId, 'input_audio_end_received', {});
         itraceForTurn(currentTurnId, 'client_frames_summary', { clientFrameCount, clientByteCount });
         break;
+      case 'companion.links':
+        if (LITE_MODE) liteLinksReceive(payload);
+        break;
       case 'transcript.user':
         // The echo of speakScriptedLine() (30-second warning, goodbye):
         // the assistant says the line, the chat must not show the
@@ -4283,6 +4293,56 @@
   function liteAssistantName() {
     return (document.body.dataset.personaName || '').trim() || 'Wine AI';
   }
+  // show_links (companion.links): verified links as clickable text inside
+  // the answer of the same generation. The tool runs before the answer
+  // exists, so the block waits for that bubble (fallback: own message).
+  const liteLinksPending = new Map();
+  function liteLinksRender(payload, bubble) {
+    if (!window.WineCompanion || !window.WineCompanion.buildLinksBlock) return;
+    const lang = ['ru', 'ro', 'en'].includes(uiLang) ? uiLang : 'ru';
+    const block = window.WineCompanion.buildLinksBlock(document, payload, {
+      lang,
+      onLinkClick: (p, l) => {
+        sendTelemetry('companion_link_clicked', { entityId: p.entity_id, linkKind: l.kind });
+        try { fetch('/api/analytics/link-event', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ events: [{ event: 'link_clicked', entityType: p.entity_type, entityId: p.entity_id, entityName: p.title, ctaType: LINK_KIND_TO_CTA[l.kind] || 'none' }] }) }).catch(() => {}); } catch { /* analytics only */ }
+      },
+    });
+    if (!block) return;
+    bubble.appendChild(block);
+    try { fetch('/api/analytics/link-event', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ events: (payload.links || []).slice(0, 10).map((l) => ({ event: 'link_rendered', entityType: payload.entity_type, entityId: payload.entity_id, entityName: payload.title, ctaType: LINK_KIND_TO_CTA[l.kind] || 'none' })) }) }).catch(() => {}); } catch { /* analytics only */ }
+    const box = document.getElementById('liteChat');
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+  const LINK_KIND_TO_CTA = { site: 'VISIT_WINERY_SITE', map: 'OPEN_MAP', tours: 'BOOK_TOUR', winemd: 'WINERY_ON_WINEMD', wine_page: 'BUY_OR_VIEW_ON_WINEMD', instagram: 'INSTAGRAM', facebook: 'FACEBOOK' };
+  function liteLinksFlush(generationId, bubble) {
+    const entry = generationId && liteLinksPending.get(generationId);
+    if (!entry) return;
+    liteLinksPending.delete(generationId);
+    clearTimeout(entry.timer);
+    for (const payload of entry.items) liteLinksRender(payload, bubble);
+  }
+  function liteLinksReceive(payload) {
+    try {
+      if (!document.body.classList.contains('vc')) return;
+      const gen = payload.generation_id || 'current';
+      const existing = liteChatBubbles.get('assistant:' + gen);
+      if (existing) { liteLinksRender(payload, existing); return; }
+      const entry = liteLinksPending.get(gen) || { items: [], timer: null };
+      entry.items.push(payload);
+      clearTimeout(entry.timer);
+      entry.timer = setTimeout(() => {
+        liteLinksPending.delete(gen);
+        const box = document.getElementById('liteChat');
+        if (!box) return;
+        const bubble = document.createElement('div');
+        bubble.className = 'lite-msg lite-msg--assistant';
+        box.appendChild(bubble);
+        for (const p of entry.items) liteLinksRender(p, bubble);
+      }, 8000);
+      liteLinksPending.set(gen, entry);
+    } catch { /* presentation only */ }
+  }
+
   function liteChatAppend(role, payload) {
     try {
       if (!document.body.classList.contains('vc')) return;
@@ -4309,6 +4369,7 @@
       const body = bubble.querySelector('.lite-msg__text');
       body.textContent += text;
       if (role === 'assistant') liteCompanionOnText(key, body.textContent, bubble);
+      if (role === 'assistant') liteLinksFlush(payload.generation_id, bubble);
       box.scrollTop = box.scrollHeight;
     } catch { /* presentation only */ }
   }

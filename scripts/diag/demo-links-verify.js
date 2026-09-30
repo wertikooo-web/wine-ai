@@ -59,13 +59,26 @@ async function main() {
                 }
             }
             const title = (r.body.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1];
-            return { winery: s.winery, website: s.website, status: r.status, finalUrl: r.finalUrl, ms: r.ms, error: r.error || null, title: title ? title.replace(/\s+/g, ' ').trim().slice(0, 70) : null };
+            // The winery's own site links its social pages: those are the
+            // verified accounts (first profile link of each network).
+            const social = (host) => {
+                for (const a of anchors(r.body || '', r.finalUrl || s.website)) {
+                    let u; try { u = new URL(a.href); } catch { continue; }
+                    if (!u.hostname.replace(/^www\.|^m\./, '').startsWith(host)) continue;
+                    const path = u.pathname.replace(/\/+$/, '');
+                    if (!path || /^\/(sharer|share|intent|dialog|plugins|tr|p|reel|watch|hashtag|explore)(\/|$|\.php)/i.test(path)) continue;
+                    return `https://www.${host}${path}`;
+                }
+                return null;
+            };
+            return { winery: s.winery, website: s.website, status: r.status, finalUrl: r.finalUrl, ms: r.ms, error: r.error || null, title: title ? title.replace(/\s+/g, ' ').trim().slice(0, 70) : null, instagram: social('instagram.com'), facebook: social('facebook.com') };
         }));
         siteResults.push(...batch);
     }
     for (const r of siteResults) {
         const ok = r.status >= 200 && r.status < 400;
         console.log(`   ${ok ? 'OK  ' : 'FAIL'} ${r.winery} | ${r.website} -> ${r.status || r.error} ${r.finalUrl && r.finalUrl !== r.website + '/' ? r.finalUrl : ''} | ${r.title || ''}`);
+        if (r.instagram || r.facebook) console.log(`SOCIAL\t${JSON.stringify({ winery: r.winery, instagram: r.instagram, facebook: r.facebook })}`);
     }
     console.log(`   alive: ${siteResults.filter((r) => r.status >= 200 && r.status < 400).length}/${siteResults.length}`);
 
@@ -80,6 +93,18 @@ async function main() {
         for (const a of unique) console.log(`   ${a.href} | ${a.text}`);
     }
 
+    // Wine images as imported (wine.md root /assets) vs. as published (/ru//assets).
+    const winesFile = path.join(__dirname, '..', '..', 'data', 'demo-links', 'winemd-wines.json');
+    if (fs.existsSync(winesFile)) {
+        const sample = JSON.parse(fs.readFileSync(winesFile, 'utf8')).filter((w) => w.imageUrl).slice(0, 6);
+        console.log('\n== wine image URLs');
+        for (const w of sample) {
+            for (const u of [w.imageUrl, w.imageUrl.replace('https://wine.md/assets/', 'https://wine.md/ru//assets/')]) {
+                const res = await fetch(u, { method: 'GET', headers: { 'user-agent': UA } }).catch((e) => ({ status: 0, headers: new Map(), e }));
+                console.log(`   ${res.status} ${res.headers && res.headers.get ? res.headers.get('content-type') : ''} ${u}`);
+            }
+        }
+    }
     fs.writeFileSync(path.join(OUT_DIR, 'report.json'), JSON.stringify({ sites: siteResults, wineMd }, null, 1));
 }
 

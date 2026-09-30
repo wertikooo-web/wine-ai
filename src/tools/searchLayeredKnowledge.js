@@ -143,7 +143,7 @@ function attachInference(output, inference) {
 // with verified links. Telling the model which ones lets it say "I'm
 // showing it on screen" truthfully -- and only then (see the persona's
 // ЭКРАН И ССЫЛКИ rules). Never throws; never adds a URL for the model.
-const NO_URL_INSTRUCTION = ' Do not read, spell out or invent any URL; if the user asks for a link and no screen_cards are given, say honestly that there is no verified link for it yet.';
+const NO_URL_INSTRUCTION = ' Do not read, spell out or invent any URL; if the user asks for a link (site, map, Instagram, Facebook, where to buy, tour booking), call show_links with the winery or wine name instead.';
 const SCREEN_CARDS_INSTRUCTION = ' The wines listed in "screen_cards" are shown to the user on screen as cards with a verified link; you may say you are showing the card and link on screen. Never say or invent a URL.';
 // A participant asking for a link, site, booking or where to buy.
 const LINK_REQUEST = /(ссылк|сайт|брон|экскурс|купить|где купить|link|site|website|book|tour|buy|link|rezerv|excursi|cumpăr|cumpar)/i;

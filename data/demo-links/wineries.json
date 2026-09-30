@@ -24,7 +24,8 @@
   "ghid_page": "40",
   "wine_md_brand": "https://wine.md/ru/brand/buket-moldavii",
   "wine_md_tours": "https://wine.md/ru/tourism/buket-moldavii-rezervare-excursie",
-  "tours_info": "5 экскурсий, от 100 MDL"
+  "tours_info": "5 экскурсий, от 100 MDL",
+  "instagram": "https://www.instagram.com/buketmoldaviimd"
  },
  {
   "winery": "Castel Mimi",
@@ -33,7 +34,9 @@
   "ghid_page": "43",
   "wine_md_brand": "https://wine.md/ru/brand/castel-mimi",
   "wine_md_tours": "https://wine.md/ru/tourism/castel-mimi-rezervare-excursii",
-  "tours_info": "8 экскурсий, от 400 MDL"
+  "tours_info": "8 экскурсий, от 400 MDL",
+  "instagram": "https://www.instagram.com/castelmimi.wineresort",
+  "facebook": "https://www.facebook.com/CastelMimi.md"
  },
  {
   "winery": "Chateau Purcari",
@@ -42,7 +45,9 @@
   "ghid_page": "49",
   "wine_md_brand": "https://wine.md/ru/brand/chateau-purcari",
   "wine_md_tours": "https://wine.md/ru/tourism/vinaria-purcari",
-  "tours_info": "11 экскурсий, от 300 MDL"
+  "tours_info": "11 экскурсий, от 300 MDL",
+  "instagram": "https://www.instagram.com/purcari_wines",
+  "facebook": "https://www.facebook.com/purcari"
  },
  {
   "winery": "Château Vartely",
@@ -51,7 +56,9 @@
   "ghid_page": "51",
   "wine_md_brand": "https://wine.md/ru/brand/chateau-vartely",
   "wine_md_tours": "https://wine.md/ru/tourism/chateau-vartely",
-  "tours_info": "8 экскурсий, от 100 MDL"
+  "tours_info": "8 экскурсий, от 100 MDL",
+  "instagram": "https://www.instagram.com/chateauvartely",
+  "facebook": "https://www.facebook.com/ChateauVartely"
  },
  {
   "winery": "Cricova",
@@ -60,7 +67,9 @@
   "ghid_page": "57",
   "wine_md_brand": "https://wine.md/ru/brand/cricova",
   "wine_md_tours": "https://wine.md/ru/tourism/cricova",
-  "tours_info": "9 экскурсий, от 400 MDL"
+  "tours_info": "9 экскурсий, от 400 MDL",
+  "instagram": "https://www.instagram.com/cricova_winery",
+  "facebook": "https://www.facebook.com/cricova.md"
  },
  {
   "winery": "Et Cetera",
@@ -69,7 +78,9 @@
   "ghid_page": "63",
   "wine_md_brand": "https://wine.md/ru/brand/et-cetera",
   "wine_md_tours": "https://wine.md/ru/tourism/et-cetera",
-  "tours_info": "6 экскурсий, от 200 MDL"
+  "tours_info": "6 экскурсий, от 200 MDL",
+  "instagram": "https://www.instagram.com/etcetera_winery",
+  "facebook": "https://www.facebook.com/EtCeteraWines"
  },
  {
   "winery": "Mileștii Mici",
@@ -96,7 +107,9 @@
   "ghid_page": "92",
   "wine_md_brand": "https://wine.md/ru/brand/vinaria-poiana",
   "wine_md_tours": "https://wine.md/ru/tourism/vinaria-poiana",
-  "tours_info": "3 экскурсии, от 400 MDL"
+  "tours_info": "3 экскурсии, от 400 MDL",
+  "instagram": "https://www.instagram.com/poiana_winery",
+  "facebook": "https://www.facebook.com/VinariaPoiana"
  },
  {
   "winery": "Chateau Cojușna",
@@ -141,7 +154,9 @@
   "ghid_page": "30",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/agrici.wine",
+  "facebook": "https://www.facebook.com/www.agrici.wine"
  },
  {
   "winery": "Alianţa-Vin",
@@ -150,7 +165,9 @@
   "ghid_page": "31",
   "wine_md_brand": "https://wine.md/ru/brand/alianta-vin",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/aliantavin",
+  "facebook": "https://www.facebook.com/aliantavin.md"
  },
  {
   "winery": "Apriori Wine",
@@ -159,7 +176,9 @@
   "ghid_page": "33",
   "wine_md_brand": "https://wine.md/ru/brand/apriori-wine",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/apriori.wine",
+  "facebook": "https://www.facebook.com/aprioriwine"
  },
  {
   "winery": "Aroma",
@@ -177,7 +196,9 @@
   "ghid_page": "36",
   "wine_md_brand": "https://wine.md/ru/brand/asconi-winery",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/asconi.winery",
+  "facebook": "https://www.facebook.com/asconiwinerymd"
  },
  {
   "winery": "Aurelius Winery",
@@ -186,7 +207,9 @@
   "ghid_page": "38",
   "wine_md_brand": "https://wine.md/ru/brand/aurelius",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/aurelius_winery",
+  "facebook": "https://www.facebook.com/aureliuswines"
  },
  {
   "winery": "Aurvin",
@@ -195,7 +218,8 @@
   "ghid_page": "34",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "facebook": "https://www.facebook.com/Aurvin-TM-524096694395962"
  },
  {
   "winery": "Bardar",
@@ -204,7 +228,9 @@
   "ghid_page": "100",
   "wine_md_brand": "https://wine.md/ru/brand/bardar",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/bardar_divin",
+  "facebook": "https://www.facebook.com/divinbardar"
  },
  {
   "winery": "Bostavan",
@@ -213,7 +239,9 @@
   "ghid_page": "34",
   "wine_md_brand": "https://wine.md/ru/brand/bostavan",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/dor_wines",
+  "facebook": "https://www.facebook.com/DORWines"
  },
  {
   "winery": "Bulgari Winery",
@@ -222,7 +250,8 @@
   "ghid_page": "40",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "facebook": "https://www.facebook.com/BulgariWinery"
  },
  {
   "winery": "Carlevana Winery",
@@ -231,7 +260,9 @@
   "ghid_page": "41",
   "wine_md_brand": "https://wine.md/ru/brand/carlevana-winery",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/carlevana",
+  "facebook": "https://www.facebook.com/CarlevanaWines"
  },
  {
   "winery": "Chateau Cristi",
@@ -240,7 +271,9 @@
   "ghid_page": "45",
   "wine_md_brand": "https://wine.md/ru/brand/chateau-cristi",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/chateaucristi",
+  "facebook": "https://www.facebook.com/chateaucristi"
  },
  {
   "winery": "Crama Ulinici",
@@ -249,7 +282,9 @@
   "ghid_page": "55",
   "wine_md_brand": "https://wine.md/ru/brand/crama-ulinici",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/crama_ulinici",
+  "facebook": "https://www.facebook.com/CramaUlinici"
  },
  {
   "winery": "Divus Winery",
@@ -267,7 +302,9 @@
   "ghid_page": "58",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/doinavin",
+  "facebook": "https://www.facebook.com/doinavin"
  },
  {
   "winery": "Domaine la Prut",
@@ -285,7 +322,9 @@
   "ghid_page": "59",
   "wine_md_brand": "https://wine.md/ru/brand/domeniile-cuza",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/DomeniileCuza",
+  "facebook": "https://www.facebook.com/DomeniileCuza"
  },
  {
   "winery": "Domeniile Davidescu",
@@ -294,7 +333,9 @@
   "ghid_page": "60",
   "wine_md_brand": "https://wine.md/ru/brand/domeniile-davidescu",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/domeniile.davidescu.wines",
+  "facebook": "https://www.facebook.com/domeniile.davidescu.wines"
  },
  {
   "winery": "Domeniile Pripa",
@@ -312,7 +353,9 @@
   "ghid_page": "61",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/dumitraswinery",
+  "facebook": "https://www.facebook.com/dumitraswinery"
  },
  {
   "winery": "Dénovie",
@@ -321,7 +364,9 @@
   "ghid_page": "56",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/mold_nord",
+  "facebook": "https://www.facebook.com/mold.nord"
  },
  {
   "winery": "Fautor Winery",
@@ -330,7 +375,9 @@
   "ghid_page": "65",
   "wine_md_brand": "https://wine.md/ru/brand/fautor-winery",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/fautor.winery",
+  "facebook": "https://www.facebook.com/FautorWinery"
  },
  {
   "winery": "Gitana Winery",
@@ -339,7 +386,9 @@
   "ghid_page": "64",
   "wine_md_brand": "https://wine.md/ru/brand/gitana-winery",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/gitanawinery1953",
+  "facebook": "https://www.facebook.com/gitanawinery"
  },
  {
   "winery": "I'M WINERY",
@@ -348,7 +397,9 @@
   "ghid_page": "70",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/imwinery",
+  "facebook": "https://www.facebook.com/Imwinery"
  },
  {
   "winery": "Imperial Vin",
@@ -357,7 +408,9 @@
   "ghid_page": "66",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/imperial.vin",
+  "facebook": "https://www.facebook.com/Imperial.Vin.1977"
  },
  {
   "winery": "Impresario",
@@ -366,7 +419,9 @@
   "ghid_page": "68",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/impresario_wines",
+  "facebook": "https://www.facebook.com/impresario.winery"
  },
  {
   "winery": "Kislov Winery",
@@ -375,7 +430,9 @@
   "ghid_page": "74",
   "wine_md_brand": "https://wine.md/ru/brand/kislov-family-winery",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/kislov_wine",
+  "facebook": "https://www.facebook.com/kislovwine"
  },
  {
   "winery": "Maurt",
@@ -393,7 +450,8 @@
   "ghid_page": "75",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/mipiace_wines_md"
  },
  {
   "winery": "Pelican Negru",
@@ -402,7 +460,9 @@
   "ghid_page": "81",
   "wine_md_brand": "https://wine.md/ru/brand/pelican-negru",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/pelicannegruwines",
+  "facebook": "https://www.facebook.com/pelicannegru"
  },
  {
   "winery": "Pomușoară Dulcișoară",
@@ -411,7 +471,8 @@
   "ghid_page": "80",
   "wine_md_brand": null,
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "facebook": "https://www.facebook.com/pomusoara.eu"
  },
  {
   "winery": "Rădăcini",
@@ -420,7 +481,9 @@
   "ghid_page": "83",
   "wine_md_brand": "https://wine.md/ru/brand/radacini",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/radaciniwines",
+  "facebook": "https://www.facebook.com/RadaciniWines"
  },
  {
   "winery": "Sălcuța",
@@ -429,7 +492,9 @@
   "ghid_page": "82",
   "wine_md_brand": "https://wine.md/ru/brand/salcuta",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/salcuta",
+  "facebook": "https://www.facebook.com/salcuta"
  },
  {
   "winery": "Timbrus Purcari Estate",
@@ -438,7 +503,9 @@
   "ghid_page": "87",
   "wine_md_brand": "https://wine.md/ru/brand/timbrus-purcari-esta",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/timbrus.wines",
+  "facebook": "https://www.facebook.com/timbrus.ro"
  },
  {
   "winery": "Tomai",
@@ -447,7 +514,8 @@
   "ghid_page": "88",
   "wine_md_brand": "https://wine.md/ru/brand/tomai-wcasa-vinicola",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/tomaivinex"
  },
  {
   "winery": "Vinaria Ungheni",
@@ -456,7 +524,8 @@
   "ghid_page": "92",
   "wine_md_brand": "https://wine.md/ru/brand/ungheni",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/vinaria_ungheni"
  },
  {
   "winery": "Vindicum",
@@ -474,7 +543,9 @@
   "ghid_page": "93",
   "wine_md_brand": "https://wine.md/ru/brand/vinum-estate",
   "wine_md_tours": null,
-  "tours_info": null
+  "tours_info": null,
+  "instagram": "https://www.instagram.com/vinum.md",
+  "facebook": "https://www.facebook.com/VINUMestate"
  },
  {
   "winery": "Vornic Winery",

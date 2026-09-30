@@ -13,7 +13,7 @@
 
 const EVENT_TYPES = Object.freeze(['link_resolved', 'link_rendered', 'link_clicked', 'link_missing']);
 const ENTITY_TYPES = Object.freeze(['wine', 'winery', 'unknown']);
-const CTA_TYPES = Object.freeze(['BOOK_TOUR', 'WINERY_ON_WINEMD', 'VISIT_WINERY_SITE', 'BUY_OR_VIEW_ON_WINEMD', 'OPEN_MAP', 'VIEW_WINE', 'none']);
+const CTA_TYPES = Object.freeze(['BOOK_TOUR', 'WINERY_ON_WINEMD', 'VISIT_WINERY_SITE', 'BUY_OR_VIEW_ON_WINEMD', 'OPEN_MAP', 'VIEW_WINE', 'INSTAGRAM', 'FACEBOOK', 'none']);
 
 function clean(value, limit) {
     if (value === undefined || value === null) return null;

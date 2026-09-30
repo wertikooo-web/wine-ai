@@ -80,6 +80,30 @@ async function main() {
         console.log('\nno card with a button rendered');
     }
     await sleep(4000);
+
+    // show_links: the guest asks for links -> clickable text links in the chat.
+    const Q2 = process.env.LINKS_QUESTION_2 || 'Дай, пожалуйста, ссылки на сайт, Instagram и карту винодельни Castel Mimi.';
+    await page.bringToFront();
+    await page.type('#textInput', Q2);
+    await page.keyboard.press('Enter');
+    console.log(`\nasked: ${Q2}`);
+    let textLinks = [];
+    for (let i = 0; i < 30; i += 1) {
+        await sleep(1000);
+        textLinks = await page.evaluate(() => [...document.querySelectorAll('.lite-links')].map((b) => ({
+            title: (b.querySelector('.lite-links__title') || {}).textContent || '',
+            image: (b.querySelector('.lite-links__img') || {}).src || null,
+            links: [...b.querySelectorAll('a.lite-links__a')].map((a) => ({ label: a.textContent, href: a.href })),
+        })));
+        if (textLinks.length && i > 8) break;
+    }
+    const answer2 = await page.evaluate(() => { const n = [...document.querySelectorAll('.lite-msg--assistant .lite-msg__text')]; return n.length ? n[n.length - 1].textContent : ''; });
+    console.log(`assistant: ${answer2}`);
+    console.log(`text link blocks: ${textLinks.length}`);
+    for (const b of textLinks) {
+        console.log(`  ${b.title} ${b.image ? `(photo ${b.image})` : ''}`);
+        for (const l of b.links) console.log(`      ${l.label} -> ${l.href}`);
+    }
     await browser.close();
     console.log(`page errors: ${JSON.stringify(pageErrors)}`);
 
@@ -88,8 +112,8 @@ async function main() {
     console.log(`\nanalytics storage=${after.storage} totals before=${JSON.stringify(totalsBefore)} after=${JSON.stringify(totalsAfter)}`);
     for (const e of ((after.summary && after.summary.entities) || []).slice(0, 8)) console.log(`   ${e.entityType} ${e.name}: resolved=${e.resolved} rendered=${e.rendered} clicked=${e.clicked} ctr=${e.ctrPct}% ${JSON.stringify(e.clicksByCta)}`);
     console.log(`   coverage ${JSON.stringify(after.coverage)}`);
-    const ok = cards.length > 0 && (totalsAfter.link_clicked || 0) > (totalsBefore.link_clicked || 0);
-    console.log(`\nVERDICT ${ok ? 'PASS' : 'FAIL'}: cards=${cards.length} clicks recorded=${(totalsAfter.link_clicked || 0) - (totalsBefore.link_clicked || 0)}`);
+    const ok = cards.length > 0 && (totalsAfter.link_clicked || 0) > (totalsBefore.link_clicked || 0) && textLinks.some((x) => x.links.length);
+    console.log(`\nVERDICT ${ok ? 'PASS' : 'FAIL'}: cards=${cards.length} clicks recorded=${(totalsAfter.link_clicked || 0) - (totalsBefore.link_clicked || 0)} text link blocks=${textLinks.length}`);
     if (!ok) process.exitCode = 1;
 }
 
