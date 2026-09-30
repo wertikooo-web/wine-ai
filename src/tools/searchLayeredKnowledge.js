@@ -176,6 +176,16 @@ function attachReplyLanguage(output) {
     return { ...output, answer_policy: { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + REPLY_LANGUAGE_INSTRUCTION } };
 }
 
+// Production 30 Sep: this search already brought web sources for a news
+// question, then the model called search_web for the same question anyway
+// (+5.2s of silence before the answer). When web evidence is already here,
+// tell the model to answer now. Never throws.
+const WEB_ALREADY_SEARCHED_INSTRUCTION = ' The internet was already searched for this question and its sources are in this evidence: do not call search_web for it again. Answer now; if a detail (such as an exact date) is not in the evidence, say briefly that you could not confirm it.';
+function attachWebAlreadySearched(output) {
+    if (!output || typeof output !== 'object' || output.webUsed !== true || !output.answer_policy) return output;
+    return { ...output, answer_policy: { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + WEB_ALREADY_SEARCHED_INSTRUCTION } };
+}
+
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     const layeredKnowledgeImpl = async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
@@ -561,7 +571,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         }, inference);
     };
     return async function layeredKnowledgeWithScreenCards(args, toolContext) {
-        return attachReplyLanguage(attachScreenCards(await layeredKnowledgeImpl(args, toolContext), args, toolContext));
+        return attachReplyLanguage(attachWebAlreadySearched(attachScreenCards(await layeredKnowledgeImpl(args, toolContext), args, toolContext)));
     };
 }
 
