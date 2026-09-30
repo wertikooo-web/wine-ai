@@ -112,8 +112,9 @@ function productFromPage(url, html, brandSlug) {
         brandSlug,
         brand: p && p.brand ? (p.brand.name || p.brand) : null,
         imageUrl: typeof image === 'string' ? image : null,
-        price: offer && offer.price ? Number(offer.price) : null,
-        currency: offer && offer.priceCurrency ? String(offer.priceCurrency) : null,
+        // wine.md puts the price in og:title ("Name - Brand - 253 mdl") and not in the JSON-LD offer.
+        price: offer && offer.price ? Number(offer.price) : (Number(((meta(html, 'og:title') || '').match(/-\s*(\d+(?:[.,]\d+)?)\s*mdl\s*$/i) || [])[1]?.replace(',', '.')) || null),
+        currency: offer && offer.priceCurrency ? String(offer.priceCurrency) : ((meta(html, 'og:title') || '').match(/mdl\s*$/i) ? 'MDL' : null),
         category: (url.match(/\/catalog\/wine\/([^/]+)/) || [])[1] || null,
         description: p && p.description ? String(p.description).replace(/\s+/g, ' ').trim().slice(0, 500) : null,
     };
@@ -128,7 +129,7 @@ async function crawl() {
         for (let page = 1; page <= 5; page += 1) {
             const r = await get(`${BASE}/ru/brand/${slug}${page > 1 ? `?page=${page}` : ''}`);
             const links = productLinks(r.html, r.url || BASE);
-            const fresh = links.filter((l) => !productToBrand.has(l));
+            const fresh = links.filter((l) => !productToBrand.has(l)).slice(0, Math.max(0, 60 - [...productToBrand.values()].filter((v) => v === slug).length));
             fresh.forEach((l) => productToBrand.set(l, slug));
             if (!fresh.length) break;
         }
