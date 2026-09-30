@@ -124,6 +124,8 @@ jobs:
           done
           curl -sS --max-time 30 -o /tmp/lite-config.json "$BASE_URL/api/lite/config"
           if grep -Eiq 'systemPrompt|personalityPrompt|effectivePrompt|runtimeByProvider|api[_-]?key|authorization|bearer' /tmp/lite-config.json; then echo "lite config exposes internal fields"; exit 1; fi
+          # Saved start-card overrides (public in this response) win over the defaults.
+          node -e "const c=require('/tmp/lite-config.json'); console.log('lite start_intents overrides: ' + JSON.stringify(c.start_intents || {}))"
           echo "admin protection verified"
 
       # Cost & Usage Control (Dashboard → Расходы / Cost Control). Only after a

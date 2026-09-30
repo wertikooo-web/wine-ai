@@ -21,6 +21,9 @@ async function run() {
     t.equal(isEcho('  [system instruction, speak this exact sentence verbatim and nothing else] Спасибо!'), true, 'leading spaces tolerated');
     t.equal(isEcho('Расскажи про Пуркарь'), false, 'a real guest message is shown');
     t.equal(isEcho(undefined), false);
+    // Start-intent card starter (StartIntentLauncher.buildStartIntentStarter).
+    t.equal(isEcho('Conversation start context:\nПомоги пользователю подобрать вино.\nYour first spoken reply must be exactly this sentence'), true, 'start-card starter echo hidden');
+    t.equal(isEcho('Conversation about wine'), false, 'ordinary English question still shown');
 
     const handler = html.match(/case 'transcript\.user':([\s\S]*?)case 'transcript\.model'/);
     t.ok(handler, 'transcript.user handler found');
