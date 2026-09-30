@@ -38,18 +38,25 @@ function normalizeVoiceName(voiceName) {
     return String(voiceName || '').trim() || DEFAULT_GEMINI_LIVE_VOICE;
 }
 
-// GEMINI_SPEECH_LANGUAGE_CODE (e.g. ru-RU): experimental anchor for the
-// output accent (Russian drifting towards Ukrainian after a few minutes of
-// one continuous Free Conversation). Off unless set; verify first with
-// POST /api/diag/gemini-language-code -- a model that rejects the field
-// would fail every voice session.
-function speechLanguageCode(value = process.env.GEMINI_SPEECH_LANGUAGE_CODE) {
-    const code = String(value || '').trim();
-    return /^[a-z]{2}(-[A-Z]{2})?$/.test(code) ? code : null;
+// GEMINI_SPEECH_LANGUAGE_CODE (e.g. "ru-RU", or "ru-RU,ro-RO"): anchor for
+// the output accent (Russian drifting towards Ukrainian after a few minutes
+// of one continuous Free Conversation). A code is sent ONLY when the
+// session's language matches it: "ru-RU" applies to Russian conversations,
+// and Romanian / English guests keep today's config (no languageCode). An
+// unknown session language also gets none. Off unless set; verified to be
+// accepted with POST /api/diag/gemini-language-code.
+function speechLanguageCode(sessionLanguage, value = process.env.GEMINI_SPEECH_LANGUAGE_CODE) {
+    const lang = String(sessionLanguage || '').trim().slice(0, 2).toLowerCase();
+    if (!/^[a-z]{2}$/.test(lang)) return null;
+    for (const raw of String(value || '').split(',')) {
+        const code = raw.trim();
+        if (/^[a-z]{2}(-[A-Z]{2})?$/.test(code) && code.slice(0, 2) === lang) return code;
+    }
+    return null;
 }
 
-function buildGeminiSpeechConfig(voiceName) {
-    const languageCode = speechLanguageCode();
+function buildGeminiSpeechConfig(voiceName, sessionLanguage = null) {
+    const languageCode = speechLanguageCode(sessionLanguage);
     return {
         voiceConfig: {
             prebuiltVoiceConfig: {
@@ -265,6 +272,7 @@ class GeminiLiveProvider {
             toolDeclarations: options.toolDeclarations,
             contentToolsEnabled: options.contentToolsEnabled,
             voiceMode: options.voiceMode,
+            sessionLanguage: options.sessionLanguage || null,
             onUserSpeechStarted: options.onUserSpeechStarted,
             onUserSpeechStopped: options.onUserSpeechStopped,
             onProviderEvent: options.onProviderEvent,
@@ -289,12 +297,16 @@ class GeminiLiveProviderSession {
         toolDeclarations,
         contentToolsEnabled,
         voiceMode,
+        sessionLanguage,
         onUserSpeechStarted,
         onUserSpeechStopped,
         onProviderEvent,
         onUsage,
     }) {
         this.name = 'gemini';
+        // Conversation language when this provider session was opened; only
+        // selects the speech languageCode (see speechLanguageCode()).
+        this.sessionLanguage = sessionLanguage || null;
         // Cost telemetry sink (src/cost/sessionUsageMeter.js). Observes
         // LiveServerMessage.usageMetadata only; never affects turn state.
         this.onUsage = typeof onUsage === 'function' ? onUsage : null;
@@ -395,7 +407,7 @@ class GeminiLiveProviderSession {
             } = await import('@google/genai');
             const ai = new GoogleGenAI({ apiKey: this.apiKey });
             const systemPrompt = this.systemInstructionText;
-            const speechConfig = buildGeminiSpeechConfig(this.voiceName);
+            const speechConfig = buildGeminiSpeechConfig(this.voiceName, this.sessionLanguage);
             this.promptApplyCount += 1;
             log('gemini_connect_config', {
                 providerInstanceId: this.instanceId,
@@ -1471,6 +1483,7 @@ module.exports = {
     MODEL_ID,
     DEFAULT_GEMINI_LIVE_VOICE,
     buildGeminiSpeechConfig,
+    speechLanguageCode,
     buildGeminiRealtimeInputConfig,
     describeSpeechConfigShape,
     normalizeRotationMode,

@@ -760,6 +760,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             // manual vs. provider-native turn detection based on this; see
             // geminiLiveProvider.js/grokVoiceProvider.js.
             voiceMode: personaStore.getVoiceMode(),
+            // Current conversation language (ru / ro / en or null). Gemini
+            // uses it only to pick GEMINI_SPEECH_LANGUAGE_CODE for Russian
+            // conversations; every other provider ignores it.
+            sessionLanguage: sessionLanguage || null,
             // Durable, session-level event sink — NOT the same as the
             // per-turn onSessionEvent handed to beginResponse()/interrupt(),
             // which only exists while a generation is active or a specific
