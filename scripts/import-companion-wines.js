@@ -28,7 +28,16 @@ async function main() {
         });
         const body = await res.json().catch(() => ({}));
         imported += Array.isArray(body.imported) ? body.imported.length : 0;
-        for (const r of body.rejected || []) rejected.push({ wine: batch[r.index] && batch[r.index].wineName, errors: r.errors });
+        // A host allowlist (COMPANION_URL_HOSTS) may reject the winery's own
+        // site: keep the wine card with its wine.md link, without that CTA.
+        const retry = (body.rejected || []).filter((r) => r.errors.length === 1 && r.errors[0] === 'wineryUrl_unsafe').map((r) => { const { wineryUrl, ...rest } = batch[r.index]; return rest; });
+        if (retry.length) {
+            const res2 = await fetch(`${BASE_URL}/api/companion/wines/import`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-token': process.env.ADMIN_TOKEN }, body: JSON.stringify({ wines: retry, published: true, source: 'winemd-2026-09-30' }) });
+            const body2 = await res2.json().catch(() => ({}));
+            imported += Array.isArray(body2.imported) ? body2.imported.length : 0;
+            console.log(`   retried ${retry.length} without wineryUrl: imported=${(body2.imported || []).length}`);
+        }
+        for (const r of body.rejected || []) if (!(r.errors.length === 1 && r.errors[0] === 'wineryUrl_unsafe')) rejected.push({ wine: batch[r.index] && batch[r.index].wineName, errors: r.errors });
         console.log(`batch ${i / 150 + 1}: http=${res.status} imported=${(body.imported || []).length} rejected=${(body.rejected || []).length}`);
     }
     console.log(`imported ${imported}/${wines.length}; rejected ${rejected.length}`);
