@@ -54,6 +54,23 @@ const { pathToFileURL } = require('url');
   assert.strictEqual(savePosts.length, 2);
   assert(savePosts.every((request) => JSON.parse(request.options.body).overrides.startIntents.en.choose_wine.label === 'Pick wine'));
 
+  // Public pages (/lite) read the operator's intents from /api/lite/config
+  // and never touch the admin-only /api/persona.
+  requests.length = 0;
+  localMap.clear();
+  global.fetch = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    if (url === '/api/lite/config') {
+      return { ok: true, json: async () => ({ ok: true, start_intents: { ru: { pair_food: { label: 'С сервера' } } } }) };
+    }
+    return { ok: false, status: 401, json: async () => ({ ok: false, error: 'admin_auth_required' }) };
+  };
+  const publicStorage = await createServerBackedStartIntentStorage({ localStorage, publicMode: true });
+  assert.strictEqual(JSON.parse(publicStorage.getItem(START_INTENT_STORAGE_KEY)).ru.pair_food.label, 'С сервера');
+  publicStorage.setItem(START_INTENT_STORAGE_KEY, JSON.stringify({ en: {} }));
+  await publicStorage.flush();
+  assert.deepStrictEqual(requests.map((request) => request.url), ['/api/lite/config']);
+
   console.log('startIntentPersistence.test.js: ok');
 })().catch((error) => {
   console.error(error);

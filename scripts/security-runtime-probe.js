@@ -32,7 +32,7 @@ async function main() {
   }
 
   const persona = await request('/api/persona');
-  check(persona.status === 200, 'SEC-RUN-003', 'public persona endpoint responds');
+  check(persona.status === 401, 'SEC-RUN-003', 'persona endpoint is admin-only');
   const leakedFields = ['system_prompt', 'effectivePromptPreview', 'overrides'].filter((key) => Object.hasOwn(persona.body || {}, key));
   if (leakedFields.length) findings.push({ id: 'SEC-FIND-001', severity: 'high', detail: `Public /api/persona exposes: ${leakedFields.join(', ')}` });
 

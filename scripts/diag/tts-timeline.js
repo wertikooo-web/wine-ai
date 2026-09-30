@@ -9,7 +9,7 @@ const BASE_URL = String(process.env.BASE_URL || 'https://wine-ai-realtime-produc
 
 async function ttsCount(from, to) {
     const url = `${BASE_URL}/api/cost/breakdown?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: process.env.ADMIN_TOKEN ? { 'x-admin-token': process.env.ADMIN_TOKEN } : {} });
     const body = await res.json().catch(() => ({}));
     if (res.status !== 200) throw new Error(`breakdown http ${res.status} ${body.error || ''}`);
     return (body.by_provider_model || []).filter((r) => /tts/i.test(r.model || '')).reduce((n, r) => n + r.records, 0);

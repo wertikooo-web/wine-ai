@@ -392,6 +392,8 @@
   }
 
   function init() {
+    // Operator panel only: never call admin APIs from the public /lite page.
+    if (/^\/lite\/?$/.test(location.pathname) || new URLSearchParams(location.search).get('lite') === '1') return;
     bind();
     bindWebSearchToggle();
   }

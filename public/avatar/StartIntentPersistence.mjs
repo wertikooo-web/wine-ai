@@ -61,8 +61,29 @@ async function readServerSettings(ids) {
   return {};
 }
 
+// Public pages (/lite, the widget) cannot read or write the admin-only
+// /api/persona: they get the operator's start intents read-only from
+// /api/lite/config and never persist anything.
+async function createPublicStartIntentStorage(local) {
+  try {
+    const config = await fetchJson('/api/lite/config');
+    const settings = config?.start_intents;
+    local?.setItem?.(START_INTENT_STORAGE_KEY, JSON.stringify(hasSettings(settings) ? settings : {}));
+  } catch (error) {
+    console.warn('[WineAI] Start intent config unavailable; using local fallback:', error?.message || error);
+  }
+  return {
+    getItem: (key) => local?.getItem?.(key) ?? null,
+    setItem: (key, value) => { local?.setItem?.(key, value); },
+    removeItem: (key) => { local?.removeItem?.(key); },
+    async flush() {},
+    getLastError: () => null,
+  };
+}
+
 export async function createServerBackedStartIntentStorage(options = {}) {
   const local = options.localStorage || globalThis.localStorage;
+  if (options.publicMode) return createPublicStartIntentStorage(local);
   let pending = Promise.resolve();
   let lastError = null;
 

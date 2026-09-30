@@ -20,7 +20,7 @@ const QUESTION = 'Расскажите, пожалуйста, какие кра�
 const MARKS_S = String(process.env.PROBE_MARKS || '3,60,120,176').split(',').map(Number);
 
 async function tts(text) {
-    const res = await fetch(`${BASE_URL}/api/voice-preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'gemini', voice_name: 'Puck', text }) });
+    const res = await fetch(`${BASE_URL}/api/voice-preview`, { method: 'POST', headers: { 'content-type': 'application/json', ...(process.env.ADMIN_TOKEN ? { 'x-admin-token': process.env.ADMIN_TOKEN } : {}) }, body: JSON.stringify({ provider: 'gemini', voice_name: 'Puck', text }) });
     const body = await res.json();
     if (!body.audio_base64) throw new Error(`tts failed http ${res.status} ${body.error || ''}`);
     return Buffer.from(body.audio_base64, 'base64'); // 24 kHz PCM16 mono

@@ -423,6 +423,15 @@ function attachRealtimeServer(server, options = {}) {
             socket.destroy();
             return;
         }
+        // Admission only: the operator channel (provider choice, Settings
+        // persona, demo catalog) needs an admin session; the public /lite
+        // channel is unchanged.
+        const isAdmin = typeof options.isAdminRequest === 'function' ? options.isAdminRequest(req) === true : true;
+        if (url.searchParams.get('channel') !== 'lite' && !isAdmin) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+            socket.destroy();
+            return;
+        }
 
         let connectionProviderFactory = providerFactory;
         let connectionProviderMetadata = providerMetadata;
@@ -447,6 +456,9 @@ function attachRealtimeServer(server, options = {}) {
             bridgeConfig: options.bridgeConfig,
             bridgeCache: options.bridgeCache,
             getSessionLimitMs: options.getSessionLimitMs,
+            // Admin session on the upgrade request (server.js admin gate);
+            // only gates diagnostics (prompt debug), never the conversation.
+            isAdmin,
         });
     });
 }
@@ -2311,7 +2323,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             }
             // Explicit opt-in only — see the promptDebugRequested declaration
             // above for why this must never be silently assumed true.
-            promptDebugRequested = payload.include_prompt_debug === true;
+            // Full persona prompt text: admin sessions only (the public /lite
+            // page shares the dashboard client, which asks for it).
+            promptDebugRequested = payload.include_prompt_debug === true && sessionAccess.isAdmin !== false;
             // Explicit client-supplied language preference (e.g. a
             // dashboard language selector), sitting alongside the existing
             // transcript-based auto-detection in noteUserLanguage() —

@@ -3,6 +3,8 @@ import { mountStartIntentSettings } from '/avatar-modules/StartIntentSettings.mj
 import { createServerBackedStartIntentStorage } from '/avatar-modules/StartIntentPersistence.mjs';
 export * from '/avatar-modules/VisualStoryControllerCore.mjs';
 
-const startIntentStorage = await createServerBackedStartIntentStorage();
+const publicMode = /^\/lite\/?$/.test(globalThis.location?.pathname || '')
+  || new URLSearchParams(globalThis.location?.search || '').get('lite') === '1';
+const startIntentStorage = await createServerBackedStartIntentStorage({ publicMode });
 mountStartIntentLauncher({ storage: startIntentStorage });
 mountStartIntentSettings({ storage: startIntentStorage });
