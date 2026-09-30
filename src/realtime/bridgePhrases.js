@@ -213,7 +213,7 @@ function createBridgeScheduler({ config = bridgeConfig(), cache, emit, log = () 
         const timer = setTimer(() => {
             timers.delete(generationId);
             if (disposed) return;
-            const lang = normalizeLanguage(typeof getLanguage === 'function' ? getLanguage() : null);
+            const lang = normalizeLanguage(typeof getLanguage === 'function' ? getLanguage(generationId) : null);
             const phrases = PHRASES[lang];
             // First rendered phrase from the rotation point. Before, a single
             // phrase without audio at the rotation point blocked every bridge

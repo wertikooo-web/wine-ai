@@ -135,7 +135,7 @@ async function unit() {
 async function endToEnd() {
     const { attachRealtimeServer } = require('../src/realtime/realtimeServer');
     const { MockRealtimeProvider, DEFAULT_CONFIG } = require('../src/realtime/mockRealtimeProvider');
-    const run = async ({ enabled, toolMs, provider = 'gemini' }) => {
+    const run = async ({ enabled, toolMs, provider = 'gemini', language = null, transcript = [] }) => {
         const mock = new MockRealtimeProvider({ ...DEFAULT_CONFIG, processingDelayMs: 5, chunkCount: 1, chunkIntervalMs: 5 });
         const server = http.createServer((req, res) => res.end());
         attachRealtimeServer(server, {
@@ -145,6 +145,8 @@ async function endToEnd() {
                 session.voiceName = 'Kore';
                 const endInput = session.endInput.bind(session);
                 session.endInput = async (ctx) => {
+                    // Gemini streams the input transcription as fragments.
+                    for (const text of transcript) ctx.onEvent({ type: 'transcript.user', response_id: ctx.responseId, turn_id: ctx.turnId, text });
                     ctx.onEvent({ type: 'tool.call', response_id: ctx.responseId, turn_id: ctx.turnId, tool_name: 'search_wine_knowledge' });
                     await sleep(toolMs);
                     return endInput(ctx);
@@ -158,7 +160,7 @@ async function endToEnd() {
         const client = await connect(server.address().port);
         try {
             await client.waitFor((e) => e.type === 'session.ready');
-            client.sendJson({ type: 'session.start', sampleRate: 16000 });
+            client.sendJson({ type: 'session.start', sampleRate: 16000, ...(language ? { language } : {}) });
             await client.waitFor((e) => e.type === 'session.config.applied');
             client.sendJson({ type: 'input_audio.start', mode: 'push_to_talk' });
             await client.waitFor((e) => e.type === 'input_audio.start');
@@ -181,6 +183,18 @@ async function endToEnd() {
     t.ok(slow.includes('assistant.bridge'), 'slow tool call: bridge sent');
     t.ok(slow.indexOf('assistant.bridge') < slow.indexOf('audio.start'), 'bridge arrives before the real answer');
     t.equal(slow.filter((x) => x === 'audio.end').length, 1, 'turn completes normally (bridge does not touch turn state)');
+
+    // Production 2026-09-30: a Russian conversation, the guest switches to
+    // English. The first transcript fragment ("Tell") is too short to switch
+    // the conversation language, so the bridge used to be Russian.
+    const bridgeOf = (events) => events.find((e) => e.type === 'assistant.bridge');
+    const switched = bridgeOf(await run({ enabled: true, toolMs: 300, language: 'ru', transcript: ['Tell', ' me about the best wineries please'] }));
+    t.equal(switched && switched.language, 'en', 'language switch: bridge in the language of the question, not the previous one');
+    t.ok(switched && PHRASES.en.includes(switched.text));
+    const same = bridgeOf(await run({ enabled: true, toolMs: 300, language: 'ru', transcript: ['Расскажи', ' про лучшие винодельни'] }));
+    t.equal(same && same.language, 'ru', 'same language: bridge unchanged');
+    const unclear = bridgeOf(await run({ enabled: true, toolMs: 300, language: 'ro', transcript: ['ok'] }));
+    t.equal(unclear && unclear.language, 'ro', 'unclear question: conversation language');
 
     const fast = types(await run({ enabled: true, toolMs: 10 }));
     t.ok(!fast.includes('assistant.bridge'), 'fast tool call: no bridge');
