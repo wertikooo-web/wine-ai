@@ -488,6 +488,14 @@ async function handleRequest(req, res) {
     }
 
     // Wine AI Lite presentation flags (Visual Companion rollback switch).
+    // Admin diagnostic (the gate makes every /api/* admin by default).
+    if (req.method === 'POST' && pathname === '/api/diag/gemini-language-code') {
+        let body = {};
+        try { body = await readJsonBody(req); } catch { return sendJson(res, 400, { ok: false, error: 'invalid_json' }); }
+        const { probeGeminiLanguageCode } = require('./realtime/geminiLanguageCodeProbe');
+        return sendJson(res, 200, await probeGeminiLanguageCode({ languageCode: body.languageCode || 'ru-RU' }));
+    }
+
     if (req.method === 'GET' && pathname === '/api/lite/config') {
         // Persona display (name + avatar) comes from the persona only: the
         // session's own immutable snapshot when ?session= is given, else the
