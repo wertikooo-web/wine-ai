@@ -40,6 +40,8 @@ function normalizeLanguage(value) {
 
 const TOTAL_PHRASES = Object.values(PHRASES).reduce((n, list) => n + list.length, 0);
 
+const { phraseKey } = require('./bridgePhraseStore');
+
 // Process-wide cache of rendered phrases: key voice|lang|index.
 //
 // Gemini TTS sometimes returns no audio for a phrase (production: "Секунду…"
@@ -47,10 +49,47 @@ const TOTAL_PHRASES = Object.values(PHRASES).reduce((n, list) => n + list.length
 // retried once; phrases still missing are re-rendered by a later warm() for
 // that voice, at most once per retryCooldownMs. (Before: one warm job per
 // voice for the life of the process, so a failed render never came back.)
-function createBridgeAudioCache({ synthesize, log = () => {}, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retryDelayMs = 1500, renderGapMs = 250, retryCooldownMs = 60000 } = {}) {
+//
+// Optional `store` (bridgePhraseStore.js): audio rendered by any earlier
+// process is loaded from it first, and every new render is saved to it, so
+// a deploy does not have to call TTS again.
+function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retryDelayMs = 1500, renderGapMs = 250, retryCooldownMs = 60000 } = {}) {
     const audio = new Map();
     const inFlight = new Map(); // voice -> job
     const lastAttemptAt = new Map(); // voice -> ms
+    const loadedFromStore = new Set(); // voices whose stored audio was read
+    let storedCount = 0;
+
+    async function loadStored(voice) {
+        if (!store || loadedFromStore.has(voice)) return;
+        try {
+            const entries = await store.load(voice);
+            let loaded = 0;
+            for (const lang of Object.keys(PHRASES)) {
+                for (let index = 0; index < PHRASES[lang].length; index += 1) {
+                    const entry = entries.get(phraseKey(voice, lang, index, PHRASES[lang][index]));
+                    if (entry && !audio.has(key(voice, lang, index))) {
+                        audio.set(key(voice, lang, index), entry);
+                        loaded += 1;
+                    }
+                }
+            }
+            loadedFromStore.add(voice);
+            storedCount += loaded;
+            log('bridge_phrases_loaded', { voice, loaded });
+        } catch (error) {
+            log('bridge_phrase_store_failed', { voice, op: 'load', message: String(error && error.message || error).slice(0, 120) });
+        }
+    }
+
+    async function saveStored(voice, lang, index, entry) {
+        if (!store) return;
+        try {
+            await store.save(phraseKey(voice, lang, index, PHRASES[lang][index]), entry);
+        } catch (error) {
+            log('bridge_phrase_store_failed', { voice, op: 'save', message: String(error && error.message || error).slice(0, 120) });
+        }
+    }
 
     function key(voice, lang, index) { return `${voice}|${lang}|${index}`; }
 
@@ -63,7 +102,9 @@ function createBridgeAudioCache({ synthesize, log = () => {}, now = () => Date.n
             try {
                 const rendered = await synthesize({ voiceName: voice, text: PHRASES[lang][index] });
                 if (rendered && rendered.audioBase64) {
-                    audio.set(key(voice, lang, index), { audioBase64: rendered.audioBase64, sampleRate: rendered.sampleRate || 24000 });
+                    const entry = { audioBase64: rendered.audioBase64, sampleRate: rendered.sampleRate || 24000 };
+                    audio.set(key(voice, lang, index), entry);
+                    await saveStored(voice, lang, index, entry);
                     return true;
                 }
                 log('bridge_phrase_render_failed', { voice, lang, index, attempt, message: 'empty_audio' });
@@ -83,6 +124,7 @@ function createBridgeAudioCache({ synthesize, log = () => {}, now = () => Date.n
         if (last !== undefined && now() - last < retryCooldownMs) return Promise.resolve();
         lastAttemptAt.set(voice, now());
         const job = (async () => {
+            await loadStored(voice);
             let first = true;
             for (const lang of Object.keys(PHRASES)) {
                 for (let index = 0; index < PHRASES[lang].length; index += 1) {
@@ -113,7 +155,7 @@ function createBridgeAudioCache({ synthesize, log = () => {}, now = () => Date.n
             const voice = k.split('|')[0];
             voices[voice] = (voices[voice] || 0) + 1;
         }
-        return { total_per_voice: TOTAL_PHRASES, rendered: voices };
+        return { total_per_voice: TOTAL_PHRASES, rendered: voices, persistent: Boolean(store), loaded_from_store: storedCount };
     }
 
     const cache = { warm, get, status, size: () => audio.size };
