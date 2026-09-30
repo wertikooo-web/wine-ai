@@ -12,6 +12,7 @@ const checkWineMdAvailability = require('./checkWineMdAvailability');
 const searchWeb = require('./searchWeb');
 const searchPlace = require('./searchPlace');
 const fetchPage = require('./fetchPage');
+const showLinks = require('./showLinks');
 
 const TOOLS = [
     searchWineKnowledge,
@@ -25,6 +26,7 @@ const TOOLS = [
     searchWeb,
     searchPlace,
     fetchPage,
+    showLinks,
 ];
 
 const TOOL_DECLARATIONS = TOOLS.map((tool) => tool.declaration);

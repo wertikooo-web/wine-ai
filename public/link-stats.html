@@ -44,7 +44,7 @@
 <script>
 (function () {
   'use strict';
-  var CTA = { BOOK_TOUR: 'Забронировать экскурсию', WINERY_ON_WINEMD: 'Вина на WineMD', VISIT_WINERY_SITE: 'Сайт винодельни', BUY_OR_VIEW_ON_WINEMD: 'Вино на WineMD', OPEN_MAP: 'Карта', VIEW_WINE: 'Подробнее о вине' };
+  var CTA = { INSTAGRAM: 'Instagram', FACEBOOK: 'Facebook', BOOK_TOUR: 'Забронировать экскурсию', WINERY_ON_WINEMD: 'Вина на WineMD', VISIT_WINERY_SITE: 'Сайт винодельни', BUY_OR_VIEW_ON_WINEMD: 'Вино на WineMD', OPEN_MAP: 'Карта', VIEW_WINE: 'Подробнее о вине' };
   function td(text, cls) { var c = document.createElement('td'); c.textContent = text === null || text === undefined ? '—' : String(text); if (cls) c.className = cls; return c; }
   function rows(id, list, build, emptyText) {
     var body = document.getElementById(id); body.textContent = '';

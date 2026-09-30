@@ -97,7 +97,13 @@ function buildWineries(rows) {
         const site = safeHttpsUrl(row.official_site);
         if (site) ctas.push({ type: WINERY_CTA_TYPES.VISIT_WINERY_SITE, url: site });
         if (!ctas.length) continue;
-        out.push({ wineryId: wineryId(row.winery), name: row.winery, names: matchNames(row), ctas });
+        const entry = { wineryId: wineryId(row.winery), name: row.winery, names: matchNames(row), ctas };
+        // Social pages linked from the winery's own website (show_links).
+        const instagram = safeHttpsUrl(row.instagram);
+        const facebook = safeHttpsUrl(row.facebook);
+        if (instagram) entry.instagram = instagram;
+        if (facebook) entry.facebook = facebook;
+        out.push(entry);
     }
     return out;
 }

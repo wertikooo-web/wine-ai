@@ -580,6 +580,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // Wine AI Lite shows Visual Companion cards; lets the knowledge tool tell
     // the model which verified wines are on screen (presentation only).
     toolContext.companionScreen = sessionAccess.channel === 'lite' && process.env.VISUAL_COMPANION_ENABLED !== 'false';
+    // show_links puts verified links into this client's chat (presentation
+    // only; no turn/generation state is read or changed).
+    toolContext.emitToClient = (event) => emit(event);
     const livePersonaState = liveTestSession
         ? liveTestSession.service.personaStateFor(liveTestSession.snapshot, personaStore.getProfilesOverrides())
         : null;
