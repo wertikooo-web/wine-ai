@@ -148,6 +148,8 @@ const { createLiveTestApi } = require('./liveTest/liveTestApi');
 const { personaDisplay } = require('./persona/profileRegistry');
 const { createCompanionApi } = require('./companion/companionApi');
 const { getCompanionStore, refreshIndex: refreshCompanionIndex } = require('./companion/companionCatalog');
+const wineryLinks = require('./companion/wineryLinks');
+const linkEvents = require('./analytics/linkEvents');
 
 const PORT = env.PORT;
 const provider = env.REALTIME_PROVIDER;
@@ -397,7 +399,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wineries', '/api/analytics/link-event', '/api/analytics/links', '/dashboard/links', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -1384,6 +1386,61 @@ async function handleRequest(req, res) {
             at: new Date().toISOString(),
         }));
         return sendJson(res, 200, { ok: true });
+    }
+
+    // Verified winery links (excursions / wine.md / official site) for the
+    // Visual Companion. Public, like the wine catalog.
+    if (req.method === 'GET' && pathname === '/api/companion/wineries') {
+        const enabled = wineryLinks.isEnabled() && process.env.VISUAL_COMPANION_ENABLED !== 'false';
+        return sendJson(res, 200, { ok: true, enabled, wineries: enabled ? wineryLinks.loadWineries() : [] });
+    }
+
+    // Link analytics: participant-side rendered / clicked events (public,
+    // fixed vocabulary, at most 20 per request) and the operator summary.
+    if (req.method === 'POST' && pathname === '/api/analytics/link-event') {
+        let body;
+        try {
+            body = await readJsonBody(req, 16 * 1024);
+        } catch (error) {
+            return sendJson(res, 400, { ok: false, error: 'invalid_json' });
+        }
+        const events = (Array.isArray(body.events) ? body.events : [body]).slice(0, 20);
+        const accepted = events.filter((e) => linkEvents.recordLinkEvent({ ...e, channel: 'lite' })).length;
+        return sendJson(res, 200, { ok: true, accepted });
+    }
+    if (req.method === 'GET' && pathname === '/api/analytics/links') {
+        try {
+            const days = Number(requestUrl.searchParams.get('days') || 30);
+            const rows = await linkEvents.getLinkEventStore().list({ sinceDays: days });
+            const wineries = wineryLinks.loadWineries();
+            const catalog = await getCompanionStore().list({ publishedOnly: true }).catch(() => []);
+            return sendJson(res, 200, {
+                ok: true,
+                storage: linkEvents.getLinkEventStore().backend,
+                days,
+                summary: linkEvents.summarize(rows),
+                coverage: {
+                    wineries: wineries.length,
+                    wineriesWithTours: wineries.filter((w) => w.ctas.some((c) => c.type === 'BOOK_TOUR')).length,
+                    wineriesWithOfficialSite: wineries.filter((w) => w.ctas.some((c) => c.type === 'VISIT_WINERY_SITE')).length,
+                    catalogWines: catalog.length,
+                    catalogWinesWithProductUrl: catalog.filter((w) => w.productUrl).length,
+                },
+                recent: rows.slice(0, 50),
+            });
+        } catch (error) {
+            return sendJson(res, 500, { ok: false, error: 'link_analytics_failed' });
+        }
+    }
+    if (req.method === 'GET' && pathname === '/dashboard/links') {
+        const filePath = path.join(publicDir, 'link-stats.html');
+        fs.createReadStream(filePath)
+            .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))
+            .once('open', () => {
+                res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+            })
+            .pipe(res);
+        return undefined;
     }
 
     // Visual Companion catalog (verified partner wines, cards, CTAs).

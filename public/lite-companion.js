@@ -23,7 +23,10 @@
     VISIT_WINERY_SITE: { ru: 'Сайт винодельни', ro: 'Site-ul cramei', en: 'Winery website' },
     OPEN_MAP: { ru: 'Открыть карту', ro: 'Deschide harta', en: 'Open map' },
     VIEW_WINE: { ru: 'Подробнее о вине', ro: 'Detalii vin', en: 'Wine details' },
+    BOOK_TOUR: { ru: 'Забронировать экскурсию', ro: 'Rezervă excursia', en: 'Book a tour' },
+    WINERY_ON_WINEMD: { ru: 'Вина на WineMD', ro: 'Vinuri pe WineMD', en: 'Wines on WineMD' },
   };
+  const MAX_WINERY_CARDS_PER_TURN = 1;
   const FIELD_LABELS = {
     grapes: { ru: 'Сорта', ro: 'Soiuri', en: 'Grapes' },
     region: { ru: 'Регион', ro: 'Regiune', en: 'Region' },
@@ -43,6 +46,28 @@
     for (const entry of Array.isArray(catalog) ? catalog : []) {
       const names = Array.isArray(entry && entry.names) ? entry.names : [];
       if (entry && entry.wineId && names.some((n) => n && haystack.includes(` ${n} `))) found.push(entry.wineId);
+      if (found.length >= max) break;
+    }
+    return found;
+  }
+
+  // Wineries named in the text (/api/companion/wineries entries). Russian
+  // names are inflected ("в Криковы"): a Cyrillic name also matches its stem
+  // plus up to three letters -- same rule as src/companion/wineryLinks.js.
+  function wineryNameMatches(haystack, name) {
+    if (haystack.includes(` ${name} `)) return true;
+    const words = name.split(' ');
+    const last = words[words.length - 1];
+    if (!/^[а-я]+$/.test(last) || last.length < 5) return false;
+    const stem = last.replace(/[аяоеиыуюьй]$/, '');
+    return new RegExp(` ${[...words.slice(0, -1), stem].join(' ')}[а-я]{0,3} `).test(haystack);
+  }
+  function findWineries(text, wineries, max = MAX_WINERY_CARDS_PER_TURN) {
+    const haystack = ` ${normalizeName(text).replace(/ё/g, 'е')} `;
+    const found = [];
+    for (const w of Array.isArray(wineries) ? wineries : []) {
+      const names = Array.isArray(w && w.names) ? w.names : [];
+      if (w && w.wineryId && names.some((n) => n && wineryNameMatches(haystack, n))) found.push(w);
       if (found.length >= max) break;
     }
     return found;
@@ -112,12 +137,101 @@
     return root;
   }
 
+  // Winery card: name + verified buttons (excursion booking with its
+  // "N tours, from X MDL" line, the winery's wine.md page, official site).
+  function buildWineryCard(doc, winery, { lang = 'ru', onCtaClick = () => {} } = {}) {
+    const el = (tag, className, text) => {
+      const node = doc.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null) node.textContent = String(text);
+      return node;
+    };
+    const ctas = (Array.isArray(winery.ctas) ? winery.ctas : [])
+      .map((cta) => ({ type: cta && cta.type, url: safeHttpsUrl(cta && cta.url), info: cta && typeof cta.info === 'string' ? cta.info.slice(0, 80) : null }))
+      .filter((cta) => cta.url && CTA_LABELS[cta.type]);
+    if (!ctas.length) return null;
+    const root = el('div', 'wc-card wc-card--winery');
+    root.dataset.wineryId = winery.wineryId;
+    const body = el('div', 'wc-card__body');
+    body.appendChild(el('div', 'wc-card__winery', lang === 'en' ? 'Winery' : (lang === 'ro' ? 'Cramă' : 'Винодельня')));
+    body.appendChild(el('div', 'wc-card__name', winery.name));
+    const tour = ctas.find((c) => c.type === 'BOOK_TOUR' && c.info);
+    if (tour && lang === 'ru') body.appendChild(el('div', 'wc-card__meta', tour.info));
+    const row = el('div', 'wc-card__ctas');
+    for (const cta of ctas) {
+      const a = el('a', 'wc-card__cta', label(CTA_LABELS, cta.type, lang));
+      a.href = cta.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.addEventListener('click', () => { try { onCtaClick(winery, cta); } catch { /* analytics only */ } });
+      row.appendChild(a);
+    }
+    body.appendChild(row);
+    root.appendChild(body);
+    return root;
+  }
+
   // Controller used by the Lite page.
   function createCompanion({ doc, fetchImpl, getLang = () => 'ru', telemetry = () => {} }) {
     let catalog = null;
     let catalogPromise = null;
     let currentKey = null;
     const shownByKey = new Map();
+    let wineries = null;
+    let wineriesPromise = null;
+    const shownWineriesByKey = new Map();
+
+    function loadWineries() {
+      if (wineries) return Promise.resolve(wineries);
+      if (!wineriesPromise) {
+        wineriesPromise = fetchImpl('/api/companion/wineries')
+          .then((r) => r.json())
+          .then((data) => { wineries = (data && data.enabled && Array.isArray(data.wineries)) ? data.wineries : []; return wineries; })
+          .catch(() => { wineriesPromise = null; return []; });
+      }
+      return wineriesPromise;
+    }
+
+    // link_rendered / link_clicked for the operator's link analytics.
+    function linkEvent(events) {
+      try {
+        fetchImpl('/api/analytics/link-event', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ events }) }).catch(() => {});
+      } catch { /* analytics only */ }
+    }
+
+    function railFor(anchor) {
+      let rail = anchor && anchor.nextSibling && anchor.nextSibling.classList && anchor.nextSibling.classList.contains('wc-rail') ? anchor.nextSibling : null;
+      if (!rail && anchor && anchor.parentNode) {
+        rail = doc.createElement('div');
+        rail.className = 'wc-rail';
+        anchor.parentNode.insertBefore(rail, anchor.nextSibling);
+      }
+      return rail;
+    }
+
+    async function showWineries(key, text, anchor) {
+      const list = await loadWineries();
+      if (!list.length || key !== currentKey) return;
+      const shown = shownWineriesByKey.get(key) || new Set();
+      shownWineriesByKey.set(key, shown);
+      if (shown.size >= MAX_WINERY_CARDS_PER_TURN) return;
+      for (const winery of findWineries(text, list).filter((w) => !shown.has(w.wineryId))) {
+        shown.add(winery.wineryId);
+        const lang = getLang();
+        const card = buildWineryCard(doc, winery, {
+          lang,
+          onCtaClick: (w, cta) => {
+            telemetry('companion_link_clicked', { wineryId: w.wineryId, ctaType: cta.type, turnKey: key });
+            linkEvent([{ event: 'link_clicked', entityType: 'winery', entityId: w.wineryId, entityName: w.name, ctaType: cta.type }]);
+          },
+        });
+        const rail = card && railFor(anchor);
+        if (!rail) continue;
+        rail.appendChild(card);
+        telemetry('companion_winery_card_shown', { wineryId: winery.wineryId, turnKey: key });
+        linkEvent(winery.ctas.map((cta) => ({ event: 'link_rendered', entityType: 'winery', entityId: winery.wineryId, entityName: winery.name, ctaType: cta.type })));
+      }
+    }
 
     function loadCatalog() {
       if (catalog) return Promise.resolve(catalog);
@@ -135,7 +249,9 @@
       catalogPromise = null;
       currentKey = null;
       shownByKey.clear();
+      shownWineriesByKey.clear();
       loadCatalog();
+      loadWineries();
     }
 
     // Called with the full assistant text so far for a turn and the bubble
@@ -143,6 +259,7 @@
     async function onAssistantText(key, text, anchor) {
       try {
         currentKey = key;
+        showWineries(key, text, anchor).catch(() => {});
         const list = await loadCatalog();
         if (!list.length || key !== currentKey) return;
         const shown = shownByKey.get(key) || new Set();
@@ -166,18 +283,20 @@
             lang,
             onCtaClick: (card, cta) => {
               telemetry('companion_link_clicked', { wineId: card.wineId, ctaType: cta.type, turnKey: key });
+              linkEvent([{ event: 'link_clicked', entityType: 'wine', entityId: card.wineId, entityName: card.wineName, ctaType: cta.type }]);
               try {
                 fetchImpl('/api/analytics/purchase-click', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wineId: card.wineId, optionId: cta.type, source: 'lite_companion' }) }).catch(() => {});
               } catch { /* analytics only */ }
             },
           }));
           telemetry('companion_wine_card_shown', { wineId: data.card.wineId, turnKey: key, ctaTypes: (data.card.ctas || []).map((c) => c.type) });
+          linkEvent((data.card.ctas || []).map((c) => ({ event: 'link_rendered', entityType: 'wine', entityId: data.card.wineId, entityName: data.card.wineName, ctaType: c.type })));
         }
       } catch { /* presentation only */ }
     }
 
-    return { reset, onAssistantText, loadCatalog };
+    return { reset, onAssistantText, loadCatalog, loadWineries };
   }
 
-  return { normalizeName, findWines, safeHttpsUrl, buildCard, createCompanion, CTA_LABELS, MAX_CARDS_PER_TURN };
+  return { normalizeName, findWines, findWineries, safeHttpsUrl, buildCard, buildWineryCard, createCompanion, CTA_LABELS, MAX_CARDS_PER_TURN };
 }));
