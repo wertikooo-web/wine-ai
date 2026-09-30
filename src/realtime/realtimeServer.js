@@ -25,7 +25,7 @@ const {
 } = require('./inputAudioResampling');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./mockRealtimeProvider');
 const { createVisualOrchestrator } = require('../visual/visualOrchestrator');
-const { bridgeConfig, createBridgeAudioCache, createBridgeScheduler } = require('./bridgePhrases');
+const { bridgeConfig, createBridgeAudioCache, createBridgeScheduler, prewarmVoices } = require('./bridgePhrases');
 
 // Rendered bridge phrases are shared by every session in the process (one
 // short TTS render per phrase and voice). See bridgePhrases.js.
@@ -42,6 +42,12 @@ function getDefaultBridgeCache() {
         });
     }
     return defaultBridgeCache;
+}
+// Called at boot and after a persona is saved: every persona's Gemini voice
+// gets its bridge phrases before its first question.
+function prewarmBridgeVoices(voices) {
+    if (!bridgeConfig().enabled) return Promise.resolve();
+    return prewarmVoices(getDefaultBridgeCache(), voices);
 }
 const {
     DASHBOARD_ALLOW_CUSTOM_PROMPT,
@@ -2765,5 +2771,6 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
 
 module.exports = {
     attachRealtimeServer,
+    prewarmBridgeVoices,
     detectLikelyLanguage,
 };

@@ -163,6 +163,16 @@ function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now 
     return cache;
 }
 
+// Render (or load from the store) the phrases of several voices one voice
+// after another, so a new persona voice has its phrases before its first
+// question, without a burst of parallel TTS calls. Never throws.
+async function prewarmVoices(cache, voices = []) {
+    if (!cache) return;
+    for (const voice of [...new Set(voices.filter(Boolean))]) {
+        try { await cache.warm(voice); } catch { /* warm logs its own failures */ }
+    }
+}
+
 // Operator status (/health): config plus what the process-wide cache has
 // rendered. No audio, no text, no keys.
 let lastCache = null;
@@ -252,4 +262,4 @@ function createBridgeScheduler({ config = bridgeConfig(), cache, emit, log = () 
     return { onToolCall, cancel, cancelAll, dispose, prewarm, pending: () => timers.size };
 }
 
-module.exports = { PHRASES, TOTAL_PHRASES, bridgeConfig, bridgeStatus, normalizeLanguage, createBridgeAudioCache, createBridgeScheduler };
+module.exports = { PHRASES, TOTAL_PHRASES, bridgeConfig, bridgeStatus, normalizeLanguage, createBridgeAudioCache, createBridgeScheduler, prewarmVoices };

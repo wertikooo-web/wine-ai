@@ -12,3 +12,5 @@ Do not preload all of `docs/agent-context/` and do not restate the workflow in s
 For WineMD character, Rive, PSD, animation, or `.riv` work, also use `.claude/skills/winemd-rive/SKILL.md`.
 
 Before changing realtime, session, turn, generation, provider, capture, playback, visual, or knowledge lifecycle code, read `docs/architecture/STATE_OWNERSHIP.md` and identify affected state owners.
+
+For replies to the user, always follow `.claude/skills/i-have-adhd/SKILL.md` (from github.com/ayghri/i-have-adhd, MIT), unless the user says "stop adhd mode".

@@ -263,6 +263,22 @@ async function persistence() {
     t.ok(logs.some((l) => l.stage === 'bridge_phrase_store_failed'), 'store errors are logged');
 
     t.equal(createPostgresBridgePhraseStore({ env: { DATABASE_URL: 'memory' } }), null, 'no real database: no store');
+
+    // Every persona voice (male Charon, female Kore, the Live Test voice)
+    // gets its phrases before its first question, one voice after another.
+    const { prewarmVoices } = require('../src/realtime/bridgePhrases');
+    const order = [];
+    let active = 0;
+    let maxActive = 0;
+    const multi = createBridgeAudioCache({ sleep: async () => {}, synthesize: async ({ voiceName }) => { active += 1; maxActive = Math.max(maxActive, active); order.push(voiceName); await sleep(1); active -= 1; return { audioBase64: 'AAAA' }; } });
+    await prewarmVoices(multi, ['Charon', 'Kore', 'Leda', 'Kore', null]);
+    t.equal(multi.status().rendered.Charon, total, 'male voice ready');
+    t.equal(multi.status().rendered.Kore, total, 'female voice ready');
+    t.equal(multi.status().rendered.Leda, total, 'Live Test voice ready');
+    t.equal(maxActive, 1, 'one TTS call at a time, no burst');
+    t.equal(order.length, 3 * total, 'duplicates and empty voices skipped');
+    t.equal(multi.get('Charon', 'ru', 0) !== null && multi.get('Kore', 'ro', 1) !== null, true, 'each voice has every language');
+    await prewarmVoices(null, ['Charon']);
     t.ok(isPostgresUrl('postgresql://u:p@h:5432/db') && isPostgresUrl('postgres://h/db'));
 }
 
