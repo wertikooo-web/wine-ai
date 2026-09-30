@@ -300,6 +300,15 @@ jobs:
           grep -q 'name="password"' /tmp/login.html && echo "admin login form is configured"
           echo "dashboard anonymous: $(curl -sS -o /dev/null -w '%{http_code} -> %{redirect_url}' "$BASE_URL/dashboard")"
           echo "lite anonymous: $(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/lite")"
+      - name: Gemini Live accepts speechConfig.languageCode? (needs ADMIN_TOKEN)
+        if: ${{ github.event.inputs.diagnostic == 'langcode' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          if [ -z "${ADMIN_TOKEN:-}" ]; then echo "ADMIN_TOKEN secret is not set"; exit 1; fi
+          curl -sS --max-time 40 -X POST -H "x-admin-token: $ADMIN_TOKEN" -H 'content-type: application/json' -d '{"languageCode":"ru-RU"}' "$BASE_URL/api/diag/gemini-language-code"
+          echo
       - name: Link data coverage (companion catalog + entity facts)
         if: ${{ github.event.inputs.diagnostic == 'links' }}
         run: node scripts/diag/link-coverage.js

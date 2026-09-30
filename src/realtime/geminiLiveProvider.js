@@ -38,13 +38,25 @@ function normalizeVoiceName(voiceName) {
     return String(voiceName || '').trim() || DEFAULT_GEMINI_LIVE_VOICE;
 }
 
+// GEMINI_SPEECH_LANGUAGE_CODE (e.g. ru-RU): experimental anchor for the
+// output accent (Russian drifting towards Ukrainian after a few minutes of
+// one continuous Free Conversation). Off unless set; verify first with
+// POST /api/diag/gemini-language-code -- a model that rejects the field
+// would fail every voice session.
+function speechLanguageCode(value = process.env.GEMINI_SPEECH_LANGUAGE_CODE) {
+    const code = String(value || '').trim();
+    return /^[a-z]{2}(-[A-Z]{2})?$/.test(code) ? code : null;
+}
+
 function buildGeminiSpeechConfig(voiceName) {
+    const languageCode = speechLanguageCode();
     return {
         voiceConfig: {
             prebuiltVoiceConfig: {
                 voiceName: normalizeVoiceName(voiceName),
             },
         },
+        ...(languageCode ? { languageCode } : {}),
     };
 }
 
@@ -54,6 +66,7 @@ function describeSpeechConfigShape(speechConfig) {
         `voiceConfig:${typeof speechConfig?.voiceConfig}`,
         `prebuiltVoiceConfig:${typeof speechConfig?.voiceConfig?.prebuiltVoiceConfig}`,
         `voiceName:${typeof speechConfig?.voiceConfig?.prebuiltVoiceConfig?.voiceName}`,
+        `languageCode:${speechConfig?.languageCode || 'none'}`,
     ].join('/');
 }
 
