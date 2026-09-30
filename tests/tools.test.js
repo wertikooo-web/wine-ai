@@ -6,7 +6,7 @@ const { createSessionMemory } = require('../src/memory/sessionMemory');
 const t = require('./helpers/assertions');
 
 async function run() {
-    t.equal(TOOL_DECLARATIONS.length, 11, 'expected all registered tool declarations including bidirectional pairing tools');
+    t.equal(TOOL_DECLARATIONS.length, 12, 'expected all registered tool declarations including bidirectional pairing tools and show_links');
     for (const decl of TOOL_DECLARATIONS) {
         t.ok(decl.name && decl.description && decl.parameters, `tool ${decl.name || '(unnamed)'} must have name/description/parameters`);
     }
