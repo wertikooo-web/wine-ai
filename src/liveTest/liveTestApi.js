@@ -38,7 +38,7 @@ function stripInternal(config) {
     return rest;
 }
 
-function createLiveTestApi({ service, sendJson, readJsonBody, isProviderConfigured = () => true, listUsageRecords = async () => [] }) {
+function createLiveTestApi({ service, sendJson, readJsonBody, isProviderConfigured = () => true, listUsageRecords = async () => [], onPublished = () => {} }) {
     function options() {
         return {
             providers: PROVIDERS.map((id) => ({ id, label: id === 'gemini' ? 'Gemini Live' : 'Grok Voice', configured: isProviderConfigured(id), voices: voicesFor(id) })),
@@ -154,6 +154,7 @@ function createLiveTestApi({ service, sendJson, readJsonBody, isProviderConfigur
             if (method === 'POST' && pathname === '/api/live-test/publish') {
                 const body = await readJsonBody(req);
                 const result = await service.publish(body.config, body.label);
+                if (result.ok) { try { onPublished(result.published); } catch { /* side effect only */ } }
                 sendJson(res, result.ok ? 200 : 400, result.ok ? { ok: true, published: result.published, published_description: describeConfig(result.published.config) } : { ok: false, error: 'invalid_config', details: result.errors });
                 return true;
             }

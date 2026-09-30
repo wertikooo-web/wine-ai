@@ -5,7 +5,7 @@ const http = require('http');
 const path = require('path');
 const crypto = require('crypto');
 const { commitKnowledgeFiles, deleteKnowledgeFile } = require('./knowledge/gitPersist');
-const { attachRealtimeServer } = require('./realtime/realtimeServer');
+const { attachRealtimeServer, prewarmBridgeVoices } = require('./realtime/realtimeServer');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./realtime/mockRealtimeProvider');
 const { GeminiLiveProvider, MODEL_ID: GEMINI_MODEL_ID, DEFAULT_GEMINI_LIVE_VOICE } = require('./realtime/geminiLiveProvider');
 const { createRealtimeProviderRegistry, normalizeProviderName } = require('./realtime/providerRegistry');
@@ -252,7 +252,35 @@ const avatarProvider = new MockAvatarProvider();
 // customization instead of the built-in defaults for a brief window.
 personaStore.load().catch((error) => {
     console.error('[WineAI] persona_override_load_failed:', error);
-});
+}).then(() => prewarmPersonaBridgeVoices());
+
+// Gemini voice of every persona (male and female, saved overrides
+// included), so each has its "Минуточку…" phrases before its first question.
+function personaGeminiVoices() {
+    const voices = new Set();
+    for (const { id } of listProfiles()) {
+        try {
+            const override = personaStore.getProfilesOverrides()[id]?.overrides?.runtimeByProvider?.gemini?.voiceId;
+            const voice = override || personaStore.getProfile(id)?.runtimeByProvider?.gemini?.voiceId;
+            if (voice) voices.add(voice);
+        } catch { /* a broken profile must not stop the others */ }
+    }
+    // The published Live Test config (what /lite participants hear) may
+    // pick its own voice.
+    try {
+        const published = liveTest.getPublished();
+        if (published && published.config && published.config.provider === 'gemini' && published.config.voice) voices.add(published.config.voice);
+    } catch { /* liveTest not initialised yet */ }
+    return [...voices];
+}
+
+function prewarmPersonaBridgeVoices() {
+    try {
+        prewarmBridgeVoices(personaGeminiVoices()).catch(() => {});
+    } catch (error) {
+        console.error('[WineAI] bridge_prewarm_failed:', error.message);
+    }
+}
 
 function createProviderFactory() {
     // Function-calling tools (search_wine_knowledge etc.) are core to this
@@ -329,6 +357,7 @@ const liveTest = createLiveTestService({
 });
 liveTest.load().then((published) => {
     console.log(`[WineAI] live test config: ${published ? `revision ${published.revision}` : 'nothing published'} (${liveTest.getLoadState()})`);
+    prewarmPersonaBridgeVoices();
 });
 const companionApi = createCompanionApi({ sendJson, readJsonBody });
 getCompanionStore().init().then(() => refreshCompanionIndex()).catch((error) => {
@@ -340,6 +369,7 @@ const liveTestApi = createLiveTestApi({
     readJsonBody,
     isProviderConfigured: (id) => providerRegistry.list().some((p) => p.id === id && p.configured),
     listUsageRecords: (range) => getCostStore().listUsageRecords(range),
+    onPublished: () => prewarmPersonaBridgeVoices(),
 });
 
 function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
@@ -1182,6 +1212,9 @@ async function handleRequest(req, res) {
                     await personaStore.updateProfile(targetProfileId, patch);
                 }
             }
+            // A newly chosen voice gets its bridge phrases now, not on its
+            // first question.
+            prewarmPersonaBridgeVoices();
 
             const rawOverrides = (personaStore.getProfilesOverrides()[targetProfileId] || {}).overrides || {};
             const overrides = { ...rawOverrides };
