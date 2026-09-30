@@ -33,9 +33,12 @@ let defaultBridgeCache = null;
 function getDefaultBridgeCache() {
     if (!defaultBridgeCache) {
         const { synthesizeVoicePreview } = require('../voicePreview');
+        const { createPostgresBridgePhraseStore } = require('./bridgePhraseStore');
+        const log = (stage, extra) => console.log(`[Realtime] stage=${stage} ${Object.entries(extra || {}).map(([k, v]) => `${k}=${v}`).join(' ')}`);
         defaultBridgeCache = createBridgeAudioCache({
             synthesize: (args) => synthesizeVoicePreview({ ...args, operation: 'bridge_phrase' }),
-            log: (stage, extra) => console.log(`[Realtime] stage=${stage} ${Object.entries(extra || {}).map(([k, v]) => `${k}=${v}`).join(' ')}`),
+            store: createPostgresBridgePhraseStore({ log }),
+            log,
         });
     }
     return defaultBridgeCache;

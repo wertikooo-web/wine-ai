@@ -213,9 +213,63 @@ function clientContract() {
     t.ok(/function stopBridge[\s\S]{0,160}bridgeEndsAt = 0;/.test(html), 'a cut bridge no longer delays the answer');
 }
 
+// Production 30 Sep: after three deploys in half an hour the new process
+// rendered none of the phrases (TTS rate limit), so no bridge played. Audio
+// rendered once is persisted and a later process ("redeploy") plays it even
+// when TTS is down.
+async function persistence() {
+    const { phraseKey, isPostgresUrl, createPostgresBridgePhraseStore } = require('../src/realtime/bridgePhraseStore');
+    const rows = new Map();
+    const store = {
+        loads: 0,
+        async load(voice) { this.loads += 1; return new Map([...rows].filter(([k]) => k.startsWith(`bridge_phrase:${voice}:`))); },
+        async save(k, entry) { rows.set(k, entry); },
+    };
+    const total = PHRASES.ru.length + PHRASES.ro.length + PHRASES.en.length;
+
+    let firstCalls = 0;
+    const first = createBridgeAudioCache({ store, sleep: async () => {}, synthesize: async ({ text }) => { firstCalls += 1; return { audioBase64: Buffer.from(text).toString('base64'), sampleRate: 24000 }; } });
+    await first.warm('Leda');
+    t.equal(firstCalls, total, 'first process renders every phrase once');
+    t.equal(rows.size, total, 'every rendered phrase is persisted');
+
+    let ttsCalls = 0;
+    const logs = [];
+    const redeployed = createBridgeAudioCache({ store, sleep: async () => {}, log: (stage, extra) => logs.push({ stage, ...extra }), synthesize: async () => { ttsCalls += 1; throw new Error('429 rate limit'); } });
+    await redeployed.warm('Leda');
+    t.equal(ttsCalls, 0, 'redeploy: no TTS call when every phrase is stored');
+    t.equal(redeployed.size(), total, 'redeploy: all phrases loaded from the store');
+    t.equal(redeployed.status().loaded_from_store, total);
+    t.equal(redeployed.status().persistent, true);
+    const sent = [];
+    const s = createBridgeScheduler({ config: { enabled: true, delayMs: 5, minTurnGap: 1 }, cache: redeployed, emit: (e) => sent.push(e), getVoice: () => 'Leda', getLanguage: () => 'ru' });
+    s.onToolCall({ generationId: 'g1', turnId: 't1', turnNumber: 1 });
+    await sleep(30);
+    t.equal(sent.length, 1, 'redeploy with TTS down: the bridge still plays');
+    t.equal(Buffer.from(sent[0].audio_base64, 'base64').toString(), sent[0].text, 'the stored audio belongs to the phrase text');
+
+    // Edited phrase text -> different key -> old audio is never reused.
+    t.ok(phraseKey('Leda', 'ru', 0, 'A') !== phraseKey('Leda', 'ru', 0, 'B'), 'key depends on the phrase text');
+    rows.delete(phraseKey('Leda', 'en', 2, PHRASES.en[2]));
+    let partialCalls = 0;
+    const partial = createBridgeAudioCache({ store, sleep: async () => {}, synthesize: async () => { partialCalls += 1; return { audioBase64: 'AAAA' }; } });
+    await partial.warm('Leda');
+    t.equal(partialCalls, 1, 'only the phrase missing from the store is rendered');
+    t.equal(rows.size, total, 'and saved');
+
+    const broken = createBridgeAudioCache({ store: { load: async () => { throw new Error('db down'); }, save: async () => { throw new Error('db down'); } }, sleep: async () => {}, log: (stage, extra) => logs.push({ stage, ...extra }), synthesize: async () => ({ audioBase64: 'AAAA' }) });
+    await broken.warm('Kore');
+    t.equal(broken.size(), total, 'store errors fall back to TTS');
+    t.ok(logs.some((l) => l.stage === 'bridge_phrase_store_failed'), 'store errors are logged');
+
+    t.equal(createPostgresBridgePhraseStore({ env: { DATABASE_URL: 'memory' } }), null, 'no real database: no store');
+    t.ok(isPostgresUrl('postgresql://u:p@h:5432/db') && isPostgresUrl('postgres://h/db'));
+}
+
 async function run() {
     clientContract();
     await unit();
+    await persistence();
     await endToEnd();
 }
 
