@@ -66,7 +66,14 @@ function meta(html, prop) {
 async function discover(brandSlug) {
     const brand = await get(`${BASE}/ru/brand/${brandSlug}`);
     console.log(`brand ${brandSlug}: http=${brand.status} url=${brand.url} bytes=${brand.html.length}`);
-    const links = productLinks(brand.html, brand.url);
+    const all = [...new Set([...brand.html.matchAll(/href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => m[1]))];
+    const counts = {};
+    for (const h of all) { const k = h.replace(/^https?:\/\/wine\.md/, '').replace(/[a-z0-9-]*\d+$/i, '<slug-id>').split('/').slice(0, 4).join('/'); counts[k] = (counts[k] || 0) + 1; }
+    console.log(`href patterns: ${JSON.stringify(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 25))}`);
+    all.filter((h) => /-\d{3,}$/.test(h)).slice(0, 15).forEach((h) => console.log(`   slug-id href: ${h}`));
+    const card = brand.html.search(/-\d{3,}["']/);
+    if (card > 0) console.log(`   html around first slug-id link: ${brand.html.slice(Math.max(0, card - 600), card + 900).replace(/\s+/g, ' ')}`);
+    const links = productLinks(brand.html, brand.url).concat(all.filter((h) => /-\d{3,}$/.test(h)).map((h) => new URL(h, brand.url).href));
     console.log(`product links: ${links.length}`);
     links.slice(0, 8).forEach((l) => console.log(`   ${l}`));
     const pages = [...new Set([...brand.html.matchAll(/href=["']([^"']*[?&]page=\d+[^"']*)["']/gi)].map((m) => m[1]))];
