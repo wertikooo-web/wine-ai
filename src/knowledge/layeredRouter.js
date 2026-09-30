@@ -379,31 +379,36 @@ async function routeKnowledge(query, options = {}) {
     const attempts = [];
     const adapters = options.adapters || {};
 
+    const startedAt = Date.now();
     const runLevel = async (level, runner) => {
+        const levelStartedAt = Date.now();
         try {
             const items = await runner();
-            attempts.push({ level, status: items.length ? 'found' : 'empty', count: items.length });
+            attempts.push({ level, status: items.length ? 'found' : 'empty', count: items.length, durationMs: Date.now() - levelStartedAt });
             return items;
         } catch (error) {
-            attempts.push({ level, status: 'error', error: error.message });
+            attempts.push({ level, status: 'error', error: error.message, durationMs: Date.now() - levelStartedAt });
             return [];
         }
     };
 
+    // The internal levels are independent lookups: run them concurrently.
+    // (Sequentially they added up -- a voice turn waited for canonical, then
+    // relations, then catalog, then documents.) Same levels, same inputs,
+    // same merge order as before; only the wall-clock time changes.
     const internalPromise = (async () => {
-        const canonical = await runLevel(LEVELS.CANONICAL, () =>
-            (adapters.searchCanonical || searchCanonical)(query, options));
-        const relations = await runLevel('relations', () =>
-            (adapters.searchRelations || searchRelations)(query, options));
+        const [canonical, relations, catalog, documents] = await Promise.all([
+            runLevel(LEVELS.CANONICAL, () => (adapters.searchCanonical || searchCanonical)(query, options)),
+            runLevel('relations', () => (adapters.searchRelations || searchRelations)(query, options)),
+            (catalogIntent || freshness) && allowCatalog
+                ? runLevel(LEVELS.CATALOG, () => (adapters.searchCatalog || searchCatalog)(query, options))
+                : Promise.resolve([]),
+            runLevel(LEVELS.DOCUMENTS, () => (adapters.searchDocuments || searchDocuments)(query, { ...options, language })),
+        ]);
         // Relation evidence is canonical-level structured truth (Phase 4):
         // it must outrank fuzzy entity_facts matches for multi-condition
         // questions, so it is merged ahead of the facts.
         const mergedCanonical = [...relations, ...canonical];
-        const catalog = (catalogIntent || freshness) && allowCatalog
-            ? await runLevel(LEVELS.CATALOG, () => (adapters.searchCatalog || searchCatalog)(query, options))
-            : [];
-        const documents = await runLevel(LEVELS.DOCUMENTS, () =>
-            (adapters.searchDocuments || searchDocuments)(query, { ...options, language }));
         return { canonical: mergedCanonical, catalog, documents };
     })();
 
@@ -412,6 +417,13 @@ async function routeKnowledge(query, options = {}) {
     // general wine knowledge we want it every time regardless, so there is
     // no reason to pay the extra round-trip latency of running it after.
     const eagerWebPromise = (allowWeb && eagerWeb)
+        ? runLevel(LEVELS.WEB, () => (adapters.searchInternet || searchInternet)(query, { ...options, language }))
+        : null;
+    // Freshness / force_web questions go to the web whatever the internal
+    // levels return (see shouldUseWebFallback below), so start it now instead
+    // of after them. Decision unchanged; only the waiting is removed.
+    const smalltalkIntent = intent === 'off_topic_smalltalk';
+    const earlyWebPromise = (!eagerWebPromise && allowWeb && !smalltalkIntent && (forceWeb || freshness))
         ? runLevel(LEVELS.WEB, () => (adapters.searchInternet || searchInternet)(query, { ...options, language }))
         : null;
 
@@ -442,7 +454,7 @@ async function routeKnowledge(query, options = {}) {
             && classifyClaimDependency(query, options.resolveEntityFn ? { resolveEntityFn: options.resolveEntityFn } : {}) === CLAIM_CLASSES.GENERAL_KNOWLEDGE;
         shouldUseWebFallback = !smalltalk && allowWeb && (forceWeb || freshness || (!strongInternal && !generalKnowledgeOnly));
         web = shouldUseWebFallback
-            ? await runLevel(LEVELS.WEB, () => (adapters.searchInternet || searchInternet)(query, { ...options, language }))
+            ? await (earlyWebPromise || runLevel(LEVELS.WEB, () => (adapters.searchInternet || searchInternet)(query, { ...options, language })))
             : [];
         webReason = !shouldUseWebFallback ? null : forceWeb ? 'forced' : freshness ? 'freshness' : 'weak_internal';
     }
@@ -463,6 +475,7 @@ async function routeKnowledge(query, options = {}) {
         catalog_intent: catalogIntent,
         conflicts,
         answer_policy: naturalAnswerPolicy(),
+        timing_ms: Date.now() - startedAt,
     };
 }
 
@@ -478,6 +491,10 @@ const ANSWERABILITY_MODEL = process.env.ANSWERABILITY_MODEL || 'gemini-2.5-flash
 const ANSWERABILITY_EVIDENCE_LIMIT = 8;
 const ANSWERABILITY_FRAGMENT_CHARS = 1200;
 const ANSWERABILITY_MAX_OUTPUT_TOKENS = 200;
+function answerabilityTimeoutMs(value = process.env.ANSWERABILITY_TIMEOUT_MS) {
+    const ms = Number(value || 3000);
+    return Number.isFinite(ms) && ms > 0 ? ms : 3000;
+}
 // TEMP DIAGNOSTIC (staging investigation only): opt-in, verbose logging of
 // the raw grader response so a systematic unparseable-output failure can be
 // diagnosed from real traffic. Never enabled by default; must be turned on
@@ -658,7 +675,10 @@ async function checkAnswerability(question, evidence, {
         } else {
             const { GoogleGenAI } = require('@google/genai');
             const ai = new GoogleGenAI({ apiKey });
-            response = await ai.models.generateContent({
+            // Bounded: an unanswered grader is "unknown" (the catch below),
+            // never a stalled voice turn.
+            let graderTimer = null;
+            response = await Promise.race([ai.models.generateContent({
                 model,
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 config: {
@@ -696,7 +716,9 @@ async function checkAnswerability(question, evidence, {
                         required: ['answerable', 'claim_class', 'evidence_entity_match', 'reason'],
                     },
                 },
-            });
+            }), new Promise((_, reject) => {
+                graderTimer = setTimeout(() => reject(new Error('answerability_timeout')), answerabilityTimeoutMs());
+            })]).finally(() => clearTimeout(graderTimer));
             // Cost telemetry (fire-and-forget, never throws).
             recordApiCall({ category: 'llm_text', provider: 'gemini', model, operation: 'answerability_check', usageMetadata: response?.usageMetadata || null, requests: 1 });
         }
@@ -769,6 +791,7 @@ async function checkAnswerability(question, evidence, {
 // decided inside routeKnowledge) is left untouched and never double-checked.
 async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
     const base = await routeKnowledge(query, options);
+    const gateStartedAt = Date.now();
     // Entity recognition now comes from the shared registry resolver, not a
     // caller-supplied name list; options.knownEntityNames still steers
     // classifyQueryIntent()'s web routing and is deliberately not forwarded here.
@@ -819,6 +842,7 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
 
     const { answerable: rawAnswerable, reason: rawReason, claimClass, entityMatch } =
         await checkAnswerability(query, base.evidence, options.answerabilityModel);
+    const answerabilityMs = Date.now() - gateStartedAt;
     // Grader silence (null claimClass) must never widen permission: fall back
     // to the conservative deterministic classifier, which defaults to
     // grounding_required for anything naming an entity or asking for a
@@ -855,10 +879,13 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
             answerabilityReason: reason,
             claim_class: resolvedClass,
             evidence_entity_match: entityMatch,
+            answerability_ms: answerabilityMs,
         };
     }
 
+    const webStartedAt = Date.now();
     const web = await (options.adapters?.searchInternet || searchInternet)(query, { ...options, language: options.language || null });
+    const webFallbackMs = Date.now() - webStartedAt;
     const evidence = sortEvidence([...base.evidence, ...web]);
     const webConfirmed = web.length > 0;
     return {
@@ -874,6 +901,8 @@ async function routeKnowledgeWithAnswerabilityGate(query, options = {}) {
         // "insufficient", never as a confirmed answer.
         answerable: webConfirmed ? true : answerable,
         answerabilityReason: webConfirmed ? 'confirmed_via_web_fallback' : reason,
+        answerability_ms: answerabilityMs,
+        web_fallback_ms: webFallbackMs,
         claim_class: resolvedClass,
         // The web pass brought in evidence the grader never saw, so the
         // original mismatch verdict no longer describes the current evidence
