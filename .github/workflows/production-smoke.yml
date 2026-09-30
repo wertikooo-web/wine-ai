@@ -312,6 +312,17 @@ jobs:
       - name: Link data coverage (companion catalog + entity facts)
         if: ${{ github.event.inputs.diagnostic == 'links' }}
         run: node scripts/diag/link-coverage.js
+      - name: Demo links (Ghid official websites alive? wine.md links)
+        if: ${{ github.event.inputs.diagnostic == 'demolinks' }}
+        run: node scripts/diag/demo-links-verify.js
+      - name: wine.md wine pages (discover structure / crawl products)
+        if: ${{ github.event.inputs.diagnostic == 'winemd-discover' || github.event.inputs.diagnostic == 'winemd-wines' }}
+        env:
+          WINEMD_DISCOVER: ${{ github.event.inputs.diagnostic == 'winemd-discover' && '1' || '' }}
+        run: node scripts/diag/winemd-wines-crawl.js
+      - name: Import wine.md wines into the companion catalog (writes production)
+        if: ${{ github.event.inputs.diagnostic == 'import-wines' }}
+        run: node scripts/import-companion-wines.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js

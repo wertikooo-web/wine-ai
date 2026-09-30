@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ссылки и клики — Wine AI</title>
+<style>
+  :root { --wine: #7b1e3a; --muted: #6b6b6b; --border: #e6dfd6; --bg: #faf7f2; }
+  body { margin: 0; font: 14px/1.45 -apple-system, system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: #222; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { color: var(--wine); font-size: 22px; margin: 8px 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .tile { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .tile b { display: block; font-size: 24px; color: var(--wine); }
+  .tile span { color: var(--muted); font-size: 12px; }
+  h2 { font-size: 16px; margin: 20px 0 8px; }
+  .scroll { overflow-x: auto; background: #fff; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; background: #fcfaf7; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); padding: 14px; }
+  select { font: inherit; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ссылки и клики</h1>
+  <div class="sub">Какие проверенные ссылки гости видели на экране /lite и на какие нажимали. Период:
+    <select id="days"><option value="1">1 день</option><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option></select>
+    <span id="storage"></span>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <h2>По винодельням и винам</h2>
+  <div class="scroll"><table><thead><tr><th>Название</th><th>Тип</th><th class="num">Показано кнопок</th><th class="num">Клики</th><th class="num">CTR</th><th>Клики по кнопкам</th></tr></thead><tbody id="entities"></tbody></table></div>
+  <h2>По типу кнопки</h2>
+  <div class="scroll"><table><thead><tr><th>Кнопка</th><th class="num">Показано</th><th class="num">Клики</th><th class="num">CTR</th></tr></thead><tbody id="ctas"></tbody></table></div>
+  <h2>Спрашивали ссылку, но проверенной нет</h2>
+  <div class="scroll"><table><thead><tr><th>Запрос / название</th><th class="num">Раз</th></tr></thead><tbody id="missing"></tbody></table></div>
+  <h2>Покрытие данными</h2>
+  <div class="scroll"><table><tbody id="coverage"></tbody></table></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var CTA = { BOOK_TOUR: 'Забронировать экскурсию', WINERY_ON_WINEMD: 'Вина на WineMD', VISIT_WINERY_SITE: 'Сайт винодельни', BUY_OR_VIEW_ON_WINEMD: 'Вино на WineMD', OPEN_MAP: 'Карта', VIEW_WINE: 'Подробнее о вине' };
+  function td(text, cls) { var c = document.createElement('td'); c.textContent = text === null || text === undefined ? '—' : String(text); if (cls) c.className = cls; return c; }
+  function rows(id, list, build, emptyText) {
+    var body = document.getElementById(id); body.textContent = '';
+    if (!list.length) { var tr = document.createElement('tr'); var c = td(emptyText, 'empty'); c.colSpan = 6; tr.appendChild(c); body.appendChild(tr); return; }
+    list.forEach(function (item) { var tr = document.createElement('tr'); build(item).forEach(function (c) { tr.appendChild(c); }); body.appendChild(tr); });
+  }
+  function pct(v) { return v === null || v === undefined ? '—' : v + '%'; }
+  function load() {
+    var days = document.getElementById('days').value;
+    fetch('/api/analytics/links?days=' + encodeURIComponent(days), { credentials: 'same-origin' })
+      .then(function (r) { if (r.status === 401 || r.status === 403) { location.href = '/login?next=' + encodeURIComponent('/dashboard/links'); throw new Error('auth'); } return r.json(); })
+      .then(function (data) {
+        var s = data.summary || {}; var t = s.totals || {};
+        document.getElementById('storage').textContent = data.storage === 'postgres' ? '' : ' · (хранилище: память — данные сбросятся при деплое)';
+        var clicks = t.link_clicked || 0; var rendered = t.link_rendered || 0;
+        var tiles = [[s.sessions || 0, 'сессий со ссылками'], [rendered, 'кнопок показано'], [clicks, 'кликов'], [rendered ? Math.round(clicks / rendered * 1000) / 10 + '%' : '—', 'CTR'], [t.link_missing || 0, 'ссылок не нашлось']];
+        var box = document.getElementById('tiles'); box.textContent = '';
+        tiles.forEach(function (x) { var d = document.createElement('div'); d.className = 'tile'; var b = document.createElement('b'); b.textContent = x[0]; var sp = document.createElement('span'); sp.textContent = x[1]; d.appendChild(b); d.appendChild(sp); box.appendChild(d); });
+        rows('entities', s.entities || [], function (e) {
+          var by = Object.keys(e.clicksByCta || {}).map(function (k) { return (CTA[k] || k) + ': ' + e.clicksByCta[k]; }).join(', ');
+          return [td(e.name || e.entityId), td(e.entityType === 'winery' ? 'винодельня' : 'вино'), td(e.rendered, 'num'), td(e.clicked, 'num'), td(pct(e.ctrPct), 'num'), td(by || '—')];
+        }, 'Пока нет показов. Спросите на /lite, например: «Расскажи про винодельню Пуркарь».');
+        rows('ctas', Object.keys(s.byCta || {}).map(function (k) { return Object.assign({ type: k }, s.byCta[k]); }), function (c) {
+          return [td(CTA[c.type] || c.type), td(c.rendered, 'num'), td(c.clicked, 'num'), td(pct(c.ctrPct), 'num')];
+        }, 'Нет данных.');
+        rows('missing', s.missing || [], function (m) { return [td(m.name), td(m.count, 'num')]; }, 'Нет запросов без ссылки.');
+        var cov = data.coverage || {};
+        rows('coverage', [['Виноделен со ссылками', cov.wineries], ['…с бронированием экскурсий', cov.wineriesWithTours], ['…с официальным сайтом', cov.wineriesWithOfficialSite], ['Вин в каталоге карточек', cov.catalogWines], ['…со ссылкой на WineMD', cov.catalogWinesWithProductUrl]],
+          function (r) { return [td(r[0]), td(r[1], 'num')]; }, '');
+      })
+      .catch(function () { /* shown as empty */ });
+  }
+  document.getElementById('days').addEventListener('change', load);
+  load();
+}());
+</script>
+</body>
+</html>

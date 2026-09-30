@@ -30,6 +30,8 @@ const PUBLIC_EXACT = new Set([
     'GET /api/lite/config',
     'GET /api/age-verification', 'POST /api/age-verification',
     'GET /api/companion/catalog',
+    'GET /api/companion/wineries',
+    'POST /api/analytics/link-event',
     'POST /api/live-test/feedback',
     'POST /api/analytics/session-end',
     'POST /api/analytics/purchase-click',

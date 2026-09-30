@@ -1,0 +1,155 @@
+'use strict';
+
+// Crawl (read-only, GitHub runner) of wine.md's own product pages, so the
+// Visual Companion can show real wine cards with real wine.md links.
+//
+//   WINEMD_DISCOVER=1  -> print the raw structure of one brand page and one
+//                         product page (to see what can be parsed).
+//   default            -> for every brand page listed in
+//                         data/demo-links/wineries.json-adjacent brand list,
+//                         collect product links, read each product page's
+//                         schema.org JSON-LD (name, image, price, brand) and
+//                         write /tmp/winemd-wines/wines.json.
+// Nothing is invented: every field comes from wine.md's own markup; a
+// product without a name in its markup is skipped.
+
+const fs = require('fs');
+const path = require('path');
+
+const OUT_DIR = process.env.WINEMD_OUT || '/tmp/winemd-wines';
+const UA = 'Mozilla/5.0 (compatible; WineAI-link-check/1.0)';
+const BASE = 'https://wine.md';
+
+async function get(url, timeoutMs = 20000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(url, { redirect: 'follow', signal: controller.signal, headers: { 'user-agent': UA, accept: 'text/html' } });
+        return { status: res.status, url: res.url, html: await res.text() };
+    } catch (error) {
+        return { status: 0, url, html: '', error: String(error && (error.cause && error.cause.code || error.message)).slice(0, 80) };
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// wine.md pages declare <base href="https://wine.md/ru/"> and link products
+// relatively ("catalog/wine/vinuri-rosii/<product>"); resolve against it.
+function productLinks(html, pageUrl) {
+    const baseTag = html.match(/<base[^>]+href=["']([^"']+)["']/i);
+    const base = baseTag ? baseTag[1] : pageUrl;
+    const out = new Map();
+    for (const m of html.matchAll(/href\s*=\s*["']([^"'#?]*catalog\/wine\/[^"'#?]+)["']/gi)) {
+        let href;
+        try { href = new URL(m[1], base).href; } catch { continue; }
+        if (!/^https:\/\/wine\.md\//.test(href)) continue;
+        href = href.replace(/^https:\/\/wine\.md\/(ro|en)\//, 'https://wine.md/ru/').replace(/^https:\/\/wine\.md\/catalog\//, 'https://wine.md/ru/catalog/').replace(/\/$/, '');
+        if (href.split('/').length < 8) continue; // top categories, not products
+        out.set(href, true);
+    }
+    return [...out.keys()];
+}
+
+function jsonLd(html) {
+    const blocks = [];
+    for (const m of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+        try { blocks.push(JSON.parse(m[1].trim())); } catch { /* skip */ }
+    }
+    const flat = [];
+    const walk = (v) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') { flat.push(v); if (v['@graph']) walk(v['@graph']); } };
+    walk(blocks);
+    return flat;
+}
+
+function meta(html, prop) {
+    const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*content=["']([^"']*)["']`, 'i'))
+        || html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${prop}["']`, 'i'));
+    return m ? m[1] : null;
+}
+
+async function discover(brandSlug) {
+    const brand = await get(`${BASE}/ru/brand/${brandSlug}`);
+    console.log(`brand ${brandSlug}: http=${brand.status} url=${brand.url} bytes=${brand.html.length}`);
+    const all = [...new Set([...brand.html.matchAll(/href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => m[1]))];
+    const counts = {};
+    for (const h of all) { const k = h.replace(/^https?:\/\/wine\.md/, '').replace(/[a-z0-9-]*\d+$/i, '<slug-id>').split('/').slice(0, 4).join('/'); counts[k] = (counts[k] || 0) + 1; }
+    console.log(`href patterns: ${JSON.stringify(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 25))}`);
+    all.filter((h) => /-\d{3,}$/.test(h)).slice(0, 15).forEach((h) => console.log(`   slug-id href: ${h}`));
+    const card = brand.html.search(/-\d{3,}["']/);
+    if (card > 0) console.log(`   html around first slug-id link: ${brand.html.slice(Math.max(0, card - 600), card + 900).replace(/\s+/g, ' ')}`);
+    const links = productLinks(brand.html, brand.url).concat(all.filter((h) => /-\d{3,}$/.test(h)).map((h) => new URL(h, brand.url).href));
+    console.log(`product links: ${links.length}`);
+    links.slice(0, 8).forEach((l) => console.log(`   ${l}`));
+    const pages = [...new Set([...brand.html.matchAll(/href=["']([^"']*[?&]page=\d+[^"']*)["']/gi)].map((m) => m[1]))];
+    console.log(`pagination hrefs: ${pages.slice(0, 5).join(' ')}`);
+    if (!links[0]) return;
+    let product = null;
+    let productUrl = null;
+    for (const l of links.slice(0, 20)) {
+        const r = await get(l);
+        if (jsonLd(r.html).some((n) => /Product/i.test(String(n['@type'])))) { product = r; productUrl = l; break; }
+        console.log(`   not a product: ${l}`);
+    }
+    if (!product) { console.log('no product page with Product JSON-LD among the first 20 links'); return; }
+    console.log(`\nproduct ${productUrl}: http=${product.status} bytes=${product.html.length}`);
+    for (const node of jsonLd(product.html)) console.log(`   ld+json ${node['@type']}: ${JSON.stringify(node).slice(0, 700)}`);
+    for (const p of ['og:title', 'og:image', 'og:description', 'product:price:amount', 'product:price:currency']) console.log(`   meta ${p}: ${meta(product.html, p)}`);
+    const title = product.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    console.log(`   h1: ${title ? title[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : null}`);
+}
+
+function productFromPage(url, html, brandSlug) {
+    const nodes = jsonLd(html);
+    const p = nodes.find((n) => /Product/i.test(String(n['@type'])));
+    if (!p) return null; // category / filter page, not a wine
+    const name = p.name || null;
+    if (!name) return null;
+    const offer = p && (Array.isArray(p.offers) ? p.offers[0] : p.offers);
+    const image = (p && (Array.isArray(p.image) ? p.image[0] : (p.image && p.image.url) || p.image)) || meta(html, 'og:image');
+    return {
+        productUrl: url,
+        name: String(name).replace(/\s+/g, ' ').trim(),
+        brandSlug,
+        brand: p && p.brand ? (p.brand.name || p.brand) : null,
+        imageUrl: typeof image === 'string' ? image : null,
+        // wine.md puts the price in og:title ("Name - Brand - 253 mdl") and not in the JSON-LD offer.
+        price: offer && offer.price ? Number(offer.price) : (Number(((meta(html, 'og:title') || '').match(/-\s*(\d+(?:[.,]\d+)?)\s*mdl\s*$/i) || [])[1]?.replace(',', '.')) || null),
+        currency: offer && offer.priceCurrency ? String(offer.priceCurrency) : ((meta(html, 'og:title') || '').match(/mdl\s*$/i) ? 'MDL' : null),
+        category: (url.match(/\/catalog\/wine\/([^/]+)/) || [])[1] || null,
+        description: p && p.description ? String(p.description).replace(/\s+/g, ' ').trim().slice(0, 500) : null,
+    };
+}
+
+async function crawl() {
+    fs.mkdirSync(OUT_DIR, { recursive: true });
+    const brands = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'demo-links', 'wineries.json'), 'utf8'))
+        .map((r) => (typeof r.wine_md_brand === 'string' ? r.wine_md_brand.split('/').pop() : null)).filter(Boolean);
+    const productToBrand = new Map();
+    for (const slug of brands) {
+        for (let page = 1; page <= 5; page += 1) {
+            const r = await get(`${BASE}/ru/brand/${slug}${page > 1 ? `?page=${page}` : ''}`);
+            const links = productLinks(r.html, r.url || BASE);
+            const fresh = links.filter((l) => !productToBrand.has(l)).slice(0, Math.max(0, 60 - [...productToBrand.values()].filter((v) => v === slug).length));
+            fresh.forEach((l) => productToBrand.set(l, slug));
+            if (!fresh.length) break;
+        }
+        console.log(`brand ${slug}: ${[...productToBrand.values()].filter((s) => s === slug).length} products`);
+    }
+    const urls = [...productToBrand.keys()];
+    console.log(`\nproducts to read: ${urls.length}`);
+    const wines = [];
+    for (let i = 0; i < urls.length; i += 6) {
+        const batch = await Promise.all(urls.slice(i, i + 6).map(async (u) => {
+            const r = await get(u);
+            return r.status === 200 ? productFromPage(r.url || u, r.html, productToBrand.get(u)) : null;
+        }));
+        wines.push(...batch.filter(Boolean));
+    }
+    fs.writeFileSync(path.join(OUT_DIR, 'wines.json'), JSON.stringify(wines, null, 1));
+    console.log(`wines parsed: ${wines.length}; with image ${wines.filter((w) => w.imageUrl).length}; with price ${wines.filter((w) => w.price).length}`);
+    // One line per wine so the result can be reviewed from the job log.
+    for (const w of wines) console.log(`WINE\t${JSON.stringify(w)}`);
+}
+
+(process.env.WINEMD_DISCOVER ? discover(process.env.WINEMD_DISCOVER_BRAND || 'chateau-purcari') : crawl())
+    .catch((error) => { console.error(error); process.exit(1); });

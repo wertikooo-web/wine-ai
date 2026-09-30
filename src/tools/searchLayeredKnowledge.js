@@ -17,6 +17,8 @@ const { attemptRecovery } = require('../knowledge/usefulRecovery');
 const { inferForQuestion } = require('../knowledge/wineIntelligence');
 const { isWebSearchEnabled } = require('../knowledge/webSearchSetting');
 const { findWinesInTexts } = require('../companion/companionCatalog');
+const wineryLinks = require('../companion/wineryLinks');
+const { recordLinkEvent } = require('../analytics/linkEvents');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -143,6 +145,9 @@ function attachInference(output, inference) {
 // ЭКРАН И ССЫЛКИ rules). Never throws; never adds a URL for the model.
 const NO_URL_INSTRUCTION = ' Do not read, spell out or invent any URL; if the user asks for a link and no screen_cards are given, say honestly that there is no verified link for it yet.';
 const SCREEN_CARDS_INSTRUCTION = ' The wines listed in "screen_cards" are shown to the user on screen as cards with a verified link; you may say you are showing the card and link on screen. Never say or invent a URL.';
+// A participant asking for a link, site, booking or where to buy.
+const LINK_REQUEST = /(ссылк|сайт|брон|экскурс|купить|где купить|link|site|website|book|tour|buy|link|rezerv|excursi|cumpăr|cumpar)/i;
+const SCREEN_WINERIES_INSTRUCTION = ' The wineries listed in "screen_wineries" are shown to the user on screen with verified buttons (excursion booking, winery page, official site); you may say the links are on screen. Never say or invent a URL.';
 function attachScreenCards(output, args, toolContext) {
     try {
         if (!output || typeof output !== 'object' || !toolContext || toolContext.companionScreen !== true) return output;
@@ -150,7 +155,25 @@ function attachScreenCards(output, args, toolContext) {
         for (const item of (output.evidence || []).slice(0, 8)) texts.push(String(item.title || ''), String(item.text || '').slice(0, 400));
         for (const claim of (output.claims || []).slice(0, 12)) texts.push(String(claim.value || claim.text || ''));
         const found = findWinesInTexts(texts);
+        // Wineries: only those named in the question itself, so a search
+        // result mentioning ten producers does not flood the screen.
+        const wineries = wineryLinks.isEnabled() ? wineryLinks.findWineriesInTexts([String(args && args.query || '')]) : [];
+        for (const w of found) recordLinkEvent({ event: 'link_resolved', entityType: 'wine', entityId: w.wineId, entityName: w.wineName });
+        for (const w of wineries) recordLinkEvent({ event: 'link_resolved', entityType: 'winery', entityId: w.wineryId, entityName: w.name });
+        if (!found.length && !wineries.length && LINK_REQUEST.test(String(args && args.query || ''))) {
+            recordLinkEvent({ event: 'link_missing', entityType: 'unknown', detail: String(args && args.query || '').slice(0, 200) });
+        }
+        if (wineries.length) {
+            output = {
+                ...output,
+                screen_wineries: wineries.map((w) => w.name),
+                answer_policy: output.answer_policy
+                    ? { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + SCREEN_WINERIES_INSTRUCTION }
+                    : output.answer_policy,
+            };
+        }
         if (!found.length) {
+            if (wineries.length) return output;
             return output.answer_policy
                 ? { ...output, answer_policy: { ...output.answer_policy, final_instruction: (output.answer_policy.final_instruction || '') + NO_URL_INSTRUCTION } }
                 : output;

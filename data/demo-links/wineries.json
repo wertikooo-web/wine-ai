@@ -1,0 +1,560 @@
+[
+ {
+  "winery": "Barza Albă",
+  "official_site": "https://barzaalba.md/ro",
+  "site_check": "200",
+  "ghid_page": "100",
+  "wine_md_brand": "https://wine.md/ru/brand/barza-alba",
+  "wine_md_tours": "https://wine.md/ru/tourism/excursii-barza-alba",
+  "tours_info": "6 экскурсий, от 280 MDL"
+ },
+ {
+  "winery": "Basavin Winery",
+  "official_site": "https://basavin.md",
+  "site_check": "200",
+  "ghid_page": "34",
+  "wine_md_brand": "https://wine.md/ru/brand/basavin-winery",
+  "wine_md_tours": "https://wine.md/ru/tourism/basavin-rezervare-excursie",
+  "tours_info": "4 экскурсии, от 500 MDL"
+ },
+ {
+  "winery": "Buket Moldavii",
+  "official_site": "https://www.buketmoldavii.md",
+  "site_check": "200",
+  "ghid_page": "40",
+  "wine_md_brand": "https://wine.md/ru/brand/buket-moldavii",
+  "wine_md_tours": "https://wine.md/ru/tourism/buket-moldavii-rezervare-excursie",
+  "tours_info": "5 экскурсий, от 100 MDL"
+ },
+ {
+  "winery": "Castel Mimi",
+  "official_site": "https://castelmimi.md",
+  "site_check": "200",
+  "ghid_page": "43",
+  "wine_md_brand": "https://wine.md/ru/brand/castel-mimi",
+  "wine_md_tours": "https://wine.md/ru/tourism/castel-mimi-rezervare-excursii",
+  "tours_info": "8 экскурсий, от 400 MDL"
+ },
+ {
+  "winery": "Chateau Purcari",
+  "official_site": "https://purcariwineries.com",
+  "site_check": "200",
+  "ghid_page": "49",
+  "wine_md_brand": "https://wine.md/ru/brand/chateau-purcari",
+  "wine_md_tours": "https://wine.md/ru/tourism/vinaria-purcari",
+  "tours_info": "11 экскурсий, от 300 MDL"
+ },
+ {
+  "winery": "Château Vartely",
+  "official_site": "https://vartely.md",
+  "site_check": "200",
+  "ghid_page": "51",
+  "wine_md_brand": "https://wine.md/ru/brand/chateau-vartely",
+  "wine_md_tours": "https://wine.md/ru/tourism/chateau-vartely",
+  "tours_info": "8 экскурсий, от 100 MDL"
+ },
+ {
+  "winery": "Cricova",
+  "official_site": "https://cricova.md/ro",
+  "site_check": "200",
+  "ghid_page": "57",
+  "wine_md_brand": "https://wine.md/ru/brand/cricova",
+  "wine_md_tours": "https://wine.md/ru/tourism/cricova",
+  "tours_info": "9 экскурсий, от 400 MDL"
+ },
+ {
+  "winery": "Et Cetera",
+  "official_site": "https://etcetera.md",
+  "site_check": "200",
+  "ghid_page": "63",
+  "wine_md_brand": "https://wine.md/ru/brand/et-cetera",
+  "wine_md_tours": "https://wine.md/ru/tourism/et-cetera",
+  "tours_info": "6 экскурсий, от 200 MDL"
+ },
+ {
+  "winery": "Mileștii Mici",
+  "official_site": "https://milestii-mici.md",
+  "site_check": "200",
+  "ghid_page": "79",
+  "wine_md_brand": "https://wine.md/ru/brand/milestii-mici",
+  "wine_md_tours": "https://wine.md/ru/tourism/milestii-mici",
+  "tours_info": "8 экскурсий, от 350 MDL"
+ },
+ {
+  "winery": "Vinuri de Comrat",
+  "official_site": "https://vinuridecomrat.md",
+  "site_check": "200",
+  "ghid_page": "94",
+  "wine_md_brand": null,
+  "wine_md_tours": "https://wine.md/ru/tourism/vinuri-de-comrat-rezervare-excursie",
+  "tours_info": "3 экскурсии, от 200 MDL"
+ },
+ {
+  "winery": "Vinăria Poiana",
+  "official_site": "https://poiana.wine",
+  "site_check": "200",
+  "ghid_page": "92",
+  "wine_md_brand": "https://wine.md/ru/brand/vinaria-poiana",
+  "wine_md_tours": "https://wine.md/ru/tourism/vinaria-poiana",
+  "tours_info": "3 экскурсии, от 400 MDL"
+ },
+ {
+  "winery": "Chateau Cojușna",
+  "official_site": null,
+  "site_check": "not in Ghid list",
+  "ghid_page": null,
+  "wine_md_brand": "https://wine.md/ru/brand/chateau-cojusna",
+  "wine_md_tours": "https://wine.md/ru/tourism/excursie-chateau-cojusna",
+  "tours_info": "7 экскурсий, от 350 MDL"
+ },
+ {
+  "winery": "Crama Mircești",
+  "official_site": null,
+  "site_check": "not in Ghid list",
+  "ghid_page": null,
+  "wine_md_brand": "https://wine.md/ru/brand/crama-mircesti",
+  "wine_md_tours": "https://wine.md/ru/tourism/vinaria-crama-mircesti",
+  "tours_info": "9 экскурсий, от 100 MDL"
+ },
+ {
+  "winery": "KVINT",
+  "official_site": null,
+  "site_check": "UND_ERR_CONNECT_TIMEOUT",
+  "ghid_page": "101",
+  "wine_md_brand": "https://wine.md/ru/brand/kvint",
+  "wine_md_tours": "https://wine.md/ru/tourism/kvint-rezervare-excursie",
+  "tours_info": "6 экскурсий, от 300 MDL"
+ },
+ {
+  "winery": "Kara Gani",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "71",
+  "wine_md_brand": "https://wine.md/ru/brand/kara-gani",
+  "wine_md_tours": "https://wine.md/ru/tourism/vinaria-kara-gani-rezervare-excursie",
+  "tours_info": "3 экскурсии, от 200 MDL"
+ },
+ {
+  "winery": "Agrici Wine",
+  "official_site": "https://agrici.wine",
+  "site_check": "200",
+  "ghid_page": "30",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Alianţa-Vin",
+  "official_site": "https://aliantavin.md",
+  "site_check": "200",
+  "ghid_page": "31",
+  "wine_md_brand": "https://wine.md/ru/brand/alianta-vin",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Apriori Wine",
+  "official_site": "https://apriori.wine",
+  "site_check": "200",
+  "ghid_page": "33",
+  "wine_md_brand": "https://wine.md/ru/brand/apriori-wine",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Aroma",
+  "official_site": "https://aroma.md",
+  "site_check": "200",
+  "ghid_page": "100",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Asconi Winery",
+  "official_site": "https://asconiwinery.com",
+  "site_check": "200",
+  "ghid_page": "36",
+  "wine_md_brand": "https://wine.md/ru/brand/asconi-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Aurelius Winery",
+  "official_site": "https://www.aurelius.md",
+  "site_check": "200",
+  "ghid_page": "38",
+  "wine_md_brand": "https://wine.md/ru/brand/aurelius",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Aurvin",
+  "official_site": "https://www.aurvin.md",
+  "site_check": "200",
+  "ghid_page": "34",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Bardar",
+  "official_site": "https://bardar.md",
+  "site_check": "200",
+  "ghid_page": "100",
+  "wine_md_brand": "https://wine.md/ru/brand/bardar",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Bostavan",
+  "official_site": "http://bostavan.md",
+  "site_check": "200",
+  "ghid_page": "34",
+  "wine_md_brand": "https://wine.md/ru/brand/bostavan",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Bulgari Winery",
+  "official_site": "https://www.bulgariwinery.com",
+  "site_check": "200",
+  "ghid_page": "40",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Carlevana Winery",
+  "official_site": "https://carlevana.md",
+  "site_check": "200",
+  "ghid_page": "41",
+  "wine_md_brand": "https://wine.md/ru/brand/carlevana-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Chateau Cristi",
+  "official_site": "https://chateau-cristi.com",
+  "site_check": "200",
+  "ghid_page": "45",
+  "wine_md_brand": "https://wine.md/ru/brand/chateau-cristi",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Crama Ulinici",
+  "official_site": "https://www.cramaulinici.md",
+  "site_check": "200",
+  "ghid_page": "55",
+  "wine_md_brand": "https://wine.md/ru/brand/crama-ulinici",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Divus Winery",
+  "official_site": "https://www.divus.wine/ro",
+  "site_check": "200",
+  "ghid_page": "58",
+  "wine_md_brand": "https://wine.md/ru/brand/divus-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Doina Vin",
+  "official_site": "https://doinavin.md",
+  "site_check": "200",
+  "ghid_page": "58",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Domaine la Prut",
+  "official_site": "https://www.domainelaprut.md",
+  "site_check": "200",
+  "ghid_page": "59",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Domeniile Cuza",
+  "official_site": "https://domeniilecuza.wine",
+  "site_check": "200",
+  "ghid_page": "59",
+  "wine_md_brand": "https://wine.md/ru/brand/domeniile-cuza",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Domeniile Davidescu",
+  "official_site": "https://domeniiledavidescu.ro",
+  "site_check": "200",
+  "ghid_page": "60",
+  "wine_md_brand": "https://wine.md/ru/brand/domeniile-davidescu",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Domeniile Pripa",
+  "official_site": "https://pripa.md",
+  "site_check": "200",
+  "ghid_page": "60",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Dumitraș Winery",
+  "official_site": "https://dumitras.wine",
+  "site_check": "200",
+  "ghid_page": "61",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Dénovie",
+  "official_site": "https://www.denovie-group.com",
+  "site_check": "200",
+  "ghid_page": "56",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Fautor Winery",
+  "official_site": "https://www.fautor.wine",
+  "site_check": "200",
+  "ghid_page": "65",
+  "wine_md_brand": "https://wine.md/ru/brand/fautor-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Gitana Winery",
+  "official_site": "https://www.gitanawinery1953.com/en",
+  "site_check": "200",
+  "ghid_page": "64",
+  "wine_md_brand": "https://wine.md/ru/brand/gitana-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "I'M WINERY",
+  "official_site": "https://www.imwinery.md",
+  "site_check": "200",
+  "ghid_page": "70",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Imperial Vin",
+  "official_site": "https://imperial-vin.com",
+  "site_check": "200",
+  "ghid_page": "66",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Impresario",
+  "official_site": "https://impresario.md",
+  "site_check": "200",
+  "ghid_page": "68",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Kislov Winery",
+  "official_site": "https://kislov.wine",
+  "site_check": "200",
+  "ghid_page": "74",
+  "wine_md_brand": "https://wine.md/ru/brand/kislov-family-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Maurt",
+  "official_site": "https://maurt.md",
+  "site_check": "200",
+  "ghid_page": "76",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Mi Piace",
+  "official_site": "https://mipiace.wine",
+  "site_check": "200",
+  "ghid_page": "75",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Pelican Negru",
+  "official_site": "https://pelicannegru.wine",
+  "site_check": "200",
+  "ghid_page": "81",
+  "wine_md_brand": "https://wine.md/ru/brand/pelican-negru",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Pomușoară Dulcișoară",
+  "official_site": "https://www.pomusoara.eu",
+  "site_check": "200",
+  "ghid_page": "80",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Rădăcini",
+  "official_site": "https://radacini.md/en",
+  "site_check": "200",
+  "ghid_page": "83",
+  "wine_md_brand": "https://wine.md/ru/brand/radacini",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Sălcuța",
+  "official_site": "https://salcutawine.md",
+  "site_check": "200",
+  "ghid_page": "82",
+  "wine_md_brand": "https://wine.md/ru/brand/salcuta",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Timbrus Purcari Estate",
+  "official_site": "https://timbrus.com",
+  "site_check": "200",
+  "ghid_page": "87",
+  "wine_md_brand": "https://wine.md/ru/brand/timbrus-purcari-esta",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Tomai",
+  "official_site": "https://www.tomaiwine.com",
+  "site_check": "200",
+  "ghid_page": "88",
+  "wine_md_brand": "https://wine.md/ru/brand/tomai-wcasa-vinicola",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Vinaria Ungheni",
+  "official_site": "https://ungheni.wine",
+  "site_check": "200",
+  "ghid_page": "92",
+  "wine_md_brand": "https://wine.md/ru/brand/ungheni",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Vindicum",
+  "official_site": "https://www.vindicum.md",
+  "site_check": "200",
+  "ghid_page": "94",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Vinum Estate",
+  "official_site": "https://vinum.md",
+  "site_check": "200",
+  "ghid_page": "93",
+  "wine_md_brand": "https://wine.md/ru/brand/vinum-estate",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Vornic Winery",
+  "official_site": "https://vornic.md",
+  "site_check": "200",
+  "ghid_page": "95",
+  "wine_md_brand": "https://wine.md/ru/brand/vornic-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Chateau at Mount",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "46",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Chirsova",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "42",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Equinox",
+  "official_site": null,
+  "site_check": "403",
+  "ghid_page": "62",
+  "wine_md_brand": "https://wine.md/ru/brand/equinox",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Heredo Winery",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "64",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Kazayak",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "72",
+  "wine_md_brand": "https://wine.md/ru/brand/kazayak",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Leuntea-Vin",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "74",
+  "wine_md_brand": null,
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Taraclia Winery",
+  "official_site": null,
+  "site_check": "UND_ERR_CONNECT_TIMEOUT",
+  "ghid_page": "84",
+  "wine_md_brand": "https://wine.md/ru/brand/taraclia-winery",
+  "wine_md_tours": null,
+  "tours_info": null
+ },
+ {
+  "winery": "Terra Dacia",
+  "official_site": null,
+  "site_check": "ENOTFOUND",
+  "ghid_page": "85",
+  "wine_md_brand": "https://wine.md/ru/brand/terra-dacia",
+  "wine_md_tours": null,
+  "tours_info": null
+ }
+]

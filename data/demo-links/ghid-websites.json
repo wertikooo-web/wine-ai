@@ -1,0 +1,362 @@
+[
+ {
+  "winery": "Agrici Wine",
+  "website": "https://www.agrici.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 30",
+  "ambiguous": false
+ },
+ {
+  "winery": "Alianţa-Vin",
+  "website": "https://www.aliantavin.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 31",
+  "ambiguous": false
+ },
+ {
+  "winery": "Apriori Wine",
+  "website": "https://www.apriori.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 33",
+  "ambiguous": false
+ },
+ {
+  "winery": "Aurvin",
+  "website": "https://www.aurvin.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 34",
+  "ambiguous": false
+ },
+ {
+  "winery": "Basavin Winery",
+  "website": "https://www.basavin.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 34",
+  "ambiguous": false
+ },
+ {
+  "winery": "Bostavan",
+  "website": "https://www.bostavan.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 34",
+  "ambiguous": false
+ },
+ {
+  "winery": "Asconi Winery",
+  "website": "https://www.asconiwinery.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 36",
+  "ambiguous": false
+ },
+ {
+  "winery": "Aurelius Winery",
+  "website": "https://www.aurelius.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 38",
+  "ambiguous": false
+ },
+ {
+  "winery": "Bulgari Winery",
+  "website": "https://www.bulgariwinery.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 40",
+  "ambiguous": false
+ },
+ {
+  "winery": "Buket Moldavii",
+  "website": "https://www.buketmoldavii.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 40",
+  "ambiguous": false
+ },
+ {
+  "winery": "Carlevana Winery",
+  "website": "https://www.carlevana.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 41",
+  "ambiguous": false
+ },
+ {
+  "winery": "Chirsova",
+  "website": "https://www.chirsovawine.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 42",
+  "ambiguous": false
+ },
+ {
+  "winery": "Castel Mimi",
+  "website": "https://www.castelmimi.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 43",
+  "ambiguous": false
+ },
+ {
+  "winery": "Chateau Cristi",
+  "website": "https://www.chateau-cristi.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 45",
+  "ambiguous": true
+ },
+ {
+  "winery": "Chateau at Mount",
+  "website": "https://www.atmount.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 46",
+  "ambiguous": false
+ },
+ {
+  "winery": "Chateau Purcari",
+  "website": "https://www.purcari.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 49",
+  "ambiguous": false
+ },
+ {
+  "winery": "Château Vartely",
+  "website": "https://www.vartely.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 51",
+  "ambiguous": false
+ },
+ {
+  "winery": "Crama Ulinici",
+  "website": "https://www.cramaulinici.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 55",
+  "ambiguous": false
+ },
+ {
+  "winery": "Dénovie",
+  "website": "https://www.denovie-group.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 56",
+  "ambiguous": false
+ },
+ {
+  "winery": "Cricova",
+  "website": "https://www.cricova.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 57",
+  "ambiguous": false
+ },
+ {
+  "winery": "Divus Winery",
+  "website": "https://www.divus.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 58",
+  "ambiguous": false
+ },
+ {
+  "winery": "Doina Vin",
+  "website": "https://www.doinavin.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 58",
+  "ambiguous": false
+ },
+ {
+  "winery": "Domaine la Prut",
+  "website": "https://www.domainelaprut.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 59",
+  "ambiguous": false
+ },
+ {
+  "winery": "Domeniile Cuza",
+  "website": "https://www.domeniilecuza.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 59",
+  "ambiguous": false
+ },
+ {
+  "winery": "Domeniile Davidescu",
+  "website": "https://www.domeniiledavidescu.ro",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 60",
+  "ambiguous": false
+ },
+ {
+  "winery": "Domeniile Pripa",
+  "website": "https://www.pripa.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 60",
+  "ambiguous": false
+ },
+ {
+  "winery": "Dumitraș Winery",
+  "website": "https://www.dumitras.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 61",
+  "ambiguous": false
+ },
+ {
+  "winery": "Equinox",
+  "website": "https://www.equinox.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 62",
+  "ambiguous": false
+ },
+ {
+  "winery": "Et Cetera",
+  "website": "https://www.etcetera.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 63",
+  "ambiguous": false
+ },
+ {
+  "winery": "Gitana Winery",
+  "website": "https://www.gitana.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 64",
+  "ambiguous": false
+ },
+ {
+  "winery": "Heredo Winery",
+  "website": "https://www.heredo.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 64",
+  "ambiguous": false
+ },
+ {
+  "winery": "Fautor Winery",
+  "website": "https://www.fautor.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 65",
+  "ambiguous": false
+ },
+ {
+  "winery": "Imperial Vin",
+  "website": "https://www.imperial-vin.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 66",
+  "ambiguous": false
+ },
+ {
+  "winery": "Impresario",
+  "website": "https://www.impresario.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 68",
+  "ambiguous": false
+ },
+ {
+  "winery": "I'M WINERY",
+  "website": "https://www.imwinery.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 70",
+  "ambiguous": false
+ },
+ {
+  "winery": "Kara Gani",
+  "website": "https://www.karaganiwinery.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 71",
+  "ambiguous": false
+ },
+ {
+  "winery": "Kazayak",
+  "website": "https://www.kazayak.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 72",
+  "ambiguous": false
+ },
+ {
+  "winery": "Kislov Winery",
+  "website": "https://www.kislov.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 74",
+  "ambiguous": false
+ },
+ {
+  "winery": "Vinăria Poiana",
+  "website": "https://www.poiana.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 92",
+  "ambiguous": false
+ },
+ {
+  "winery": "Vinaria Ungheni",
+  "website": "https://www.ungheni.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 92",
+  "ambiguous": true
+ },
+ {
+  "winery": "Vinum Estate",
+  "website": "https://www.vinum.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 93",
+  "ambiguous": false
+ },
+ {
+  "winery": "Vindicum",
+  "website": "https://www.vindicum.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 94",
+  "ambiguous": false
+ },
+ {
+  "winery": "Vinuri de Comrat",
+  "website": "https://www.vinuridecomrat.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 94",
+  "ambiguous": false
+ },
+ {
+  "winery": "Vornic Winery",
+  "website": "https://www.vornic.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 95",
+  "ambiguous": false
+ },
+ {
+  "winery": "Aroma",
+  "website": "https://www.aroma.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 100",
+  "ambiguous": false
+ },
+ {
+  "winery": "Bardar",
+  "website": "https://www.bardar.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 100",
+  "ambiguous": false
+ },
+ {
+  "winery": "Barza Albă",
+  "website": "https://www.barzaalba.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 100",
+  "ambiguous": false
+ },
+ {
+  "winery": "KVINT",
+  "website": "https://www.kvint.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 101",
+  "ambiguous": false
+ },
+ {
+  "winery": "Leuntea-Vin",
+  "website": "https://www.leuntea-vin.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 74",
+  "ambiguous": false
+ },
+ {
+  "winery": "Mi Piace",
+  "website": "https://www.mi-piace.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 75",
+  "ambiguous": true
+ },
+ {
+  "winery": "Maurt",
+  "website": "https://www.maurt.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 76",
+  "ambiguous": false
+ },
+ {
+  "winery": "Mileștii Mici",
+  "website": "https://www.milestii-mici.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 79",
+  "ambiguous": true
+ },
+ {
+  "winery": "Pomușoară Dulcișoară",
+  "website": "https://www.pomusoara.eu",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 80",
+  "ambiguous": false
+ },
+ {
+  "winery": "Pelican Negru",
+  "website": "https://www.pelicannegru.wine",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 81",
+  "ambiguous": true
+ },
+ {
+  "winery": "Sălcuța",
+  "website": "https://www.salcutawine.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 82",
+  "ambiguous": false
+ },
+ {
+  "winery": "Rădăcini",
+  "website": "https://www.radacini.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 83",
+  "ambiguous": false
+ },
+ {
+  "winery": "Taraclia Winery",
+  "website": "https://www.taraclia-winery.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 84",
+  "ambiguous": false
+ },
+ {
+  "winery": "Terra Dacia",
+  "website": "https://www.terra-dacia.md",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 85",
+  "ambiguous": false
+ },
+ {
+  "winery": "Timbrus Purcari Estate",
+  "website": "https://www.timbrus.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 87",
+  "ambiguous": true
+ },
+ {
+  "winery": "Tomai",
+  "website": "https://www.tomaiwine.com",
+  "source": "Ghidul vinului (Ghid Vin-Divin Moldova, ed. 7), p. 88",
+  "ambiguous": false
+ }
+]
