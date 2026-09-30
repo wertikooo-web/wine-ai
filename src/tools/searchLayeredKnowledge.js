@@ -1,5 +1,7 @@
 'use strict';
 
+const { recordKnowledgeTiming } = require('../knowledge/knowledgeTimings');
+
 const { requireNonEmptyString, optionalString, setSearchBlock } = require('./toolHelpers');
 const { routeKnowledgeWithAnswerabilityGate, CLAIM_CLASSES } = require('../knowledge/layeredRouter');
 const { resolveAnswerMode, modePolicy } = require('../knowledge/answerModes');
@@ -244,6 +246,19 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
         }
 
         setSearchBlock(toolContext, result.found ? 'found' : 'not_found');
+        try {
+            recordKnowledgeTiming({
+                total_ms: Math.round(Number(process.hrtime.bigint() - requestStartedAt) / 1e6),
+                route_ms: result.timing_ms || null,
+                answerability_ms: result.answerability_ms || null,
+                web_fallback_ms: result.web_fallback_ms || null,
+                levels: (result.attempts || []).map((a) => `${a.level}:${a.status}:${a.durationMs}`),
+                web_reason: result.web_reason || null,
+                answerability_reason: result.answerabilityReason || null,
+                claim_class: result.claim_class || null,
+                inference: Boolean(inference && inference.scenario),
+            });
+        } catch { /* timings never affect the answer */ }
 
         // One authoritative answer per turn: when a Phase 6 Wine Intelligence
         // inference block IS the answer (found:true), Useful Recovery must not

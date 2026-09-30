@@ -47,6 +47,7 @@ const wineCatalogService = require('./kos/wines/wineCatalogService');
 const db = require('./knowledge/db');
 const env = require('./config/env');
 const { bridgeStatus } = require('./realtime/bridgePhrases');
+const { recentKnowledgeTimings } = require('./knowledge/knowledgeTimings');
 const { issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified } = require('./security/ageVerification');
 const { classifyRoute, createAdminAuth, renderLoginPage, safeNext } = require('./security/adminAuth');
 
@@ -423,6 +424,8 @@ async function handleRequest(req, res) {
             model: defaultProvider.metadata.model,
             // Bridge phrases: flag, delay and rendered phrase counts per voice.
             bridge: bridgeStatus(),
+            // Last knowledge searches: stage timings in ms (no query text).
+            knowledge_timings: recentKnowledgeTimings(),
             endpoints: KNOWN_ENDPOINTS,
             kos: {
                 enabled: true,
