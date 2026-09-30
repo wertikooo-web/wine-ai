@@ -323,6 +323,9 @@ jobs:
       - name: Import wine.md wines into the companion catalog (writes production)
         if: ${{ github.event.inputs.diagnostic == 'import-wines' }}
         run: node scripts/import-companion-wines.js
+      - name: Verified links end-to-end on /lite (Chrome, click, analytics)
+        if: ${{ github.event.inputs.diagnostic == 'links-e2e' }}
+        run: CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/links-e2e.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
