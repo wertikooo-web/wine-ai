@@ -35,6 +35,13 @@ function setSearchBlock(toolContext, finalStatus) {
     }
 }
 
+// Production 30 Sep: search_wine_knowledge already brought web sources for a
+// news question, then the model called search_web for the same question
+// (+3.4..4.1s of silence; a prompt instruction did not stop it). Within one
+// generation, a search_web after a web-backed knowledge result answers at
+// once with those same sources instead of a second internet round-trip.
+const WEB_ALREADY_SEARCHED_RESULT_INSTRUCTION = 'The internet was already searched for this question: these are the web sources from the search_wine_knowledge result you already have. Do not search again. Answer now from that evidence; if a detail (such as an exact date) is not there, say briefly that you could not confirm it.';
+
 function requireNonEmptyString(value, fieldName) {
     const str = String(value || '').trim();
     if (!str) {
@@ -94,6 +101,21 @@ function bindTool({ name, impl }, toolContext = {}) {
             };
         }
 
+        if (name === 'search_web' && toolContext._webDoneGeneration === generationId) {
+            log('tool_deduped', {
+                tool: name,
+                generationId: generationId || 'none',
+                turnId: turnId || 'none',
+                reason: 'web_already_searched',
+            });
+            return {
+                found: true,
+                results: (toolContext._webDoneSources || []).slice(0, 5),
+                instruction: WEB_ALREADY_SEARCHED_RESULT_INSTRUCTION,
+                tookMs: 0,
+            };
+        }
+
         if (INTERNET_TOOLS.has(name) && !webEnabled()) {
             log('tool_blocked', {
                 tool: name,
@@ -124,6 +146,11 @@ function bindTool({ name, impl }, toolContext = {}) {
                     deadlineMs,
                 });
                 return { ...TOOL_TIMEOUT_RESULT };
+            }
+            if (name === 'search_wine_knowledge' && result && result.webUsed === true) {
+                toolContext._webDoneGeneration = generationId;
+                toolContext._webDoneSources = (Array.isArray(result.webSources) ? result.webSources : [])
+                    .map((source) => ({ title: source.title, url: source.url }));
             }
             log('tool_executed', {
                 tool: name,
