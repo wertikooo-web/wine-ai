@@ -312,6 +312,9 @@ jobs:
       - name: Link data coverage (companion catalog + entity facts)
         if: ${{ github.event.inputs.diagnostic == 'links' }}
         run: node scripts/diag/link-coverage.js
+      - name: Demo links (Ghid official websites alive? wine.md links)
+        if: ${{ github.event.inputs.diagnostic == 'demolinks' }}
+        run: node scripts/diag/demo-links-verify.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
