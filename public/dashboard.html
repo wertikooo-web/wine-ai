@@ -3471,6 +3471,10 @@
         itraceForTurn(currentTurnId, 'client_frames_summary', { clientFrameCount, clientByteCount });
         break;
       case 'transcript.user':
+        // The echo of speakScriptedLine() (30-second warning, goodbye):
+        // the assistant says the line, the chat must not show the
+        // technical instruction as a guest message.
+        if (isScriptedLineEcho(payload.text)) break;
         if (!transcriptUserSeenForTurn[payload.turn_id]) {
           transcriptUserSeenForTurn[payload.turn_id] = true;
           itraceForTurn(payload.turn_id, 'transcript_user_received', {});
@@ -4980,13 +4984,19 @@
     if (sessionLimitGraceTimer) { clearTimeout(sessionLimitGraceTimer); sessionLimitGraceTimer = null; }
   }
 
+  const SCRIPTED_LINE_PREFIX = '[system instruction, speak this exact sentence verbatim and nothing else]';
+  function isScriptedLineEcho(text) {
+    return String(text || '').trimStart().startsWith('[system instruction');
+  }
+
   // Best-effort: asks the model (via the same text-turn channel typing a
-  // question uses) to speak this exact line. The transcript panel that used
-  // to echo input_text.submit was removed per an earlier request, so this
-  // never becomes visible UI text -- it only reaches the model.
+  // question uses) to speak this exact line. The server echoes every text
+  // turn back as transcript.user; lines starting with SCRIPTED_LINE_PREFIX
+  // are an instruction to the model, not something the guest said, so the
+  // transcript / Lite chat never show them (see isScriptedLineEcho).
   function speakScriptedLine(text) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({ type: 'input_text.submit', text: `[system instruction, speak this exact sentence verbatim and nothing else] ${text}` }));
+    ws.send(JSON.stringify({ type: 'input_text.submit', text: `${SCRIPTED_LINE_PREFIX} ${text}` }));
   }
 
   function armInactivityWarnTimer() {
