@@ -793,17 +793,19 @@
   body.lite.embed .phone-shell--left .phone-frame { width: 100vw; max-height: none; height: calc(100vh - 44px); aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; background: none; padding: 0; }
   body.lite.embed .phone-shell--left .phone-screen { margin-top: 0; border-radius: 0; }
   body.lite.embed .phone-island, body.lite.embed .phone-gesture-bar { display: none; }
-  .wc-rail { display: flex; gap: 8px; overflow-x: auto; align-self: stretch; padding: 2px 0 4px; flex-shrink: 0; }
-  .wc-card { flex: 0 0 min(78%, 260px); background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; text-align: left; display: flex; flex-direction: column; }
-  .wc-card__img { width: 100%; height: 150px; object-fit: contain; background: #f7f1e8; }
-  .wc-card__body { padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+  /* Cards stack under the answer at full chat width: no sideways scrolling
+     in a narrow phone chat. Photo on the left, text and buttons on the right. */
+  .wc-rail { display: flex; flex-direction: column; gap: 8px; align-self: stretch; padding: 2px 0 4px; flex-shrink: 0; overflow: visible; }
+  .wc-card { width: 100%; box-sizing: border-box; background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; text-align: left; display: flex; flex-direction: row; align-items: stretch; }
+  .wc-card__img { flex: 0 0 76px; width: 76px; min-height: 100px; object-fit: contain; background: #f7f1e8; }
+  .wc-card__body { flex: 1 1 auto; min-width: 0; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
   .wc-card__winery { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
   .wc-card__name { font-weight: 700; color: var(--wine); font-size: 15px; }
   .wc-card__meta { color: var(--muted); font-size: 12px; }
-  .wc-card__desc { margin-top: 3px; line-height: 1.4; }
+  .wc-card__desc { margin-top: 3px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .wc-card__row { font-size: 12px; }
   .wc-card__ctas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .wc-card__cta { display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--wine); color: #fff; font-weight: 700; font-size: 12.5px; text-decoration: none; }
+  .wc-card__cta { display: inline-block; padding: 7px 11px; border-radius: 999px; background: var(--wine); color: #fff; font-weight: 700; font-size: 12.5px; text-decoration: none; }
   .wc-card__cta + .wc-card__cta { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
   body.lite .phone-row { justify-content: center; }
   .lite-fb { position: fixed; inset: 0; background: rgba(42,33,24,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }

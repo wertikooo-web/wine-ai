@@ -16,7 +16,8 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const MAX_CARDS_PER_TURN = 3;
+  // Cards stack vertically in the chat: at most two wines (+ one winery) per answer.
+  const MAX_CARDS_PER_TURN = 2;
   const BLOCKED_HOSTS = /(^|\.)(example\.(com|org|net)|localhost|test|invalid|local)$/i;
   const CTA_LABELS = {
     BUY_OR_VIEW_ON_WINEMD: { ru: 'Посмотреть в WineMD', ro: 'Vezi pe WineMD', en: 'View on WineMD' },
@@ -111,7 +112,8 @@
     const body = el('div', 'wc-card__body');
     if (card.wineryName) body.appendChild(el('div', 'wc-card__winery', card.wineryName));
     body.appendChild(el('div', 'wc-card__name', [card.wineName, card.vintage].filter(Boolean).join(' ')));
-    const meta = [card.type, card.sweetness, card.alcohol ? `${card.alcohol}%` : null].filter(Boolean).join(' · ');
+    const price = card.price && card.currency ? `${card.price} ${card.currency}` : null;
+    const meta = [card.type, card.sweetness, card.alcohol ? `${card.alcohol}%` : null, price].filter(Boolean).join(' · ');
     if (meta) body.appendChild(el('div', 'wc-card__meta', meta));
     if (card.shortDescription) body.appendChild(el('div', 'wc-card__desc', card.shortDescription));
     for (const key of ['grapes', 'region', 'servingTemperature', 'foodPairings']) {
