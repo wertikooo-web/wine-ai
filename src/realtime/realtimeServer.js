@@ -25,7 +25,7 @@ const {
 } = require('./inputAudioResampling');
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('./mockRealtimeProvider');
 const { createVisualOrchestrator } = require('../visual/visualOrchestrator');
-const { bridgeConfig, createBridgeAudioCache, createBridgeScheduler, prewarmVoices } = require('./bridgePhrases');
+const { PHRASES: BRIDGE_PHRASES, bridgeConfig, createBridgeAudioCache, createBridgeScheduler, prewarmVoices } = require('./bridgePhrases');
 
 // Rendered bridge phrases are shared by every session in the process (one
 // short TTS render per phrase and voice). See bridgePhrases.js.
@@ -677,8 +677,21 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         emit,
         log,
         getVoice: () => (providerMetadata.provider === 'gemini' ? (providerSession?.voiceName || sessionVoiceName || null) : null),
-        getLanguage: () => sessionLanguage,
+        getLanguage: (generationId) => bridgeLanguageFor(generationId),
     });
+
+    // The bridge speaks in the language of the question it covers. The
+    // conversation language (sessionLanguage) switches only on the first,
+    // often 1-2 word, transcript fragment and then waits for a second
+    // confirming turn, so right after a switch it is still the old language.
+    // By the time the bridge fires the whole question is transcribed: use its
+    // language when it is a bridge language, else the conversation language.
+    // Read-only: changes no session or turn state.
+    function bridgeLanguageFor(generationId) {
+        const generation = currentGeneration && currentGeneration.generationId === generationId ? currentGeneration : null;
+        const detected = generation ? detectLikelyLanguage(generation.userTranscriptBuffer) : null;
+        return detected && BRIDGE_PHRASES[detected] ? detected : sessionLanguage;
+    }
 
     // Server-side backstop for the public /lite Free Conversation session
     // limit (the client countdown and closing sequence own the normal end).
