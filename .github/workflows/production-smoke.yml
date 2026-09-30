@@ -289,6 +289,17 @@ jobs:
             sleep 15
           done
           echo "production did not pick up main in time"; exit 1
+      - name: Admin login configured (ADMIN_PASSWORD set in Railway)
+        if: ${{ github.event.inputs.diagnostic == 'auth' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          curl -sS --max-time 20 -o /tmp/login.html -w 'login http=%{http_code}\n' "$BASE_URL/login"
+          if grep -q 'ADMIN_PASSWORD' /tmp/login.html; then echo "NOT CONFIGURED: ADMIN_PASSWORD is not set in Railway"; exit 1; fi
+          grep -q 'name="password"' /tmp/login.html && echo "admin login form is configured"
+          echo "dashboard anonymous: $(curl -sS -o /dev/null -w '%{http_code} -> %{redirect_url}' "$BASE_URL/dashboard")"
+          echo "lite anonymous: $(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/lite")"
       - name: Link data coverage (companion catalog + entity facts)
         if: ${{ github.event.inputs.diagnostic == 'links' }}
         run: node scripts/diag/link-coverage.js
