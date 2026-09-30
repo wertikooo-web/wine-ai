@@ -33,14 +33,18 @@ async function get(url, timeoutMs = 20000) {
     }
 }
 
+// wine.md pages declare <base href="https://wine.md/ru/"> and link products
+// relatively ("catalog/wine/vinuri-rosii/<product>"); resolve against it.
 function productLinks(html, pageUrl) {
+    const baseTag = html.match(/<base[^>]+href=["']([^"']+)["']/i);
+    const base = baseTag ? baseTag[1] : pageUrl;
     const out = new Map();
-    for (const m of html.matchAll(/href\s*=\s*["']([^"'#?]*\/catalog\/wine\/[^"'#?]+)["']/gi)) {
+    for (const m of html.matchAll(/href\s*=\s*["']([^"'#?]*catalog\/wine\/[^"'#?]+)["']/gi)) {
         let href;
-        try { href = new URL(m[1], pageUrl).href; } catch { continue; }
+        try { href = new URL(m[1], base).href; } catch { continue; }
         if (!/^https:\/\/wine\.md\//.test(href)) continue;
-        href = href.replace(/^https:\/\/wine\.md\/(ro|en)\//, 'https://wine.md/ru/').replace(/^https:\/\/wine\.md\/catalog\//, 'https://wine.md/ru/catalog/');
-        if (href.split('/').length < 8) continue; // category pages, not products
+        href = href.replace(/^https:\/\/wine\.md\/(ro|en)\//, 'https://wine.md/ru/').replace(/^https:\/\/wine\.md\/catalog\//, 'https://wine.md/ru/catalog/').replace(/\/$/, '');
+        if (href.split('/').length < 8) continue; // top categories, not products
         out.set(href, true);
     }
     return [...out.keys()];
@@ -79,8 +83,15 @@ async function discover(brandSlug) {
     const pages = [...new Set([...brand.html.matchAll(/href=["']([^"']*[?&]page=\d+[^"']*)["']/gi)].map((m) => m[1]))];
     console.log(`pagination hrefs: ${pages.slice(0, 5).join(' ')}`);
     if (!links[0]) return;
-    const product = await get(links[0]);
-    console.log(`\nproduct ${links[0]}: http=${product.status} bytes=${product.html.length}`);
+    let product = null;
+    let productUrl = null;
+    for (const l of links.slice(0, 20)) {
+        const r = await get(l);
+        if (jsonLd(r.html).some((n) => /Product/i.test(String(n['@type'])))) { product = r; productUrl = l; break; }
+        console.log(`   not a product: ${l}`);
+    }
+    if (!product) { console.log('no product page with Product JSON-LD among the first 20 links'); return; }
+    console.log(`\nproduct ${productUrl}: http=${product.status} bytes=${product.html.length}`);
     for (const node of jsonLd(product.html)) console.log(`   ld+json ${node['@type']}: ${JSON.stringify(node).slice(0, 700)}`);
     for (const p of ['og:title', 'og:image', 'og:description', 'product:price:amount', 'product:price:currency']) console.log(`   meta ${p}: ${meta(product.html, p)}`);
     const title = product.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
@@ -90,7 +101,8 @@ async function discover(brandSlug) {
 function productFromPage(url, html, brandSlug) {
     const nodes = jsonLd(html);
     const p = nodes.find((n) => /Product/i.test(String(n['@type'])));
-    const name = (p && p.name) || meta(html, 'og:title') || null;
+    if (!p) return null; // category / filter page, not a wine
+    const name = p.name || null;
     if (!name) return null;
     const offer = p && (Array.isArray(p.offers) ? p.offers[0] : p.offers);
     const image = (p && (Array.isArray(p.image) ? p.image[0] : (p.image && p.image.url) || p.image)) || meta(html, 'og:image');
