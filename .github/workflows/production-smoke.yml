@@ -351,6 +351,9 @@ jobs:
       - name: Production cost audit (read-only)
         if: ${{ github.event.inputs.diagnostic == 'cost-audit' }}
         run: node scripts/diag/cost-audit.js
+      - name: Production cost benchmark (one scripted conversation)
+        if: ${{ github.event.inputs.diagnostic == 'cost-bench' }}
+        run: node scripts/diag/cost-bench.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
