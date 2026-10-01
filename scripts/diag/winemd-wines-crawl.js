@@ -186,6 +186,14 @@ async function crawl() {
     console.log(`wines parsed: ${wines.length}; with image ${wines.filter((w) => w.imageUrl).length}; with price ${wines.filter((w) => w.price).length}`);
     // One line per wine so the result can be reviewed from the job log.
     for (const w of wines) console.log(`WINE\t${JSON.stringify(w)}`);
+    // Compact characteristics (last in the log, so they can be read with a
+    // log tail): url, year, colour, taste, grapes, alcohol, serving, compatibility.
+    const withChars = wines.filter((w) => w.characteristics);
+    console.log(`with characteristics: ${withChars.length}/${wines.length}; with taste: ${wines.filter((w) => w.characteristics && w.characteristics.taste).length}`);
+    for (const w of wines) {
+        const c = w.characteristics || {};
+        console.log(`CHAR\t${w.productUrl.replace('https://wine.md/ru/catalog/wine/', '')}\t${c.year || ''}\t${c.color || ''}\t${c.taste || ''}\t${c.grapes || ''}\t${c.alcohol || ''}\t${c.serving || ''}\t${(c.compatibility || []).join(',')}`);
+    }
 }
 
 (process.env.WINEMD_DISCOVER ? discover(process.env.WINEMD_DISCOVER_BRAND || 'chateau-purcari') : crawl())
