@@ -328,6 +328,26 @@ jobs:
       - name: Verified links end-to-end on /lite (Chrome, click, analytics)
         if: ${{ github.event.inputs.diagnostic == 'links-e2e' }}
         run: CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/links-e2e.js
+      - name: Reset saved start-card overrides to the code defaults (writes production)
+        if: ${{ github.event.inputs.diagnostic == 'reset-start-intents' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          if [ -z "${ADMIN_TOKEN:-}" ]; then echo "ADMIN_TOKEN secret is not set"; exit 1; fi
+          echo "before: $(curl -sS --max-time 30 "$BASE_URL/api/lite/config" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.stringify(JSON.parse(d).start_intents||{})))")"
+          ids="$(curl -sS --max-time 30 -H "x-admin-token: $ADMIN_TOKEN" "$BASE_URL/api/persona/profiles" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log((JSON.parse(d).profiles||[]).map(p=>p.id).join(' ')))")"
+          echo "profiles: $ids"
+          for id in $ids; do
+            # Only the startIntents key is patched (null = remove); other persona settings are merged untouched.
+            code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST -H "x-admin-token: $ADMIN_TOKEN" -H 'content-type: application/json' -d "{\"profileId\":\"$id\",\"overrides\":{\"startIntents\":null}}" "$BASE_URL/api/persona")"
+            echo "reset $id http=$code"
+            test "$code" = "200"
+          done
+          echo "after: $(curl -sS --max-time 30 "$BASE_URL/api/lite/config" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.stringify(JSON.parse(d).start_intents||{})))")"
+      - name: Five /lite start cards end-to-end (Chrome, live provider)
+        if: ${{ github.event.inputs.diagnostic == 'start-cards' }}
+        run: CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/start-cards-e2e.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js
