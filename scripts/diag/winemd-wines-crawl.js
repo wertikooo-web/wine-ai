@@ -96,6 +96,13 @@ async function discover(brandSlug) {
     for (const p of ['og:title', 'og:image', 'og:description', 'product:price:amount', 'product:price:currency']) console.log(`   meta ${p}: ${meta(product.html, p)}`);
     const title = product.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
     console.log(`   h1: ${title ? title[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : null}`);
+    // Does the page carry a structured characteristics block (sugar / type /
+    // grape)? Print the visible text around such labels, verbatim.
+    const text = product.html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' | ').replace(/\s+/g, ' ');
+    for (const label of ['Сахар', 'Тип вина', 'Тип', 'Сорт', 'Цвет', 'Сладость', 'Крепость', 'Объем', 'Регион', 'Год']) {
+        const i = text.indexOf(label);
+        console.log(`   label ${label}: ${i >= 0 ? text.slice(Math.max(0, i - 40), i + 160) : '(not found)'}`);
+    }
 }
 
 function productFromPage(url, html, brandSlug) {
