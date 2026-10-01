@@ -182,8 +182,8 @@ async function run() {
     // words are not parsed by the existing engine (pre-existing), so no change.
     await operatorContent.save('recommendations', { rawText: REC, enabled: true, mode: 'on' });
     t.equal(names(await recommend('Recommend a dry white wine', promotionHook(ctx)))[0], 'Driada Chardonnay', '19. EN request');
-    const ro = await recommend('Recomandă un vin alb sec', promotionHook(ctx));
-    t.equal(JSON.stringify(ro), JSON.stringify(await recommend('Recomandă un vin alb sec')), '18. RO request: same as organic (engine does not parse RO colours yet)');
+    t.equal(names(await recommend('Recomandă un vin alb sec', promotionHook(ctx)))[0], 'Driada Chardonnay', '18. RO request (white dry parsed since Fix C)');
+    t.ok(!names(await recommend('Recomandă un vin roșu sec', promotionHook(ctx))).includes('Driada Chardonnay'), '18. RO red request: white promotion not eligible');
 
     // 20. Dashboard authorization.
     t.equal(classifyRoute('GET', '/api/operator-content'), 'admin');

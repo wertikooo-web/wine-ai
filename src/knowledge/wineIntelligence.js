@@ -141,6 +141,26 @@ const PRICE_AMOUNT_RE = /(?:до|не\s+дороже|в\s+пределах|в\s+
 const QUESTION_MARKER_RE = /(?:какая|каков\w*|каковой|какие|какую|какой|сколько|во\s+сколько|поч[её]м|узна[а-яё]*|подскаж|показ\w*|посовету[а-яё]*|рекоменд[а-яё]*|порекоменд[а-яё]*|подбер[а-яё]*|что\s+за|в\s+каком\s+году|какого\s+года|кто\s+(?:производит|делает))/iu;
 const FACTUAL_ATTRIBUTE_ASK_RE = /(?:во\s+сколько|сколько\s+стоит|сколько\s+стоят|сколько\s+будет\s+стоить|сколько\s+градусов|сколько\s+алкогол[а-яё]*|какая\s+цен[ауы]?|какова\s+цен[ауы]?|какую\s+цену|узнать\s+цен[ауы]?|цен[ауы]?\s+|цена\s+вина|стоимост[а-яё]*\s+(?:вина|этого|этой|на|стоит)|поч[её]м|крепост[а-яё]*\s+|градус[а-яё]*\s+(?:в|у|вина|алкоголя)|сколько\s+градусов|какой\s+градус|об[ъь][её]м[а-яё]*\s+(?:вина|бутылки|у)|год\s+выпуска|в\s+каком\s+году|какого\s+года|винтаж(?!н)[а-яё]*|сорта\s+винограда|какие\s+сорта|из\s+какого\s+винограда|кто\s+(?:производит|делает)\s+вин|производител[а-яё]*\s+(?:вина|этого|этой|эту|на)|алкогол[а-яё]*\s+(?:в|у)|сахар(?!н)[а-яё]*\s+|сладост(?!н)[а-яё]*\s+|танин(?!н)[а-яё]*\s+|кислотност[а-яё]*\s+|выдержк[а-яё]*\s+|розлив(?!н)[а-яё]*\s+)/iu;
 
+// Romanian / English vocabulary (RU above is unchanged). Applied to folded
+// text: lower case, diacritics removed (roșu → rosu, până → pana), ё → е.
+// Deterministic tables only -- no LLM, no translation step.
+function foldText(value) {
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ё/g, 'е');
+}
+const RO_EN_RECOMMEND_RE = /\b(recomand\w*|sfatui\w*|sugere\w*|ce vin|care vin|ce fel de vin|vreau (?:un |o |niste )?(?:vin|sticla)|as vrea (?:un |niste )?vin|alege\w*|recommend\w*|suggest\w*|advise|which wine|what wine|i(?:'d| would)? (?:like|want|need) (?:a |an |some )?(?:\w+ ){0,3}wine|looking for (?:a |an |some )?(?:\w+ ){0,3}wine|pick (?:me )?(?:a |an )?(?:\w+ ){0,2}wine|help me (?:choose|pick|find))\b/;
+const RO_WINE_RE = /\b(vin|vinul|vinuri|vinurile|vinului|crama|crame)\b/;
+const RO_EN_DESCRIPTOR_RE = /\b(red|white|rose|sparkling|dry|sweet|semi[- ]?dry|semi[- ]?sweet|rosu|rosie|alb|alba|albe|roze|spumant\w*|sec|seaca|dulce|demisec|demidulce|moldovan|moldovenesc\w*)\b/;
+const RO_EN_FOOD_PAIRING_RE = /(goes? (?:well )?with|go (?:well )?with|to (?:drink|serve|pair) with|pairs? (?:well )?with|wine (?:for|with) (?:my )?|se potriveste|merge (?:bine )?(?:la|cu)|potrivit\w* (?:la|cu|pentru)|vin (?:la|pentru|cu) )/;
+// Budget: an unambiguous cap needs no currency; a bare "for/pentru/around N"
+// is a budget only with a currency unit.
+const RO_EN_BUDGET_CAP_RE = /(?:pana la|sub|maxim(?:um)?|cel mult|nu mai scump de|under|below|up to|max|no more than|not more than|less than|within)\s*(\d{2,5})(?!\d)(?!\s*(?:%|ml\b|l\b|litr\w*|grade|degrees?|years?|ani\b|an\b|people|persoane|guests?))/;
+const RO_EN_BUDGET_PRICE_RE = /(?:for|pentru|around|about|approximately|aproximativ|in jur de|la|de)\s*(\d{2,5})(?!\d)\s*(?:de\s+)?(?:lei|leu|mdl)\b/;
+
+function roEnBudget(folded) {
+    const m = folded.match(RO_EN_BUDGET_CAP_RE) || folded.match(RO_EN_BUDGET_PRICE_RE);
+    return m ? Number(m[1]) : null;
+}
+
 // Multi-word proper nouns that resolve to wineries/products (from the shared
 // registry) count as wine-related even without the word "wine" itself.
 function _mentionsRegistryEntity(query) {
@@ -170,6 +190,9 @@ function _mentionsTwoWineEntities(query) {
 // wine descriptor anywhere in the turn is sufficient context for it.
 function _hasWineContext(text) {
     if (WINE_ENTITY_RE.test(text)) return true;
+    const folded = foldText(text);
+    if (RO_WINE_RE.test(folded)) return true;
+    if (RO_EN_DESCRIPTOR_RE.test(folded) && RO_EN_RECOMMEND_RE.test(folded)) return true;
     if (_mentionsRegistryEntity(text)) return true;
     if (DISCOVERY_RECOMMEND_RE.test(text) && WINE_DESCRIPTOR_RE.test(text)) return true;
     return WINE_DESCRIPTOR_RE.test(text) && INTENT_VERB_RE.test(text);
@@ -198,7 +221,8 @@ const DISH_KEYS = (function collectDishKeys() {
 function detectScenario(query) {
     const text = String(query || '').trim();
     if (!text) return null;
-    const isBudgeted = PRICE_AMOUNT_RE.test(text) || (BUDGET_AMOUNT_RE.test(text) && !BUDGET_QUALIFIER_RE.test(text));
+    const folded = foldText(text);
+    const isBudgeted = PRICE_AMOUNT_RE.test(text) || (BUDGET_AMOUNT_RE.test(text) && !BUDGET_QUALIFIER_RE.test(text)) || roEnBudget(folded) != null;
     const isNamedWine = _mentionsRegistryEntity(text);
     const isQuestion = QUESTION_MARKER_RE.test(text);
     // A factual/education attribute ask is never a Phase 6 intent. A budget
@@ -211,7 +235,7 @@ function detectScenario(query) {
     // recommendation verb ("Подбери", "Рекомендуй") doubles as a question
     // marker.
     if (FACTUAL_ATTRIBUTE_ASK_RE.test(text) && _hasWineContext(text) && !(isBudgeted && !isNamedWine) && (isQuestion || isNamedWine) && !BUDGET_QUALIFIER_RE.test(text)) return null;
-    if (FOOD_PAIRING_RE.test(text) && _hasDishSignal(text)) return SCENARIOS.PAIR_FOOD;
+    if ((FOOD_PAIRING_RE.test(text) || RO_EN_FOOD_PAIRING_RE.test(folded)) && _hasDishSignal(text)) return SCENARIOS.PAIR_FOOD;
     // A comparison ask must name at least one concrete wine/winery from the
     // registry ("Сравни Cricova" -> compare handler honestly asks for the
     // second wine). Education turns that only compare generic wine categories
@@ -223,6 +247,7 @@ function detectScenario(query) {
     if (RECOMMEND_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
     if (DISCOVERY_RECOMMEND_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
     if (INTENT_VERB_RE.test(text) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
+    if (RO_EN_RECOMMEND_RE.test(folded) && _hasWineContext(text)) return SCENARIOS.RECOMMEND_WINE;
     return null;
 }
 
@@ -232,23 +257,30 @@ function detectScenario(query) {
 
 function parseRecommendationPreferences(query) {
     const text = String(query || '').toLocaleLowerCase();
+    const folded = foldText(query);
     const prefs = {};
 
-    const color = (/(^|\s|,)красн/iu.test(text) || /\bred\b/iu.test(text)) ? 'red'
-        : (/(^|\s|,)бел\w*/iu.test(text) || /\bwhite\b/iu.test(text)) ? 'white'
-            : (/(^|\s|,)розов/iu.test(text) || /\brose\b|rosé/iu.test(text)) ? 'rose'
-                : (/(^|\s|,)игрист|спаркл/iu.test(text) || /\bsparkling\b/iu.test(text)) ? 'sparkling' : null;
+    // RU "белое/белым" never means a wine colour when it qualifies a food
+    // ("к белому мясу", "белая рыба").
+    const ruWhite = /(^|\s|,)бел\w*/iu.test(text) && !/(^|\s|,)бел[а-яё]*\s+(?:мяс|рыб|хлеб|шоколад|сыр|гриб)/iu.test(text);
+    const color = (/(^|\s|,)красн/iu.test(text) || /\bred\b/iu.test(text) || /\b(rosu|rosie|rosii)\b/.test(folded)) ? 'red'
+        : (ruWhite || /\bwhite\b/iu.test(text) || /\b(alb|alba|albe)\b/.test(folded)) ? 'white'
+            : (/(^|\s|,)розов/iu.test(text) || /\brose\b|rosé/iu.test(text) || /\b(roze|rose)\b/.test(folded)) ? 'rose'
+                : (/(^|\s|,)игрист|спаркл/iu.test(text) || /\bsparkling\b/iu.test(text) || /\bspumant\w*|\bspumos\w*/.test(folded)) ? 'sparkling' : null;
     if (color) prefs.color = color;
 
-    const sweetness = (/полусладк|полу-сладк/iu.test(text)) ? 'semi_sweet'
-        : (/(^|\s|,)сладк|dessert|(^|\s|,)dulce/iu.test(text) || /\bsweet\b/iu.test(text)) ? 'sweet'
-            : (/полусух|полу-сух/iu.test(text)) ? 'semi_dry'
-                : (/(^|\s|,)сух\w*/iu.test(text) || /\bdry\b/iu.test(text)) ? 'dry' : null;
+    // Semi-* first: "semi-dry" / "demisec" contain the plain words.
+    const sweetness = (/полусладк|полу-сладк/iu.test(text) || /\b(semi[- ]?sweet|medium[- ]sweet|demi[- ]?dulce|demidulce)\b/.test(folded)) ? 'semi_sweet'
+        : (/полусух|полу-сух/iu.test(text) || /\b(semi[- ]?dry|off[- ]?dry|medium[- ]dry|demi[- ]?sec|demisec)\b/.test(folded)) ? 'semi_dry'
+            : (/(^|\s|,)сладк|dessert|(^|\s|,)dulce/iu.test(text) || /\bsweet\b/iu.test(text) || /\b(dulce|desert)\b/.test(folded)) ? 'sweet'
+                : (/(^|\s|,)сух\w*/iu.test(text) || /\bdry\b/iu.test(text) || /\b(sec|seaca|brut)\b|брют/.test(folded)) ? 'dry' : null;
     if (sweetness) prefs.sweetness = sweetness;
 
-    if (/\bлегк\w*/iu.test(text) || /мягк\w*/iu.test(text) || /\blight\b/iu.test(text)) prefs.body = 'light';
-    else if (/полнотел|полн\w*\s+тел\w*/iu.test(text) || /\bfull[- ]?bodied\b/iu.test(text)) prefs.body = 'full';
-    else if (/средн\w*\s+тел|medium/iu.test(text)) prefs.body = 'medium';
+    // `\b` never matches next to Cyrillic in JS, so RU uses an explicit
+    // non-letter boundary (the old `\bлегк` never matched).
+    if (/(^|[^а-я])(легк|мягк)/.test(folded) || /\blight(?:[- ]bodied)?\b/.test(folded) || /\b(usor|usoara)\b/.test(folded)) prefs.body = 'light';
+    else if (/полнотел|полн[а-я]*\s+тел[а-я]*/.test(folded) || /\bfull[- ]?bodied\b/.test(folded) || /\bcorpolent\w*/.test(folded)) prefs.body = 'full';
+    else if (/средн[а-я]*\s+тел/.test(folded) || /\bmedium[- ]bodied\b|\bmedium body\b/.test(folded)) prefs.body = 'medium';
 
     if (/(праздник|свидан\w*|юбил|свадьб|ужин|вечеринк|подарок|в\s*подарок|occasion|celebration|dinner)/iu.test(text)) {
         prefs.occasion = 'celebration';
@@ -261,6 +293,7 @@ function parseRecommendationPreferences(query) {
         ? text.match(PRICE_AMOUNT_RE)
         : (!BUDGET_QUALIFIER_RE.test(text) ? text.match(BUDGET_AMOUNT_RE) : null);
     if (budgetMatch) prefs.budget = Number(budgetMatch[1]);
+    else if (roEnBudget(folded) != null) prefs.budget = roEnBudget(folded);
 
     const dishProfile = profileDish(query);
     if (dishProfile.known) prefs.food = dishProfile.food;
