@@ -3492,6 +3492,7 @@
           itraceForTurn(payload.turn_id, 'transcript_user_received', {});
         }
         addTranscriptTurn('user', payload.text);
+        noteConversationLang('user', payload.turn_id, payload.text);
         if (LITE_MODE) liteChatAppend('user', payload);
         maybeHighlightWhereToBuy(payload.text);
         break;
@@ -3501,6 +3502,7 @@
           itraceForTurn(payload.turn_id, 'first_model_event_received', { eventType: 'transcript.model' });
         }
         addTranscriptTurn('assistant', payload.text);
+        noteConversationLang('assistant', payload.turn_id, payload.text);
         if (LITE_MODE) liteChatAppend('assistant', payload);
         showReplyBox(payload);
         break;
@@ -4190,6 +4192,8 @@
   function finishLiteConversation() {
     if (!liteConversationStarted) return;
     liteConversationStarted = false;
+    conversationLang = null;
+    conversationLangText.clear();
     document.body.classList.remove('lite-active');
     const sessionId = liteSessionId;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) disconnect();
@@ -5062,7 +5066,62 @@
   // transcript / Lite chat never show them (see isScriptedLineEcho).
   function speakScriptedLine(text) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({ type: 'input_text.submit', text: `${SCRIPTED_LINE_PREFIX} ${text}` }));
+    ws.send(JSON.stringify({ type: 'input_text.submit', text: `${SCRIPTED_LINE_PREFIX} ${localizeScriptedLine(text)}` }));
+  }
+
+  // The service lines (inactivity check-in/goodbye, 30-second warning,
+  // session end) are spoken in the language the conversation is actually
+  // in -- the language of the last guest/assistant line -- not always in
+  // Russian. The Russian constants above stay the source keys.
+  const SCRIPTED_LINE_TRANSLATIONS = {
+    [FREE_CONV_INACTIVITY_WARNING_TEXT]: {
+      ro: 'Mai sunteți aici? Dacă vreți să continuăm, spuneți ceva sau apăsați butonul.',
+      en: 'Are you still there? If you would like to continue, just say something or press the button.',
+    },
+    [FREE_CONV_INACTIVITY_GOODBYE_TEXT]: {
+      ro: 'Se pare că am făcut o mică pauză. Închei conversația. Reveniți oricând doriți să continuăm.',
+      en: 'It looks like we have taken a little break. I will end our conversation now. Come back whenever you would like to continue.',
+    },
+    [FREE_CONV_SESSION_WARNING_TEXT]: {
+      ro: 'Ne-a mai rămas o jumătate de minut. Hai să apucăm să discutăm ultima întrebare.',
+      en: 'We have about half a minute left. Let us make time for one last question.',
+    },
+    [FREE_CONV_SESSION_LIMIT_TEXT]: {
+      ro: 'E timpul să mă odihnesc puțin. Dacă vreți să continuăm, începeți o conversație nouă.',
+      en: 'It is time for me to take a little rest. If you would like to continue, please start a new conversation.',
+    },
+  };
+  let conversationLang = null; // last language heard in this conversation (ru | ro | en)
+  const conversationLangText = new Map(); // `${role}:${turn}` -> text so far (fragments)
+  // Romanian is told apart from English by diacritics, else by common words
+  // (speech transcripts may drop diacritics).
+  const RO_MARKER_WORDS = new Set(['si', 'este', 'pentru', 'sunt', 'aveti', 'vreau', 'unde', 'buna', 'multumesc', 'despre', 'spune', 'spuneti', 'te', 'rog', 'care', 'ce', 'cum', 'poti', 'vinul', 'vinuri', 'vinurile', 'crama', 'cramele', 'recomanzi', 'imi', 'mi', 'la', 'de', 'un', 'o', 'cu', 'din', 'nu', 'da', 'eu', 'vin']);
+  const EN_MARKER_WORDS = new Set(['the', 'and', 'you', 'is', 'are', 'what', 'tell', 'me', 'about', 'please', 'wine', 'wines', 'winery', 'which', 'how', 'can', 'i', 'to', 'of', 'a', 'for', 'with', 'do', 'it', 'this', 'that', 'would', 'like', 'yes', 'no']);
+  function detectConversationLang(text) {
+    const value = String(text || '');
+    const cyrillic = (value.match(/[\u0400-\u04FF]/g) || []).length;
+    const latin = (value.match(/[a-zăâîșşțţ]/gi) || []).length;
+    if (cyrillic >= 4 && cyrillic > latin) return 'ru';
+    if (latin < 8 || latin < cyrillic) return null;
+    if (/[ășşțţ]/i.test(value)) return 'ro'; // not â/î: French château
+    const words = value.toLowerCase().split(/[^a-z]+/);
+    const ro = words.filter((w) => RO_MARKER_WORDS.has(w)).length;
+    const en = words.filter((w) => EN_MARKER_WORDS.has(w)).length;
+    return ro > en ? 'ro' : 'en';
+  }
+  function noteConversationLang(role, turnId, text) {
+    const key = `${role}:${turnId || ''}`;
+    const sofar = `${conversationLangText.get(key) || ''}${text || ''}`.slice(-400);
+    conversationLangText.delete(key);
+    conversationLangText.set(key, sofar);
+    if (conversationLangText.size > 20) conversationLangText.delete(conversationLangText.keys().next().value);
+    const lang = detectConversationLang(sofar);
+    if (lang) conversationLang = lang;
+  }
+  function localizeScriptedLine(text) {
+    // Nothing heard yet: the /lite page language (?lang=); elsewhere as before.
+    const lang = conversationLang || (LITE_MODE && ['ro', 'en'].includes(uiLang) ? uiLang : 'ru');
+    return (SCRIPTED_LINE_TRANSLATIONS[text] || {})[lang] || text;
   }
 
   function armInactivityWarnTimer() {

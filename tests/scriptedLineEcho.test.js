@@ -31,7 +31,7 @@ async function run() {
     t.ok(body.indexOf('isScriptedLineEcho(payload.text)') >= 0, 'handler filters the echo');
     t.ok(body.indexOf('isScriptedLineEcho(payload.text)') < body.indexOf('liteChatAppend'), 'filtered before the Lite chat renders it');
     t.ok(body.indexOf('isScriptedLineEcho(payload.text)') < body.indexOf('addTranscriptTurn'), 'filtered before the transcript renders it');
-    t.ok(/text: `\$\{SCRIPTED_LINE_PREFIX\} \$\{text\}`/.test(html), 'speakScriptedLine uses the same prefix');
+    t.ok(/text: `\$\{SCRIPTED_LINE_PREFIX\} \$\{localizeScriptedLine\(text\)\}`/.test(html), 'speakScriptedLine uses the same prefix');
 }
 
 module.exports = { run };
