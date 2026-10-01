@@ -133,6 +133,22 @@ function createCostApi({ sendJson, readJsonBody, getStore = getCostStore, nowFn 
                 });
                 return true;
             }
+            // Read-only audit view: priced records WITH the raw provider usage
+            // payloads (token counts only, no transcripts) for cost audits.
+            if (method === 'GET' && pathname === '/api/cost/raw-records') {
+                const out = await rangedRecords(searchParams);
+                if (out.error) { sendJson(res, 400, { ok: false, error: out.error }); return true; }
+                const limit = Math.min(5000, Math.max(1, Number(searchParams.get('limit')) || 2000));
+                sendJson(res, 200, {
+                    ok: true,
+                    from: new Date(out.range.from).toISOString(),
+                    to: new Date(out.range.to).toISOString(),
+                    settings: { timezone: out.settings.timezone, eur_to_mdl: out.settings.eur_to_mdl, usd_to_eur: out.settings.usd_to_eur },
+                    total: out.priced.length,
+                    records: out.priced.slice(0, limit),
+                });
+                return true;
+            }
             if (method === 'GET' && pathname === '/api/cost/pricing') {
                 sendJson(res, 200, { ok: true, pricing: await getStore().listPricing(), category_labels: CATEGORY_LABELS });
                 return true;

@@ -348,6 +348,9 @@ jobs:
       - name: Five /lite start cards end-to-end (Chrome, live provider)
         if: ${{ github.event.inputs.diagnostic == 'start-cards' }}
         run: CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/start-cards-e2e.js
+      - name: Production cost audit (read-only)
+        if: ${{ github.event.inputs.diagnostic == 'cost-audit' }}
+        run: node scripts/diag/cost-audit.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js

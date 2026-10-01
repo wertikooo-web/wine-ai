@@ -372,6 +372,10 @@ async function testApiShape() {
     for (const field of ['started_at', 'duration_ms', 'provider', 'model', 'usage', 'cost_mdl', 'cost_eur', 'cost_basis', 'status']) {
         t.ok(field in sessions.body.sessions[0], `session.${field}`);
     }
+    const rawRes = await call('GET', '/api/cost/raw-records?from=2026-09-01&to=2026-09-30');
+    t.equal(rawRes.status, 200, 'raw-records endpoint');
+    t.ok(rawRes.body.records.length === 1 && rawRes.body.records[0].cost && 'usage_raw' in rawRes.body.records[0], 'raw-records carries priced cost and usage_raw');
+    t.ok(rawRes.body.settings.timezone, 'raw-records exposes timezone');
     const breakdownRes = await call('GET', '/api/cost/breakdown');
     t.ok(breakdownRes.body.by_category.length === 1 && breakdownRes.body.category_labels.realtime_gemini, 'breakdown endpoint');
 
