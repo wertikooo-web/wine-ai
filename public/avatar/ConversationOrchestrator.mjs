@@ -9,7 +9,10 @@ export const CONVERSATION_STATES = Object.freeze({
   LISTENING: 'listening',
   HOLD_READY: 'hold_ready',
   ERROR: 'error',
+  OPENING_TIMEOUT: 'opening_timeout',
 });
+
+export const OPENING_REPLY_TIMEOUT_MS = 20000;
 
 export class ConversationOrchestrator {
   constructor(adapter, options = {}) {
@@ -71,12 +74,23 @@ export class ConversationOrchestrator {
       await this.adapter.submitStarter(text);
       this.assertCurrent(token);
 
-      await this.adapter.waitForAssistantSpeechStart();
+      // If the provider never answers the opening turn (production 1 Oct:
+      // ~3 minutes without any reply), do not leave the guest with a dead
+      // screen and no microphone: after OPENING_REPLY_TIMEOUT_MS arm
+      // listening anyway so they can simply speak. A late opening reply is
+      // cancelled by the new input on the server.
+      const spoke = await this.adapter.waitForAssistantSpeechStart(OPENING_REPLY_TIMEOUT_MS).then(() => true, (error) => {
+        if (error?.message === 'conversation_wait_timeout') return false;
+        throw error;
+      });
       this.assertCurrent(token);
-      this.setState(CONVERSATION_STATES.ASSISTANT_SPEAKING, { mode });
-
-      await this.adapter.waitForAssistantSpeechDrain();
-      this.assertCurrent(token);
+      if (spoke) {
+        this.setState(CONVERSATION_STATES.ASSISTANT_SPEAKING, { mode });
+        await this.adapter.waitForAssistantSpeechDrain();
+        this.assertCurrent(token);
+      } else {
+        this.setState(CONVERSATION_STATES.OPENING_TIMEOUT, { mode });
+      }
 
       if (mode === 'tap_to_start') {
         this.setState(CONVERSATION_STATES.ARMING_LISTENING, { mode });
@@ -147,10 +161,10 @@ export function createDashboardDomAdapter(document) {
       send.click();
     },
 
-    async waitForAssistantSpeechStart() {
+    async waitForAssistantSpeechStart(timeoutMs) {
       const ptt = el('pttBtn');
       if (!ptt) throw new Error('ptt_button_missing');
-      await waitUntil(() => ptt.classList.contains('state-speaking'));
+      await waitUntil(() => ptt.classList.contains('state-speaking'), timeoutMs);
     },
 
     async waitForAssistantSpeechDrain() {

@@ -122,6 +122,22 @@ const { pathToFileURL } = require('url');
   await active.start({ starter: 'WINERIES', mode: 'tap_to_start' });
   assert.deepStrictEqual(activeAdapter.events, ['free_stop','free_inactive','text_ready','starter:WINERIES','assistant_speaking','assistant_drained','free_start','free_active']);
 
+  // The provider never answers the opening turn: after the bounded wait the
+  // microphone is armed anyway (no dead screen), and the wait is bounded.
+  const silentAdapter = makeAdapter();
+  let openingTimeoutMs = null;
+  silentAdapter.waitForAssistantSpeechStart = async (timeoutMs) => { openingTimeoutMs = timeoutMs; silentAdapter.events.push('assistant_silent'); throw new Error('conversation_wait_timeout'); };
+  const silentStates = [];
+  const silent = new ConversationOrchestrator(silentAdapter, { onStateChange: (state) => silentStates.push(state) });
+  assert.strictEqual(await silent.start({ starter: 'TASTINGS', mode: 'tap_to_start' }), CONVERSATION_STATES.LISTENING);
+  assert.deepStrictEqual(silentAdapter.events, ['connect','text_ready','starter:TASTINGS','assistant_silent','free_start','free_active']);
+  assert(silentStates.includes(CONVERSATION_STATES.OPENING_TIMEOUT));
+  assert(openingTimeoutMs > 0 && openingTimeoutMs <= 30000, 'opening wait is bounded');
+  // Any other failure still surfaces as an error.
+  const brokenAdapter = makeAdapter();
+  brokenAdapter.waitForAssistantSpeechStart = async () => { throw new Error('ptt_button_missing'); };
+  await assert.rejects(new ConversationOrchestrator(brokenAdapter).start({ starter: 'X', mode: 'tap_to_start' }), /ptt_button_missing/);
+
   const holdAdapter = makeAdapter();
   const hold = new ConversationOrchestrator(holdAdapter);
   const holdResult = await hold.start({ starter: 'CHOOSE WINE', mode: 'hold_to_talk' });
