@@ -3101,12 +3101,10 @@
       // see providerReadyForInput above. WebSocket OPEN only means the
       // client<->server link exists, not that the realtime provider
       // connection is ready to receive audio.
-      el('textInput').disabled = false;
-      el('textSendBtn').disabled = false;
-      el('demoWineRed').disabled = false;
-      el('demoWineRose').disabled = false;
-      el('demoWineWhite').disabled = false;
-      el('langSelect').disabled = false;
+      // Text controls are enabled only after session.start (below): text
+      // sent before it starts a turn on the default prompt/voice, and the
+      // late session.start is then rejected (session_config_busy), which
+      // flashed "Error" on start-card presses.
       setProviderControlsDisabled(true);
       DeviceVisual.setState('ready');
       if (voiceMode === 'hold_to_talk') setPttCaption();
@@ -3127,6 +3125,12 @@
       // sending session.start into the replacement socket.
       if (ws !== socket || socket.readyState !== WebSocket.OPEN) return;
       sendSessionStart();
+      el('textInput').disabled = false;
+      el('textSendBtn').disabled = false;
+      el('demoWineRed').disabled = false;
+      el('demoWineRose').disabled = false;
+      el('demoWineWhite').disabled = false;
+      el('langSelect').disabled = false;
       log('ws_open', { sampleRate: inputSampleRate });
       // pendingContextTurnStart/pendingTapStart/pendingPttStart are now
       // resolved on 'provider.ready_for_input' (see handleEvent() below),
