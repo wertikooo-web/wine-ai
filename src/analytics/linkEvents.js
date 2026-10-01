@@ -15,7 +15,7 @@
 // otherwise in memory. Writes are best effort: analytics never break a turn.
 
 const LINK_EVENT_TYPES = Object.freeze(['link_resolved', 'link_rendered', 'link_clicked', 'link_missing']);
-const EVENT_TYPES = Object.freeze([...LINK_EVENT_TYPES, 'recommendation_ranked', 'news_used']);
+const EVENT_TYPES = Object.freeze([...LINK_EVENT_TYPES, 'recommendation_ranked', 'news_used', 'organic_pool_compared']);
 const ENTITY_TYPES = Object.freeze(['wine', 'winery', 'news', 'unknown']);
 const CTA_TYPES = Object.freeze(['BOOK_TOUR', 'WINERY_ON_WINEMD', 'VISIT_WINERY_SITE', 'BUY_OR_VIEW_ON_WINEMD', 'OPEN_MAP', 'VIEW_WINE', 'INSTAGRAM', 'FACEBOOK', 'none']);
 
