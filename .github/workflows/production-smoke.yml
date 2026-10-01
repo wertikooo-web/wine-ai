@@ -82,6 +82,8 @@ jobs:
           echo "lite http=$code bytes=$(wc -c < /tmp/lite.html)"
           test "$code" = "200"
           grep -q 'channel=lite' /tmp/lite.html
+          # Saved start-card overrides (public /api/lite/config) win over the defaults.
+          curl -sS --max-time 30 "$BASE_URL/api/lite/config" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log('lite start_intents overrides: ' + JSON.stringify(JSON.parse(d).start_intents || {})))"
 
       # Admin protection. Waits for the deployment that carries admin auth
       # (anonymous admin API -> 401), then checks the whole matrix.
@@ -124,8 +126,6 @@ jobs:
           done
           curl -sS --max-time 30 -o /tmp/lite-config.json "$BASE_URL/api/lite/config"
           if grep -Eiq 'systemPrompt|personalityPrompt|effectivePrompt|runtimeByProvider|api[_-]?key|authorization|bearer' /tmp/lite-config.json; then echo "lite config exposes internal fields"; exit 1; fi
-          # Saved start-card overrides (public in this response) win over the defaults.
-          node -e "const c=require('/tmp/lite-config.json'); console.log('lite start_intents overrides: ' + JSON.stringify(c.start_intents || {}))"
           echo "admin protection verified"
 
       # Cost & Usage Control (Dashboard → Расходы / Cost Control). Only after a
