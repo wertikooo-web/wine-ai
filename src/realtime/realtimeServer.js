@@ -64,6 +64,7 @@ const { buildProfileRuntimePrompt, CORE_PERSONA_PROMPT } = require('../persona/w
 const { GEMINI_VOICES } = require('../geminiVoices');
 const { GROK_VOICES } = require('../grokVoices');
 const { createSessionUsageMeter } = require('../cost/sessionUsageMeter');
+const { wrapToolHandlersWithBudget } = require('./toolResultBudget');
 const { recordRealtimeSession } = require('../cost/costTelemetry');
 
 function id(prefix) {
@@ -594,9 +595,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         const webAllowed = liveTestSession.snapshot.config.knowledgeMode !== 'database_only';
         toolContext.isWebSearchEnabled = () => webAllowed;
     }
-    const toolHandlers = typeof providerMetadata.createToolHandlers === 'function'
+    // Only the model-facing tool result is size-budgeted (see
+    // toolResultBudget.js): tool results stay in the provider context and
+    // are re-billed on every later turn.
+    const toolHandlers = wrapToolHandlersWithBudget(typeof providerMetadata.createToolHandlers === 'function'
         ? providerMetadata.createToolHandlers(toolContext)
-        : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {});
+        : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {}), {
+        onCompacted: (info) => log('tool_result_compacted', info),
+    });
     // Full prompt text (persona/knowledge_context, tens of KB combined — up
     // to PROMPT_MAX_CHARS per block) is only useful for the dashboard's
     // debug view. Defaults to false; the dashboard client opts in by
