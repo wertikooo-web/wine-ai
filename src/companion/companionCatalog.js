@@ -28,7 +28,7 @@ const CTA_FROM_FIELD = Object.freeze([
 ]);
 const URL_FIELDS = Object.freeze(['imageUrl', 'productUrl', 'wineryUrl', 'mapUrl']);
 const STRING_LIMITS = Object.freeze({
-    externalId: 80, wineryId: 80, wineryName: 160, wineName: 200, type: 40, sweetness: 40, region: 120,
+    externalId: 80, wineryId: 80, wineryName: 160, wineName: 200, type: 40, sweetness: 40, sweetnessSource: 20, region: 120,
     servingTemperature: 40, shortDescription: 600, tastingNotes: 1200,
 });
 const LIST_FIELDS = Object.freeze({ grapes: 12, foodPairings: 12, aliases: 8 });

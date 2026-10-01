@@ -96,6 +96,14 @@ async function discover(brandSlug) {
     for (const p of ['og:title', 'og:image', 'og:description', 'product:price:amount', 'product:price:currency']) console.log(`   meta ${p}: ${meta(product.html, p)}`);
     const title = product.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
     console.log(`   h1: ${title ? title[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : null}`);
+    console.log(`   characteristics: ${JSON.stringify(characteristicsFromPage(product.html))}`);
+    // Does the page carry a structured characteristics block (sugar / type /
+    // grape)? Print the visible text around such labels, verbatim.
+    const text = product.html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' | ').replace(/\s+/g, ' ');
+    for (const label of ['Сахар', 'Тип вина', 'Тип', 'Сорт', 'Цвет', 'Сладость', 'Крепость', 'Объем', 'Регион', 'Год']) {
+        const i = text.indexOf(label);
+        console.log(`   label ${label}: ${i >= 0 ? text.slice(Math.max(0, i - 40), i + 160) : '(not found)'}`);
+    }
 }
 
 function productFromPage(url, html, brandSlug) {
@@ -117,7 +125,36 @@ function productFromPage(url, html, brandSlug) {
         currency: offer && offer.priceCurrency ? String(offer.priceCurrency) : ((meta(html, 'og:title') || '').match(/mdl\s*$/i) ? 'MDL' : null),
         category: (url.match(/\/catalog\/wine\/([^/]+)/) || [])[1] || null,
         description: p && p.description ? String(p.description).replace(/\s+/g, ' ').trim().slice(0, 500) : null,
+        characteristics: characteristicsFromPage(html),
     };
+}
+
+// wine.md's own "Характеристики товара" block, verbatim label values
+// (normalized later, deterministically, by src/companion/wineAttributes.js).
+//   Год: 2025 · Цвет: Белое · По вкусу: Сухое · Сорт винограда: Traminer ·
+//   Алкоголь: 13.5% · Объем: 0.75 л. · Подача 10-12°С · Совместимость cheese …
+function characteristicsFromPage(html) {
+    const text = String(html || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' | ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+    const start = text.indexOf('Характеристики товара');
+    if (start < 0) return null;
+    const block = text.slice(start, start + 2500);
+    const field = (label) => {
+        const m = block.match(new RegExp(`${label}:?\\s*(?:\\|\\s*)+([^|]{1,120}?)\\s*\\|`));
+        return m ? m[1].trim() : null;
+    };
+    const out = {
+        year: field('Год'),
+        color: field('Цвет'),
+        taste: field('По вкусу'),
+        grapes: field('Сорт винограда'),
+        alcohol: field('Алкоголь'),
+        volume: field('Объем'),
+        serving: field('Подача'),
+    };
+    const compat = block.match(/Совместимость((?:\s*\|\s*[a-zA-Zа-яА-ЯёЁ ]{0,30})+)/);
+    out.compatibility = compat ? compat[1].split('|').map((v) => v.trim()).filter((v) => /^[a-z][a-z -]{1,25}$/.test(v)).slice(0, 10) : [];
+    return Object.values(out).some((v) => v && (!Array.isArray(v) || v.length)) ? out : null;
 }
 
 async function crawl() {
@@ -149,6 +186,14 @@ async function crawl() {
     console.log(`wines parsed: ${wines.length}; with image ${wines.filter((w) => w.imageUrl).length}; with price ${wines.filter((w) => w.price).length}`);
     // One line per wine so the result can be reviewed from the job log.
     for (const w of wines) console.log(`WINE\t${JSON.stringify(w)}`);
+    // Compact characteristics (last in the log, so they can be read with a
+    // log tail): url, year, colour, taste, grapes, alcohol, serving, compatibility.
+    const withChars = wines.filter((w) => w.characteristics);
+    console.log(`with characteristics: ${withChars.length}/${wines.length}; with taste: ${wines.filter((w) => w.characteristics && w.characteristics.taste).length}`);
+    for (const w of wines) {
+        const c = w.characteristics || {};
+        console.log(`CHAR\t${w.productUrl.replace('https://wine.md/ru/catalog/wine/', '')}\t${c.year || ''}\t${c.color || ''}\t${c.taste || ''}\t${c.grapes || ''}\t${c.alcohol || ''}\t${c.serving || ''}\t${(c.compatibility || []).join(',')}`);
+    }
 }
 
 (process.env.WINEMD_DISCOVER ? discover(process.env.WINEMD_DISCOVER_BRAND || 'chateau-purcari') : crawl())
