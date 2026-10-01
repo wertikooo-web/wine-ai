@@ -487,7 +487,9 @@ function scoreWineCandidate(candidate, prefs) {
 
 // Preference-based recommendation over concrete wine names found in evidence
 // (catalog + produces relations) + confirmed official bottle profiles.
-async function recommendWine({ question, evidence, language }) {
+// `promotion` (optional): operator promotion layer (src/operatorContent).
+// Absent / off → the organic ranking below is returned exactly as before.
+async function recommendWine({ question, evidence, language, promotion = null }) {
     const prefs = parseRecommendationPreferences(question);
     const candidates = [];
 
@@ -535,7 +537,16 @@ async function recommendWine({ question, evidence, language }) {
         return { found: false, confidence: 'low', explanation: missing, missing };
     }
 
-    const ranked = candidates.sort((a, b) => b.score - a.score).slice(0, 3);
+    const organicSorted = candidates.sort((a, b) => b.score - a.score);
+    let ranked = organicSorted.slice(0, 3);
+    if (promotion && typeof promotion.apply === 'function') {
+        try {
+            const promoted = promotion.apply({ question, prefs, organicSorted, scoreWineCandidate });
+            if (promoted && Array.isArray(promoted.ranked) && promoted.ranked.length) ranked = promoted.ranked;
+        } catch {
+            // promotion processing failed: the organic ranking stands
+        }
+    }
     const reasons = ranked.map((candidate) =>
         `${candidate.name} (${candidate.style})${candidate.producer ? `, производитель ${candidate.producer}` : ''}` +
         `${candidate.price != null ? `, ${candidate.price} MDL` : ''} — ${candidate.matches.join(', ')}.`);
@@ -830,7 +841,7 @@ async function runInference(question, options = {}) {
         limit: options.limit || 8,
         adapters: options.adapters || {},
     });
-    const result = await HANDLERS[scenario]({ question: text, evidence: gathered.evidence, language });
+    const result = await HANDLERS[scenario]({ question: text, evidence: gathered.evidence, language, promotion: options.promotion || null });
 
     const claims = buildInferenceClaims({ ...result, evidence: gathered.evidence });
     return {
@@ -865,6 +876,7 @@ async function inferForQuestion(question, options = {}) {
             allowCatalog: options.allowCatalog !== false,
             limit: options.limit || 8,
             adapters: options.adapters || {},
+            promotion: options.promotion || null,
         });
         if (!run || !run.scenario) return null;
         return {
@@ -891,6 +903,7 @@ module.exports = {
     inferForQuestion,
     pairFood,
     recommendWine,
+    scoreWineCandidate,
     compareWines,
     planRoute,
     buildInferenceClaims,

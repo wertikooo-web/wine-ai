@@ -8,11 +8,15 @@
 //   link_rendered  -- the client showed a card with a CTA
 //   link_clicked   -- the participant clicked a CTA
 //   link_missing   -- a link was asked for (or an entity named) with none verified
+//   recommendation_ranked -- an operator promotion was evaluated for a
+//                    recommendation (shadow/on); detail = promotion id + scores
+//   news_used      -- an operator news item was attached to an answer
 // Stored in Postgres (link_events) when DATABASE_URL is a real database,
 // otherwise in memory. Writes are best effort: analytics never break a turn.
 
-const EVENT_TYPES = Object.freeze(['link_resolved', 'link_rendered', 'link_clicked', 'link_missing']);
-const ENTITY_TYPES = Object.freeze(['wine', 'winery', 'unknown']);
+const LINK_EVENT_TYPES = Object.freeze(['link_resolved', 'link_rendered', 'link_clicked', 'link_missing']);
+const EVENT_TYPES = Object.freeze([...LINK_EVENT_TYPES, 'recommendation_ranked', 'news_used']);
+const ENTITY_TYPES = Object.freeze(['wine', 'winery', 'news', 'unknown']);
 const CTA_TYPES = Object.freeze(['BOOK_TOUR', 'WINERY_ON_WINEMD', 'VISIT_WINERY_SITE', 'BUY_OR_VIEW_ON_WINEMD', 'OPEN_MAP', 'VIEW_WINE', 'INSTAGRAM', 'FACEBOOK', 'none']);
 
 function clean(value, limit) {
@@ -125,6 +129,8 @@ function summarize(rows) {
     const sessions = new Set();
     const totals = { link_resolved: 0, link_rendered: 0, link_clicked: 0, link_missing: 0 };
     for (const r of rows) {
+        // Operator-content events have their own summary (summarizeOperatorContent).
+        if (!LINK_EVENT_TYPES.includes(r.event)) continue;
         totals[r.event] = (totals[r.event] || 0) + 1;
         if (r.session_id) sessions.add(r.session_id);
         if (r.event === 'link_missing') {
@@ -159,4 +165,45 @@ function summarize(rows) {
     };
 }
 
-module.exports = { EVENT_TYPES, CTA_TYPES, validateEvent, recordLinkEvent, summarize, getLinkEventStore, setLinkEventStoreForTests, createMemoryLinkEventStore };
+// Operator content: per promotion, how often it was evaluated, eligible,
+// would have changed / changed the ranking, and why it was rejected; per
+// news item, how often it was used. Reads the same link_events rows.
+function parseRankedDetail(detail) {
+    const text = String(detail || '');
+    const bar = text.indexOf('|');
+    try { return { promotionId: bar > 0 ? text.slice(0, bar) : null, ...JSON.parse(bar > 0 ? text.slice(bar + 1) : text) }; } catch { return { promotionId: bar > 0 ? text.slice(0, bar) : null }; }
+}
+
+function summarizeOperatorContent(rows) {
+    const promotions = new Map();
+    const news = new Map();
+    for (const r of rows) {
+        if (r.event === 'recommendation_ranked') {
+            const d = parseRankedDetail(r.detail);
+            const key = r.entity_id;
+            const row = promotions.get(key) || { wineId: r.entity_id, name: r.entity_name, evaluated: 0, eligible: 0, wouldChange: 0, top1: 0, byMode: {}, exclusionReasons: {}, organicScores: [], hypotheticalScores: [], organicWinners: {} };
+            row.evaluated += 1;
+            row.byMode[d.m] = (row.byMode[d.m] || 0) + 1;
+            if (d.x) row.exclusionReasons[d.x] = (row.exclusionReasons[d.x] || 0) + 1;
+            else row.eligible += 1;
+            if (d.chg) row.wouldChange += 1;
+            if (d.pos === 1) row.top1 += 1;
+            if (typeof d.ps === 'number') row.organicScores.push(d.ps);
+            if (typeof d.hs === 'number') row.hypotheticalScores.push(d.hs);
+            if (d.ow) row.organicWinners[d.ow] = (row.organicWinners[d.ow] || 0) + 1;
+            promotions.set(key, row);
+        } else if (r.event === 'news_used') {
+            const row = news.get(r.entity_id) || { newsId: r.entity_id, used: 0, sessions: new Set() };
+            row.used += 1;
+            if (r.session_id) row.sessions.add(r.session_id);
+            news.set(r.entity_id, row);
+        }
+    }
+    const avg = (list) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : null);
+    return {
+        promotions: [...promotions.values()].map((p) => ({ ...p, avgOrganicScore: avg(p.organicScores), avgHypotheticalScore: avg(p.hypotheticalScores), organicScores: undefined, hypotheticalScores: undefined })),
+        news: [...news.values()].map((n) => ({ newsId: n.newsId, used: n.used, sessions: n.sessions.size })),
+    };
+}
+
+module.exports = { EVENT_TYPES, LINK_EVENT_TYPES, summarizeOperatorContent, CTA_TYPES, validateEvent, recordLinkEvent, summarize, getLinkEventStore, setLinkEventStoreForTests, createMemoryLinkEventStore };

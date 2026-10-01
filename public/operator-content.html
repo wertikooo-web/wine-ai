@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рекомендации и новинки — Wine AI</title>
+<style>
+  :root { --wine: #7b1e3a; --muted: #6b6b6b; --border: #e6dfd6; --bg: #faf7f2; --ok: #1e7b45; --warn: #a15c00; --bad: #b3261e; }
+  body { margin: 0; font: 14px/1.45 -apple-system, system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: #222; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { color: var(--wine); font-size: 22px; margin: 8px 0 4px; }
+  h2 { font-size: 18px; margin: 0 0 6px; color: var(--wine); }
+  h3 { font-size: 14px; margin: 14px 0 6px; }
+  .sub { color: var(--muted); margin-bottom: 16px; }
+  section { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 18px; }
+  .help { color: var(--muted); margin: 0 0 10px; }
+  textarea { width: 100%; min-height: 180px; box-sizing: border-box; font: inherit; padding: 10px; border: 1px solid var(--border); border-radius: 10px; resize: vertical; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 10px 0; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  input, select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; }
+  input[type=number] { width: 70px; }
+  button { font: inherit; font-weight: 600; padding: 8px 18px; border: 0; border-radius: 10px; background: var(--wine); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .status { color: var(--muted); font-size: 13px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eee; }
+  .pill.on { background: #e3f4ea; color: var(--ok); } .pill.shadow { background: #fff2dc; color: var(--warn); } .pill.off { background: #f1eeee; color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .s-resolved, .s-indexed { color: var(--ok); } .s-ambiguous, .s-unresolved, .s-rejected_instruction_like, .s-winery_without_wine { color: var(--bad); } .s-partially_resolved, .s-indexed_topic_only, .s-indexed_text_only { color: var(--warn); }
+  .err { color: var(--bad); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Рекомендации и новинки</h1>
+  <div class="sub">Текст оператора — это данные, а не инструкции для ассистента. При сохранении он разбирается на конкретные вина и новости; в разговор попадает только то, что подходит к вопросу гостя. Изменения действуют сразу, без деплоя.</div>
+
+  <section id="rec">
+    <h2>Рекомендации <span class="pill" id="recPill"></span></h2>
+    <p class="help">Укажите вина или винодельни, которым сейчас нужно давать дополнительный приоритет, и при каких запросах их учитывать (например: «Driada Chardonnay — для белых сухих и к рыбе»). Приоритет действует только среди вин, которые и так подходят под запрос: цвет, сладость, бюджет и исключения гостя всегда важнее. Цены, награды и оценки из этого текста не используются как факты.</p>
+    <textarea id="recText" maxlength="10000" aria-label="Рекомендации"></textarea>
+    <div class="row">
+      <label><input type="checkbox" id="recEnabled"> Активно</label>
+      <label>Режим <select id="recMode"><option value="off">Выкл</option><option value="shadow">Тень (только аналитика)</option><option value="on">Вкл</option></select></label>
+      <label>Сила приоритета <input type="number" id="recBoost" min="0" max="20" step="1"></label>
+      <label>Активно до <input type="datetime-local" id="recUntil"></label>
+      <button id="recSave">Сохранить</button>
+    </div>
+    <div class="status" id="recStatus"></div>
+    <h3>Как распознано</h3>
+    <div class="scroll"><table><thead><tr><th>Строка</th><th>Статус</th><th>Вина / винодельни</th><th>Условия</th></tr></thead><tbody id="recLines"></tbody></table></div>
+  </section>
+
+  <section id="news">
+    <h2>Новинки <span class="pill" id="newsPill"></span></h2>
+    <p class="help">Добавьте новые вина, дегустации, события, изменения виноделен и другую актуальную информацию. Каждый абзац или пункт списка — отдельная новость. В ответ попадают максимум 2 новости, подходящие к вопросу, с пометкой «свежая информация».</p>
+    <textarea id="newsText" maxlength="10000" aria-label="Новинки"></textarea>
+    <div class="row">
+      <label><input type="checkbox" id="newsEnabled"> Активно</label>
+      <label>Активно с <input type="datetime-local" id="newsFrom"></label>
+      <label>Активно до <input type="datetime-local" id="newsUntil"></label>
+      <button id="newsSave">Сохранить</button>
+    </div>
+    <div class="status" id="newsStatus"></div>
+    <h3>Как распознано</h3>
+    <div class="scroll"><table><thead><tr><th>Новость</th><th>Статус</th><th>Винодельни / вина</th><th>Темы</th></tr></thead><tbody id="newsLines"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Аналитика (30 дней)</h2>
+    <h3>Рекомендации: что изменил бы / изменил приоритет</h3>
+    <div class="scroll"><table><thead><tr><th>Вино</th><th>Оценено</th><th>Подходило</th><th>Изменило бы порядок</th><th>Стало бы №1</th><th>Ср. органич. балл</th><th>Ср. балл с приоритетом</th><th>Причины отказа</th></tr></thead><tbody id="anaRec"></tbody></table></div>
+    <h3>Новинки в ответах</h3>
+    <div class="scroll"><table><thead><tr><th>Новость</th><th>Использована</th><th>Сессий</th></tr></thead><tbody id="anaNews"></tbody></table></div>
+  </section>
+</main>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var REASONS = { color_mismatch: 'другой цвет', color_unverified: 'цвет не подтверждён', sweetness_mismatch: 'другая сладость', sweetness_unverified: 'сладость не подтверждена', over_budget: 'дороже бюджета', price_unknown_with_budget: 'цена неизвестна', user_excluded: 'гость исключил', not_relevant: 'не подходит к запросу', facts_unavailable: 'нет данных в каталоге', rule_requires_color: 'правило: другой цвет', rule_requires_sweetness: 'правило: другая сладость', rule_requires_food: 'правило: другое блюдо' };
+  var STATUS = { resolved: 'найдено', partially_resolved: 'частично', ambiguous: 'неоднозначно — уточните', unresolved: 'не найдено в каталоге', winery_conditions: 'условия для винодельни', winery_without_wine: 'винодельня без вина — не продвигается', ignored_text: 'текст', indexed: 'привязано', indexed_topic_only: 'только тема', indexed_text_only: 'без привязки', rejected_instruction_like: 'отклонено: похоже на инструкцию' };
+  function td(text, cls) { var c = document.createElement('td'); c.textContent = text == null || text === '' ? '—' : String(text); if (cls) c.className = cls; return c; }
+  function fill(id, rows, build) { var body = $(id); body.textContent = ''; if (!rows.length) { var tr = document.createElement('tr'); var c = td('Нет данных'); c.colSpan = 8; tr.appendChild(c); body.appendChild(tr); return; } rows.forEach(function (r) { var tr = document.createElement('tr'); build(r).forEach(function (c) { tr.appendChild(c); }); body.appendChild(tr); }); }
+  function toLocal(iso) { if (!iso) return ''; var d = new Date(iso); var p = function (n) { return String(n).padStart(2, '0'); }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  function fromLocal(v) { return v ? new Date(v).toISOString() : null; }
+  function cond(c) { if (!c) return ''; var out = []; if (c.color) out.push({ red: 'красное', white: 'белое', rose: 'розовое', sparkling: 'игристое' }[c.color] || c.color); if (c.sweetness) out.push({ dry: 'сухое', semi_dry: 'полусухое', semi_sweet: 'полусладкое', sweet: 'сладкое' }[c.sweetness] || c.sweetness); if (c.food) out.push('к: ' + c.food); return out.join(', '); }
+  function pill(el, active, mode) { el.className = 'pill ' + (active ? (mode === 'shadow' ? 'shadow' : 'on') : 'off'); el.textContent = active ? (mode === 'shadow' ? 'тень' : 'активно') : 'выключено'; }
+  function stamp(b) { return b ? 'Сохранено ' + new Date(b.updatedAt).toLocaleString('ru-RU') + ' · версия ' + b.version : 'Ещё не сохранялось.'; }
+  function renderRec(b) {
+    var p = (b && b.parsed) || {};
+    $('recText').value = b ? b.rawText : ''; $('recEnabled').checked = Boolean(b && b.enabled); $('recMode').value = (b && b.mode) || 'off';
+    $('recBoost').value = b && b.settings && b.settings.boost != null ? b.settings.boost : window.__defaults.boost; $('recUntil').value = toLocal(b && b.activeUntil);
+    pill($('recPill'), b && b.active, b && b.mode);
+    var c = p.counts || {}; $('recStatus').textContent = stamp(b) + (b ? ' · продвигается вин: ' + (c.promoted || 0) + (c.ambiguous ? ' · неоднозначно: ' + c.ambiguous : '') + (c.unresolved ? ' · не найдено: ' + c.unresolved : '') : '');
+    fill('recLines', p.lines || [], function (l) { var names = (l.wines || []).map(function (w) { return (w.wineryName ? w.wineryName + ' ' : '') + w.wineName; }).concat(l.wineries || []).concat((l.ambiguous || []).map(function (a) { return a.matched + ' (' + a.candidates.length + ' вариантов)'; })); return [td(l.text), td((STATUS[l.status] || l.status) + (l.warnings && l.warnings.length ? ' · инструкции в тексте игнорируются' : ''), 's-' + l.status), td(names.join('; ')), td(cond(l.conditions))]; });
+  }
+  function renderNews(b) {
+    var p = (b && b.parsed) || {};
+    $('newsText').value = b ? b.rawText : ''; $('newsEnabled').checked = Boolean(b && b.enabled); $('newsFrom').value = toLocal(b && b.activeFrom); $('newsUntil').value = toLocal(b && b.activeUntil);
+    pill($('newsPill'), b && b.active, 'on');
+    $('newsStatus').textContent = stamp(b) + (b ? ' · новостей: ' + ((p.counts || {}).items || 0) + ((p.counts || {}).rejected ? ' · отклонено: ' + p.counts.rejected : '') : '');
+    fill('newsLines', p.lines || [], function (l) { return [td(l.text), td(STATUS[l.status] || l.status, 's-' + l.status), td((l.entities || []).join(', ')), td((l.topics || []).join(', '))]; });
+  }
+  function authFail(r) { if (r.status === 401 || r.status === 403) { location.href = '/login?next=' + encodeURIComponent('/dashboard/content'); throw new Error('auth'); } return r.json(); }
+  function load() {
+    fetch('/api/operator-content', { credentials: 'same-origin' }).then(authFail).then(function (d) {
+      window.__defaults = d.defaults || { boost: 8 }; renderRec(d.recommendations); renderNews(d.news);
+    }).catch(function () {});
+    fetch('/api/analytics/operator-content?days=30', { credentials: 'same-origin' }).then(authFail).then(function (d) {
+      var s = d.summary || {};
+      fill('anaRec', s.promotions || [], function (p) { var reasons = Object.keys(p.exclusionReasons || {}).map(function (k) { return (REASONS[k] || k) + ': ' + p.exclusionReasons[k]; }).join(', '); return [td(p.name || p.wineId), td(p.evaluated), td(p.eligible), td(p.wouldChange), td(p.top1), td(p.avgOrganicScore), td(p.avgHypotheticalScore), td(reasons)]; });
+      fill('anaNews', s.news || [], function (n) { return [td(n.newsId), td(n.used), td(n.sessions)]; });
+    }).catch(function () {});
+  }
+  function save(type, body, btn, statusEl) {
+    btn.disabled = true; statusEl.textContent = 'Сохраняю…';
+    fetch('/api/operator-content/' + type, { method: 'PUT', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      .then(authFail).then(function (d) { if (!d.ok) throw new Error(d.error || 'save_failed'); load(); })
+      .catch(function (e) { statusEl.innerHTML = ''; var s = document.createElement('span'); s.className = 'err'; s.textContent = 'Не сохранено: ' + e.message; statusEl.appendChild(s); })
+      .then(function () { btn.disabled = false; });
+  }
+  $('recSave').addEventListener('click', function () { save('recommendations', { rawText: $('recText').value, enabled: $('recEnabled').checked, mode: $('recMode').value, boost: Number($('recBoost').value), activeUntil: fromLocal($('recUntil').value) }, $('recSave'), $('recStatus')); });
+  $('newsSave').addEventListener('click', function () { save('news', { rawText: $('newsText').value, enabled: $('newsEnabled').checked, activeFrom: fromLocal($('newsFrom').value), activeUntil: fromLocal($('newsUntil').value) }, $('newsSave'), $('newsStatus')); });
+  window.__defaults = { boost: 8 };
+  load();
+}());
+</script>
+</body>
+</html>
