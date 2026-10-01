@@ -14,35 +14,18 @@
 
 const { getCompanionStore, getIndexSync, normalizeName } = require('./companionCatalog');
 
-// companion `type` is free text from WineMD (mostly Russian: «красное»,
-// «белое», «розовое», «сладкое», «коллекционное»); EN/RO spellings accepted.
-const COLOR_BY_TYPE = [
-    [/красн|^red\b|\bred\b|ro[sș]u|rosie/i, 'red'],
-    [/бел|white|\balb/i, 'white'],
-    [/розов|ros[eé]\b|\broz/i, 'rose'],
-    [/игрист|sparkling|spumant|brut/i, 'sparkling'],
-];
-const SWEETNESS_BY_TEXT = [
-    [/полусладк|semi[- ]?sweet|demidulce/i, 'semi_sweet'],
-    [/полусух|semi[- ]?dry|demisec/i, 'semi_dry'],
-    [/сладк|\bsweet\b|dulce|dessert|десерт/i, 'sweet'],
-    [/сух|\bdry\b|\bsec\b|brut/i, 'dry'],
-];
-
-function firstMatch(table, value) {
-    const text = String(value || '').trim();
-    if (!text) return null;
-    for (const [re, out] of table) if (re.test(text)) return out;
-    return null;
-}
+// Colour and sweetness labels are normalized by the one shared,
+// deterministic mapper (src/companion/wineAttributes.js) that also builds
+// the import data, so the import and the runtime cannot disagree.
+const { colorFromLabel, sweetnessFromLabel } = require('./wineAttributes');
 
 function colorOf(record) {
-    return firstMatch(COLOR_BY_TYPE, record.type);
+    return colorFromLabel(record.type);
 }
 
 // Explicit `sweetness` wins; a type of «сладкое» states sweetness too.
 function sweetnessOf(record) {
-    return firstMatch(SWEETNESS_BY_TEXT, record.sweetness) || (/сладк|sweet|dulce/i.test(String(record.type || '')) ? 'sweet' : null);
+    return sweetnessFromLabel(record.sweetness) || (/сладк|десерт|sweet|dulce/i.test(String(record.type || '')) ? 'sweet' : null);
 }
 
 function factsFromRecord(record) {
