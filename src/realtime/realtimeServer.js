@@ -583,6 +583,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // show_links puts verified links into this client's chat (presentation
     // only; no turn/generation state is read or changed).
     toolContext.emitToClient = (event) => emit(event);
+    // Read-only attribution for Dashboard-content analytics (recommendation /
+    // news events): which session, provider, channel and language. No turn,
+    // generation or lifecycle state.
+    toolContext.analytics = () => ({ sessionId, provider: providerMetadata.provider || null, channel: sessionAccess.channel || null, language: sessionLanguage });
     const livePersonaState = liveTestSession
         ? liveTestSession.service.personaStateFor(liveTestSession.snapshot, personaStore.getProfilesOverrides())
         : null;

@@ -57,3 +57,5 @@ jobs:
 
       - name: Versioned builder integration tests (real PostgreSQL + pgvector)
         run: node tests/buildRegistryBuilder.postgres.integration.test.js
+      - name: Operator content store (real PostgreSQL)
+        run: node tests/operatorContentStore.postgres.integration.test.js
