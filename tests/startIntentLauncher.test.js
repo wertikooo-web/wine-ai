@@ -20,7 +20,20 @@ const { pathToFileURL } = require('url');
   } = await import(launcherUrl);
   const { ConversationOrchestrator, CONVERSATION_STATES } = await import(orchestratorUrl);
 
-  assert.deepStrictEqual(START_INTENTS.map((intent) => intent.id), ['choose_wine', 'pair_food', 'learn_wine', 'visit_winery']);
+  assert.deepStrictEqual(START_INTENTS.map((intent) => intent.id), ['choose_wine', 'find_winery', 'pair_food', 'visit_winery', 'find_tasting', 'learn_wine']);
+  // Public /lite: five guest entry points, existing intent ids reused.
+  const liteIds = START_INTENTS.filter((intent) => intent.lite !== false).map((intent) => intent.id);
+  assert.deepStrictEqual(liteIds, ['choose_wine', 'find_winery', 'pair_food', 'visit_winery', 'find_tasting']);
+  const expectedLabels = {
+    ru: ['Подобрать вино', 'Винодельни', 'Вино к еде', 'Куда поехать', 'Дегустации'],
+    ro: ['Alege vinul', 'Vinării', 'Vin pentru mâncare', 'Unde să mergi', 'Degustări'],
+    en: ['Choose Wine', 'Wineries', 'Food Pairing', 'Visit Wineries', 'Tastings'],
+  };
+  for (const [lang, labels] of Object.entries(expectedLabels)) {
+    assert.deepStrictEqual(liteIds.map((id) => getStartIntentConfig(id, lang, null).label), labels, `${lang} labels`);
+  }
+  // The starter's echo is hidden in /lite by this prefix (dashboard.html isScriptedLineEcho).
+  assert(getStartIntentCopy('find_tasting', 'ru', null).starter.startsWith('Conversation start context:'));
   assert.deepStrictEqual(START_INTENT_LANGUAGES, ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja']);
 
   for (const lang of START_INTENT_LANGUAGES) {

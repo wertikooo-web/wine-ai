@@ -5048,8 +5048,11 @@
   }
 
   const SCRIPTED_LINE_PREFIX = '[system instruction, speak this exact sentence verbatim and nothing else]';
+  // Also the echo of a start-intent card's starter (StartIntentLauncher
+  // buildStartIntentStarter): the guest tapped a card, not typed this.
   function isScriptedLineEcho(text) {
-    return String(text || '').trimStart().startsWith('[system instruction');
+    const value = String(text || '').trimStart();
+    return value.startsWith('[system instruction') || value.startsWith('Conversation start context:');
   }
 
   // Best-effort: asks the model (via the same text-turn channel typing a

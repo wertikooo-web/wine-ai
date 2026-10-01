@@ -14,7 +14,7 @@ const ALLOWED_SESSION_LIMIT_MINUTES = [2.5, 3, 5, 10];
 const DEFAULT_SESSION_LIMIT_MINUTES = 3;
 const SESSION_LIMIT_CONTEXTS = ['kiosk', 'mobile_qr'];
 const START_INTENT_LANGUAGES = ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja'];
-const START_INTENT_IDS = ['choose_wine', 'pair_food', 'learn_wine', 'visit_winery'];
+const START_INTENT_IDS = ['choose_wine', 'pair_food', 'learn_wine', 'visit_winery', 'find_winery', 'find_tasting'];
 
 let cache = {
     activeProfileId: 'classic',
