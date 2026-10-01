@@ -20,6 +20,8 @@ const { findWinesInTexts } = require('../companion/companionCatalog');
 const wineryLinks = require('../companion/wineryLinks');
 const { recordLinkEvent } = require('../analytics/linkEvents');
 const operatorContent = require('../operatorContent');
+const { catalogPoolMode } = require('../knowledge/catalogCandidates');
+const { getAllFactsSync } = require('../companion/companionWineFacts');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -225,6 +227,30 @@ function promotionHook(toolContext) {
     };
 }
 
+// Fix A: verified wine.md wines as recommendation candidates
+// (RECOMMEND_CATALOG_POOL off | shadow | on, default shadow). In shadow the
+// comparison old-vs-new top 3 is recorded and the guest gets the organic
+// result. Never throws.
+function catalogPoolHook(toolContext) {
+    const mode = catalogPoolMode();
+    if (mode === 'off') return null;
+    return {
+        mode,
+        facts: getAllFactsSync,
+        record(decision) {
+            try {
+                const names = (list) => (list || []).map((c) => String(c.name || '').slice(0, 40));
+                const organic = names(decision.organic);
+                const pooled = names(decision.pooled);
+                const a = toolContext && typeof toolContext.analytics === 'function' ? toolContext.analytics() : {};
+                const detail = { m: decision.mode, o: organic, p: pooled, chg: organic.join('|') !== pooled.join('|') ? 1 : 0, n: decision.eligible, q: decision.prefs, l: a.language || null };
+                console.log('[catalog_pool]', JSON.stringify(detail));
+                recordLinkEvent({ event: 'organic_pool_compared', entityType: 'unknown', entityId: 'catalog_pool', entityName: pooled[0] || null, ctaType: 'none', sessionId: a.sessionId || null, channel: a.channel || 'lite', detail: JSON.stringify(detail).slice(0, 200) });
+            } catch { /* analytics never affect the answer */ }
+        },
+    };
+}
+
 // Operator News (Dashboard): at most MAX_NEWS_ITEMS items RELEVANT to this
 // question, as data with explicit provenance (source_type operator_news).
 // Never the whole News text, never a system-prompt addition. Never throws.
@@ -312,6 +338,7 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
                 allowCatalog: policy.allowCatalog,
                 limit: 8,
                 promotion: promotionHook(toolContext),
+                catalogPool: catalogPoolHook(toolContext),
             });
         } catch (error) {
             console.log('[wine_intelligence]', error && error.message || error);
@@ -639,4 +666,4 @@ function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
 
 const impl = createImpl();
 
-module.exports = { declaration, impl, createImpl, attachOperatorNews, promotionHook };
+module.exports = { declaration, impl, createImpl, attachOperatorNews, promotionHook, catalogPoolHook };

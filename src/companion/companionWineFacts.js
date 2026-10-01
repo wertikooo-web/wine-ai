@@ -28,13 +28,27 @@ function sweetnessOf(record) {
     return sweetnessFromLabel(record.sweetness) || (/сладк|десерт|sweet|dulce/i.test(String(record.type || '')) ? 'sweet' : null);
 }
 
+// "Terra Dacia Syrah" stays as is; "Argilos Rosu" becomes "Basavin Winery
+// Argilos Rosu" -- the winery is prepended only when the wine name does not
+// already start with it (or its first word).
+function displayNameOf(record) {
+    const wine = String(record.wineName || '').trim();
+    const winery = String(record.wineryName || '').trim();
+    if (!winery) return wine || null;
+    const fold = (v) => v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const w = fold(wine);
+    const first = fold(winery).split(/\s+/)[0];
+    if (w.startsWith(fold(winery)) || (first.length >= 4 && w.startsWith(first))) return wine;
+    return `${winery} ${wine}`.trim();
+}
+
 function factsFromRecord(record) {
     if (!record || !record.wineId) return null;
     return {
         wineId: record.wineId,
         wineName: record.wineName || null,
         wineryName: record.wineryName || null,
-        displayName: [record.wineryName, record.wineName].filter(Boolean).join(' ') || record.wineName || null,
+        displayName: displayNameOf(record),
         color: colorOf(record),
         sweetness: sweetnessOf(record),
         price: typeof record.price === 'number' && record.price > 0 ? record.price : null,
@@ -84,4 +98,27 @@ function resolveWineMentions(text, index = getIndexSync()) {
     return out;
 }
 
-module.exports = { factsFromRecord, getWineFacts, resolveWineMentions, colorOf, sweetnessOf };
+// All published wines as facts, for the recommendation candidate pool.
+// Synchronous and never waits on the database: the last loaded list is
+// returned and refreshed in the background at most every FACTS_REFRESH_MS.
+const FACTS_REFRESH_MS = 30000;
+let factsCache = [];
+let factsFetchedAt = 0;
+let factsInFlight = null;
+function refreshAllFacts(store = getCompanionStore()) {
+    if (factsInFlight) return factsInFlight;
+    factsFetchedAt = Date.now();
+    factsInFlight = Promise.resolve()
+        .then(() => store.list({ publishedOnly: true }))
+        .then((records) => { factsCache = records.map(factsFromRecord).filter(Boolean); })
+        .catch(() => { /* keep the last list */ })
+        .finally(() => { factsInFlight = null; });
+    return factsInFlight;
+}
+function getAllFactsSync() {
+    if (Date.now() - factsFetchedAt > FACTS_REFRESH_MS) refreshAllFacts();
+    return factsCache;
+}
+function resetFactsCacheForTests() { factsCache = []; factsFetchedAt = 0; factsInFlight = null; }
+
+module.exports = { factsFromRecord, getWineFacts, resolveWineMentions, colorOf, sweetnessOf, getAllFactsSync, refreshAllFacts, resetFactsCacheForTests };

@@ -26,6 +26,7 @@
 // database or network.
 
 const { WINE_STYLES, OFFICIAL_BOTTLE_PROFILES, DISH_SIGNALS, profileDish, recommendForDish } = require('../pairing/pairingEngine');
+const { catalogCandidates, rankWithCatalog } = require('./catalogCandidates');
 const { findMentionedEntities } = require('./entityResolver');
 const layeredRouter = require('./layeredRouter');
 const { classifyWineMdUrl } = require('../kos/sources/wineMdUrlClassifier');
@@ -384,7 +385,16 @@ function groundedWineStyle(name, evidence) {
     const norm = normalize(name);
     if (!norm) return null;
     const profiles = [...catalogProfilesFromEvidence(evidence), ...OFFICIAL_BOTTLE_PROFILES];
-    const profile = profiles.find((p) => (p.aliases || [p.name]).some((alias) => norm.includes(normalize(alias))));
+    // An alias grounds a name only when nothing but a vintage / volume
+    // follows it: "Aurelius Cabernet Sauvignon & Merlot & ..." is a blend,
+    // not the "Aurelius Cabernet Sauvignon" profile.
+    const profile = profiles.find((p) => (p.aliases || [p.name]).some((alias) => {
+        const a = normalize(alias);
+        const at = a ? norm.indexOf(a) : -1;
+        if (at < 0) return false;
+        const rest = norm.slice(at + a.length);
+        return !/[&/+,]|\s(?:and|si|și|и)\s|\s(?:cabernet|merlot|sauvignon|pinot|feteasca|fetească|rara|saperavi|malbec|chardonnay|riesling|traminer|viorica|shiraz|syrah)\b/i.test(rest);
+    }));
     if (profile) return profile;
     return WINE_STYLES.find((s) => norm === normalize(s.name) || s.grapes.some((g) => norm === normalize(g))) || null;
 }
@@ -441,13 +451,25 @@ function styleLabel(style) {
 // Uses the deterministic pairing engine for the style match, then grounds the
 // top styles with concrete evidence (official profiles + catalog wines of the
 // matching grapes/colour) when available.
-async function pairFood({ question, evidence, language }) {
+async function pairFood({ question, evidence, language, catalogPool = null }) {
+    const poolOn = Boolean(catalogPool && catalogPool.mode === 'on');
     const pairing = recommendForDish({ dish: question, limit: 3 });
     const dish = pairing.dish_profile || {};
     const reasons = [];
     const candidates = (pairing.candidates || []).map((candidate) => {
         const style = WINE_STYLES.find((s) => s.id === candidate.style_id) || null;
-        const bottles = [OFFICIAL_BOTTLE_PROFILES, ...catalogProfilesFromEvidence(evidence)]
+        // RECOMMEND_CATALOG_POOL=on: official bottles are spread correctly
+        // (the old `[OFFICIAL_BOTTLE_PROFILES, ...]` put the whole array in
+        // as one element, so they never matched) and verified catalog wines
+        // of the style's colour + grape are offered as bottles.
+        const officialBottles = poolOn ? OFFICIAL_BOTTLE_PROFILES : [OFFICIAL_BOTTLE_PROFILES];
+        const fold = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const catalogBottles = poolOn && style
+            ? (typeof catalogPool.facts === 'function' ? catalogPool.facts() : [])
+                .filter((f) => f.color === style.color && (f.grapes || []).length === 1 && style.grapes.some((g) => fold(f.grapes[0]) === fold(g)))
+                .map((f) => ({ name: f.displayName, grapes: style.grapes }))
+            : [];
+        const bottles = [...officialBottles, ...catalogProfilesFromEvidence(evidence), ...catalogBottles]
             .filter((p) => p && (style && style.grapes.some((g) => (p.grapes || []).includes(g))))
             .slice(0, 3)
             .map((p) => p.name);
@@ -522,7 +544,7 @@ function scoreWineCandidate(candidate, prefs) {
 // (catalog + produces relations) + confirmed official bottle profiles.
 // `promotion` (optional): operator promotion layer (src/operatorContent).
 // Absent / off → the organic ranking below is returned exactly as before.
-async function recommendWine({ question, evidence, language, promotion = null }) {
+async function recommendWine({ question, evidence, language, promotion = null, catalogPool = null }) {
     const prefs = parseRecommendationPreferences(question);
     const candidates = [];
 
@@ -556,6 +578,24 @@ async function recommendWine({ question, evidence, language, promotion = null })
                 score,
                 matches,
             });
+        }
+    }
+
+    // RECOMMEND_CATALOG_POOL (src/knowledge/catalogCandidates.js): verified
+    // wine.md wines join the candidates. shadow → computed and recorded only,
+    // the guest gets the organic result below unchanged; on → used.
+    const poolMode = catalogPool && catalogPool.mode;
+    if (poolMode === 'shadow' || poolMode === 'on') {
+        try {
+            const organicTop = candidates.slice().sort((a, b) => b.score - a.score);
+            const cat = catalogCandidates(prefs, scoreWineCandidate, typeof catalogPool.facts === 'function' ? { facts: catalogPool.facts() } : {});
+            const pooled = rankWithCatalog(organicTop, cat, prefs);
+            if (typeof catalogPool.record === 'function') {
+                catalogPool.record({ mode: poolMode, prefs, organic: organicTop.slice(0, 3), pooled, eligible: cat.length });
+            }
+            if (poolMode === 'on' && pooled.length) candidates.splice(0, candidates.length, ...pooled);
+        } catch {
+            // pool failure: organic candidates stand
         }
     }
 
@@ -874,7 +914,7 @@ async function runInference(question, options = {}) {
         limit: options.limit || 8,
         adapters: options.adapters || {},
     });
-    const result = await HANDLERS[scenario]({ question: text, evidence: gathered.evidence, language, promotion: options.promotion || null });
+    const result = await HANDLERS[scenario]({ question: text, evidence: gathered.evidence, language, promotion: options.promotion || null, catalogPool: options.catalogPool || null });
 
     const claims = buildInferenceClaims({ ...result, evidence: gathered.evidence });
     return {
@@ -910,6 +950,7 @@ async function inferForQuestion(question, options = {}) {
             limit: options.limit || 8,
             adapters: options.adapters || {},
             promotion: options.promotion || null,
+            catalogPool: options.catalogPool || null,
         });
         if (!run || !run.scenario) return null;
         return {

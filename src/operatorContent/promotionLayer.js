@@ -123,7 +123,7 @@ function applyPromotions({ question, prefs, organicSorted, promotions = [], fact
         if (reason) { evaluation.exclusion_reason = reason; evaluations.push(evaluation); continue; }
         const scored = organicEquivalentScore(facts, prefs, scoreWineCandidate);
         // The same wine may already be an organic candidate: boost that entry.
-        const existing = merged.find((c) => normalize(c.name) === normalize(facts.displayName) || normalize(c.name) === normalize(facts.wineName));
+        const existing = merged.find((c) => (c.wine_id && c.wine_id === facts.wineId) || normalize(c.name) === normalize(facts.displayName) || normalize(c.name) === normalize(facts.wineName));
         const organicScore = existing ? existing.score : scored.score;
         if (organicScore <= 0) { evaluation.exclusion_reason = 'not_relevant'; evaluation.organic_score = organicScore; evaluations.push(evaluation); continue; }
         evaluation.eligible = true;
