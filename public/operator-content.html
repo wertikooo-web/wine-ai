@@ -72,6 +72,9 @@
     <h2>Аналитика (30 дней)</h2>
     <h3>Рекомендации: что изменил бы / изменил приоритет</h3>
     <div class="scroll"><table><thead><tr><th>Вино</th><th>Оценено</th><th>Подходило</th><th>Изменило бы порядок</th><th>Стало бы №1</th><th>Ср. органич. балл</th><th>Ср. балл с приоритетом</th><th>Причины отказа</th></tr></thead><tbody id="anaRec"></tbody></table></div>
+    <h3>Каталог wine.md в рекомендациях (теневой режим)</h3>
+    <div class="status" id="poolStatus"></div>
+    <div class="scroll"><table><thead><tr><th>Время</th><th>Сейчас (органика)</th><th>С каталогом</th><th>Изменилось</th><th>Подходящих вин</th></tr></thead><tbody id="anaPool"></tbody></table></div>
     <h3>Новинки в ответах</h3>
     <div class="scroll"><table><thead><tr><th>Новость</th><th>Использована</th><th>Сессий</th></tr></thead><tbody id="anaNews"></tbody></table></div>
   </section>
@@ -113,6 +116,9 @@
       var s = d.summary || {};
       fill('anaRec', s.promotions || [], function (p) { var reasons = Object.keys(p.exclusionReasons || {}).map(function (k) { return (REASONS[k] || k) + ': ' + p.exclusionReasons[k]; }).join(', '); return [td(p.name || p.wineId), td(p.evaluated), td(p.eligible), td(p.wouldChange), td(p.top1), td(p.avgOrganicScore), td(p.avgHypotheticalScore), td(reasons)]; });
       fill('anaNews', s.news || [], function (n) { return [td(n.newsId), td(n.used), td(n.sessions)]; });
+      var pool = s.catalogPool || { compared: 0, changed: 0, samples: [] };
+      $('poolStatus').textContent = 'Сравнений: ' + pool.compared + ' · изменился бы топ-3: ' + pool.changed + (pool.compared ? ' (' + Math.round(pool.changed * 100 / pool.compared) + '%)' : '') + (pool.eligibleAvg != null ? ' · в среднем подходящих вин: ' + pool.eligibleAvg : '') + '. Включение: переменная RECOMMEND_CATALOG_POOL=on в Railway.';
+      fill('anaPool', pool.samples || [], function (p) { return [td(p.at ? new Date(p.at).toLocaleString('ru-RU') : ''), td((p.organic || []).join(' · ')), td((p.pooled || []).join(' · ')), td(p.changed ? 'да' : 'нет'), td(p.eligible)]; });
     }).catch(function () {});
   }
   function save(type, body, btn, statusEl) {

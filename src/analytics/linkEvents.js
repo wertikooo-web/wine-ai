@@ -200,7 +200,24 @@ function summarizeOperatorContent(rows) {
         }
     }
     const avg = (list) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : null);
+    // Fix A shadow: how often the verified wine.md pool would change the top 3.
+    const pool = { compared: 0, changed: 0, byMode: {}, pooledTop: {}, organicTop: {}, eligibleAvg: null, samples: [] };
+    const eligible = [];
+    for (const r of rows) {
+        if (r.event !== 'organic_pool_compared') continue;
+        let d = {};
+        try { d = JSON.parse(r.detail || '{}'); } catch { /* truncated detail */ }
+        pool.compared += 1;
+        if (d.chg) pool.changed += 1;
+        pool.byMode[d.m || 'unknown'] = (pool.byMode[d.m || 'unknown'] || 0) + 1;
+        if (Array.isArray(d.p) && d.p[0]) pool.pooledTop[d.p[0]] = (pool.pooledTop[d.p[0]] || 0) + 1;
+        if (Array.isArray(d.o) && d.o[0]) pool.organicTop[d.o[0]] = (pool.organicTop[d.o[0]] || 0) + 1;
+        if (typeof d.n === 'number') eligible.push(d.n);
+        if (pool.samples.length < 20) pool.samples.push({ at: r.created_at, organic: d.o || [], pooled: d.p || [], changed: Boolean(d.chg), eligible: d.n, prefs: d.q || null });
+    }
+    pool.eligibleAvg = avg(eligible);
     return {
+        catalogPool: pool,
         promotions: [...promotions.values()].map((p) => ({ ...p, avgOrganicScore: avg(p.organicScores), avgHypotheticalScore: avg(p.hypotheticalScores), organicScores: undefined, hypotheticalScores: undefined })),
         news: [...news.values()].map((n) => ({ newsId: n.newsId, used: n.used, sessions: n.sessions.size })),
     };

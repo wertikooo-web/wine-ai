@@ -239,13 +239,16 @@ function catalogPoolHook(toolContext) {
         facts: getAllFactsSync,
         record(decision) {
             try {
-                const names = (list) => (list || []).map((c) => String(c.name || '').slice(0, 40));
+                const names = (list) => (list || []).map((c) => String(c.name || ''));
                 const organic = names(decision.organic);
                 const pooled = names(decision.pooled);
                 const a = toolContext && typeof toolContext.analytics === 'function' ? toolContext.analytics() : {};
-                const detail = { m: decision.mode, o: organic, p: pooled, chg: organic.join('|') !== pooled.join('|') ? 1 : 0, n: decision.eligible, q: decision.prefs, l: a.language || null };
-                console.log('[catalog_pool]', JSON.stringify(detail));
-                recordLinkEvent({ event: 'organic_pool_compared', entityType: 'unknown', entityId: 'catalog_pool', entityName: pooled[0] || null, ctaType: 'none', sessionId: a.sessionId || null, channel: a.channel || 'lite', detail: JSON.stringify(detail).slice(0, 200) });
+                const q = decision.prefs || {};
+                const detail = { m: decision.mode, chg: organic.join('|') !== pooled.join('|') ? 1 : 0, n: decision.eligible, q: [q.color, q.sweetness, q.budget].filter(Boolean).join('/'), l: a.language || null, o: organic.slice(0, 1).map((n) => n.slice(0, 28)), p: pooled.map((n) => n.slice(0, 28)) };
+                console.log('[catalog_pool]', JSON.stringify({ ...detail, o: organic, p: pooled }));
+                // link_events.detail holds 200 chars: keep it valid JSON.
+                while (JSON.stringify(detail).length > 200 && detail.p.length > 1) detail.p.pop();
+                recordLinkEvent({ event: 'organic_pool_compared', entityType: 'unknown', entityId: 'catalog_pool', entityName: pooled[0] || null, ctaType: 'none', sessionId: a.sessionId || null, channel: a.channel || 'lite', detail: JSON.stringify(detail) });
             } catch { /* analytics never affect the answer */ }
         },
     };

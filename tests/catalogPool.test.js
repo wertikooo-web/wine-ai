@@ -83,6 +83,22 @@ async function run() {
     const ms = Number(process.hrtime.bigint() - t0) / 1e6 / 200;
     console.log(`  catalog pool over ${facts.length} wines: ${ms.toFixed(3)} ms per recommendation`);
     t.ok(ms < 10, 'catalog pool under 10 ms');
+
+    // Shadow record: valid JSON within link_events' 200-char detail, summarized.
+    const linkEvents = require('../src/analytics/linkEvents');
+    const events = [];
+    linkEvents.setLinkEventStoreForTests({ backend: 'memory', async record(e) { events.push(e); }, async list() { return events.slice(); } });
+    const { catalogPoolHook } = require('../src/tools/searchLayeredKnowledge');
+    const hook = catalogPoolHook({ analytics: () => ({ sessionId: 's1', language: 'ru', channel: 'lite' }) });
+    const long = (n) => ({ name: `Very Long Winery Name Number ${n} With A Long Wine Title Reserve` });
+    hook.record({ mode: 'shadow', prefs: { color: 'red', sweetness: 'dry', budget: 300 }, organic: [long(1), long(2), long(3)], pooled: [long(4), long(5), long(6)], eligible: 156 });
+    await new Promise((r) => setTimeout(r, 20));
+    const e = events.find((x) => x.event === 'organic_pool_compared');
+    t.ok(e && e.detail.length <= 200, 'detail fits link_events');
+    const d = JSON.parse(e.detail);
+    t.equal(d.chg, 1); t.equal(d.n, 156); t.equal(d.q, 'red/dry/300'); t.equal(e.session_id, 's1');
+    const summary = linkEvents.summarizeOperatorContent(events).catalogPool;
+    t.equal(summary.compared, 1); t.equal(summary.changed, 1);
 }
 
 module.exports = { run };
@@ -91,3 +107,4 @@ if (require.main === module) {
     run().then(() => { console.log('catalogPool tests passed'); process.exit(0); })
         .catch((error) => { console.error(error); process.exit(1); });
 }
+
