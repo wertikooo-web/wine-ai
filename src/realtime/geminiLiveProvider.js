@@ -109,6 +109,25 @@ function hashText(text) {
 // detection) excludes silence between utterances from being part of any
 // turn, matching how tap_to_start actually behaves (many short turns, not
 // one long one).
+// Cost (production audit 2026-10-01): Gemini Live re-bills the whole
+// context on every turn, so a 3-minute conversation's per-turn input grew
+// 9K -> 90K tokens. A sliding window keeps the context bounded: once it
+// passes `triggerTokens` the oldest turns are dropped down to
+// `targetTokens` (system instructions always stay; the window always starts
+// at a user turn). Gemini minimum trigger is 5000. GEMINI_CONTEXT_TRIGGER_TOKENS=off
+// disables it.
+const DEFAULT_CONTEXT_TRIGGER_TOKENS = 14000;
+const DEFAULT_CONTEXT_TARGET_TOKENS = 12000;
+function geminiContextWindowCompression(env = process.env) {
+    const rawTrigger = String(env.GEMINI_CONTEXT_TRIGGER_TOKENS ?? '').trim().toLowerCase();
+    if (rawTrigger === 'off' || rawTrigger === '0') return null;
+    const trigger = Number(rawTrigger) >= 5000 ? Math.round(Number(rawTrigger)) : DEFAULT_CONTEXT_TRIGGER_TOKENS;
+    const rawTarget = Number(env.GEMINI_CONTEXT_TARGET_TOKENS);
+    let target = Number.isFinite(rawTarget) && rawTarget > 0 ? Math.round(rawTarget) : DEFAULT_CONTEXT_TARGET_TOKENS;
+    if (target >= trigger) target = Math.round(trigger * 0.75);
+    return { triggerTokens: String(trigger), slidingWindow: { targetTokens: String(target) } };
+}
+
 function buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity, voiceMode }) {
     if (voiceMode === 'tap_to_start') {
         return {
@@ -425,6 +444,12 @@ class GeminiLiveProviderSession {
                 promptApplyCount: this.promptApplyCount,
             });
             const realtimeInputConfig = buildGeminiRealtimeInputConfig({ ActivityHandling, TurnCoverage, StartSensitivity, EndSensitivity, voiceMode: this.voiceMode });
+            const contextWindowCompression = geminiContextWindowCompression();
+            log('gemini_context_window', {
+                providerInstanceId: this.instanceId,
+                triggerTokens: contextWindowCompression?.triggerTokens || 'off',
+                targetTokens: contextWindowCompression?.slidingWindow?.targetTokens || 'off',
+            });
             // TEMPORARY diagnostic (tap_to_start only) for the
             // provider-native-VAD-not-working investigation — logs exactly
             // what config was sent to Gemini. Nothing secret: no API key,
@@ -498,6 +523,11 @@ class GeminiLiveProviderSession {
                     // all, which removes the leak at its source rather than
                     // trying to filter/detect it after the fact.
                     thinkingConfig: { thinkingBudget: 0 },
+                    // Cost: Gemini Live re-bills the whole context on every
+                    // turn. The sliding window drops the oldest turns once
+                    // the context passes the trigger (system instructions
+                    // always stay). See geminiContextWindowCompression().
+                    ...(contextWindowCompression ? { contextWindowCompression } : {}),
                     systemInstruction: {
                         parts: [{
                             text: systemPrompt,
@@ -1485,6 +1515,7 @@ module.exports = {
     buildGeminiSpeechConfig,
     speechLanguageCode,
     buildGeminiRealtimeInputConfig,
+    geminiContextWindowCompression,
     describeSpeechConfigShape,
     normalizeRotationMode,
     MIN_VALID_PCM_BYTES,
