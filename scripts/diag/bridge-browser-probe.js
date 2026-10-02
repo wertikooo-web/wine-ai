@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
+const { grantLiteGuest } = require('./liteGuestAccess');
 
 const BASE_URL = String(process.env.BASE_URL || 'https://wine-ai-realtime-production.up.railway.app').replace(/\/$/, '');
 const OUT_DIR = process.env.PROBE_OUT || '/tmp/bridge-probe';
@@ -90,6 +91,12 @@ async function main() {
             '--autoplay-policy=no-user-gesture-required',
         ],
     });
+    // /lite is closed beta: open it as a guest with a temporary access code.
+    const liteGuest = await grantLiteGuest({ baseUrl: BASE_URL, adminToken: process.env.ADMIN_TOKEN, label: 'bridge-browser-probe' });
+    if (liteGuest) {
+        const openPage = browser.newPage.bind(browser);
+        browser.newPage = async () => { const p = await openPage(); await p.setCookie(liteGuest.cookie); return p; };
+    }
     const page = await browser.newPage();
     await page.evaluateOnNewDocument(INSTRUMENT);
     const pageErrors = [];
@@ -105,6 +112,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, LISTEN_MS));
     const log = await page.evaluate(() => window.__probe);
     const timerText = await page.evaluate(() => (document.querySelector('.voice-session-timer') || {}).textContent || null);
+    if (liteGuest) await liteGuest.cleanup();
     await browser.close();
 
     fs.writeFileSync(path.join(OUT_DIR, 'browser-log.json'), JSON.stringify(log, null, 2));

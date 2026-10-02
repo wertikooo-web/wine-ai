@@ -50,13 +50,44 @@ const { bridgeStatus } = require('./realtime/bridgePhrases');
 const { recentKnowledgeTimings } = require('./knowledge/knowledgeTimings');
 const { issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified } = require('./security/ageVerification');
 const { classifyRoute, createAdminAuth, renderLoginPage, safeNext } = require('./security/adminAuth');
+const { createLiteAccess, createPostgresLiteAccessStore, createMemoryLiteAccessStore, renderAccessPage: renderLiteAccessPage } = require('./security/liteAccess');
 
 // Admin gate: one shared admin account, server-side sessions. Route matrix
-// and env vars: docs/ADMIN_AUTH.md. /lite and its runtime stay public.
+// and env vars: docs/ADMIN_AUTH.md. /lite needs a guest access code (below).
 const adminAuth = createAdminAuth({ log: (stage, extra) => console.log(`[WineAI] ${stage} ${JSON.stringify(extra || {})}`) });
 if (adminAuth.production && !adminAuth.loginAvailable) {
     console.warn('[WineAI] ADMIN_PASSWORD is not set: admin routes are unavailable (fail closed); /lite stays public.');
 }
+
+// Closed beta: /lite and its runtime need a temporary guest access code
+// created in the Dashboard (docs/LITE_ACCESS.md). Enforced in production;
+// LITE_ACCESS_ENFORCED=0 in Railway reopens /lite (emergency rollback).
+const liteAccess = createLiteAccess({
+    store: (process.env.DATABASE_URL && process.env.DATABASE_URL !== 'memory')
+        ? createPostgresLiteAccessStore(() => require('./knowledge/db').getPool())
+        : createMemoryLiteAccessStore(),
+    production: adminAuth.production,
+    log: (stage, extra) => console.log(`[WineAI] ${stage} ${JSON.stringify(extra || {})}`),
+});
+if (liteAccess.enforced) console.log('[WineAI] lite_access enforced: /lite needs a temporary access code');
+
+// Public routes the /lite runtime uses: a guest needs an access-code session,
+// an admin passes (src/security/adminAuth.js keeps them out of the admin gate).
+function isLiteGuestRoute(method, pathname) {
+    const key = `${method} ${pathname}`;
+    return LITE_GUEST_ROUTES.has(key)
+        || (method === 'GET' && /^\/api\/companion\/wines\/cw_[A-Za-z0-9_-]{4,60}$/.test(pathname));
+}
+const LITE_GUEST_ROUTES = new Set([
+    'GET /api/lite/config',
+    'GET /api/age-verification', 'POST /api/age-verification',
+    'GET /api/companion/catalog',
+    'GET /api/companion/wineries',
+    'POST /api/analytics/link-event',
+    'POST /api/live-test/feedback',
+    'POST /api/analytics/session-end',
+    'POST /api/analytics/purchase-click',
+]);
 
 // Small urlencoded form body (login form only).
 function readFormBody(req, maxBytes = 4096) {
@@ -126,6 +157,14 @@ async function handleAdminGate(req, res, pathname, requestUrl) {
         res.writeHead(303, { location: '/login', 'set-cookie': result.cookie, 'cache-control': 'no-store' });
         res.end();
         return true;
+    }
+    if (liteAccess.enforced && isLiteGuestRoute(req.method, pathname) && !adminAuth.isAdminRequest(req)) {
+        const access = await liteAccess.checkRequest(req);
+        if (!access.ok) {
+            res.setHeader('cache-control', 'no-store');
+            sendJson(res, 401, { ok: false, error: access.reason || 'lite_access_required' });
+            return true;
+        }
     }
     if (classifyRoute(req.method, pathname) !== 'admin') return false;
     res.setHeader('cache-control', 'no-store');
@@ -400,7 +439,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/api/cost/raw-records', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/dashboard/cost-guide', '/lite', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wineries', '/api/analytics/link-event', '/api/analytics/links', '/dashboard/links', '/api/operator-content', '/api/operator-content/:type', '/api/analytics/operator-content', '/dashboard/content', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/api/cost/raw-records', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/lite-access-control.js', '/dashboard/cost-guide', '/lite', '/lite/access', '/api/lite/access', '/api/lite-access/codes', '/api/lite-access/codes/:id', '/api/lite-access/codes/:id/revoke', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wineries', '/api/analytics/link-event', '/api/analytics/links', '/dashboard/links', '/api/operator-content', '/api/operator-content/:type', '/api/analytics/operator-content', '/dashboard/content', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -527,6 +566,71 @@ async function handleRequest(req, res) {
         try { body = await readJsonBody(req); } catch { return sendJson(res, 400, { ok: false, error: 'invalid_json' }); }
         const { probeGeminiLanguageCode } = require('./realtime/geminiLanguageCodeProbe');
         return sendJson(res, 200, await probeGeminiLanguageCode({ languageCode: body.languageCode || 'ru-RU' }));
+    }
+
+    // ---- Lite guest access (closed beta) ----
+    if (req.method === 'GET' && (pathname === '/lite/access' || pathname === '/lite/access/')) {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
+        res.end(renderLiteAccessPage());
+        return undefined;
+    }
+    if (req.method === 'GET' && pathname === '/api/lite/access') {
+        res.setHeader('cache-control', 'no-store');
+        if (!liteAccess.enforced) return sendJson(res, 200, { ok: true, open: true });
+        if (adminAuth.enforced && adminAuth.isAdminRequest(req)) return sendJson(res, 200, { ok: true, admin: true });
+        const access = await liteAccess.checkRequest(req);
+        if (!access.ok) return sendJson(res, 401, { ok: false, error: access.reason || 'lite_access_required' });
+        return sendJson(res, 200, { ok: true, expires_at: new Date(access.expiresAt).toISOString() });
+    }
+    if (req.method === 'POST' && pathname === '/api/lite/access') {
+        res.setHeader('cache-control', 'no-store');
+        let body;
+        try { body = await readJsonBody(req); } catch (error) {
+            return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+        }
+        let result;
+        try { result = await liteAccess.login(req, body && body.code); } catch (error) {
+            console.error('[WineAI] lite_access_login_error', String(error?.message || error).slice(0, 160));
+            return sendJson(res, 503, { ok: false, error: 'lite_access_unavailable' });
+        }
+        if (!result.ok) {
+            if (result.status === 401) await new Promise((r) => setTimeout(r, 400));
+            if (result.retryAfter) res.setHeader('retry-after', String(result.retryAfter));
+            return sendJson(res, result.status, { ok: false, error: result.error });
+        }
+        res.setHeader('set-cookie', result.cookie);
+        return sendJson(res, 200, { ok: true, token: result.token, expires_at: new Date(result.expiresAt).toISOString() });
+    }
+    // Operator management of the access codes (admin gate: every /api/* is
+    // admin unless listed public in src/security/adminAuth.js).
+    if (pathname === '/api/lite-access/codes' || pathname.startsWith('/api/lite-access/codes/')) {
+        res.setHeader('cache-control', 'no-store');
+        try {
+            if (req.method === 'GET' && pathname === '/api/lite-access/codes') {
+                return sendJson(res, 200, { ok: true, enforced: liteAccess.enforced, codes: await liteAccess.listCodes() });
+            }
+            if (req.method === 'POST' && pathname === '/api/lite-access/codes') {
+                let body;
+                try { body = await readJsonBody(req); } catch (error) {
+                    return sendJson(res, error.code === 'body_too_large' ? 413 : 400, { ok: false, error: error.code || 'invalid_request' });
+                }
+                const created = await liteAccess.createCode({ label: body.label, code: body.code, expiresAt: body.expires_at, expiresInMinutes: body.expires_in_minutes });
+                return sendJson(res, created.ok ? 200 : 400, created);
+            }
+            const match = pathname.match(/^\/api\/lite-access\/codes\/(lac_[A-Za-z0-9_-]{4,40})(\/revoke)?$/);
+            if (match && req.method === 'POST' && match[2]) {
+                const ok = await liteAccess.revokeCode(match[1]);
+                return sendJson(res, ok ? 200 : 404, { ok, error: ok ? undefined : 'not_found' });
+            }
+            if (match && req.method === 'DELETE' && !match[2]) {
+                const ok = await liteAccess.deleteCode(match[1]);
+                return sendJson(res, ok ? 200 : 404, { ok, error: ok ? undefined : 'not_found' });
+            }
+            return sendJson(res, 404, { ok: false, error: 'not_found' });
+        } catch (error) {
+            console.error('[WineAI] lite_access_admin_error', String(error?.message || error).slice(0, 160));
+            return sendJson(res, 503, { ok: false, error: 'lite_access_unavailable' });
+        }
     }
 
     if (req.method === 'GET' && pathname === '/api/lite/config') {
@@ -1514,7 +1618,7 @@ async function handleRequest(req, res) {
         return undefined;
     }
 
-    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js' || pathname === '/lite-companion.js' || pathname === '/wine-ai-widget.js')) {
+    if (req.method === 'GET' && (pathname === '/cost-control.js' || pathname === '/live-test-control.js' || pathname === '/lite-companion.js' || pathname === '/wine-ai-widget.js' || pathname === '/lite-access-control.js')) {
         const filePath = path.join(publicDir, pathname.slice(1));
         fs.createReadStream(filePath)
             .on('error', () => sendJson(res, 404, { ok: false, error: 'not_found' }))
@@ -2386,6 +2490,11 @@ attachRealtimeServer(server, {
     // Longest Free Conversation limit of any deployment context (backstop).
     getSessionLimitMs: () => Math.max(...[null, 'kiosk', 'mobile_qr'].map((c) => personaStore.getSessionLimitMinutes(c))) * 60 * 1000,
     isAdminRequest: (req) => !adminAuth.enforced || adminAuth.isAdminRequest(req),
+    // Closed beta: /lite guests need a temporary access code session; open
+    // sessions end when their code expires or is revoked.
+    checkLiteAccess: liteAccess.enforced ? (req) => liteAccess.checkRequest(req) : null,
+    isLiteGrantActive: (grantId, expiresAt) => liteAccess.isGrantActive(grantId, expiresAt),
+    liteAccessCheckMs: Number(process.env.LITE_ACCESS_CHECK_MS) || 15000,
     providerFactory: defaultProvider.createSession,
     providerMetadata: defaultProvider.metadata,
     resolveProvider: (requestedProvider) => providerRegistry.resolve(requestedProvider),

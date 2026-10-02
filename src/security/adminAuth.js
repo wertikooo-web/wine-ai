@@ -27,6 +27,8 @@ const ADMIN_PAGES = new Set(['/', '/dashboard', '/dashboard/', '/knowledge-studi
 const PUBLIC_EXACT = new Set([
     'GET /health',
     'GET /lite', 'GET /lite/',
+    'GET /lite/access', 'GET /lite/access/',
+    'GET /api/lite/access', 'POST /api/lite/access',
     'GET /api/lite/config',
     'GET /api/age-verification', 'POST /api/age-verification',
     'GET /api/companion/catalog',

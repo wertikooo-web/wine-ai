@@ -434,42 +434,66 @@ function attachRealtimeServer(server, options = {}) {
             return;
         }
         // Admission only: the operator channel (provider choice, Settings
-        // persona, demo catalog) needs an admin session; the public /lite
-        // channel is unchanged.
+        // persona, demo catalog) needs an admin session; the /lite channel
+        // needs a guest access code session (below) or an admin session.
         const isAdmin = typeof options.isAdminRequest === 'function' ? options.isAdminRequest(req) === true : true;
         if (url.searchParams.get('channel') !== 'lite' && !isAdmin) {
             socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
             socket.destroy();
             return;
         }
-
-        let connectionProviderFactory = providerFactory;
-        let connectionProviderMetadata = providerMetadata;
-        const liveSnapshot = (liveTest && url.searchParams.get('channel') === 'lite') ? liveTest.snapshotForNewSession() : null;
-        if (resolveProvider) {
-            try {
-                const resolved = resolveProvider(liveSnapshot ? liveSnapshot.config.provider : url.searchParams.get('provider'));
-                connectionProviderFactory = resolved.createSession;
-                connectionProviderMetadata = resolved.metadata;
-            } catch (error) {
-                socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nRealtime provider is not configured.');
-                socket.destroy();
-                return;
-            }
+        // Closed beta: a /lite guest needs a valid temporary access code
+        // session (src/security/liteAccess.js); admins pass. Admission only --
+        // nothing below changes for an admitted session.
+        if (url.searchParams.get('channel') === 'lite' && !isAdmin && typeof options.checkLiteAccess === 'function') {
+            Promise.resolve()
+                .then(() => options.checkLiteAccess(req))
+                .catch(() => ({ ok: false, reason: 'lite_access_unavailable' }))
+                .then((access) => {
+                    if (socket.destroyed) return;
+                    if (!access || !access.ok) {
+                        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+                        socket.destroy();
+                        return;
+                    }
+                    admit(access.grantId ? { grantId: access.grantId, expiresAt: access.expiresAt } : null);
+                });
+            return;
         }
+        admit(null);
 
-        if (!acceptWebSocket(req, socket)) return;
-        createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata, {
-            isAdultVerified: resolveAdultVerification(req) === true,
-            liveTest: liveSnapshot ? { service: liveTest, snapshot: liveSnapshot } : null,
-            channel: url.searchParams.get('channel') === 'lite' ? 'lite' : 'dashboard',
-            bridgeConfig: options.bridgeConfig,
-            bridgeCache: options.bridgeCache,
-            getSessionLimitMs: options.getSessionLimitMs,
-            // Admin session on the upgrade request (server.js admin gate);
-            // only gates diagnostics (prompt debug), never the conversation.
-            isAdmin,
-        });
+        function admit(liteGrant) {
+            let connectionProviderFactory = providerFactory;
+            let connectionProviderMetadata = providerMetadata;
+            const liveSnapshot = (liveTest && url.searchParams.get('channel') === 'lite') ? liveTest.snapshotForNewSession() : null;
+            if (resolveProvider) {
+                try {
+                    const resolved = resolveProvider(liveSnapshot ? liveSnapshot.config.provider : url.searchParams.get('provider'));
+                    connectionProviderFactory = resolved.createSession;
+                    connectionProviderMetadata = resolved.metadata;
+                } catch (error) {
+                    socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nRealtime provider is not configured.');
+                    socket.destroy();
+                    return;
+                }
+            }
+
+            if (!acceptWebSocket(req, socket)) return;
+            createRealtimeSession(socket, connectionProviderFactory, connectionProviderMetadata, {
+                isAdultVerified: resolveAdultVerification(req) === true,
+                liveTest: liveSnapshot ? { service: liveTest, snapshot: liveSnapshot } : null,
+                channel: url.searchParams.get('channel') === 'lite' ? 'lite' : 'dashboard',
+                bridgeConfig: options.bridgeConfig,
+                bridgeCache: options.bridgeCache,
+                getSessionLimitMs: options.getSessionLimitMs,
+                // Admin session on the upgrade request (server.js admin gate);
+                // only gates diagnostics (prompt debug), never the conversation.
+                isAdmin,
+                liteGrant,
+                isLiteGrantActive: options.isLiteGrantActive,
+                liteAccessCheckMs: options.liteAccessCheckMs,
+            });
+        }
     });
 }
 
@@ -732,6 +756,34 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             try { sendClose(socket); } catch { /* already closing */ }
         }, limitMs + graceMs);
         sessionHardStopTimer.unref?.();
+    }
+
+    // Guest access (closed beta, src/security/liteAccess.js): a /lite session
+    // opened with a temporary access code ends when that code expires or is
+    // revoked. Checked every 15 s (LITE_ACCESS_CHECK_MS); a reply in progress is never cut -- the
+    // close waits for the generation to finish (at most 60 s), then uses the
+    // same close path as the session-limit backstop above.
+    let liteAccessTimer = null;
+    let liteAccessLostAt = 0;
+    function armLiteAccessWatch() {
+        const grant = sessionAccess.liteGrant;
+        if (!grant || !grant.grantId || typeof sessionAccess.isLiteGrantActive !== 'function') return;
+        liteAccessTimer = setInterval(async () => {
+            if (socketClosed || providerClosed) { clearInterval(liteAccessTimer); liteAccessTimer = null; return; }
+            let active = true;
+            try { active = await sessionAccess.isLiteGrantActive(grant.grantId, grant.expiresAt); } catch { active = true; }
+            if (active || socketClosed) return;
+            if (!liteAccessLostAt) liteAccessLostAt = Date.now();
+            const replying = currentGeneration && (currentGeneration.status === 'pending' || currentGeneration.status === 'active');
+            if (replying && Date.now() - liteAccessLostAt < 60000) return;
+            clearInterval(liteAccessTimer);
+            liteAccessTimer = null;
+            log('lite_access_session_closed', { grant: grant.grantId, deferredMs: Date.now() - liteAccessLostAt, turnCount: turnCounter });
+            emit({ type: 'session.ended', reason: 'access_expired' });
+            closeProvider('access_expired');
+            try { sendClose(socket); } catch { /* already closing */ }
+        }, Math.max(1000, Number(sessionAccess.liteAccessCheckMs) || 15000));
+        liteAccessTimer.unref?.();
     }
 
     function rememberTurn(role, text) {
@@ -1911,6 +1963,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     function closeProvider(reason) {
         bridge.dispose();
         if (sessionHardStopTimer) { clearTimeout(sessionHardStopTimer); sessionHardStopTimer = null; }
+        if (liteAccessTimer) { clearInterval(liteAccessTimer); liteAccessTimer = null; }
         if (providerClosed) return;
         providerClosed = true;
         inputResampler.reset();
@@ -2780,6 +2833,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         closeProvider('socket_error');
         log('socket_error', { message: error.message });
     });
+    armLiteAccessWatch();
     socket.on('close', () => {
         socketClosed = true;
         if (currentGeneration) visualOrchestrator.cancel(currentGeneration.generationId, 'disconnect');

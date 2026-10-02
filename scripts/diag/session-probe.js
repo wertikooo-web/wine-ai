@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
+const { grantLiteGuest } = require('./liteGuestAccess');
 
 const BASE_URL = String(process.env.BASE_URL || 'https://wine-ai-realtime-production.up.railway.app').replace(/\/$/, '');
 const OUT_DIR = process.env.PROBE_OUT || '/tmp/session-probe';
@@ -90,6 +91,12 @@ async function main() {
         headless: true,
         args: ['--no-sandbox', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${wavPath}%noloop`, '--autoplay-policy=no-user-gesture-required'],
     });
+    // /lite is closed beta: open it as a guest with a temporary access code.
+    const liteGuest = await grantLiteGuest({ baseUrl: BASE_URL, adminToken: process.env.ADMIN_TOKEN, label: 'session-probe' });
+    if (liteGuest) {
+        const openPage = browser.newPage.bind(browser);
+        browser.newPage = async () => { const p = await openPage(); await p.setCookie(liteGuest.cookie); return p; };
+    }
     const page = await browser.newPage();
     await page.evaluateOnNewDocument(INSTRUMENT);
     await page.goto(`${BASE_URL}/lite`, { waitUntil: 'load', timeout: 60000 });
@@ -118,6 +125,7 @@ async function main() {
         await new Promise((r) => setTimeout(r, 1000));
     }
     const log = await page.evaluate(() => window.__probe);
+    if (liteGuest) await liteGuest.cleanup();
     await browser.close();
 
     fs.writeFileSync(path.join(OUT_DIR, 'session-log.json'), JSON.stringify({ log, samples }, null, 2));

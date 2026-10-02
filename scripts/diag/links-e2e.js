@@ -11,6 +11,7 @@
 //   BASE_URL=... ADMIN_TOKEN=... CHROME=... node scripts/diag/links-e2e.js
 
 const puppeteer = require('puppeteer-core');
+const { grantLiteGuest } = require('./liteGuestAccess');
 
 const BASE_URL = String(process.env.BASE_URL || 'https://wine-ai-realtime-production.up.railway.app').replace(/\/$/, '');
 const QUESTION = process.env.LINKS_QUESTION || 'Расскажи коротко про винодельню Пуркарь и её вино Negru de Purcari. Можно ли туда съездить на экскурсию?';
@@ -38,6 +39,12 @@ async function main() {
         headless: true,
         args: ['--no-sandbox', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'],
     });
+    // /lite is closed beta: open it as a guest with a temporary access code.
+    const liteGuest = await grantLiteGuest({ baseUrl: BASE_URL, adminToken: process.env.ADMIN_TOKEN, label: 'links-e2e' });
+    if (liteGuest) {
+        const openPage = browser.newPage.bind(browser);
+        browser.newPage = async () => { const p = await openPage(); await p.setCookie(liteGuest.cookie); return p; };
+    }
     const page = await browser.newPage();
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e.message || e).slice(0, 160)));
@@ -104,6 +111,7 @@ async function main() {
         console.log(`  ${b.title} ${b.image ? `(photo ${b.image})` : ''}`);
         for (const l of b.links) console.log(`      ${l.label} -> ${l.href}`);
     }
+    if (liteGuest) await liteGuest.cleanup();
     await browser.close();
     console.log(`page errors: ${JSON.stringify(pageErrors)}`);
 

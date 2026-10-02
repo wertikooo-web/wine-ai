@@ -1,5 +1,8 @@
 # Admin authentication (beta, before public `/lite`)
 
+> Since the closed beta, the `/lite` runtime routes marked public below need a
+> temporary guest access code (or an admin session): see `docs/LITE_ACCESS.md`.
+
 ```
 Public user → /lite → no login
 Admin → protected route → /login → password → server-side session cookie → Dashboard / admin APIs
