@@ -13,6 +13,7 @@ const searchWeb = require('./searchWeb');
 const searchPlace = require('./searchPlace');
 const fetchPage = require('./fetchPage');
 const showLinks = require('./showLinks');
+const getProjectInfo = require('./getProjectInfo');
 
 const TOOLS = [
     searchWineKnowledge,
@@ -27,6 +28,7 @@ const TOOLS = [
     searchPlace,
     fetchPage,
     showLinks,
+    getProjectInfo,
 ];
 
 const TOOL_DECLARATIONS = TOOLS.map((tool) => tool.declaration);

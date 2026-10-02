@@ -5,6 +5,7 @@
 
 const { searchWeb, searchOfficialSite, searchWineInfo } = require('../knowledge/webSearch');
 const { requireNonEmptyString, optionalString } = require('./toolHelpers');
+const { isProjectQuestion, topicForQuestion, getProjectInfo } = require('../knowledge/projectKnowledge');
 
 const declaration = {
     name: 'search_web',
@@ -27,6 +28,8 @@ const declaration = {
 
 async function impl(args) {
     const query = requireNonEmptyString(args.query, 'query');
+    // WINE AI's own facts come from Project Knowledge, never from the web.
+    if (isProjectQuestion(query)) return getProjectInfo(topicForQuestion(query));
     const language = optionalString(args.language, 8) || null;
 
     const result = await searchWeb(query, { language, maxResults: 5 });

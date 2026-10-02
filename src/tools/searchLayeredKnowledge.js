@@ -22,6 +22,7 @@ const { recordLinkEvent } = require('../analytics/linkEvents');
 const operatorContent = require('../operatorContent');
 const { catalogPoolMode } = require('../knowledge/catalogCandidates');
 const { getAllFactsSync } = require('../companion/companionWineFacts');
+const { isProjectQuestion, topicForQuestion, getProjectInfo } = require('../knowledge/projectKnowledge');
 
 // A follow-up turn arrives at the tool as bare text ("А какое из них легче?")
 // with no referent -- retrieval then searches for nothing in particular. The
@@ -279,6 +280,9 @@ function attachOperatorNews(output, args, toolContext) {
 function createImpl(routeImpl = routeKnowledgeWithAnswerabilityGate) {
     const layeredKnowledgeImpl = async function layeredKnowledgeImpl(args, toolContext) {
         const query = requireNonEmptyString(args.query, 'query');
+        // Questions about WINE AI itself are answered from the approved
+        // Project Knowledge, never from wine retrieval or the open web.
+        if (isProjectQuestion(query)) return getProjectInfo(topicForQuestion(query));
         const language = optionalString(args.language, 8) || null;
         const answerMode = resolveAnswerMode(args.answer_mode);
         const { query: retrievalQuery, enriched: queryEnriched } = enrichQueryWithRecentTurns(query, toolContext);
