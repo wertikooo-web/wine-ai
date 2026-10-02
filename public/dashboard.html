@@ -5031,12 +5031,29 @@
   let autoEndFallbackTimer = null;
   const AUTO_END_CLOSING_FALLBACK_MS = 10000;
   const AUTO_END_DRAIN_FALLBACK_MS = 45000;
+  // The assistant is still talking (audio playing or still streaming in --
+  // chunk gaps leave activeSources empty) or preparing an answer.
+  function assistantSpeechInProgress() {
+    return activeSources.size > 0 || !serverAudioEnded || DeviceVisual.getState() === 'thinking';
+  }
+  // A fallback never cuts the assistant mid-sentence: while it is still
+  // speaking the disconnect waits (re-checked every 1.5 s), up to 30 s more.
+  const AUTO_END_SPEECH_EXTENSION_MAX_MS = 30000;
   function armAutoEndFallback(ms) {
     if (autoEndFallbackTimer) clearTimeout(autoEndFallbackTimer);
     const owner = pendingAutoEnd;
+    if (owner && owner.fallbackPhase !== owner.phase) {
+      owner.fallbackPhase = owner.phase;
+      owner.fallbackDeadlineAt = Date.now() + ms + AUTO_END_SPEECH_EXTENSION_MAX_MS;
+    }
     autoEndFallbackTimer = setTimeout(() => {
       autoEndFallbackTimer = null;
       if (!pendingAutoEnd || pendingAutoEnd !== owner) return;
+      if (assistantSpeechInProgress() && Date.now() < (owner.fallbackDeadlineAt || 0)) {
+        sendTelemetry('auto_end_fallback_waits_for_speech', { reason: owner.reason, phase: owner.phase });
+        autoEndFallbackTimer = setTimeout(() => { autoEndFallbackTimer = null; armAutoEndFallback(0); }, 1500);
+        return;
+      }
       const reason = pendingAutoEnd.reason;
       sendTelemetry('auto_end_fallback_disconnect', { reason, phase: pendingAutoEnd.phase });
       pendingAutoEnd = null;
@@ -5241,7 +5258,9 @@
       // so the warning was deferred every time and never spoken.)
       const localSpeechActive = Boolean(sessionLimitLocalSpeechLastLoudAt
         && Date.now() - sessionLimitLocalSpeechLastLoudAt <= FREE_CONV_SESSION_LOCAL_SPEECH_RECENCY_MS);
-      if (localSpeechActive || activeSources.size > 0 || DeviceVisual.getState() === 'thinking') {
+      // Never over an answer that is still playing or still streaming in:
+      // the warning is a new turn and would cut the answer mid-sentence.
+      if (localSpeechActive || assistantSpeechInProgress() || pendingAutoEnd) {
         sendTelemetry('session_limit_warning_deferred', {});
         if (sessionLimitDeadlineAt - Date.now() > 8000) sessionLimitWarnTimer = setTimeout(trySpokenWarning, 2000);
         return;
@@ -5312,7 +5331,7 @@
     // Wait for an answer that is still streaming or being prepared, not only
     // one that is audible right now (chunk gaps leave activeSources empty),
     // so the closing line is never cut by the previous answer's end.
-    const answerInProgress = activeSources.size > 0 || !serverAudioEnded || DeviceVisual.getState() === 'thinking';
+    const answerInProgress = assistantSpeechInProgress();
     pendingAutoEnd = { reason, closingText, phase: answerInProgress ? 'await_drain' : 'ready' };
     // The closing line must not be talked over / cancelled by new speech.
     if (reason === 'session_timeout') sessionLimitInputClosed = true;

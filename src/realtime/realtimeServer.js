@@ -738,13 +738,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // Armed once, at the first Free Conversation turn; the longest configured
     // limit (any context) plus a grace, so it never ends a session the
     // client would still keep (client worst case: +45s final turn, +45s
-    // drain, +10s closing line).
+    // drain, +10s closing line, each auto-end fallback +30s while the
+    // assistant is still speaking -> ~175s).
     let sessionHardStopTimer = null;
     function armSessionHardStop() {
         if (sessionHardStopTimer || sessionAccess.channel !== 'lite') return;
         const limitMs = typeof sessionAccess.getSessionLimitMs === 'function' ? Number(sessionAccess.getSessionLimitMs()) : 0;
         if (!(limitMs > 0)) return;
-        const graceMs = Math.max(0, Number(process.env.FREE_CONV_SERVER_LIMIT_GRACE_MS || 120000));
+        const graceMs = Math.max(0, Number(process.env.FREE_CONV_SERVER_LIMIT_GRACE_MS || 180000));
         sessionHardStopTimer = setTimeout(() => {
             sessionHardStopTimer = null;
             if (socketClosed) return;
