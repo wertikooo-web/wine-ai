@@ -354,6 +354,9 @@ jobs:
       - name: Production cost benchmark (one scripted conversation)
         if: ${{ github.event.inputs.diagnostic == 'cost-bench' }}
         run: node scripts/diag/cost-bench.js
+      - name: Persona state (read-only)
+        if: ${{ github.event.inputs.diagnostic == 'persona-state' }}
+        run: node scripts/diag/persona-state.js
       - name: Romanian TV interview benchmark (Project Knowledge)
         if: ${{ github.event.inputs.diagnostic == 'project-interview' }}
         run: node scripts/diag/project-interview.js
