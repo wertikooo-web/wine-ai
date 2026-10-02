@@ -46,7 +46,7 @@ const TOPIC_BUNDLES = Object.freeze({
     contacts: ['contacts'],
 });
 
-const ANSWER_INSTRUCTION = 'These are the authoritative, approved facts about WINE AI. Answer ONLY from them, in the language the user is speaking, as natural spoken words -- never read the list or the section names aloud. A simple question gets 1-3 sentences; "tell me more" or a journalist\'s question gets a complete, natural spoken answer. Items marked [PLANNED] are plans: say "we plan" / "in the future", never present them as working today; [BETA] means available in an early form. When you introduce yourself, always say your own character name (Maria or Alexander) AND that you are WINE AI\'s digital sommelier; the facts are the same for both. When asked how to contact the team, give the phone number right away. Say only what these facts say: do not add sources, partners, projects or capabilities that are not listed, and do not recommend any shop or website. Never name the AI model providers, never add facts that are not here, and never search the internet for facts about WINE AI. Say phone numbers in digit groups and never read a web address aloud.';
+const ANSWER_INSTRUCTION = 'These are the authoritative, approved facts about WINE AI. Answer ONLY from them, in the language the user is speaking, as natural spoken words -- never read the list or the section names aloud. A simple question gets 1-3 sentences; "tell me more" or a journalist\'s question gets a complete, natural spoken answer. Items marked [PLANNED] are plans: say "we plan" / "in the future", never present them as working today; [BETA] means available in an early form. When you introduce yourself, always say your own character name -- the one in your persona instructions (and in `you_are` below, when given), never the other character\'s -- AND that you are WINE AI\'s digital sommelier. When asked how to contact the team, give the phone number right away. Say only what these facts say: do not add sources, partners, projects or capabilities that are not listed, and do not recommend any shop or website. Never name the AI model providers, never add facts that are not here, and never search the internet for facts about WINE AI. Say phone numbers in digit groups and never read a web address aloud.';
 
 let cache = null;
 
@@ -81,17 +81,33 @@ function load(file = DEFAULT_FILE) {
     return sections;
 }
 
-function getProjectInfo(topic, { file } = {}) {
+// characterName: this session's character (Maria / Alexander). The facts
+// mention both characters, so without it the model sometimes introduced
+// itself with the other one's name.
+function getProjectInfo(topic, { file, characterName } = {}) {
     const sections = load(file);
     const id = TOPICS.includes(topic) ? topic : 'overview';
     const ids = TOPIC_BUNDLES[id] || [id];
+    const name = typeof characterName === 'string' ? characterName.trim().slice(0, 40) : '';
     return {
         found: true,
         source: 'wine_ai_project_knowledge',
         topic: id,
+        ...(name ? { you_are: `In this conversation you are ${name}, WINE AI's digital sommelier. Introduce yourself only as ${name}.` } : {}),
         facts: ids.filter((t) => sections[t]).map((t) => ({ section: sections[t].title, items: sections[t].facts })),
         instruction: ANSWER_INSTRUCTION,
     };
+}
+
+// The session's character name for getProjectInfo(), read from the tool
+// context (realtimeServer exposes it read-only from the session snapshot).
+function characterNameFrom(toolContext) {
+    try {
+        const name = toolContext && typeof toolContext.characterName === 'function' ? toolContext.characterName() : null;
+        return typeof name === 'string' && name.trim() ? name.trim() : null;
+    } catch {
+        return null;
+    }
 }
 
 // ---- Routing ---------------------------------------------------------------
@@ -153,6 +169,7 @@ function topicForQuestion(query) {
 }
 
 module.exports = {
+    characterNameFrom,
     DEFAULT_FILE,
     TOPICS,
     ANSWER_INSTRUCTION,

@@ -6,7 +6,7 @@
 // to "who made you?" must be the same in every language and never come from
 // the internet.
 
-const { getProjectInfo, topicForQuestion, TOPICS } = require('../knowledge/projectKnowledge');
+const { getProjectInfo, topicForQuestion, characterNameFrom, TOPICS } = require('../knowledge/projectKnowledge');
 const { optionalString } = require('./toolHelpers');
 
 const declaration = {
@@ -28,11 +28,11 @@ const declaration = {
     },
 };
 
-async function impl(args = {}) {
+async function impl(args = {}, toolContext) {
     const topic = optionalString(args.topic, 40);
     const question = optionalString(args.question, 400);
     const chosen = TOPICS.includes(topic) ? topic : (question ? topicForQuestion(question) : 'overview');
-    return getProjectInfo(chosen);
+    return getProjectInfo(chosen, { characterName: characterNameFrom(toolContext) });
 }
 
 module.exports = { declaration, impl };
