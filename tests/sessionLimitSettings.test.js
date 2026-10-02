@@ -1,7 +1,7 @@
 'use strict';
 
 // Server-side settings for Free Conversation's session-duration cap:
-// operator-configurable minutes (2.5/3/5/10 preset list), per-deployment-
+// operator-configurable minutes (1/2/3/5 preset list), per-deployment-
 // context overrides (kiosk / mobile_qr), and the server routes that expose
 // them. Uses a fresh personaStore module instance per test (file-fallback
 // mode -- no Postgres in this sandbox, matching how personaStore already
@@ -34,11 +34,11 @@ async function run() {
         assert.strictEqual(personaStore.getSessionLimitMinutes('kiosk'), 3, 'kiosk falls back to the general default when no override is set');
         assert.strictEqual(personaStore.getSessionLimitMinutes('mobile_qr'), 3, 'mobile_qr falls back to the general default when no override is set');
 
-        console.log('Testing only the allowed preset values (2.5/3/5/10) are accepted...');
+        console.log('Testing only the allowed preset values (1/2/3/5) are accepted...');
         await assert.rejects(() => personaStore.setSessionLimitMinutes(4), /invalid_session_limit_minutes/, 'a non-preset value must be rejected');
         await assert.rejects(() => personaStore.setSessionLimitMinutes(0), /invalid_session_limit_minutes/, 'zero must be rejected (no infinite-free-extension footgun)');
         await assert.rejects(() => personaStore.setSessionLimitMinutes(-5), /invalid_session_limit_minutes/, 'a negative value must be rejected');
-        for (const minutes of [2.5, 3, 5, 10]) {
+        for (const minutes of [1, 2, 3, 5]) {
             const result = await personaStore.setSessionLimitMinutes(minutes);
             assert.strictEqual(result.sessionLimitMinutes, minutes, `${minutes} must be accepted and reflected immediately`);
         }
@@ -53,14 +53,14 @@ async function run() {
         const store2 = freshPersonaStore(tmpFile);
         await store2.load();
         await store2.setSessionLimitMinutes(3);
-        await store2.setSessionLimitMinutesForContext('kiosk', 10);
-        assert.strictEqual(store2.getSessionLimitMinutes('kiosk'), 10, 'kiosk must use its own override');
+        await store2.setSessionLimitMinutesForContext('kiosk', 2);
+        assert.strictEqual(store2.getSessionLimitMinutes('kiosk'), 2, 'kiosk must use its own override');
         assert.strictEqual(store2.getSessionLimitMinutes('mobile_qr'), 3, 'mobile_qr must still fall back to the general default (no cross-context leak)');
         assert.strictEqual(store2.getSessionLimitMinutes(null), 3, 'the general default is unaffected by the kiosk override');
 
-        await store2.setSessionLimitMinutesForContext('mobile_qr', 2.5);
-        assert.strictEqual(store2.getSessionLimitMinutes('mobile_qr'), 2.5, 'mobile_qr must now use its own override');
-        assert.strictEqual(store2.getSessionLimitMinutes('kiosk'), 10, 'setting mobile_qr must not disturb the separately-set kiosk override');
+        await store2.setSessionLimitMinutesForContext('mobile_qr', 1);
+        assert.strictEqual(store2.getSessionLimitMinutes('mobile_qr'), 1, 'mobile_qr must now use its own override');
+        assert.strictEqual(store2.getSessionLimitMinutes('kiosk'), 2, 'setting mobile_qr must not disturb the separately-set kiosk override');
 
         console.log('Testing clearing a context override (null) falls back to the general default...');
         await store2.setSessionLimitMinutesForContext('kiosk', null);
