@@ -354,6 +354,9 @@ jobs:
       - name: Production cost benchmark (one scripted conversation)
         if: ${{ github.event.inputs.diagnostic == 'cost-bench' }}
         run: node scripts/diag/cost-bench.js
+      - name: Romanian TV interview benchmark (Project Knowledge)
+        if: ${{ github.event.inputs.diagnostic == 'project-interview' }}
+        run: node scripts/diag/project-interview.js
       - name: TTS call timeline
         if: ${{ github.event.inputs.diagnostic == 'tts' }}
         run: node scripts/diag/tts-timeline.js

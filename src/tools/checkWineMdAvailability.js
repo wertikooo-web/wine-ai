@@ -29,7 +29,7 @@ const { requireNonEmptyString } = require('./toolHelpers');
 
 const declaration = {
     name: 'check_wine_md_availability',
-    description: 'Live-check whether a specific wine is currently listed on wine.md, a Moldovan online wine shop (a possible future project partner). Use this ONLY when the user explicitly asks about buying, price, or availability on wine.md specifically — for general facts about a wine or winery, use search_wine_knowledge instead. This is a real-time lookup against wine.md\'s own search, not the static knowledge base, so results reflect what\'s on the site right now — but it can still miss items if the query wording doesn\'t match their catalog text. Never claim a wine is unavailable just because this found nothing — say the search didn\'t find it and suggest looking directly on wine.md.',
+    description: 'Live-check whether a specific wine is currently listed on wine.md, a Moldovan online wine shop. Use this ONLY when the user explicitly asks about buying, price, or availability on wine.md specifically — for general facts about a wine or winery, use search_wine_knowledge instead. This is a real-time lookup against wine.md\'s own search, not the static knowledge base, so results reflect what\'s on the site right now — but it can still miss items if the query wording doesn\'t match their catalog text. Never claim a wine is unavailable just because this found nothing — say the search didn\'t find it and suggest looking directly on wine.md.',
     parameters: {
         type: 'OBJECT',
         properties: {
