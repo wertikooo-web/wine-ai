@@ -11,7 +11,7 @@ const { optionalString } = require('./toolHelpers');
 
 const declaration = {
     name: 'get_project_info',
-    description: 'Approved facts about yourself and the WINE AI project: who you are, who created you (Kando Connect, founder), history, how you work, languages, where your information comes from, use cases, business collaboration, plans, contacts. Use it for ANY such question in any language instead of searching.',
+    description: 'Approved facts about yourself and the WINE AI project: who you are, who created you (Kando Connect, founder, its other projects), history, how you work, languages, where your information comes from, use cases, business collaboration, plans, contacts. Use it for ANY such question in any language instead of searching.',
     parameters: {
         type: 'OBJECT',
         properties: {
