@@ -46,6 +46,19 @@ const SCRIPT = [
     ['Mulțumesc pentru interviu! Un ultim cuvânt pentru telespectatori?', {}],
 ];
 
+// INTERVIEW=name: a short "who are you" check that the spoken name matches
+// the active character (and never the other one).
+const NAME_SCRIPT = [
+    ['Bună ziua! Cine ești?', { expect: /Mari/i }],
+    ['Cum te numești?', { expect: /Mari/i }],
+    ['Povestește-mi despre tine.', { expect: /Mari/i }],
+    ['Как тебя зовут?', { expect: /Мари/i }],
+    ['Кто ты и кто тебя создал?', { expect: /Мари/i }],
+    ['What is your name?', { expect: /Mari/i }],
+];
+if (process.env.INTERVIEW === 'name') SCRIPT.splice(0, SCRIPT.length, ...NAME_SCRIPT);
+const OTHER_NAME = process.env.INTERVIEW === 'name' ? /Alexand|Александр/i : null;
+
 const FORBIDDEN_ANSWER = /gemini|google|openai|grok|anthropic|claude|wine\s*\.?md/i;
 const PRICE_RE = /\b\d+\s?(euro|eur|lei|mdl|dolari|\$|€)/i;
 
@@ -89,6 +102,8 @@ async function main() {
     conn.send({ type: 'session.start', sampleRate: 16000, language: 'ro' });
     await waitFor(conn.events, (e) => e.type === 'provider.ready', 20000);
     console.log(`session ${ready?.session_id}`);
+    const voiceEvent = conn.events.find((e) => e.voice || e.resolved_voice || (e.runtime && e.runtime.voice));
+    if (voiceEvent) console.log(`voice event ${voiceEvent.type}: ${JSON.stringify(voiceEvent).slice(0, 300)}`);
     const failures = [];
     for (const [i, [question, opts]] of SCRIPT.entries()) {
         const from = conn.events.length;
@@ -109,6 +124,7 @@ async function main() {
         const checks = [];
         if (opts.expect && !opts.interrupt && !opts.expect.test(answer)) checks.push(`missing ${opts.expect}`);
         if (FORBIDDEN_ANSWER.test(answer)) checks.push('names a provider/WineMD');
+        if (OTHER_NAME && OTHER_NAME.test(answer)) checks.push('says the other character\'s name');
         if (opts.forbidPrices && PRICE_RE.test(answer)) checks.push('quotes a price');
         if (tools.includes('search_web')) checks.push('used search_web');
         if (checks.length) failures.push(`turn ${i + 1}: ${checks.join(', ')}`);
