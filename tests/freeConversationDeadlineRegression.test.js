@@ -26,7 +26,17 @@ test('deadline grants a final turn that began before zero', () => {
 
 test('spoken warning cannot interrupt a busy conversation', () => {
   assert.match(dashboard, /session_limit_warning_deferred/);
-  assert.match(dashboard, /if \(localSpeechActive \|\| activeSources\.size > 0 \|\| DeviceVisual\.getState\(\) === 'thinking'\)/);
+  assert.match(dashboard, /if \(localSpeechActive \|\| assistantSpeechInProgress\(\) \|\| pendingAutoEnd\)/);
+  // still-streaming answers count too (chunk gaps leave activeSources empty)
+  assert.match(dashboard, /function assistantSpeechInProgress\(\) \{\s*return activeSources\.size > 0 \|\| !serverAudioEnded \|\| DeviceVisual\.getState\(\) === 'thinking';/);
+});
+
+// Production 2 Oct (1-minute limit): the end of the conversation cut the
+// assistant mid-sentence. The auto-end fallbacks wait while it is speaking.
+test('auto-end fallback never disconnects while the assistant is still speaking', () => {
+  assert.match(dashboard, /if \(assistantSpeechInProgress\(\) && Date\.now\(\) < \(owner\.fallbackDeadlineAt \|\| 0\)\)/);
+  assert.match(dashboard, /const AUTO_END_SPEECH_EXTENSION_MAX_MS = 30000;/);
+  assert.match(dashboard, /const answerInProgress = assistantSpeechInProgress\(\);/);
 });
 
 // Production 29 Sep (/lite probe): the 0:30 warning was deferred every time
