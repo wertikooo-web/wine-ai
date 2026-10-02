@@ -9,6 +9,7 @@
 //   BASE_URL=https://... CHROME=/usr/bin/google-chrome node scripts/diag/start-cards-e2e.js
 
 const puppeteer = require('puppeteer-core');
+const { grantLiteGuest } = require('./liteGuestAccess');
 
 const BASE_URL = String(process.env.BASE_URL || 'https://wine-ai-realtime-production.up.railway.app').replace(/\/$/, '');
 const LANGS = String(process.env.CARD_LANGS || 'ru,ro,en').split(',');
@@ -75,6 +76,12 @@ async function main() {
         headless: true,
         args: ['--no-sandbox', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'],
     });
+    // /lite is closed beta: open it as a guest with a temporary access code.
+    const liteGuest = await grantLiteGuest({ baseUrl: BASE_URL, adminToken: process.env.ADMIN_TOKEN, label: 'start-cards-e2e' });
+    if (liteGuest) {
+        const openPage = browser.newPage.bind(browser);
+        browser.newPage = async () => { const p = await openPage(); await p.setCookie(liteGuest.cookie); return p; };
+    }
     let failures = 0;
     try {
         await waitForLiteServingCards(browser);
@@ -88,6 +95,7 @@ async function main() {
             console.log(`labels ${lang}: ${labels.join(' | ')}`);
         }
     } finally {
+        if (liteGuest) await liteGuest.cleanup();
         await browser.close();
     }
     console.log(`\nVERDICT ${failures ? 'FAIL' : 'PASS'}: ${failures} failing card run(s)`);

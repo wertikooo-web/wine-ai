@@ -83,7 +83,7 @@ jobs:
           test "$code" = "200"
           grep -q 'channel=lite' /tmp/lite.html
           # Saved start-card overrides (public /api/lite/config) win over the defaults.
-          curl -sS --max-time 30 "$BASE_URL/api/lite/config" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log('lite start_intents overrides: ' + JSON.stringify(JSON.parse(d).start_intents || {})))"
+          curl -sS --max-time 30 -H "x-admin-token: ${ADMIN_TOKEN:-}" "$BASE_URL/api/lite/config" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log('lite start_intents overrides: ' + JSON.stringify(JSON.parse(d).start_intents || {})))"
 
       # Admin protection. Waits for the deployment that carries admin auth
       # (anonymous admin API -> 401), then checks the whole matrix.
@@ -119,12 +119,19 @@ jobs:
             echo "anonymous POST $path http=$code"
             test "$code" = "401"
           done
-          for path in /health /lite /login /api/lite/config /api/companion/catalog /api/age-verification /wine-ai-widget.js; do
+          for path in /health /lite /login /wine-ai-widget.js; do
             code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path")"
             echo "public GET $path http=$code"
             test "$code" = "200"
           done
-          curl -sS --max-time 30 -o /tmp/lite-config.json "$BASE_URL/api/lite/config"
+          # Lite runtime: guest access code since the closed beta (401 without
+          # one; locking verified in "Verify Lite guest access"), never 5xx.
+          for path in /api/lite/config /api/companion/catalog /api/age-verification; do
+            code="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$BASE_URL$path")"
+            echo "lite runtime GET $path http=$code"
+            case "$code" in 200|401) ;; *) exit 1 ;; esac
+          done
+          curl -sS --max-time 30 -o /tmp/lite-config.json -H "x-admin-token: ${ADMIN_TOKEN:-}" "$BASE_URL/api/lite/config"
           if grep -Eiq 'systemPrompt|personalityPrompt|effectivePrompt|runtimeByProvider|api[_-]?key|authorization|bearer' /tmp/lite-config.json; then echo "lite config exposes internal fields"; exit 1; fi
           echo "admin protection verified"
 
@@ -229,6 +236,49 @@ jobs:
           grep -q 'channel=lite' /tmp/dashboard-lt.html
           echo "dashboard contains the Live Test tab and the /lite client"
 
+      # Closed beta: /lite needs a temporary guest access code
+      # (docs/LITE_ACCESS.md). Waits for the build that has it, then checks
+      # anonymous -> locked, code -> works, revoked -> locked, guest is no admin.
+      - name: Verify Lite guest access (post-deploy)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://wine-ai-realtime-production.up.railway.app"
+          if [ -z "${ADMIN_TOKEN:-}" ]; then echo "ADMIN_TOKEN secret not set: skipped"; exit 0; fi
+          for attempt in $(seq 1 40); do
+            body="$(curl -sS --max-time 30 "$BASE_URL/api/lite/access" || true)"
+            echo "lite access attempt=$attempt body=$body"
+            if echo "$body" | grep -q 'lite_access_required\|"open":true'; then break; fi
+            sleep 15
+          done
+          if echo "$body" | grep -q '"open":true'; then echo "LITE_ACCESS_ENFORCED=0: /lite is open (rollback switch)"; exit 0; fi
+          echo "$body" | grep -q 'lite_access_required'
+          node - <<'NODE'
+          const BASE = 'https://wine-ai-realtime-production.up.railway.app';
+          const admin = { 'x-admin-token': process.env.ADMIN_TOKEN, 'content-type': 'application/json' };
+          const expect = (cond, label) => { if (!cond) throw new Error(label); console.log(`ok  ${label}`); };
+          (async () => {
+            expect((await fetch(`${BASE}/api/lite/config`)).status === 401, 'anonymous /api/lite/config -> 401 (LOCKED)');
+            expect((await fetch(`${BASE}/api/companion/catalog`)).status === 401, 'anonymous companion catalog -> 401');
+            expect((await fetch(`${BASE}/api/lite/config`, { headers: admin })).status === 200, 'admin -> /api/lite/config 200');
+            const created = await (await fetch(`${BASE}/api/lite-access/codes`, { method: 'POST', headers: admin, body: JSON.stringify({ label: 'smoke', expires_in_minutes: 20 }) })).json();
+            expect(created.ok && created.code, 'admin creates a 20-minute code');
+            try {
+              const login = await fetch(`${BASE}/api/lite/access`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: created.code }) });
+              const cookie = (login.headers.get('set-cookie') || '').split(';')[0];
+              expect(login.status === 200 && cookie, 'valid code -> WORKS');
+              expect((await fetch(`${BASE}/api/lite/config`, { headers: { cookie } })).status === 200, 'guest reads Lite config');
+              expect((await fetch(`${BASE}/api/persona`, { headers: { cookie } })).status === 401, 'guest -> admin API 401');
+              expect((await fetch(`${BASE}/api/lite-access/codes`, { headers: { cookie } })).status === 401, 'guest cannot list codes');
+              await fetch(`${BASE}/api/lite-access/codes/${created.entry.id}/revoke`, { method: 'POST', headers: admin });
+              expect((await fetch(`${BASE}/api/lite/config`, { headers: { cookie } })).status === 401, 'revoked -> LOCKED immediately');
+            } finally {
+              await fetch(`${BASE}/api/lite-access/codes/${created.entry.id}`, { method: 'DELETE', headers: admin });
+            }
+          })().catch((error) => { console.error(error.message); process.exit(1); });
+          NODE
+
       # WineMD widget + persona avatars (PR #82). Also proves the deployment is
       # recent: these routes do not exist in builds before #82.
       - name: Verify WineMD widget and persona avatars (post-deploy)
@@ -239,7 +289,7 @@ jobs:
           BASE_URL="https://wine-ai-realtime-production.up.railway.app"
           for path in /wine-ai-widget.js /persona-assets/fallback.svg /api/lite/config; do
             for attempt in $(seq 1 40); do
-              code="$(curl -sS -L --max-time 30 -o /tmp/widget-check -w '%{http_code}' "$BASE_URL$path" || true)"
+              code="$(curl -sS -L --max-time 30 -o /tmp/widget-check -w '%{http_code}' -H "x-admin-token: ${ADMIN_TOKEN:-}" "$BASE_URL$path" || true)"
               echo "$path attempt=$attempt http=$code"
               if [ "$code" = "200" ]; then break; fi
               sleep 15
@@ -354,6 +404,9 @@ jobs:
       - name: Production cost benchmark (one scripted conversation)
         if: ${{ github.event.inputs.diagnostic == 'cost-bench' }}
         run: node scripts/diag/cost-bench.js
+      - name: Lite guest access acceptance (creates and deletes its own codes)
+        if: ${{ github.event.inputs.diagnostic == 'lite-access' }}
+        run: node scripts/diag/lite-access-acceptance.js
       - name: Persona state (read-only)
         if: ${{ github.event.inputs.diagnostic == 'persona-state' }}
         run: node scripts/diag/persona-state.js

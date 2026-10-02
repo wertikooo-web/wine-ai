@@ -3,6 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Wine AI Lite access gate (closed beta, src/security/liteAccess.js). Runs
+  // only on /lite, before anything renders: no guest session -> the access
+  // screen (/lite/access). The real protection is server-side (APIs and the
+  // WebSocket); this only keeps the page hidden and carries the guest token
+  // where the HttpOnly cookie cannot travel (partner-site iframe).
+  (function () {
+    if (!/^\/lite\/?$/.test(location.pathname)) return;
+    var token = '';
+    try { token = sessionStorage.getItem('wineAiLiteAccess') || ''; } catch (e) { token = ''; }
+    window.__wineAiLiteAccessToken = token;
+    function toAccessScreen(expired) {
+      try { sessionStorage.removeItem('wineAiLiteAccess'); if (expired) sessionStorage.setItem('wineAiLiteExpired', '1'); } catch (e) {}
+      location.replace('/lite/access' + location.search);
+    }
+    window.__wineAiLiteAccessLost = function () { toAccessScreen(true); };
+    var nativeFetch = window.fetch.bind(window);
+    window.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      var sameOrigin = url.charAt(0) === '/' && url.charAt(1) !== '/' || url.indexOf(location.origin + '/') === 0;
+      if (sameOrigin && token) {
+        init = Object.assign({}, init || {});
+        var headers = new Headers(init.headers || (typeof input !== 'string' && input.headers) || {});
+        headers.set('x-lite-access', token);
+        init.headers = headers;
+      }
+      return nativeFetch(input, init).then(function (response) {
+        if (sameOrigin && response.status === 401 && url.indexOf('/api/lite/access') === -1) {
+          response.clone().json().then(function (body) {
+            if (body && /^lite_access_/.test(body.error || '')) toAccessScreen(true);
+          }).catch(function () {});
+        }
+        return response;
+      });
+    };
+    document.documentElement.style.visibility = 'hidden';
+    nativeFetch('/api/lite/access', { credentials: 'same-origin', headers: token ? { 'x-lite-access': token } : {} })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (res) {
+        if (res.ok && res.body && res.body.ok) { document.documentElement.style.visibility = ''; return; }
+        toAccessScreen(res.body && res.body.error === 'lite_access_expired');
+      })
+      .catch(function () { document.documentElement.style.visibility = ''; });
+  })();
+</script>
 <title>Wine AI Realtime — Dashboard</title>
     <link rel="stylesheet" href="/visual-assets/visual-story.css?v=19">
 <style>
@@ -1393,6 +1438,39 @@
   </section>
 
   <section class="panel" id="tab-persona">
+    <!-- Temporary guest access to WINE AI Lite (closed beta). Logic in
+         /lite-access-control.js; server: src/security/liteAccess.js. -->
+    <div class="card" id="liteAccessCard">
+      <h2>Временный доступ к WINE AI Lite</h2>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">
+        Гость открывает <b>/lite</b> и вводит код. После срока или отзыва код перестаёт работать, а открытый разговор завершается после текущего ответа. Код показывается <b>один раз</b> — сразу скопируйте его.
+      </p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; align-items:end;">
+        <label style="font-size:12px;">Название / комментарий<br><input id="laLabel" class="persona-input" maxlength="80" placeholder="TV8 interview"></label>
+        <label style="font-size:12px;">Пароль / код (пусто = сгенерировать)<br>
+          <span style="display:flex; gap:6px;"><input id="laCode" class="persona-input" maxlength="64" placeholder="авто" autocomplete="off" style="text-transform:uppercase;"><button type="button" class="secondary" id="laGenerate" style="margin:0; white-space:nowrap;">Сгенерировать</button></span>
+        </label>
+        <label style="font-size:12px;">Срок действия<br>
+          <select id="laLifetime" class="persona-input">
+            <option value="20">20 минут</option>
+            <option value="60">1 час</option>
+            <option value="180" selected>3 часа</option>
+            <option value="1440">24 часа</option>
+            <option value="until">До даты и времени…</option>
+          </select>
+        </label>
+        <label style="font-size:12px; display:none;" id="laUntilWrap">До<br><input id="laUntil" type="datetime-local" class="persona-input"></label>
+        <button type="button" class="btn-icon primary" id="laCreate" style="margin:0;">Создать доступ</button>
+      </div>
+      <div id="laCreated" style="display:none; margin-top:12px; padding:12px; border:1px solid var(--border); border-radius:10px;"></div>
+      <p id="laStatus" style="font-size:12px; color:var(--muted); margin:10px 0 0;"></p>
+      <div style="overflow-x:auto; margin-top:10px;">
+        <table id="laTable" style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead><tr style="text-align:left; color:var(--muted);"><th>Название</th><th>Создан</th><th>Истекает</th><th>Статус</th><th>Входов</th><th>Действия</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
     <div class="card" id="knowledgeSourceCard">
       <h2>Источник знаний / Sursa cunoștințelor</h2>
       <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer;">
@@ -1967,6 +2045,7 @@
 
 </main>
 <script src="/cost-control.js" defer></script>
+<script src="/lite-access-control.js" defer></script>
 <script src="/live-test-control.js" defer></script>
 <script src="/lite-companion.js" defer></script>
 
@@ -2886,7 +2965,7 @@
   // ---- WebSocket / protocol ----
   function socketUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite${adultToken ? `&av=${encodeURIComponent(adultToken)}` : ''}`;
+    if (LITE_MODE) return `${proto}//${location.host}/realtime?channel=lite${adultToken ? `&av=${encodeURIComponent(adultToken)}` : ''}${window.__wineAiLiteAccessToken ? `&la=${encodeURIComponent(window.__wineAiLiteAccessToken)}` : ''}`;
     const providerParam = selectedRealtimeProvider ? `?provider=${encodeURIComponent(selectedRealtimeProvider)}` : '';
     return `${proto}//${location.host}/realtime${providerParam}`;
   }
@@ -3367,6 +3446,11 @@
         // Server-side session limit backstop (realtimeServer.js).
         if (pendingAutoEnd) pendingAutoEnd = null;
         performAutoEnd(payload.reason === 'session_limit' ? 'session_timeout' : (payload.reason || 'session_timeout'));
+        // Guest access code expired or revoked (server closed the session
+        // at a turn boundary): back to the access screen.
+        if (payload.reason === 'access_expired' && LITE_MODE && typeof window.__wineAiLiteAccessLost === 'function') {
+          setTimeout(window.__wineAiLiteAccessLost, 1500);
+        }
         break;
       case 'session.ready':
         if (LITE_MODE) liteSessionId = payload.session_id || null;
