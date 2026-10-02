@@ -5842,6 +5842,13 @@
       const voiceLabel = (voiceMeta && (voiceMeta.displayName || voiceMeta.name)) || voiceId || '—';
 
       statusEl.textContent = `Активный сомелье: ${name} · Голос: ${voiceLabel} · Род: ${genderLabel}`;
+      // Clicking a character only opens it for editing; "Сохранить и включить"
+      // activates it. Say so when the two differ, or the operator believes
+      // the character they clicked is the one guests talk to.
+      if (editorProfileId && editorProfileId !== activeProfileId) {
+        const editorName = editorProfileId === 'classic' ? 'Александр' : (editorProfileId === 'warm_guide' ? 'Мария' : editorProfileId);
+        statusEl.textContent += ` — сейчас открыт(а) ${editorName}: нажмите «Сохранить и включить», чтобы гости говорили с ${editorName === 'Мария' ? 'Марией' : (editorName === 'Александр' ? 'Александром' : editorName)}.`;
+      }
     } catch (err) {
       console.warn('[WineAI] Failed to refresh active profile status:', err);
     }
@@ -5951,7 +5958,7 @@
   // allowed-values list -- never hardcoded client-side, so the admin panel
   // and the server that enforces the value can never silently disagree.
   function populateSessionLimitSelects(data) {
-    const allowed = Array.isArray(data.allowedSessionLimitMinutes) ? data.allowedSessionLimitMinutes : [2.5, 3, 5, 10];
+    const allowed = Array.isArray(data.allowedSessionLimitMinutes) ? data.allowedSessionLimitMinutes : [1, 2, 3, 5];
     const formatMinutes = (m) => (m === Math.floor(m) ? String(m) : String(m).replace('.', ','));
 
     const generalSelect = el('pSessionLimitMinutes');

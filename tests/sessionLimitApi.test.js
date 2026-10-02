@@ -46,7 +46,7 @@ async function run() {
             const res = await fetch(`${BASE}/api/persona`);
             const data = await res.json();
             assert.strictEqual(res.status, 200);
-            assert.deepStrictEqual(data.allowedSessionLimitMinutes, [2.5, 3, 5, 10], 'the exact preset list must be exposed, not invented client-side');
+            assert.deepStrictEqual(data.allowedSessionLimitMinutes, [1, 2, 3, 5], 'the exact preset list must be exposed, not invented client-side');
             assert.strictEqual(data.sessionLimitMinutes, 3, 'default is 3 minutes');
             assert.strictEqual(data.freeConversationSessionLimitMs, 3 * 60 * 1000, 'the ms value the realtime client actually uses must match');
             assert.deepStrictEqual(data.sessionLimitMinutesByContext, { kiosk: null, mobile_qr: null }, 'no per-context overrides set yet');
@@ -80,18 +80,18 @@ async function run() {
             const postRes = await fetch(`${BASE}/api/persona`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profileId: 'classic', sessionLimitMinutesByContext: { kiosk: 10, mobile_qr: 2.5 } }),
+                body: JSON.stringify({ profileId: 'classic', sessionLimitMinutesByContext: { kiosk: 2, mobile_qr: 1 } }),
             });
             const postData = await postRes.json();
             assert.strictEqual(postRes.status, 200, JSON.stringify(postData));
 
             const kioskRes = await fetch(`${BASE}/api/persona?context=kiosk`);
             const kioskData = await kioskRes.json();
-            assert.strictEqual(kioskData.freeConversationSessionLimitMs, 10 * 60 * 1000, 'a kiosk-context request must get the kiosk override, not the general default');
+            assert.strictEqual(kioskData.freeConversationSessionLimitMs, 2 * 60 * 1000, 'a kiosk-context request must get the kiosk override, not the general default');
 
             const mobileRes = await fetch(`${BASE}/api/persona?context=mobile_qr`);
             const mobileData = await mobileRes.json();
-            assert.strictEqual(mobileData.freeConversationSessionLimitMs, 2.5 * 60 * 1000, 'a mobile_qr-context request must get the mobile_qr override');
+            assert.strictEqual(mobileData.freeConversationSessionLimitMs, 1 * 60 * 1000, 'a mobile_qr-context request must get the mobile_qr override');
 
             const generalRes = await fetch(`${BASE}/api/persona`);
             const generalData = await generalRes.json();
