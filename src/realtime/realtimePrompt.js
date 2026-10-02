@@ -86,7 +86,14 @@ function buildRealtimeSystemInstruction({
     // Grok already receives the user's audio and can determine the language
     // of the first meaningful utterance before composing its first response.
     const personaWithForeignWelcome = appendFirstForeignWelcomeInstruction(basePersona);
-    const decoratedPersona = appendSommelierGenderInstruction(personaWithForeignWelcome);
+    // The persona text already carries its own character's grammatical
+    // gender (Maria / Alexander, see buildProfileRuntimePrompt()); only a
+    // persona without one gets the active profile's. Re-deriving it here from
+    // the dashboard's active profile made a published Alexander speak as
+    // Maria (and vice versa).
+    const decoratedPersona = personaWithForeignWelcome.includes('<!-- GENDER_BLOCK_START -->')
+        ? personaWithForeignWelcome
+        : appendSommelierGenderInstruction(personaWithForeignWelcome);
     const personaBlock = requireWithinLimit(decoratedPersona, 'persona');
     const current = requireWithinLimit(
         typeof currentContext === 'string' ? currentContext : buildCurrentContext(currentContext),

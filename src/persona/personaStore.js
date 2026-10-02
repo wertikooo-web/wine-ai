@@ -16,8 +16,12 @@ const SESSION_LIMIT_CONTEXTS = ['kiosk', 'mobile_qr'];
 const START_INTENT_LANGUAGES = ['ru', 'ro', 'en', 'fr', 'it', 'es', 'de', 'zh', 'ja'];
 const START_INTENT_IDS = ['choose_wine', 'pair_food', 'learn_wine', 'visit_winery', 'find_winery', 'find_tasting'];
 
+// Maria (warm_guide) is the default persona; Alexander (classic) is chosen
+// in the dashboard. A stored choice always wins over this default.
+const DEFAULT_PROFILE_ID = 'warm_guide';
+
 let cache = {
-    activeProfileId: 'classic',
+    activeProfileId: DEFAULT_PROFILE_ID,
     voiceMode: DEFAULT_VOICE_MODE,
     sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
     sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
@@ -40,7 +44,7 @@ function cleanLoadedOverrides(overrides) {
 
 function defaultCache() {
     return {
-        activeProfileId: 'classic',
+        activeProfileId: DEFAULT_PROFILE_ID,
         voiceMode: DEFAULT_VOICE_MODE,
         sessionLimitMinutes: DEFAULT_SESSION_LIMIT_MINUTES,
         sessionLimitMinutesByContext: { kiosk: null, mobile_qr: null },
@@ -95,7 +99,7 @@ async function load() {
                 } catch {
                     console.log('[WineAI] Legacy persona_overrides table not found or empty, skipping migration of historical data.');
                 }
-                let activeProfileId = 'classic';
+                let activeProfileId = DEFAULT_PROFILE_ID;
                 const legacyOverrides = {};
                 if (legacyRow) {
                     activeProfileId = legacyRow.base_profile_id || 'classic';
@@ -157,7 +161,7 @@ async function load() {
             if (!profiles.classic) profiles.classic = { overrides: {} };
             if (!profiles.warm_guide) profiles.warm_guide = { overrides: {} };
             cache = {
-                activeProfileId: activeState?.active_profile_id || 'classic',
+                activeProfileId: activeState?.active_profile_id || DEFAULT_PROFILE_ID,
                 voiceMode: ALLOWED_VOICE_MODES.includes(activeState?.voice_mode) ? activeState.voice_mode : DEFAULT_VOICE_MODE,
                 sessionLimitMinutes: ALLOWED_SESSION_LIMIT_MINUTES.includes(Number(activeState?.session_limit_minutes))
                     ? Number(activeState.session_limit_minutes)
@@ -207,7 +211,7 @@ async function load() {
                 };
             } else {
                 cache = {
-                    activeProfileId: raw.activeProfileId || 'classic',
+                    activeProfileId: raw.activeProfileId || DEFAULT_PROFILE_ID,
                     voiceMode: ALLOWED_VOICE_MODES.includes(raw.voiceMode) ? raw.voiceMode : DEFAULT_VOICE_MODE,
                     sessionLimitMinutes,
                     sessionLimitMinutesByContext,
