@@ -588,6 +588,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // news events): which session, provider, channel and language. No turn,
     // generation or lifecycle state.
     toolContext.analytics = () => ({ sessionId, provider: providerMetadata.provider || null, channel: sessionAccess.channel || null, language: sessionLanguage });
+    // Read-only: this session's character name (owned by the session.start
+    // snapshot) so get_project_info can say "you are Maria" -- its facts
+    // mention both characters.
+    toolContext.characterName = () => (sessionRuntimeSnapshot ? sessionRuntimeSnapshot.characterName : null);
     const livePersonaState = liveTestSession
         ? liveTestSession.service.personaStateFor(liveTestSession.snapshot, personaStore.getProfilesOverrides())
         : null;
@@ -2446,6 +2450,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                             voiceSource: finalSource,
                             sommelierGender: resolvedProfile.sommelierGender,
                             mood: resolvedProfile.mood,
+                            characterName: resolvedProfile.name || null,
                             effectivePrompt
                         };
 

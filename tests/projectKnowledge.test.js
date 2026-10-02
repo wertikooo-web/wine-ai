@@ -119,6 +119,16 @@ async function run() {
     const { impl: searchWebImpl } = require('../src/tools/searchWeb');
     const webGuarded = await searchWebImpl({ query: 'WINE AI Kando Connect founder' });
     ok(webGuarded.source === 'wine_ai_project_knowledge', 'search_web never goes online for WINE AI itself');
+
+    // The session's character name reaches the model with the facts (they
+    // mention both characters; production introduced Maria as "Alexandru").
+    const asMaria = { characterName: () => 'Мария' };
+    const named = await getProjectInfoTool.impl({ topic: 'identity' }, asMaria);
+    ok(/you are Мария/.test(named.you_are || '') && !/Alexander|Александр/.test(named.you_are), 'get_project_info says which character this session is');
+    ok((await searchKnowledge({ query: 'Кто ты?' }, asMaria)).you_are === named.you_are, 'search_wine_knowledge guard passes the character name');
+    ok((await searchWebImpl({ query: 'WINE AI founder' }, asMaria)).you_are === named.you_are, 'search_web guard passes the character name');
+    ok(!('you_are' in (await getProjectInfoTool.impl({ topic: 'identity' }, {}))), 'no character name -> no you_are field');
+    ok(!/Maria or Alexander/.test(pk.ANSWER_INSTRUCTION), 'instruction does not offer both names to choose from');
     return { assertionCount: n };
 }
 
