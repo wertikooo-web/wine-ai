@@ -48,8 +48,8 @@ async function run() {
 
         await personaStore.load();
 
-        // Invariant check: Active profile defaults to classic
-        t.equal(personaStore.getActiveProfileId(), 'classic', 'Active profile should default to classic');
+        // Invariant check: Active profile defaults to warm_guide (Maria)
+        t.equal(personaStore.getActiveProfileId(), 'warm_guide', 'Active profile should default to warm_guide (Maria)');
         assertionCount++;
 
         // Validate profiles list returns 2 profiles
@@ -169,13 +169,13 @@ async function run() {
             t.equal(profsData.profiles[0].hasCustomSettings, false, 'classic profile hasCustomSettings defaults to false');
             assertionCount += 3;
 
-            // GET /api/persona: active state alexander (classic)
+            // GET /api/persona: active state Maria (warm_guide) by default
             const activeRes = await fetch(`${BASE}/api/persona`);
             const activeData = await activeRes.json();
             console.log('activeData response is:', activeData);
             t.ok(activeData.ok);
-            t.equal(activeData.activeProfileId, 'classic', 'activeProfileId defaults to classic');
-            t.equal(activeData.baseProfileId, 'classic', 'baseProfileId defaults to classic');
+            t.equal(activeData.activeProfileId, 'warm_guide', 'activeProfileId defaults to warm_guide (Maria)');
+            t.equal(activeData.baseProfileId, 'warm_guide', 'baseProfileId defaults to warm_guide (Maria)');
             assertionCount += 3;
 
             // POST /api/persona: update classic overrides

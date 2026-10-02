@@ -63,8 +63,8 @@ async function run() {
         await personaStore.load();
 
         let state = personaStore.getCached();
-        t.equal(state.baseProfileId, 'classic', 'clean boot must default baseProfileId to classic');
-        t.equal(state.mood, 'calm', 'clean boot must default mood to calm');
+        t.equal(state.baseProfileId, 'warm_guide', 'clean boot must default baseProfileId to warm_guide (Maria)');
+        t.equal(state.mood, 'warm', 'clean boot must default mood to warm (Maria)');
         t.deepEqual(state.overrides, {}, 'clean boot overrides must be empty');
         // Targeted default and overrides mood checks
         const classicResolved = personaStore.getProfile('classic');
