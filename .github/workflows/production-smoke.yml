@@ -404,6 +404,16 @@ jobs:
       - name: Production cost benchmark (one scripted conversation)
         if: ${{ github.event.inputs.diagnostic == 'cost-bench' }}
         run: node scripts/diag/cost-bench.js
+      - name: Free Conversation RU -> RO -> RU (language switch + speech anchor), then realtime events
+        if: ${{ github.event.inputs.diagnostic == 'session-langswitch' }}
+        env:
+          PROBE_MARKS: '3,22,41'
+          PROBE_TOTAL_MS: '90000'
+          PROBE_QUESTIONS: 'Какое красное вино из Молдовы вы мне посоветуете попробовать?|Ce vin alb din Moldova îmi recomandați să încerc astăzi?|А какое розовое вино из Молдовы вы мне посоветуете?'
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/session-probe.js || true
+          node scripts/diag/realtime-events.js
       - name: Recent realtime events (Gemini speech languageCode per connection, language switches)
         if: ${{ github.event.inputs.diagnostic == 'realtime-events' }}
         run: node scripts/diag/realtime-events.js

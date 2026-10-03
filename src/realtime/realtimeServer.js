@@ -1,6 +1,7 @@
 'use strict';
 
 const diagRing = require('./diagRing');
+const { speechLanguageCode } = require('./geminiLiveProvider');
 
 // NOTE ON MICROPHONE AUDIO SAMPLE RATE: a client may send microphone audio
 // at 16000Hz or 24000Hz PCM16LE mono binary WS frames, declared via
@@ -1129,6 +1130,22 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 confirmationCount: signal.confident ? 1 : LANGUAGE_SWITCH_CONFIRMATIONS,
                 action: signal.confident ? 'set_initial' : 'set_initial_confirmed',
             });
+            // Speech accent anchor (GEMINI_SPEECH_LANGUAGE_CODE, e.g. ru-RU):
+            // the first Gemini connection opens before anyone speaks, without
+            // a languageCode. Once the conversation language is known and has
+            // an anchor, reopen the connection with it before the next
+            // utterance -- the same path as a language switch.
+            if (providerMetadata.provider === 'gemini' && speechLanguageCode(detectedLanguage) && !(providerSession && providerSession.sessionLanguage)) {
+                pendingLanguageSwitch = {
+                    from: null,
+                    to: detectedLanguage,
+                    detectedAt: Date.now(),
+                    generationId: generation?.generationId || null,
+                    turnId: generation?.turnId || null,
+                };
+                diagRing.push('speech_anchor_scheduled', { sessionId, language: detectedLanguage });
+                log('speech_anchor_scheduled', { language: detectedLanguage, action: 'rotate_before_next_turn' });
+            }
             return;
         }
         if (previousLanguage === detectedLanguage) {
@@ -1630,7 +1647,21 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             generation.userTranscriptBuffer += String(payload.text || '');
             visualOrchestrator.noteUserText(generation.generationId, payload.text);
         }
+        // Free Conversation keeps one input turn open between utterances, so
+        // inputEndedAt is never set and the branch below never ran: the
+        // conversation language was never detected (no speech anchor, no
+        // language-switch rotation) and the guest's lines never reached the
+        // recent-turns context. The utterance is complete once the model
+        // starts answering (or calls a tool): note it then, once.
+        if ((eventType === 'transcript.model' || eventType === 'tool.call')
+            && !generation.inputEndedAt && !generation.userTurnNoted
+            && String(generation.userTranscriptBuffer || '').trim()) {
+            generation.userTurnNoted = true;
+            rememberTurn('user', generation.userTranscriptBuffer);
+            noteUserLanguage(generation.userTranscriptBuffer, generation);
+        }
         if (eventType === 'transcript.user' && generation.inputEndedAt && !generation.firstInputTranscriptionAt) {
+            generation.userTurnNoted = true;
             rememberTurn('user', payload.text);
             noteUserLanguage(payload.text, generation);
             generation.firstInputTranscriptionAt = Date.now();
