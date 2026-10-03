@@ -404,6 +404,9 @@ jobs:
       - name: Production cost benchmark (one scripted conversation)
         if: ${{ github.event.inputs.diagnostic == 'cost-bench' }}
         run: node scripts/diag/cost-bench.js
+      - name: Recent realtime events (Gemini speech languageCode per connection, language switches)
+        if: ${{ github.event.inputs.diagnostic == 'realtime-events' }}
+        run: node scripts/diag/realtime-events.js
       - name: Lite guest access acceptance (creates and deletes its own codes)
         if: ${{ github.event.inputs.diagnostic == 'lite-access' }}
         run: node scripts/diag/lite-access-acceptance.js
