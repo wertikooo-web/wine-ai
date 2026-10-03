@@ -302,11 +302,19 @@ function getTurnStore() {
 }
 
 // Fire-and-forget write used by realtimeServer.js. Never throws.
-function recordTurn(row, { store = getTurnStore(), env = process.env, log = () => {}, onRecorded = null } = {}) {
+// enrich: optional async (row) => row run before the insert (e.g. the
+// "not from the catalog" name check); it sees the text even when
+// TURN_JOURNAL_TEXT=off drops it from the stored row.
+function recordTurn(row, { store = getTurnStore(), env = process.env, log = () => {}, onRecorded = null, enrich = null } = {}) {
     if (!enabled(env) || !row) return;
-    const out = textEnabled(env) ? row : { ...row, question: null, answer: null };
+    let out = row;
     Promise.resolve()
-        .then(() => store.insert(out, { days: retentionDays(env) }))
+        .then(() => (typeof enrich === 'function' ? Promise.resolve(enrich(row)).catch(() => row) : row))
+        .then((enriched) => {
+            out = enriched || row;
+            if (!textEnabled(env)) out = { ...out, question: null, answer: null };
+            return store.insert(out, { days: retentionDays(env) });
+        })
         .then(() => { if (typeof onRecorded === 'function') onRecorded(out); })
         .catch((error) => log('turn_journal_write_failed', { message: String(error?.message || error).slice(0, 160) }));
 }
