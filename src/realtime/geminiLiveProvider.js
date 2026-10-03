@@ -1,5 +1,7 @@
 'use strict';
 
+const diagRing = require('./diagRing');
+
 const crypto = require('crypto');
 
 const MODEL_ID = process.env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview';
@@ -428,6 +430,12 @@ class GeminiLiveProviderSession {
             const systemPrompt = this.systemInstructionText;
             const speechConfig = buildGeminiSpeechConfig(this.voiceName, this.sessionLanguage);
             this.promptApplyCount += 1;
+            diagRing.push('gemini_connect', {
+                providerInstanceId: this.instanceId,
+                voiceName: this.voiceName,
+                sessionLanguage: this.sessionLanguage || null,
+                languageCode: speechConfig.languageCode || null,
+            });
             log('gemini_connect_config', {
                 providerInstanceId: this.instanceId,
                 model: this.model,

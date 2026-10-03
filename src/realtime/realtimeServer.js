@@ -1,5 +1,7 @@
 'use strict';
 
+const diagRing = require('./diagRing');
+
 // NOTE ON MICROPHONE AUDIO SAMPLE RATE: a client may send microphone audio
 // at 16000Hz or 24000Hz PCM16LE mono binary WS frames, declared via
 // `sampleRate`/`sample_rate` in session.start. This
@@ -1070,6 +1072,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             turnId: generation?.turnId || null,
         };
         pendingLanguageCandidate = null;
+        diagRing.push('language_switch', { sessionId, from: previousLanguage, to: nextLanguage });
         log('language_switch_detected', {
             generationId: generation?.generationId || 'none',
             turnId: generation?.turnId || 'none',
@@ -1117,6 +1120,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             }
             sessionLanguage = detectedLanguage;
             pendingLanguageCandidate = null;
+            diagRing.push('language_detected', { sessionId, language: detectedLanguage });
             log('language_detected', {
                 generationId: generation?.generationId || 'none',
                 turnId: generation?.turnId || 'none',
@@ -1170,6 +1174,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             previousTurnId: languageSwitch.turnId || 'none',
             providerInstanceId: providerSession?.instanceId || 'unknown',
         });
+        diagRing.push('language_switch_rotation', { sessionId, from: languageSwitch.from, to: languageSwitch.to });
         rotateProviderSession('language_switch');
         warmProviderSession('language_switch').catch((error) => {
             log('provider_warm_error', {
