@@ -1,6 +1,7 @@
 'use strict';
 
 const diagRing = require('./diagRing');
+const providerHealth = require('../observability/providerHealth');
 const { createTurnCollector, observeToolHandlers, recordTurn } = require('../observability/turnJournal');
 const { checkWineNames } = require('../observability/wineNameCheck');
 const { speechLanguageCode } = require('./geminiLiveProvider');
@@ -707,6 +708,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             .map(([key, value]) => `${key}=${value}`)
             .join(' ');
         console.log(`[Realtime] session=${sessionId} stage=${stage} ${details}`.trim());
+        providerHealth.observe(stage, extra);
     }
 
     function emit(payload) {
@@ -1604,6 +1606,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     function emitProviderEvent(generation, payload) {
         if (!generation) return false;
         const eventType = payload?.type || 'unknown';
+        if (eventType === 'error') providerHealth.observe('provider_error', payload);
         const modelOutputEvents = new Set(['transcript.model', 'audio.start', 'audio.chunk', 'audio.end']);
         const startsGenerationEvents = new Set(['transcript.model', 'audio.start', 'audio.chunk']);
         if (eventType !== 'tool.call' && eventType !== 'tool.response') bridge.cancel(generation.generationId);
