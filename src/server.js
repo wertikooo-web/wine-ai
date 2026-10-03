@@ -50,6 +50,7 @@ const { bridgeStatus } = require('./realtime/bridgePhrases');
 const { recentKnowledgeTimings } = require('./knowledge/knowledgeTimings');
 const { issueAdultCookie, issueAdultToken, isAdultTokenValid, isAdultVerified } = require('./security/ageVerification');
 const { classifyRoute, createAdminAuth, renderLoginPage, safeNext } = require('./security/adminAuth');
+const { getTurnStore } = require('./observability/turnJournal');
 const { createLiteAccess, createPostgresLiteAccessStore, createMemoryLiteAccessStore, renderAccessPage: renderLiteAccessPage } = require('./security/liteAccess');
 
 // Admin gate: one shared admin account, server-side sessions. Route matrix
@@ -439,7 +440,7 @@ function readJsonBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
     });
 }
 
-const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/api/cost/raw-records', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/lite-access-control.js', '/dashboard/cost-guide', '/lite', '/lite/access', '/api/lite/access', '/api/lite-access/codes', '/api/lite-access/codes/:id', '/api/lite-access/codes/:id/revoke', '/api/diag/realtime-events', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wineries', '/api/analytics/link-event', '/api/analytics/links', '/dashboard/links', '/api/operator-content', '/api/operator-content/:type', '/api/analytics/operator-content', '/dashboard/content', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
+const KNOWN_ENDPOINTS = ['/health', '/', '/dashboard', '/answer-audit', '/knowledge-studio', '/avatar-lab', '/avatar-dev', '/avatar.png', '/visual-modules/VisualStoryController.mjs', '/visual-assets/visual-story.css', '/avatar-demo-ru.wav', '/avatar-demo-gemini-orus.wav', '/api/age-verification', '/api/voices', '/api/voice-preview', '/api/persona', '/api/persona/activate', '/api/screen-context/:type/:id', '/api/purchase-options/:wineId', '/api/analytics/purchase-click', '/api/catalog/status', '/api/kos/sources', '/api/kos/sources/website', '/api/kos/sources/:sourceId', '/api/kos/sources/:sourceId/crawl', '/api/kos/documents', '/api/kos/wines', '/api/kos/wines/extract', '/api/kos/wines/:id/publish', '/api/knowledge/status', '/api/knowledge/evaluate', '/api/knowledge/orchestrate', '/api/knowledge/answer-modes', '/api/knowledge/audit', '/api/knowledge/audit/cases', '/api/knowledge/audit/cases/:id', '/api/knowledge/benchmark/latest', '/api/knowledge/sources', '/api/knowledge/sources/:file', '/api/knowledge/reindex', '/api/knowledge/upload', '/api/knowledge/pipeline-status', '/api/knowledge/discovered', '/api/knowledge/discovered/:id/approve', '/api/knowledge/discovered/:id/reject', '/api/knowledge/update', '/api/avatar/status', '/api/avatar/config', '/api/cost/summary', '/api/cost/sessions', '/api/cost/breakdown', '/api/cost/pricing', '/api/cost/fixed-costs', '/api/cost/fixed-costs/:id', '/api/cost/settings', '/api/cost/customer-summary', '/api/cost/raw-records', '/cost-control.js', '/live-test-control.js', '/lite-companion.js', '/wine-ai-widget.js', '/lite-access-control.js', '/dashboard/cost-guide', '/lite', '/lite/access', '/api/lite/access', '/api/lite-access/codes', '/api/lite-access/codes/:id', '/api/lite-access/codes/:id/revoke', '/api/diag/realtime-events', '/api/turns', '/api/lite/config', '/persona-assets/:file', '/persona-avatar/:personaId', '/api/live-test/state', '/api/live-test/publish', '/api/live-test/presets/:slot', '/api/live-test/baseline', '/api/live-test/results', '/api/live-test/feedback', '/api/companion/catalog', '/api/companion/wineries', '/api/analytics/link-event', '/api/analytics/links', '/dashboard/links', '/api/operator-content', '/api/operator-content/:type', '/api/analytics/operator-content', '/dashboard/content', '/api/companion/wines', '/api/companion/wines/:id', '/api/companion/wines/import', '/api/companion/wines/:id/published', '/realtime'];
 
 // A single request throwing must never take down the whole process — this
 // same process also owns every active realtime WebSocket session (see
@@ -1604,6 +1605,19 @@ async function handleRequest(req, res) {
     if (pathname.startsWith('/api/live-test/')) {
         await liveTestApi.handle(req, res, pathname);
         return undefined;
+    }
+
+    // Turn journal (admin): one row per assistant turn -- question, tools and
+    // evidence, answer, tokens, cost, latency (src/observability/turnJournal.js).
+    if (req.method === 'GET' && pathname === '/api/turns') {
+        try {
+            const p = requestUrl.searchParams;
+            const turns = await getTurnStore().list({ from: p.get('from'), to: p.get('to'), sessionId: p.get('session'), limit: p.get('limit') });
+            const costUsd = turns.reduce((sum, t) => sum + (Number(t.cost_usd) || 0), 0);
+            return sendJson(res, 200, { ok: true, count: turns.length, cost_usd: Math.round(costUsd * 1e6) / 1e6, turns });
+        } catch (error) {
+            return sendJson(res, 503, { ok: false, error: 'turn_journal_unavailable', message: String(error?.message || error).slice(0, 160) });
+        }
     }
 
     // Cost & Usage Control (Dashboard → Расходы / Cost Control).

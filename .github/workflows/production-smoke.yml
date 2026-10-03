@@ -414,6 +414,9 @@ jobs:
         run: |
           CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/session-probe.js || true
           node scripts/diag/realtime-events.js
+      - name: Turn journal (last turns, read-only)
+        if: ${{ github.event.inputs.diagnostic == 'turns' }}
+        run: node scripts/diag/turns.js
       - name: Recent realtime events (Gemini speech languageCode per connection, language switches)
         if: ${{ github.event.inputs.diagnostic == 'realtime-events' }}
         run: node scripts/diag/realtime-events.js
