@@ -1,0 +1,52 @@
+name: Voice Bench
+
+# 60 scripted turns in 7 /lite conversations against production, with
+# auto-checks (answer language, content, tools, length, latency) and the
+# journal's cost / "not from the catalog" flags. Read-only for the product;
+# ~1 EUR per full run. Scenarios: scripts/diag/voice-bench-scenarios.js
+
+on:
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: 'Comma-separated groups (empty = all): ru_basics, ro_basics, en_basics, language_switch, knowledge, guardrails, memory'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voice-bench
+  cancel-in-progress: false
+
+jobs:
+  voice-bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run benchmark
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          BENCH_GROUPS: ${{ github.event.inputs.groups }}
+          BENCH_OUT: voice-bench.json
+        run: node scripts/diag/voice-bench.js
+
+      - name: Keep results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-bench
+          path: voice-bench.json
+          if-no-files-found: ignore
