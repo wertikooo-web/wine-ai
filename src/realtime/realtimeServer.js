@@ -822,9 +822,13 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             currentContext: {
                 mode: currentMode,
                 sessionLanguage: sessionLanguage || 'auto',
+                // The latest utterance wins: after RU -> RO -> RU the guest's
+                // Russian question used to get a Romanian answer, because the
+                // rotation that updates sessionLanguage happens only before
+                // the NEXT turn and this line said "continue in ro".
                 languageInstruction: sessionLanguage
-                    ? `Continue in the last clearly understood language: ${sessionLanguage}. Keep the same voice identity.`
-                    : 'No stable language has been established yet. Follow the last clearly understood utterance.',
+                    ? `Language so far: ${sessionLanguage}. Always answer in the language of the guest's latest utterance; if the guest clearly switched language, switch with them in this answer. Stay in ${sessionLanguage} only when the latest utterance is unclear (noise, one word, a wine or place name). Keep the same voice identity.`
+                    : 'No stable language has been established yet. Answer in the language of the guest\'s latest clearly understood utterance.',
                 recentTurns,
                 localDateTime: cachedLocalDateTime,
                 sessionMemory: sessionMemory ? sessionMemory.formatForPrompt() : null,
