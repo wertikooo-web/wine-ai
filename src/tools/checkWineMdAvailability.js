@@ -26,6 +26,7 @@
 // implementation for a real API call — the declaration/impl contract can
 // stay the same.
 const { requireNonEmptyString } = require('./toolHelpers');
+const { recordLinkEvent } = require('../analytics/linkEvents');
 
 const declaration = {
     name: 'check_wine_md_availability',
@@ -100,26 +101,73 @@ async function searchWineMd(query, cookie) {
 // The endpoint returns an HTML-ish `label` (bolded matches, a weight
 // count) meant for a JS autocomplete dropdown — strip it down to the
 // plain product name (`value`) rather than passing markup to the model.
+// Only https links on wine.md itself are kept (relative URLs resolved).
 function toResult(raw) {
-    return { title: raw.value, url: raw.url };
+    let url = null;
+    try {
+        const parsed = new URL(String(raw.url || ''), HOME_URL);
+        if (parsed.protocol === 'https:' && /(^|\.)wine\.md$/i.test(parsed.hostname)) url = parsed.href;
+    } catch { url = null; }
+    return { title: String(raw.value || '').replace(/<[^>]*>/g, '').trim().slice(0, 120), url };
 }
 
-async function impl(args) {
+const MAX_SHOWN = 3;
+const NO_CARD = ' Never say you are showing a card or a picture -- only the links in the chat.';
+
+// Lite chat (production 2026-10-03): the model found the wine on wine.md,
+// said it was "showing the card", and nothing appeared -- this tool never
+// put anything on screen. Found products now go into the chat as clickable
+// links (the same companion.links block show_links uses); the model gets
+// the titles only, never the URLs.
+function showInChat(results, toolContext) {
+    if (!toolContext || toolContext.companionScreen !== true || typeof toolContext.emitToClient !== 'function') return [];
+    const shown = [];
+    for (const r of results) {
+        if (!r.url || !r.title || shown.length >= MAX_SHOWN) continue;
+        toolContext.emitToClient({
+            type: 'companion.links',
+            generation_id: toolContext._currentGenerationId || null,
+            entity_type: 'wine',
+            entity_id: `winemd:${r.url.replace(/^https:\/\/(www\.)?wine\.md\//i, '').slice(0, 80)}`,
+            title: r.title,
+            image_url: null,
+            price: null,
+            links: [{ kind: 'wine_page', url: r.url }],
+        });
+        recordLinkEvent({ event: 'link_resolved', entityType: 'wine', entityId: r.url, entityName: r.title });
+        shown.push(r.title);
+    }
+    return shown;
+}
+
+async function impl(args, toolContext = {}) {
     const query = requireNonEmptyString(args.query, 'query');
     try {
         const cookie = await getSessionCookie();
-        const results = await searchWineMd(query, cookie);
+        const results = (await searchWineMd(query, cookie)).slice(0, 5).map(toResult);
+        if (!results.length) {
+            return {
+                found: false,
+                results: [],
+                note: 'The live search on wine.md found nothing for this wording. Say so briefly (do not claim the wine is unavailable), and offer to put the winery\'s own links in the chat (show_links with the winery name).' + NO_CARD + ' Never read or invent a URL.',
+            };
+        }
+        const shown = showInChat(results, toolContext);
         return {
-            found: results.length > 0,
-            results: results.slice(0, 5).map(toResult),
-            note: 'Live search against wine.md — reflects the current catalog, but always tell the user to confirm final price/stock directly on the site before they buy.',
+            found: true,
+            results: results.map((r) => ({ title: r.title })),
+            shown_in_chat: shown,
+            note: (shown.length
+                ? `The wine.md links for: ${shown.join('; ')} are now shown in the chat as clickable text. Say briefly that you have put the wine.md link(s) in the chat.`
+                : 'This conversation has no chat screen for links; name the wine as listed on wine.md and suggest finding it there.')
+                + NO_CARD + ' Never read, spell or invent a URL. Tell the user to confirm final price/stock on the site before buying.',
         };
     } catch (error) {
         return {
             found: false,
             results: [],
             error: true,
-            note: `Live search against wine.md failed (${error.message}) — do not claim the wine is unavailable, just say the live check didn't work right now and suggest wine.md directly.`,
+            note: `Live search against wine.md failed (${error.message}) — do not claim the wine is unavailable, just say the live check didn't work right now and offer the winery's own links (show_links).${NO_CARD}`,
         };
     }
 }
