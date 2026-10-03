@@ -106,6 +106,7 @@ function costUsd({ provider, model, usage }) {
 function createTurnCollector({ base = {}, write, delayMs = Number(process.env.TURN_JOURNAL_DELAY_MS) || 2500, now = () => Date.now() } = {}) {
     const turns = new Map();
     let lastId = null;
+    let lastFinishedId = null; // finished, row not yet written (usage may still arrive)
 
     function entry(generationId, startedAt) {
         let t = turns.get(generationId);
@@ -142,9 +143,14 @@ function createTurnCollector({ base = {}, write, delayMs = Number(process.env.TU
         },
         touch(generation) { get(generation); },
         // Usage reported by the provider: belongs to the current generation,
-        // else the last one seen (Gemini reports it at turnComplete).
+        // else the last one seen (Gemini reports it at turnComplete). In Free
+        // Conversation the next (still empty) generation already exists when
+        // turnComplete usage arrives; it belongs to the turn that just ended.
         noteUsage(currentGeneration, raw, kind) {
-            const t = (currentGeneration && turns.get(currentGeneration.generationId)) || (lastId && turns.get(lastId));
+            const cur = currentGeneration && turns.get(currentGeneration.generationId);
+            const pending = lastFinishedId && turns.get(lastFinishedId);
+            const curIdle = cur && !cur.finished && !cur.firstAudioAt && !cur.tools.length;
+            const t = (pending && (!cur || curIdle)) ? pending : (cur || (lastId && turns.get(lastId)));
             if (!t || !raw) return;
             const normalized = normalizeUsage(raw, kind);
             if (normalized) t.usage = addUsage(t.usage || emptyUsage(), normalized);
@@ -153,6 +159,7 @@ function createTurnCollector({ base = {}, write, delayMs = Number(process.env.TU
             const t = get(generation);
             if (!t || t.finished) return;
             t.finished = true;
+            lastFinishedId = t.generationId;
             // A turn that never had content (e.g. an empty Free Conversation
             // turn superseded by the next utterance) is not worth a row.
             if (!String(question || '').trim() && !String(answer || '').trim() && !t.tools.length) {
@@ -162,6 +169,7 @@ function createTurnCollector({ base = {}, write, delayMs = Number(process.env.TU
             const endedAt = now();
             const timer = setTimeout(() => {
                 turns.delete(t.generationId);
+                if (lastFinishedId === t.generationId) lastFinishedId = null;
                 const usage = t.usage;
                 const row = {
                     ...base,
