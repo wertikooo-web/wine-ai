@@ -2,6 +2,7 @@
 
 const diagRing = require('./diagRing');
 const { createTurnCollector, observeToolHandlers, recordTurn } = require('../observability/turnJournal');
+const { checkWineNames } = require('../observability/wineNameCheck');
 const { speechLanguageCode } = require('./geminiLiveProvider');
 
 // NOTE ON MICROPHONE AUDIO SAMPLE RATE: a client may send microphone audio
@@ -642,7 +643,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             model: providerMetadata.model || null,
             access_grant: sessionAccess.liteGrant ? sessionAccess.liteGrant.grantId : null,
         },
-        write: (row) => recordTurn(row, { log }),
+        write: (row) => recordTurn(row, { log, enrich: checkWineNames }),
     });
     const toolHandlers = wrapToolHandlersWithBudget(observeToolHandlers(typeof providerMetadata.createToolHandlers === 'function'
         ? providerMetadata.createToolHandlers(toolContext)
