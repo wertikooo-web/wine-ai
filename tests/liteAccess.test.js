@@ -118,6 +118,9 @@ async function unit() {
     t.ok(/WINE AI/.test(page) && /Введите код доступа/.test(page) && /Introduceți codul de acces/.test(page) && /Enter access code/.test(page), 'access screen RU/RO/EN');
     t.ok(/Неверный или недействительный код доступа\./.test(page) && /Срок тестового доступа закончился\./.test(page), 'access screen messages');
     t.ok(!/localStorage/.test(page), 'nothing in localStorage');
+    t.ok(/translate="no"/.test(page) && /notranslate/.test(page), 'access screen is never machine-translated');
+    const lite = require('fs').readFileSync(require('path').join(__dirname, '..', 'public', 'dashboard.html'), 'utf8');
+    t.ok(/<html lang="ru" translate="no">/.test(lite) && /<meta name="google" content="notranslate">/.test(lite), 'Lite page is never machine-translated (Chrome turned Romanian answers into Russian)');
 }
 
 async function endToEnd() {
