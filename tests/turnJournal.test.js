@@ -48,6 +48,17 @@ async function unit() {
     await sleep(40);
     ok(rows.length === 0, 'empty turn (no question, answer or tools) is not recorded');
 
+    // Free Conversation: the next generation already exists (idle) when the
+    // previous turn's usage arrives at turnComplete
+    rows.length = 0;
+    const g4 = { generationId: 'g4', createdAt: clock };
+    c.finish(g4, { outcome: 'completed', question: 'Q', answer: 'A' });
+    const g5 = { generationId: 'g5', createdAt: clock };
+    c.touch(g5);
+    c.noteUsage(g5, { promptTokenCount: 100, responseTokenCount: 10, promptTokensDetails: [{ modality: 'TEXT', tokenCount: 100 }], responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 10 }] }, 'gemini_usage_metadata');
+    await sleep(40);
+    ok(rows.length === 1 && rows[0].id === 'g4' && rows[0].usage && rows[0].usage.input_text_tokens === 100, 'late usage goes to the turn that just ended, not the idle next one');
+
     const store = journal.createMemoryTurnStore();
     journal.recordTurn({ ...row, id: 'g9' }, { store, env: { TURN_JOURNAL_TEXT: 'off' } });
     journal.recordTurn({ ...row, id: 'g10' }, { store, env: { TURN_JOURNAL: 'off' } });
