@@ -19,6 +19,9 @@ const TOTAL_MS = Number(process.env.PROBE_TOTAL_MS || 250000);
 // Same Russian question at each mark (controlled, no Ukrainian words).
 const QUESTION = 'Расскажите, пожалуйста, какие красные вина Молдовы стоит попробовать и почему?';
 const MARKS_S = String(process.env.PROBE_MARKS || '3,60,120,176').split(',').map(Number);
+// PROBE_QUESTIONS="q1|q2|q3": one question per mark (cycled), e.g. RU -> RO -> RU
+// to check the language switch and the speech accent anchor.
+const QUESTIONS = String(process.env.PROBE_QUESTIONS || '').split('|').map((q) => q.trim()).filter(Boolean);
 
 async function tts(text) {
     const res = await fetch(`${BASE_URL}/api/voice-preview`, { method: 'POST', headers: { 'content-type': 'application/json', ...(process.env.ADMIN_TOKEN ? { 'x-admin-token': process.env.ADMIN_TOKEN } : {}) }, body: JSON.stringify({ provider: 'gemini', voice_name: 'Puck', text }) });
@@ -78,13 +81,16 @@ const INSTRUMENT = () => {
 
 async function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
-    const q = await tts(QUESTION);
+    const texts = QUESTIONS.length ? QUESTIONS : [QUESTION];
+    const clips = [];
+    for (const text of texts) clips.push(await tts(text));
+    const q = clips[0];
     const sr = 24000;
     const total = Buffer.alloc(sr * 2 * Math.ceil(TOTAL_MS / 1000 + 10));
-    for (const s of MARKS_S) q.copy(total, Math.floor(s * sr) * 2);
+    MARKS_S.forEach((s, i) => clips[i % clips.length].copy(total, Math.floor(s * sr) * 2));
     const wavPath = path.join(OUT_DIR, 'script.wav');
     fs.writeFileSync(wavPath, wav(total, sr));
-    console.log(`question audio ${Math.round(q.length / 2 / sr * 1000)}ms at marks ${MARKS_S.join(', ')}s`);
+    console.log(`question audio ${Math.round(q.length / 2 / sr * 1000)}ms at marks ${MARKS_S.join(', ')}s; questions: ${texts.join(' | ')}`);
 
     const browser = await puppeteer.launch({
         executablePath: process.env.CHROME || '/usr/bin/google-chrome',
