@@ -1,6 +1,7 @@
 'use strict';
 
 const diagRing = require('./diagRing');
+const { createTurnCollector, observeToolHandlers, recordTurn } = require('../observability/turnJournal');
 const { speechLanguageCode } = require('./geminiLiveProvider');
 
 // NOTE ON MICROPHONE AUDIO SAMPLE RATE: a client may send microphone audio
@@ -394,6 +395,8 @@ function createGeneration({ turnId, mode, interactionId, providerInstanceId }) {
         turnId,
         mode: mode || null,
         generationId: id('generation'),
+        // Turn journal only (src/observability/turnJournal.js).
+        createdAt: Date.now(),
         responseId: null,
         status: 'pending',
         responseCreatedSent: false,
@@ -629,9 +632,21 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // Only the model-facing tool result is size-budgeted (see
     // toolResultBudget.js): tool results stay in the provider context and
     // are re-billed on every later turn.
-    const toolHandlers = wrapToolHandlersWithBudget(typeof providerMetadata.createToolHandlers === 'function'
+    // Turn journal (ai_turns): observation only -- one row per assistant
+    // turn after it ends; never changes the conversation.
+    const turnJournal = createTurnCollector({
+        base: {
+            session_id: sessionId,
+            channel: sessionAccess.channel || 'dashboard',
+            provider: providerMetadata.provider || 'mock',
+            model: providerMetadata.model || null,
+            access_grant: sessionAccess.liteGrant ? sessionAccess.liteGrant.grantId : null,
+        },
+        write: (row) => recordTurn(row, { log }),
+    });
+    const toolHandlers = wrapToolHandlersWithBudget(observeToolHandlers(typeof providerMetadata.createToolHandlers === 'function'
         ? providerMetadata.createToolHandlers(toolContext)
-        : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {}), {
+        : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {}), (r) => turnJournal.noteTool(r)), {
         onCompacted: (info) => log('tool_result_compacted', info),
     });
     // Full prompt text (persona/knowledge_context, tens of KB combined — up
@@ -868,7 +883,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             onUserSpeechStarted: handleNativeSpeechStarted,
             onUserSpeechStopped: handleNativeSpeechStopped,
             // Cost telemetry sink for provider usage metadata; never throws.
-            onUsage: usageMeter.onProviderUsage,
+            onUsage: (raw, meta) => {
+                usageMeter.onProviderUsage(raw, meta);
+                turnJournal.noteUsage(currentGeneration, raw, meta && meta.kind);
+            },
         };
     }
 
@@ -1441,6 +1459,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             newProviderInstanceId: providerSession?.instanceId || 'unknown',
             elapsedMs: Date.now() - startedAt,
         });
+        journalTurn(generation, 'timeout', 'provider_timeout');
         logPttSummary(generation, 'provider_timeout');
     }
 
@@ -1465,6 +1484,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             reason,
             providerInstanceId: providerSession?.instanceId || 'unknown',
         });
+        journalTurn(generation, 'failed', reason);
         logPttSummary(generation, reason);
         emit({
             ...payload,
@@ -1719,6 +1739,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
                 inputEndToFirstModelEventMs: generation.firstModelEventAt - generation.inputEndedAt,
             });
         }
+        if (eventType === 'audio.start') turnJournal.noteFirstAudio(generation);
         if (eventType === 'audio.start' && generation.inputEndedAt && !generation.firstValidAudioAt) {
             generation.firstValidAudioAt = Date.now();
             log('provider_first_valid_audio', {
@@ -1736,12 +1757,14 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         if (eventType === 'response.cancelled') {
             generation.status = 'cancelled';
             clearGenerationTimeout(generation);
+            journalTurn(generation, 'cancelled', payload.reason || 'provider_cancelled');
             assistantTranscriptBuffer = '';
         }
         const shouldRotateAfterAudioEnd = eventType === 'audio.end' && shouldRotateProviderAfterOutputComplete();
         if (eventType === 'audio.end') {
             generation.status = 'completed';
             clearGenerationTimeout(generation);
+            journalTurn(generation, 'completed');
             rememberTurn('assistant', assistantTranscriptBuffer);
             assistantTranscriptBuffer = '';
             logPttSummary(generation, 'completed');
@@ -1801,6 +1824,20 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             || generation.status === 'failed';
     }
 
+    function journalTurn(generation, outcome, reason = null) {
+        if (!generation) return;
+        const question = generation.textInput || generation.userTranscriptBuffer || '';
+        if (/^\[system instruction/.test(question)) turnJournal.noteFlag(generation, 'scripted_line');
+        turnJournal.finish(generation, {
+            outcome,
+            reason,
+            question,
+            answer: assistantTranscriptBuffer,
+            language: sessionLanguage || null,
+            voice: providerSession?.voiceName || sessionVoiceName || null,
+        });
+    }
+
     function logPttSummary(generation, terminalReason, clientSummary) {
         if (generation && generation.mode !== 'push_to_talk') return;
         const interactionId = generation ? generation.interactionId : (clientSummary ? clientSummary.interactionId : null);
@@ -1851,6 +1888,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             interrupt_requested_at: cancelRequestedAt,
         });
         currentGeneration.status = 'cancelled';
+        journalTurn(currentGeneration, 'interrupted', reason);
         // A barge-in-cancelled generation never reaches emitOutputEnd()'s
         // natural-completion path -- the ONLY other place inputEndedAt is
         // set (geminiLiveProvider.js's emitOutputEnd(), tap_to_start's
@@ -2353,6 +2391,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         inputEndedAt = Date.now();
         const generationForText = currentGeneration;
         generationForText.inputEndedAt = inputEndedAt;
+        generationForText.textInput = text;
         emit({
             type: 'input_text.submitted',
             turn_id: currentTurnId,
@@ -2382,6 +2421,7 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             });
             generationForText.status = 'failed';
             generationForText.cancel.cancel('provider_text_input_error');
+            journalTurn(generationForText, 'failed', 'provider_text_input_error');
             emit({
                 type: 'response.failed',
                 generation_id: generationForText.generationId,
