@@ -390,7 +390,7 @@ function createLiteAccess({ store, env = process.env, now = () => Date.now(), lo
 // there is no guest session. Minimal, no app code; RU/RO/EN.
 function renderAccessPage() {
     return `<!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<html lang="ru" translate="no"><head><meta charset="utf-8"><meta name="google" content="notranslate"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>WINE AI</title>
 <style>
   :root { color-scheme: light dark; --bg: #f7f1e8; --card: #fff; --ink: #2b1a1f; --muted: #7a6468; --accent: #6b1e2b; --line: #d9c9be; }
