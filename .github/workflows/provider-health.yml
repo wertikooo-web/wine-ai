@@ -1,0 +1,36 @@
+name: Provider Health
+
+# Every 30 min: one tiny Gemini call through production + recent session
+# quota/auth errors (GET /api/provider-health). A failed run means guests
+# may hear nothing; GitHub e-mails the failure. Runbook:
+# docs/RUNBOOK_PROVIDER_DOWN.md
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,37 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-health
+  cancel-in-progress: false
+
+jobs:
+  provider-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check voice provider
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: node scripts/diag/provider-health.js
