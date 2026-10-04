@@ -21,11 +21,21 @@ async function run() {
         t.ok(/latest utterance/.test(ctx) && /switch with them in this answer/.test(ctx), 'latest utterance decides the answer language');
         t.ok(!/Continue in the last clearly understood language/.test(ctx), 'no "continue in <old language>" instruction');
         t.ok(/Stay in ro only when the latest utterance is unclear/.test(ctx), 'session language kept only for unclear utterances');
+
+        // Typed input: a clear switch is applied before THIS turn's answer.
+        const from = client.events ? client.events.length : 0;
+        client.sendJson({ type: 'input_text.submit', text: 'А какое розовое вино из Молдовы вы мне посоветуете попробовать?' });
+        const sw = await client.waitFor((e) => e.type === 'language.switch_detected', { timeoutMs: 5000, label: 'switch' });
+        const rotated = await client.waitFor((e) => e.type === 'provider.rotated' && e.reason === 'language_switch', { timeoutMs: 5000, label: 'rotation' });
+        const audio = await client.waitFor((e) => e.type === 'audio.start', { timeoutMs: 8000, label: 'audio.start' });
+        t.ok(sw && sw.from_language === 'ro' && sw.to_language === 'ru', 'typed Russian after Romanian switches the language');
+        t.ok(rotated && audio && rotated.server_time_ms <= audio.server_time_ms, 'rotation happens before this turn answers');
+        void from;
     } finally {
         client.close();
         await close();
     }
-    return { assertionCount: 3 };
+    return { assertionCount: 5 };
 }
 
 module.exports = { run };
