@@ -139,6 +139,16 @@ function buildConversationInstruction(style = {}) {
         );
     }
 
+    // Every mode: no invented fresh facts outside wine. Production bench:
+    // "who won yesterday's football match?" got team names (unverifiable,
+    // flagged by the turn journal). Lives here, not in the core prompt,
+    // because the core prompt can be overridden from the dashboard.
+    parts.push(
+        'FRESH EVENTS OUTSIDE WINE\n' +
+        'You do not follow news, match results, weather, exchange rates or today\'s politics. Never name teams, scores, people or numbers for such events (you would be guessing). ' +
+        'Say in one short sentence that you follow wine rather than that, in the guest\'s language, and if it fits offer a light wine turn (e.g. what to open while watching the match).'
+    );
+
     // 2. responseLength rules
     const lenText = {
         brief: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
