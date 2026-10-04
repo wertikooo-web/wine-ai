@@ -86,7 +86,7 @@ function checkTurn(turn, r) {
     for (const t of turn.noTool || []) if (r.tools.includes(t)) issues.push(`used:${t}`);
     const words = r.answer.split(/\s+/).filter(Boolean).length;
     if (words > (turn.maxWords || 70)) issues.push(`long:${words}w`);
-    if (r.firstAudioMs != null && r.firstAudioMs > SLOW_FIRST_AUDIO_MS) issues.push(`slow:${r.firstAudioMs}ms`);
+    if (r.silenceMs != null && r.silenceMs > SLOW_FIRST_AUDIO_MS) issues.push(`slow:${r.silenceMs}ms`);
     return issues;
 }
 
@@ -106,21 +106,26 @@ async function runGroup(group, age) {
         await sleep(400); // trailing transcript
         const slice = conn.events.slice(from);
         const firstAudio = slice.find((e) => e.type === 'audio.chunk' || e.type === 'audio.delta');
+        const bridgeEv = slice.find((e) => e.type === 'assistant.bridge');
         const r = {
             group: group.group,
             n: i + 1,
             q: turn.q,
             end: end ? end.type : 'timeout',
             firstAudioMs: firstAudio ? firstAudio.at - t0 : null,
+            // filler phrase ("one moment, let me check") played while a tool runs
+            bridgeMs: bridgeEv ? bridgeEv.at - t0 : null,
             totalMs: Date.now() - t0,
             tools: slice.filter((e) => e.type === 'tool.call').map((e) => e.tool_name || e.name).filter(Boolean),
             answer: slice.filter((e) => e.type === 'transcript.model').map((e) => e.text).join('').replace(/\s+/g, ' ').trim(),
         };
         r.answerLanguage = answerLanguage(r.answer);
+        // what the guest actually waits for: the first sound, filler or answer
+        r.silenceMs = [r.firstAudioMs, r.bridgeMs].filter((x) => x != null).sort((a, b) => a - b)[0] ?? null;
         r.issues = checkTurn(turn, r);
         if (r.end !== 'audio.end') r.issues.unshift(r.end);
         results.push(r);
-        console.log(`#${i + 1} ${r.issues.length ? 'FAIL ' + r.issues.join(' ') : 'ok'} | ${r.firstAudioMs ?? '-'}ms | [${r.tools.join(',')}] | ${r.answerLanguage || '?'}`);
+        console.log(`#${i + 1} ${r.issues.length ? 'FAIL ' + r.issues.join(' ') : 'ok'} | answer ${r.firstAudioMs ?? '-'}ms bridge ${r.bridgeMs ?? '-'}ms | [${r.tools.join(',')}] | ${r.answerLanguage || '?'}`);
         console.log(`  Q: ${turn.q}`);
         console.log(`  A: ${r.answer.slice(0, 400)}`);
         await sleep(800);
@@ -153,11 +158,13 @@ async function main() {
     await sleep(4000);
     let costUsd = 0;
     const flagged = [];
+    const toolMs = [];
     for (const run of runs.filter((x) => x.sessionId)) {
         const turns = await http(`/api/turns?session=${encodeURIComponent(run.sessionId)}&limit=50`);
         if (!turns.json || !turns.json.ok) continue;
         costUsd += Number(turns.json.cost_usd) || 0;
         for (const t of turns.json.turns) {
+            for (const tool of t.tools || []) toolMs.push({ name: tool.name, ms: tool.ms, q: t.question });
             const names = t.flags && t.flags.unverified_names;
             if (names && names.length) flagged.push(`${t.question} -> ${names.join(', ')}`);
         }
@@ -168,6 +175,7 @@ async function main() {
     const byKind = {};
     for (const r of failed) for (const i of r.issues) { const k = i.split(':')[0]; byKind[k] = (byKind[k] || 0) + 1; }
     const fa = all.map((r) => r.firstAudioMs);
+    const si = all.map((r) => r.silenceMs);
     console.log('\n================ SUMMARY ================');
     console.log(`turns=${all.length} passed=${all.length - failed.length} failed=${failed.length} score=${Math.round(((all.length - failed.length) / all.length) * 100)}%`);
     for (const g of groups) {
@@ -175,7 +183,11 @@ async function main() {
         console.log(`  ${g.group.padEnd(16)} ${rs.filter((r) => !r.issues.length).length}/${rs.length}`);
     }
     console.log(`issues by kind: ${JSON.stringify(byKind)}`);
-    console.log(`first audio: p50=${pct(fa, 50)}ms p90=${pct(fa, 90)}ms max=${pct(fa, 100)}ms`);
+    console.log(`first answer audio: p50=${pct(fa, 50)}ms p90=${pct(fa, 90)}ms max=${pct(fa, 100)}ms`);
+    console.log(`silence (first sound incl. filler): p50=${pct(si, 50)}ms p90=${pct(si, 90)}ms max=${pct(si, 100)}ms; fillers played: ${all.filter((r) => r.bridgeMs != null).length}/${all.length}`);
+    const byTool = {};
+    for (const x of toolMs) (byTool[x.name] = byTool[x.name] || []).push(x.ms);
+    for (const [name, list] of Object.entries(byTool)) console.log(`  tool ${name}: n=${list.length} p50=${pct(list, 50)}ms p90=${pct(list, 90)}ms max=${pct(list, 100)}ms`);
     console.log(`journal cost: $${costUsd.toFixed(4)} (~EUR ${(costUsd * 0.86).toFixed(3)}) for ${runs.filter((x) => x.sessionId).length} sessions`);
     console.log(`unverified names (journal): ${flagged.length}`);
     flagged.forEach((f) => console.log(`  - ${f}`));
