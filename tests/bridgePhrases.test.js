@@ -22,6 +22,9 @@ function fakeCache() {
 async function unit() {
     t.equal(bridgeConfig({}).enabled, false, 'off by default');
     t.equal(bridgeConfig({ BRIDGE_PHRASES_ENABLED: 'true' }).enabled, true, 'flag enables');
+    t.equal(bridgeConfig({}).delayMs, 2000, 'filler only when the tool runs over 2 s (fast local searches answer first)');
+    t.equal(bridgeConfig({}).minTurnGap, 1, 'a slow turn always gets a filler');
+    t.equal(bridgeConfig({ BRIDGE_DELAY_MS: '1500', BRIDGE_MIN_TURN_GAP: '3' }).delayMs, 1500, 'env still overrides');
     t.equal(normalizeLanguage('ro-MD'), 'ro');
     t.equal(normalizeLanguage('de'), 'ru', 'unknown language falls back to Russian');
     for (const lang of ['ru', 'ro', 'en']) t.ok(PHRASES[lang].length >= 3, `${lang}: several phrases (no repetition tic)`);

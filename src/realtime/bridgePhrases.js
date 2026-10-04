@@ -1,7 +1,7 @@
 'use strict';
 
 // "Bridge" phrases: when a tool call (knowledge search) keeps the assistant
-// silent for longer than BRIDGE_DELAY_MS (default 1000), the server sends
+// silent for longer than BRIDGE_DELAY_MS (default 2000), the server sends
 // the client a short pre-rendered phrase ("Минуточку, сейчас посмотрю.") in
 // the persona's own voice. The
 // client plays it on a separate audio node; when the real answer arrives the
@@ -26,10 +26,14 @@ const PHRASES = Object.freeze({
 function bridgeConfig(env = process.env) {
     return {
         enabled: String(env.BRIDGE_PHRASES_ENABLED || '').trim().toLowerCase() === 'true',
-        delayMs: Math.max(0, Number(env.BRIDGE_DELAY_MS || 1000)),
-        // A bridge is allowed at most once per this many turns, so it does
-        // not become a verbal tic on every question.
-        minTurnGap: Math.max(1, Number(env.BRIDGE_MIN_TURN_GAP || 2)),
+        // Voice bench on prod: local search answers in ~1 s, web lookups take
+        // 5-6 s. With 1000 ms / every 2nd turn the filler covered fast
+        // searches and skipped slow ones (6-8 s of silence). 2000 ms lets
+        // fast searches answer without a filler, and a filler may now play
+        // on every slow turn: being slow, not the turn count, decides.
+        delayMs: Math.max(0, Number(env.BRIDGE_DELAY_MS || 2000)),
+        // A bridge is allowed at most once per this many turns.
+        minTurnGap: Math.max(1, Number(env.BRIDGE_MIN_TURN_GAP || 1)),
     };
 }
 
