@@ -2392,6 +2392,17 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             return;
         }
 
+        // Typed input: the language is known before the model answers, so a
+        // clear switch is applied to THIS turn (startInput rotates on a
+        // pending switch) instead of the next one -- voice bench on prod:
+        // after RO, a typed Russian question still got a Romanian answer.
+        // Confident signals only; the transcript.user path below then sees
+        // the same language and does nothing (no double counting).
+        const typedLanguage = detectLanguageSignal(text);
+        if (typedLanguage && typedLanguage.confident && typedLanguage.language !== sessionLanguage) {
+            noteUserLanguage(text, currentGeneration);
+        }
+
         startInput({
             turn_id: payload.turn_id,
             mode: 'text',
