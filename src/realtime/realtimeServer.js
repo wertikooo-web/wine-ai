@@ -4,6 +4,7 @@ const diagRing = require('./diagRing');
 const providerHealth = require('../observability/providerHealth');
 const { createTurnCollector, observeToolHandlers, recordTurn } = require('../observability/turnJournal');
 const { checkWineNames } = require('../observability/wineNameCheck');
+const { applyGuestFacts, withGuestProfile } = require('../memory/guestProfile');
 const { speechLanguageCode } = require('./geminiLiveProvider');
 
 // NOTE ON MICROPHONE AUDIO SAMPLE RATE: a client may send microphone audio
@@ -646,11 +647,13 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         },
         write: (row) => recordTurn(row, { log, enrich: checkWineNames }),
     });
-    const toolHandlers = wrapToolHandlersWithBudget(observeToolHandlers(typeof providerMetadata.createToolHandlers === 'function'
+    // Outermost: the guest profile is added after the budget compaction so
+    // it is never trimmed away (src/memory/guestProfile.js).
+    const toolHandlers = withGuestProfile(wrapToolHandlersWithBudget(observeToolHandlers(typeof providerMetadata.createToolHandlers === 'function'
         ? providerMetadata.createToolHandlers(toolContext)
         : (providerMetadata.toolHandlers && typeof providerMetadata.toolHandlers === 'object' ? providerMetadata.toolHandlers : {}), (r) => turnJournal.noteTool(r)), {
         onCompacted: (info) => log('tool_result_compacted', info),
-    });
+    }), sessionMemory);
     // Full prompt text (persona/knowledge_context, tens of KB combined — up
     // to PROMPT_MAX_CHARS per block) is only useful for the dashboard's
     // debug view. Defaults to false; the dashboard client opts in by
@@ -812,6 +815,10 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         const clean = String(text || '').trim();
         if (!clean) return;
         recentTurns.push({ role, text: clean.slice(0, 240) });
+        if (role === 'user') {
+            const facts = applyGuestFacts(sessionMemory, clean);
+            if (facts && (facts.likes.length || facts.dislikes.length || facts.budget)) log('guest_profile_noted', { likes: facts.likes.join('|'), dislikes: facts.dislikes.join('|'), budget: facts.budget || '' });
+        }
         while (recentTurns.length > 12) recentTurns.shift();
     }
 
