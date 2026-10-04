@@ -86,6 +86,31 @@ async function probeGemini({
     }
 }
 
+// Cached probe for the public /health/provider (an external uptime monitor
+// polls it every few minutes): at most one Gemini call per ttlMs however
+// often it is hit.
+let probeCache = { at: 0, result: null, pending: null };
+async function cachedProbe({ ttlMs = 5 * 60 * 1000, now = Date.now, probe = probeGemini } = {}) {
+    if (probeCache.result && now() - probeCache.at < ttlMs) return probeCache.result;
+    if (probeCache.pending) return probeCache.pending;
+    probeCache.pending = Promise.resolve(probe()).then((result) => {
+        probeCache = { at: now(), result, pending: null };
+        return result;
+    }, (error) => {
+        probeCache.pending = null;
+        return { ok: false, kind: 'other', error: String(error?.message || error).slice(0, 200) };
+    });
+    return probeCache.pending;
+}
+
+// A successful live probe is the truth about "usable now": session errors
+// from before a top-up must not keep the alarm red (prod 2026-10-04: credits
+// topped up, probe ok, but 8 earlier session quota errors kept failing it).
+function verdict({ probe = null, sessions }) {
+    if (probe) return probe.ok === true;
+    return sessions.counts.quota === 0 && sessions.counts.auth === 0;
+}
+
 function grokConfigured(env = process.env) {
     return Boolean(env.GROK_API_KEY || env.XAI_API_KEY);
 }
@@ -97,5 +122,7 @@ module.exports = {
     summary,
     probeGemini,
     grokConfigured,
-    _reset: () => { ring.length = 0; },
+    cachedProbe,
+    verdict,
+    _reset: () => { ring.length = 0; probeCache = { at: 0, result: null, pending: null }; },
 };

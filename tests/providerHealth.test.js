@@ -32,6 +32,20 @@ async function run() {
     ok(slow.ok === false && slow.kind === 'timeout', 'probe timeout');
     ok(health.grokConfigured({ XAI_API_KEY: 'x' }) === true && health.grokConfigured({}) === false, 'grok key detection');
 
+    // after a top-up: probe ok wins over earlier session quota errors
+    ok(health.verdict({ probe: { ok: true }, sessions: { counts: { quota: 8, auth: 0 } } }) === true, 'live probe ok = usable, despite old session errors');
+    ok(health.verdict({ probe: null, sessions: { counts: { quota: 1, auth: 0 } } }) === false, 'without a probe, session quota errors = not ok');
+
+    health._reset();
+    let calls = 0;
+    let clock = 0;
+    const probe = async () => { calls += 1; return { ok: calls > 1 }; };
+    const a = await health.cachedProbe({ probe, now: () => clock, ttlMs: 1000 });
+    const b = await health.cachedProbe({ probe, now: () => clock, ttlMs: 1000 });
+    clock = 2000;
+    const c = await health.cachedProbe({ probe, now: () => clock, ttlMs: 1000 });
+    ok(calls === 2 && a.ok === false && b.ok === false && c.ok === true, 'public probe cached per ttl (one Gemini call per window)');
+
     health._reset();
     return { assertionCount: n };
 }
