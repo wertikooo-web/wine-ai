@@ -2,6 +2,18 @@
 
 ## Signal
 
+**Main alarm: external uptime monitor** (GitHub's schedule runs only every
+3-5 hours in practice, too slow).
+
+- URL: `https://wine-ai-realtime-production.up.railway.app/health/provider`
+  (public; 200 = Gemini answers, 503 = credits/key/network problem; no error text).
+- Set up once (free, ~2 min): UptimeRobot -> New monitor -> HTTP(s) -> that URL ->
+  interval 5 min -> alert contact = your e-mail (and Telegram if you like).
+- Polling is cheap: the server caches the check for 5 min (at most one 1-token
+  Gemini call per 5 min).
+
+Backup signals:
+
 - E-mail from GitHub: **Provider Health** workflow failed. The log says why:
   - `probe quota`: Gemini prepaid credits are used up, or a quota/spend cap was hit.
   - `probe auth`: the API key is invalid or revoked.
@@ -39,5 +51,7 @@ the guests that the service is paused.
 - The probe is one text call (`gemini-2.5-flash`, 1 output token) every 30 min. It uses the
   same key and billing as Gemini Live and costs effectively nothing.
 - Make sure GitHub sends you failed-workflow e-mails: GitHub → Settings → Notifications →
-  Actions → "Notify me for failed workflows only".
+  Actions → "Notify me for failed workflows only" (backup only: the schedule is slow).
+- A successful live probe decides "usable now": session errors from before a top-up do not
+  keep the alarm red.
 - Switch the schedule off: Actions → Provider Health → ⋯ → Disable workflow.
