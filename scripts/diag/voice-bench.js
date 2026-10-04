@@ -193,6 +193,15 @@ async function main() {
     flagged.forEach((f) => console.log(`  - ${f}`));
     console.log('\nFAILED TURNS:');
     failed.forEach((r) => console.log(`  ${r.group}#${r.n} ${r.issues.join(' ')} | Q: ${r.q} | A: ${String(r.answer || '').slice(0, 160)}`));
+    // Filler config and per-stage timings of the last knowledge searches
+    // (public /health; no query text).
+    const health = await http('/health');
+    if (health.json) {
+        console.log(`\nbridge (filler) status: ${JSON.stringify(health.json.bridge)}`);
+        const kt = (health.json.knowledge_timings || []).slice(-15);
+        console.log(`last knowledge searches (${kt.length}):`);
+        kt.forEach((x) => console.log(`  total=${x.total_ms} route=${x.route_ms} gate=${x.answerability_ms} web=${x.web_fallback_ms} levels=${(x.levels || []).join(' ')} web_reason=${x.web_reason || '-'} gate_reason=${x.answerability_reason || '-'}`));
+    }
     if (process.env.BENCH_OUT) fs.writeFileSync(process.env.BENCH_OUT, JSON.stringify({ at: new Date().toISOString(), runs, costUsd, flagged }, null, 2));
 }
 
