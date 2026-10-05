@@ -414,6 +414,9 @@ jobs:
         run: |
           CHROME="$(command -v google-chrome || command -v google-chrome-stable)" node scripts/diag/session-probe.js || true
           node scripts/diag/realtime-events.js
+      - name: Service lines pre-rendered (30 s warning, session end, inactivity) x RU/RO/EN
+        if: ${{ github.event.inputs.diagnostic == 'scripted-lines' }}
+        run: node scripts/diag/scripted-lines.js
       - name: Turn journal (last turns, read-only)
         if: ${{ github.event.inputs.diagnostic == 'turns' }}
         run: node scripts/diag/turns.js
