@@ -3287,6 +3287,8 @@
   // NOT depend on that message succeeding either way.
   function disconnect() {
     stopBridge('disconnect');
+    if (scriptedLineSource) { const src = scriptedLineSource; scriptedLineSource = null; try { src.stop(); } catch { /* ended */ } }
+    if (pendingScriptedLine) { clearTimeout(pendingScriptedLine.timer); pendingScriptedLine = null; }
     const socket = ws;
     let resolveClosed;
     const canObserveClose = socket && typeof socket.addEventListener === 'function';
@@ -3645,6 +3647,9 @@
         break;
       case 'assistant.bridge':
         playBridge(payload);
+        break;
+      case 'assistant.scripted_line':
+        onScriptedLineReply(payload);
         break;
       case 'audio.chunk':
         if (audioContext) playbackQueueTime = Math.max(playbackQueueTime, bridgeQueueFloor());
@@ -5053,7 +5058,7 @@
     autoEndFallbackTimer = setTimeout(() => {
       autoEndFallbackTimer = null;
       if (!pendingAutoEnd || pendingAutoEnd !== owner) return;
-      if (assistantSpeechInProgress() && Date.now() < (owner.fallbackDeadlineAt || 0)) {
+      if ((assistantSpeechInProgress() || scriptedLineSource || pendingScriptedLine) && Date.now() < (owner.fallbackDeadlineAt || 0)) {
         sendTelemetry('auto_end_fallback_waits_for_speech', { reason: owner.reason, phase: owner.phase });
         autoEndFallbackTimer = setTimeout(() => { autoEndFallbackTimer = null; armAutoEndFallback(0); }, 1500);
         return;
@@ -5173,9 +5178,93 @@
   // turn back as transcript.user; lines starting with SCRIPTED_LINE_PREFIX
   // are an instruction to the model, not something the guest said, so the
   // transcript / Lite chat never show them (see isScriptedLineEcho).
-  function speakScriptedLine(text) {
+  // Service lines are played as pre-rendered audio in the persona's voice
+  // (server: src/realtime/scriptedLines.js). Asking the model to say them
+  // failed in prod (2026-10-05): the warning was cut by the guest's speech,
+  // and the closing line never came when the guest was mid-sentence at 0:00.
+  // The model path stays as the fallback (no rendered audio / no reply).
+  const SCRIPTED_LINE_KEYS = {
+    [FREE_CONV_SESSION_WARNING_TEXT]: 'session_warning',
+    [FREE_CONV_SESSION_LIMIT_TEXT]: 'session_limit',
+    [FREE_CONV_INACTIVITY_WARNING_TEXT]: 'inactivity_warning',
+    [FREE_CONV_INACTIVITY_GOODBYE_TEXT]: 'inactivity_goodbye',
+  };
+  const SCRIPTED_LINE_REPLY_TIMEOUT_MS = 1500;
+  var pendingScriptedLine = null; // { text, key, requestId, timer }
+  var scriptedLineSource = null;   // pre-rendered service line now playing
+  function speakScriptedLineViaModel(text) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send(JSON.stringify({ type: 'input_text.submit', text: `${SCRIPTED_LINE_PREFIX} ${localizeScriptedLine(text)}` }));
+  }
+  function scriptedLineLang() {
+    return conversationLang || (LITE_MODE && ['ro', 'en'].includes(uiLang) ? uiLang : 'ru');
+  }
+  function speakScriptedLine(text) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const key = SCRIPTED_LINE_KEYS[text];
+    if (!key) { speakScriptedLineViaModel(text); return; }
+    if (pendingScriptedLine && pendingScriptedLine.timer) clearTimeout(pendingScriptedLine.timer);
+    const requestId = 'sl_' + Date.now().toString(36);
+    pendingScriptedLine = {
+      text, key, requestId,
+      timer: setTimeout(() => {
+        if (!pendingScriptedLine || pendingScriptedLine.requestId !== requestId) return;
+        pendingScriptedLine = null;
+        sendTelemetry('scripted_line_fallback', { key, reason: 'no_reply' });
+        speakScriptedLineViaModel(text);
+      }, SCRIPTED_LINE_REPLY_TIMEOUT_MS),
+    };
+    ws.send(JSON.stringify({ type: 'scripted_line.request', key, lang: scriptedLineLang(), request_id: requestId }));
+  }
+  function onScriptedLineReply(payload) {
+    const pending = pendingScriptedLine;
+    if (!pending || payload.request_id !== pending.requestId) return;
+    clearTimeout(pending.timer);
+    pendingScriptedLine = null;
+    if (!payload.audio_base64 || !playScriptedLineAudio(payload, pending.text)) {
+      sendTelemetry('scripted_line_fallback', { key: pending.key, reason: payload.audio_base64 ? 'play_error' : 'no_audio' });
+      speakScriptedLineViaModel(pending.text);
+    }
+  }
+  // Not stopped by barge-in or answer playback: a service line is said to
+  // the end. Its text goes to the chat like any assistant line.
+  function playScriptedLineAudio(payload, sourceText) {
+    try {
+      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      const bytes = decodeBase64ToBytes(payload.audio_base64);
+      const samples = Math.floor(bytes.byteLength / 2);
+      if (!samples) return false;
+      const buffer = audioContext.createBuffer(1, samples, payload.sample_rate || 24000);
+      const channel = buffer.getChannelData(0);
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      for (let i = 0; i < samples; i++) channel[i] = view.getInt16(i * 2, true) / 32768;
+      stopBridge('scripted_line');
+      if (scriptedLineSource) { try { scriptedLineSource.stop(); } catch { /* ended */ } }
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ensureAvatarOutputAnalyser() || audioContext.destination);
+      scriptedLineSource = source;
+      source.onended = () => {
+        if (scriptedLineSource === source) scriptedLineSource = null;
+        onScriptedLineEnded(sourceText);
+      };
+      source.start();
+      if (LITE_MODE) liteChatAppend('assistant', { text: payload.text, generation_id: 'scripted_' + (payload.request_id || payload.key) });
+      sendTelemetry('scripted_line_played', { key: payload.key, lang: payload.lang });
+      return true;
+    } catch (error) {
+      scriptedLineSource = null;
+      return false;
+    }
+  }
+  // The closing line (session end / inactivity goodbye) ends the
+  // conversation when it has been said, not when a model reply drains.
+  function onScriptedLineEnded(text) {
+    if (pendingAutoEnd && pendingAutoEnd.phase === 'closing_sent' && pendingAutoEnd.closingText === text) {
+      const reason = pendingAutoEnd.reason;
+      pendingAutoEnd = null;
+      performAutoEnd(reason);
+    }
   }
 
   // The service lines (inactivity check-in/goodbye, 30-second warning,
@@ -5363,6 +5452,7 @@
       return true;
     }
     if (pendingAutoEnd.phase === 'closing_sent') {
+      if (scriptedLineSource || pendingScriptedLine) return true; // ends in onScriptedLineEnded()
       const reason = pendingAutoEnd.reason;
       pendingAutoEnd = null;
       performAutoEnd(reason);

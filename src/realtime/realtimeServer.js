@@ -53,9 +53,32 @@ function getDefaultBridgeCache() {
 }
 // Called at boot and after a persona is saved: every persona's Gemini voice
 // gets its bridge phrases before its first question.
+// Service lines (30-second warning, session end, inactivity) in the
+// persona's voice -- same render/store path as bridge phrases, own phrase
+// set (scriptedLines.js). On unless SCRIPTED_LINES_AUDIO=off.
+const scriptedLines = require('./scriptedLines');
+let defaultScriptedCache = null;
+function getDefaultScriptedCache() {
+    if (!defaultScriptedCache) {
+        const { synthesizeVoicePreview } = require('../voicePreview');
+        const { createPostgresBridgePhraseStore } = require('./bridgePhraseStore');
+        const log = (stage, extra) => console.log(`[Realtime] stage=${stage} ${Object.entries(extra || {}).map(([k, v]) => `${k}=${v}`).join(' ')}`);
+        defaultScriptedCache = createBridgeAudioCache({
+            synthesize: (args) => synthesizeVoicePreview({ ...args, operation: 'scripted_line' }),
+            store: createPostgresBridgePhraseStore({ log }),
+            log,
+            phrases: scriptedLines.LINES,
+            label: 'scripted',
+        });
+    }
+    return defaultScriptedCache;
+}
+
 function prewarmBridgeVoices(voices) {
-    if (!bridgeConfig().enabled) return Promise.resolve();
-    return prewarmVoices(getDefaultBridgeCache(), voices);
+    const jobs = [];
+    if (bridgeConfig().enabled) jobs.push(prewarmVoices(getDefaultBridgeCache(), voices));
+    if (scriptedLines.enabled()) jobs.push(prewarmVoices(getDefaultScriptedCache(), voices));
+    return Promise.all(jobs);
 }
 const {
     DASHBOARD_ALLOW_CUSTOM_PROMPT,
@@ -495,6 +518,7 @@ function attachRealtimeServer(server, options = {}) {
                 channel: url.searchParams.get('channel') === 'lite' ? 'lite' : 'dashboard',
                 bridgeConfig: options.bridgeConfig,
                 bridgeCache: options.bridgeCache,
+                scriptedCache: options.scriptedCache,
                 getSessionLimitMs: options.getSessionLimitMs,
                 // Admin session on the upgrade request (server.js admin gate);
                 // only gates diagnostics (prompt debug), never the conversation.
@@ -750,6 +774,36 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     // By the time the bridge fires the whole question is transcribed: use its
     // language when it is a bridge language, else the conversation language.
     // Read-only: changes no session or turn state.
+    // Pre-rendered service line for the client (scriptedLines.js). Gemini
+    // voices only (rendered with Gemini TTS); otherwise, or while the line is
+    // not rendered yet, audio is null and the client falls back to asking
+    // the model to say it.
+    function getScriptedCache() {
+        if (!scriptedLines.enabled()) return null;
+        return sessionAccess.scriptedCache || getDefaultScriptedCache();
+    }
+    function scriptedVoiceName() {
+        return providerMetadata.provider === 'gemini' ? (providerSession?.voiceName || sessionVoiceName || null) : null;
+    }
+    function sendScriptedLine(payload = {}) {
+        const line = scriptedLines.lookup(payload.key, payload.lang);
+        if (!line) return;
+        const cache = getScriptedCache();
+        const voice = scriptedVoiceName();
+        const rendered = cache && voice ? cache.get(voice, line.lang, line.index) : null;
+        if (!rendered && cache && voice) cache.warm(voice);
+        emit({
+            type: 'assistant.scripted_line',
+            key: payload.key,
+            lang: line.lang,
+            text: line.text,
+            request_id: payload.request_id || null,
+            sample_rate: rendered ? rendered.sampleRate : null,
+            audio_base64: rendered ? rendered.audioBase64 : null,
+        });
+        log('scripted_line_sent', { key: payload.key, lang: line.lang, audio: Boolean(rendered), voice: voice || 'none' });
+    }
+
     function bridgeLanguageFor(generationId) {
         const generation = currentGeneration && currentGeneration.generationId === generationId ? currentGeneration : null;
         const detected = generation ? detectLikelyLanguage(generation.userTranscriptBuffer) : null;
@@ -1392,6 +1446,9 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
         await providerSession.connect(log);
         promptApplyCount += 1;
         bridge.prewarm();
+        const scriptedCache = getScriptedCache();
+        const scriptedVoice = scriptedVoiceName();
+        if (scriptedCache && scriptedVoice) scriptedCache.warm(scriptedVoice);
         log('provider_ready', {
             reason,
             provider: providerSession.name || 'provider',
@@ -2699,6 +2756,8 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
             }
         } else if (payload.type === 'input_text.submit') {
             submitTextInput(payload);
+        } else if (payload.type === 'scripted_line.request') {
+            sendScriptedLine(payload);
         } else if (payload.type === 'session.interrupt') {
             const reason = payload.reason || 'client_interrupt';
             inputResampler.reset();

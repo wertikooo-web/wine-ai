@@ -1294,7 +1294,7 @@ async function run() {
     // the conversation fully disconnects. Agent audio must never count as
     // "activity" -- only server-native-VAD-driven input_audio.start does.
 
-    function setupInactivityTestSandbox() {
+    function setupInactivityTestSandboxBase() {
         const sandbox = createTestSandbox();
         setLexical(sandbox, 'voiceMode', 'tap_to_start');
         setLexical(sandbox, 'tapToStartActive', true);
@@ -1309,10 +1309,18 @@ async function run() {
         `, sandbox);
         return sandbox;
     }
+    // These inactivity / session-limit tests cover the model path of the
+    // service lines (the fallback when no pre-rendered audio arrives). The
+    // pre-rendered path is tested separately below.
+    function setupModelLineSandbox() {
+        const sandbox = setupInactivityTestSandboxBase();
+        vm.runInContext('speakScriptedLine = speakScriptedLineViaModel;', sandbox);
+        return sandbox;
+    }
 
     console.log('Testing inactivity: 90s of silence makes the agent speak the check-in line...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         sandbox.armInactivityWarnTimer();
         assert.strictEqual(countTimersWithDelay(sandbox, 90000), 1, 'a single 90s warn timer must be armed');
 
@@ -1337,7 +1345,7 @@ async function run() {
     // the mandated 30s grace window entirely.
     console.log('Testing inactivity: the check-in line finishing playback (draining) must NOT end the conversation early...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
         sandbox.setPttCaption(); // reflect the already-active conversation, as resumeTapListening() would have
         sandbox.armInactivityWarnTimer();
@@ -1363,7 +1371,7 @@ async function run() {
 
     console.log('Testing inactivity: 30s more of silence after the warning ends the conversation...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         vm.runInContext(`
             micStream = { getTracks: () => [{ id: 'track1', stop() { this.stopped = true; } }], getAudioTracks: () => [{ id: 'track1', stop() {} }] };
         `, sandbox);
@@ -1392,7 +1400,7 @@ async function run() {
 
     console.log('Testing inactivity: real user speech cancels the 90s warning and restarts the clock...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         sandbox.armInactivityWarnTimer();
         const timersBefore = countTimersWithDelay(sandbox, 90000);
 
@@ -1404,7 +1412,7 @@ async function run() {
 
     console.log('Testing inactivity: real user speech during the 30s grace window cancels the pending auto-end...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         sandbox.armInactivityWarnTimer();
         fireTimerWithDelay(sandbox, 90000); // warning spoken, grace armed
 
@@ -1428,7 +1436,7 @@ async function run() {
 
     console.log('Testing inactivity: the agent\'s OWN audio (audio.start/audio.end) never resets the inactivity clock...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         sandbox.armInactivityWarnTimer();
         const timersBefore = countTimersWithDelay(sandbox, 90000);
 
@@ -1440,7 +1448,7 @@ async function run() {
 
     console.log('Testing inactivity: manual Disconnect clears all inactivity/session timers (idempotent)...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
         sandbox.armInactivityWarnTimer();
         sandbox.armSessionLimitTimers();
@@ -1459,7 +1467,7 @@ async function run() {
 
     console.log('Testing session limit: 30s before the (default 3-minute) cap, the agent speaks a heads-up line...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         sandbox.armSessionLimitTimers();
         const limitMs = getLexical(sandbox, 'freeConversationSessionLimitMs');
         assert.strictEqual(limitMs, 3 * 60 * 1000, 'sanity: default session limit is 3 minutes');
@@ -1474,7 +1482,7 @@ async function run() {
 
     console.log('Testing session limit: at the cap, the agent says goodbye and the session fully closes...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
         sandbox.armSessionLimitTimers();
         const limitMs = getLexical(sandbox, 'freeConversationSessionLimitMs');
@@ -1489,7 +1497,7 @@ async function run() {
 
     console.log('Testing session limit: real user speech does NOT extend the absolute session cap...');
     {
-        const sandbox = setupInactivityTestSandbox();
+        const sandbox = setupModelLineSandbox();
         sandbox.armSessionLimitTimers();
         const timersBefore = countTimersWithDelay(sandbox, getLexical(sandbox, 'freeConversationSessionLimitMs'));
 
@@ -1499,6 +1507,43 @@ async function run() {
     }
 
     // ================= Hold to Talk: completely unaffected =================
+    // Pre-rendered service lines (prod 2026-10-05: the model-spoken warning
+    // was cut by the guest's speech, the closing line never came).
+    console.log('Testing service lines: pre-rendered audio is requested, model only as fallback, close after the line ends...');
+    {
+        const sandbox = setupInactivityTestSandboxBase();
+        vm.runInContext(`micStream = { getTracks: () => [{ id: 't', stop() {} }], getAudioTracks: () => [{ id: 't', stop() {} }] };`, sandbox);
+        sandbox.armSessionLimitTimers();
+        const limitMs = getLexical(sandbox, 'freeConversationSessionLimitMs');
+        fireTimerWithDelay(sandbox, limitMs - 30000);
+        let msgs = getLexical(sandbox, 'ws.sentMessages');
+        const warnReq = msgs.filter((m) => m.type === 'scripted_line.request');
+        assert.strictEqual(warnReq.length, 1, 'the 30s warning asks the server for the pre-rendered line');
+        assert.strictEqual(warnReq[0].key, 'session_warning');
+        assert.strictEqual(msgs.filter((m) => m.type === 'input_text.submit').length, 0, 'the model is not asked to say it');
+
+        // No rendered audio (e.g. Grok voice): fall back to the model.
+        sandbox.onScriptedLineReply({ type: 'assistant.scripted_line', request_id: warnReq[0].request_id, key: 'session_warning', text: 'x', audio_base64: null });
+        msgs = getLexical(sandbox, 'ws.sentMessages');
+        const viaModel = msgs.filter((m) => m.type === 'input_text.submit');
+        assert.strictEqual(viaModel.length, 1, 'no audio -> the model says the warning');
+        assert.ok(viaModel[0].text.includes(getLexical(sandbox, 'FREE_CONV_SESSION_WARNING_TEXT')));
+
+        // Closing line with audio: the session ends when the LINE ends, not
+        // on a model drain.
+        vm.runInContext(`playScriptedLineAudio = (payload, text) => { scriptedLineSource = { stop() {} }; return true; };`, sandbox);
+        fireTimerWithDelay(sandbox, limitMs);
+        msgs = getLexical(sandbox, 'ws.sentMessages');
+        const closeReq = msgs.filter((m) => m.type === 'scripted_line.request' && m.key === 'session_limit');
+        assert.strictEqual(closeReq.length, 1, 'the closing line is requested pre-rendered');
+        sandbox.onScriptedLineReply({ type: 'assistant.scripted_line', request_id: closeReq[0].request_id, key: 'session_limit', text: 'x', audio_base64: 'AAAA', sample_rate: 24000 });
+        sandbox.maybeFinishSpeaking();
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 1, 'a model drain does not end the session while the closing line plays');
+        vm.runInContext('scriptedLineSource = null;', sandbox);
+        sandbox.onScriptedLineEnded(getLexical(sandbox, 'FREE_CONV_SESSION_LIMIT_TEXT'));
+        assert.strictEqual(getLexical(sandbox, 'ws.readyState'), 3, 'the session closes once the closing line has been said');
+    }
+
     console.log('Testing Hold to Talk: none of the new inactivity/session-limit machinery ever engages...');
     {
         const sandbox = createTestSandbox();
