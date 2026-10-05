@@ -149,6 +149,13 @@ function buildConversationInstruction(style = {}) {
         'Say in one short sentence that you follow wine rather than that, in the guest\'s language, and if it fits offer a light wine turn (e.g. what to open while watching the match).'
     );
 
+    // Gemini Live sometimes spoke a tool call aloud ("call:search_wine_
+    // knowledge{query:...}") instead of calling it (prod 2026-10-05).
+    parts.push(
+        'TOOLS ARE SILENT\n' +
+        'Use tools only through function calling. Never say or write tool names, "call:", code, JSON, braces or parameters; the guest must only hear natural speech.'
+    );
+
     // 2. responseLength rules
     const lenText = {
         brief: 'RESPONSE LENGTH: BRIEF\nKeep your answers brief and concise, usually 1–2 sentences (approx. 15–40 words). Focus on one main thought and avoid repeating the user\'s question or using long introductory phrases.',
