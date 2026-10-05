@@ -1,6 +1,7 @@
 'use strict';
 
 const diagRing = require('./diagRing');
+const { createToolTextFilter } = require('./toolTextFilter');
 const providerHealth = require('../observability/providerHealth');
 const { createTurnCollector, observeToolHandlers, recordTurn } = require('../observability/turnJournal');
 const { checkWineNames } = require('../observability/wineNameCheck');
@@ -1617,6 +1618,22 @@ function createRealtimeSession(socket, providerFactory, providerMetadata = {}, s
     function emitProviderEvent(generation, payload) {
         if (!generation) return false;
         const eventType = payload?.type || 'unknown';
+        // A tool call the model SAID instead of making ("call:search_wine_
+        // knowledge{...}") is cut out of the transcript (chat, journal,
+        // recent turns). See toolTextFilter.js.
+        if (eventType === 'transcript.model') {
+            if (!generation.toolTextFilter) generation.toolTextFilter = createToolTextFilter();
+            const before = generation.toolTextFilter.stats().suppressed;
+            payload = { ...payload, text: generation.toolTextFilter.push(payload.text) };
+            const stats = generation.toolTextFilter.stats();
+            if (stats.suppressed > before) {
+                log('tool_text_suppressed', { generationId: generation.generationId, tool: stats.lastTool || 'unknown' });
+                turnJournal.noteFlag(generation, 'spoken_tool_call', stats.lastTool || true);
+            }
+        } else if ((eventType === 'audio.end' || eventType === 'response.cancelled') && generation.toolTextFilter) {
+            const rest = generation.toolTextFilter.flush();
+            if (rest) emitProviderEvent(generation, { type: 'transcript.model', response_id: payload.response_id, turn_id: payload.turn_id, text: rest });
+        }
         if (eventType === 'error') providerHealth.observe('provider_error', payload);
         const modelOutputEvents = new Set(['transcript.model', 'audio.start', 'audio.chunk', 'audio.end']);
         const startsGenerationEvents = new Set(['transcript.model', 'audio.start', 'audio.chunk']);
