@@ -57,7 +57,11 @@ const { phraseKey } = require('./bridgePhraseStore');
 // Optional `store` (bridgePhraseStore.js): audio rendered by any earlier
 // process is loaded from it first, and every new render is saved to it, so
 // a deploy does not have to call TTS again.
-function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retryDelayMs = 1500, renderGapMs = 250, retryCooldownMs = 60000 } = {}) {
+// `phrases` (default: the bridge PHRASES) lets the same cache render other
+// fixed lines, e.g. the service lines in scriptedLines.js.
+function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retryDelayMs = 1500, renderGapMs = 250, retryCooldownMs = 60000, phrases = PHRASES, label = 'bridge' } = {}) {
+    const PHRASES = phrases; // shadows the module set for this cache
+    const TOTAL_PHRASES = Object.values(PHRASES).reduce((n, list) => n + list.length, 0);
     const audio = new Map();
     const inFlight = new Map(); // voice -> job
     const lastAttemptAt = new Map(); // voice -> ms
@@ -80,7 +84,7 @@ function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now 
             }
             loadedFromStore.add(voice);
             storedCount += loaded;
-            log('bridge_phrases_loaded', { voice, loaded });
+            log(`${label}_phrases_loaded`, { voice, loaded });
         } catch (error) {
             log('bridge_phrase_store_failed', { voice, op: 'load', message: String(error && error.message || error).slice(0, 120) });
         }
@@ -142,7 +146,7 @@ function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now 
             for (const lang of Object.keys(PHRASES)) {
                 for (let index = 0; index < PHRASES[lang].length; index += 1) if (!audio.has(key(voice, lang, index))) missing.push(`${lang}${index}`);
             }
-            log('bridge_phrases_ready', { voice, count: renderedCount(voice), total: TOTAL_PHRASES, missing: missing.join(',') || 'none' });
+            log(`${label}_phrases_ready`, { voice, count: renderedCount(voice), total: TOTAL_PHRASES, missing: missing.join(',') || 'none' });
         })().finally(() => inFlight.delete(voice));
         inFlight.set(voice, job);
         return job;
@@ -163,7 +167,7 @@ function createBridgeAudioCache({ synthesize, store = null, log = () => {}, now 
     }
 
     const cache = { warm, get, status, size: () => audio.size };
-    lastCache = cache;
+    if (label === 'bridge') lastCache = cache;
     return cache;
 }
 

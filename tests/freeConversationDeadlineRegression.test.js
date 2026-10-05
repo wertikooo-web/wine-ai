@@ -34,7 +34,8 @@ test('spoken warning cannot interrupt a busy conversation', () => {
 // Production 2 Oct (1-minute limit): the end of the conversation cut the
 // assistant mid-sentence. The auto-end fallbacks wait while it is speaking.
 test('auto-end fallback never disconnects while the assistant is still speaking', () => {
-  assert.match(dashboard, /if \(assistantSpeechInProgress\(\) && Date\.now\(\) < \(owner\.fallbackDeadlineAt \|\| 0\)\)/);
+  // (also while a pre-rendered service line is still playing)
+  assert.match(dashboard, /if \(\(assistantSpeechInProgress\(\) \|\| scriptedLineSource \|\| pendingScriptedLine\) && Date\.now\(\) < \(owner\.fallbackDeadlineAt \|\| 0\)\)/);
   assert.match(dashboard, /const AUTO_END_SPEECH_EXTENSION_MAX_MS = 30000;/);
   assert.match(dashboard, /const answerInProgress = assistantSpeechInProgress\(\);/);
 });
